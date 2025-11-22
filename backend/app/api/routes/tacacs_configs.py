@@ -1,6 +1,7 @@
 import uuid
 from typing import Any
 from datetime import datetime
+import re
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import func, select
 
@@ -96,6 +97,18 @@ def create_tacacs_config(
     """
     Create new tacacs_config.
     """
+
+    # Validate filename for safe characters
+    if not re.match(r"^[a-zA-Z0-9._-]+$", tacacs_config_in.filename):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid filename. Only alphanumerics, dots, underscores, and hyphens are allowed.",
+        )
+    if tacacs_config_in.filename in [".", ".."]:
+        raise HTTPException(
+            status_code=400,
+            detail="Filename cannot be '.' or '..'.",
+        )
 
     tacacs_config = tacacs_configs.get_tacacs_config_by_name(
         session=session, name=tacacs_config_in.filename

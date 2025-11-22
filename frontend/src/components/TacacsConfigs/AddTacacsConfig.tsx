@@ -3,11 +3,12 @@ import {
   DialogActionTrigger,
   DialogTitle,
   Input,
+  InputGroup,
   Text,
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
 
@@ -64,6 +65,25 @@ const AddTacacsConfig = () => {
     mutation.mutate(data)
   }
 
+  useEffect(() => {
+    if (isOpen) {
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, "0")
+      const day = String(now.getDate()).padStart(2, "0")
+      const hours = String(now.getHours()).padStart(2, "0")
+      const minutes = String(now.getMinutes()).padStart(2, "0")
+      const seconds = String(now.getSeconds()).padStart(2, "0")
+      const datetimeString = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+      const defaultFilename = `config_${year}-${month}-${day}_${hours}-${minutes}-${seconds}`
+
+      reset({
+        filename: defaultFilename,
+        description: "generated at " + datetimeString,
+      })
+    }
+  }, [isOpen, reset])
+
   return (
     <DialogRoot
       size={{ base: "xs", md: "md" }}
@@ -91,13 +111,27 @@ const AddTacacsConfig = () => {
                 errorText={errors.filename?.message}
                 label="filename"
               >
-                <Input
-                  {...register("filename", {
-                    required: "filename is required.",
-                  })}
-                  placeholder="filename"
-                  type="text"
-                />
+                <InputGroup endElement=".cfg">
+                  <Input
+                    {...register("filename", {
+                      required: "Filename is required.",
+                      maxLength: {
+                        value: 30,
+                        message: "Filename must be 30 characters or less.",
+                      },
+                      pattern: {
+                        value: /^[a-zA-Z0-9._-]+$/,
+                        message:
+                          "Only alphanumerics, dots, underscores, and hyphens are allowed.",
+                      },
+                      validate: (value) =>
+                        (value !== "." && value !== "..") ||
+                        "Filename cannot be '.' or '..'",
+                    })}
+                    placeholder="filename"
+                    type="text"
+                  />
+                </InputGroup>
               </Field>
               <Field
                 invalid={!!errors.description}

@@ -1,4 +1,10 @@
-import { Button, Textarea } from "@chakra-ui/react"
+import {
+    Button,
+    CodeBlock,
+    Spinner,
+    Text,
+    createShikiAdapter,
+} from "@chakra-ui/react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiEye } from "react-icons/fi"
@@ -14,6 +20,18 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { handleError } from "@/utils"
+import type { HighlighterGeneric } from "shiki"
+
+const shikiAdapter = createShikiAdapter<HighlighterGeneric<any, any>>({
+    async load() {
+        const { createHighlighter } = await import("shiki")
+        return createHighlighter({
+            langs: ["bash"],
+            themes: ["github-dark"],
+        })
+    },
+    theme: "github-dark",
+})
 
 const PreviewTacacsConfig = () => {
     const [isOpen, setIsOpen] = useState(false)
@@ -53,12 +71,27 @@ const PreviewTacacsConfig = () => {
                     <DialogTitle>Preview Candidate TACACS+ Config</DialogTitle>
                 </DialogHeader>
                 <DialogBody>
-                    <Textarea
-                        readOnly
-                        value={previewData?.data || "No preview available."}
-                        rows={20}
-                        fontFamily="monospace"
-                    />
+                    {isLoading ? (
+                        <Spinner />
+                    ) : previewData?.data ? (
+                        <CodeBlock.AdapterProvider value={shikiAdapter}>
+                            <CodeBlock.Root
+                                code={previewData.data}
+                                language="bash"
+                                meta={{ showLineNumbers: true }}
+                                maxH="400px"
+                                overflowY="auto"
+                            >
+                                <CodeBlock.Content>
+                                    <CodeBlock.Code>
+                                        <CodeBlock.CodeText />
+                                    </CodeBlock.Code>
+                                </CodeBlock.Content>
+                            </CodeBlock.Root>
+                        </CodeBlock.AdapterProvider>
+                    ) : (
+                        <Text>No preview available.</Text>
+                    )}
                 </DialogBody>
                 <DialogCloseTrigger />
             </DialogContent>
