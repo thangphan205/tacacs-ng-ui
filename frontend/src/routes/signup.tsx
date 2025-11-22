@@ -23,7 +23,7 @@ import { InputGroup } from "@/components/ui/input-group"
 import { PasswordInput } from "@/components/ui/password-input"
 import useAuth, { isLoggedIn } from "@/hooks/useAuth"
 import { confirmPasswordRules, emailPattern } from "@/utils"
-import Logo from "/assets/images/tacacs-logo.svg"
+import Logo from "/assets/images/tacacs-ng-ui.svg"
 
 export const Route = createFileRoute("/signup")({
   component: SignUp,
