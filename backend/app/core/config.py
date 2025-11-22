@@ -148,5 +148,7 @@ class Settings(BaseSettings):
     TACACS_GROUP_PREFIX: str = "tacacs_"
     LDAP_FILTER: str = "(&(objectClass=inetorgperson)(uid=%s))"
 
+    USERS_OPEN_REGISTRATION: bool = False
+
 
 settings = Settings()  # type: ignore
