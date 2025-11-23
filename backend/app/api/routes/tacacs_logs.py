@@ -11,8 +11,7 @@ from app.models import TacacsLog, TacacsLogPublic, TacacsLogsPublic
 
 router = APIRouter(prefix="/tacacs_logs", tags=["tacacs_logs"])
 
-SHARED_BASE_PATH = "/app/tacacs_config_and_logs/log"
-LOG_DIRECTORY = SHARED_BASE_PATH
+LOG_DIRECTORY = "/var/log/tacacs"
 
 
 @router.get(

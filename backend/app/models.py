@@ -133,13 +133,13 @@ class TacacsNgSettingBase(SQLModel):
     instances_max: int = Field(default=10)
     background: str = Field(default="no")
     access_logfile_destination: str = Field(
-        default="/app/tacacs_config_and_logs/log/%Y/%m/access-%Y-%m-%d.log"
+        default="/var/log/tacacs/%Y/%m/access-%Y-%m-%d.log"
     )
     accounting_logfile_destination: str = Field(
-        default="/app/tacacs_config_and_logs/log/%Y/%m/accounting-%Y-%m-%d.log"
+        default="/var/log/tacacs/%Y/%m/accounting-%Y-%m-%d.log"
     )
     authentication_logfile_destination: str = Field(
-        default="/app/tacacs_config_and_logs/log/%Y/%m/authentication-%Y-%m-%d.log"
+        default="/var/log/tacacs/%Y/%m/authentication-%Y-%m-%d.log"
     )
     login_backend: str = Field(default="mavis")
     user_backend: str = Field(default="mavis")
