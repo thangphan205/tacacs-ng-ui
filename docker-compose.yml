@@ -126,6 +126,7 @@ services:
       context: ./backend
     volumes:
       - ./backend/tacacs_config_and_logs:/app/tacacs_config_and_logs
+      - tacacs_log_data:/var/log/tacacs
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
@@ -176,6 +177,7 @@ volumes:
   app-db-data:
   tacacs_data_volume:
     driver: local
+  tacacs_log_data: {}
 networks:
   traefik-public:
     # Allow setting it to false for testing

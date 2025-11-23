@@ -13,7 +13,7 @@ router = APIRouter(prefix="/tacacs_statistics", tags=["tacacs_statistics"])
 
 logging.basicConfig(level=logging.INFO)
 
-LOG_DIRECTORY = "/app/tacacs_config_and_logs/log"
+LOG_DIRECTORY = "/var/log/tacacs"
 
 
 # Directory where your log files are stored
