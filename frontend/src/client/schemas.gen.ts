@@ -534,6 +534,22 @@ export const ItemsPublicSchema = {
     title: 'ItemsPublic'
 } as const;
 
+export const LogSummarySchema = {
+    properties: {
+        successful: {
+            type: 'integer',
+            title: 'Successful'
+        },
+        failed: {
+            type: 'integer',
+            title: 'Failed'
+        }
+    },
+    type: 'object',
+    required: ['successful', 'failed'],
+    title: 'LogSummary'
+} as const;
+
 export const MavisPublicSchema = {
     properties: {
         ldap_server_type: {
@@ -1776,6 +1792,59 @@ export const TacacsConfigsPublicSchema = {
     title: 'TacacsConfigsPublic'
 } as const;
 
+export const TacacsFileLogStatisticsSchema = {
+    properties: {
+        parsed_line_count: {
+            type: 'integer',
+            title: 'Parsed Line Count'
+        },
+        log_summary: {
+            '$ref': '#/components/schemas/LogSummary'
+        },
+        top_successful_login_users: {
+            items: {
+                '$ref': '#/components/schemas/TopEntry'
+            },
+            type: 'array',
+            title: 'Top Successful Login Users'
+        },
+        top_nas_ips: {
+            items: {
+                '$ref': '#/components/schemas/TopEntry'
+            },
+            type: 'array',
+            title: 'Top Nas Ips'
+        },
+        top_access_ips: {
+            items: {
+                '$ref': '#/components/schemas/TopEntry'
+            },
+            type: 'array',
+            title: 'Top Access Ips'
+        },
+        ip_access_by_users: {
+            additionalProperties: {
+                items: {
+                    type: 'string'
+                },
+                type: 'array'
+            },
+            type: 'object',
+            title: 'Ip Access By Users'
+        },
+        user_login_breakdown: {
+            items: {
+                '$ref': '#/components/schemas/UserLoginBreakdown'
+            },
+            type: 'array',
+            title: 'User Login Breakdown'
+        }
+    },
+    type: 'object',
+    required: ['parsed_line_count', 'log_summary', 'top_successful_login_users', 'top_nas_ips', 'top_access_ips', 'ip_access_by_users', 'user_login_breakdown'],
+    title: 'TacacsFileLogStatistics'
+} as const;
+
 export const TacacsGroupCreateSchema = {
     properties: {
         group_name: {
@@ -2394,6 +2463,22 @@ export const TokenSchema = {
     title: 'Token'
 } as const;
 
+export const TopEntrySchema = {
+    properties: {
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['name', 'count'],
+    title: 'TopEntry'
+} as const;
+
 export const UpdatePasswordSchema = {
     properties: {
         current_password: {
@@ -2454,6 +2539,26 @@ export const UserCreateSchema = {
     type: 'object',
     required: ['email', 'password'],
     title: 'UserCreate'
+} as const;
+
+export const UserLoginBreakdownSchema = {
+    properties: {
+        user: {
+            type: 'string',
+            title: 'User'
+        },
+        successful: {
+            type: 'integer',
+            title: 'Successful'
+        },
+        failed: {
+            type: 'integer',
+            title: 'Failed'
+        }
+    },
+    type: 'object',
+    required: ['user', 'successful', 'failed'],
+    title: 'UserLoginBreakdown'
 } as const;
 
 export const UserPublicSchema = {

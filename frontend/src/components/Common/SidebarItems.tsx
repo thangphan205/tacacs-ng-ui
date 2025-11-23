@@ -22,6 +22,7 @@ import type { UserPublic } from "@/client"
 
 const items = [
   { icon: FiHome, title: "Dashboard", path: "/", level: 1 },
+  // { icon: FiHome, title: "Statistics", path: "/tacacs_statistics", level: 1 },
   { icon: FiArchive, title: "Tacacs configs", path: "/tacacs_configs", level: 1 },
   { icon: FiServer, title: "Hosts", path: "/hosts", level: 1 },
   { icon: FiUsers, title: "Tacacs Groups", path: "/tacacs_groups", level: 1 },

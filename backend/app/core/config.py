@@ -127,13 +127,13 @@ class Settings(BaseSettings):
     BACKGROUND: str = "no"
 
     ACCESS_LOG_DESTINATION: str = (
-        "/app/tacacs_shared_data/log/%Y/%m/access-%m-%d-%Y.txt"
+        "/app/tacacs_shared_data/log/%Y/%m/access-%Y-%m-%d.log"
     )
     ACCOUNTING_LOG_DESTINATION: str = (
-        "/app/tacacs_shared_data/log/%Y/%m/accounting-%m-%d-%Y.txt"
+        "/app/tacacs_shared_data/log/%Y/%m/accounting-%Y-%m-%d.log"
     )
     AUTHENTICATION_LOG_DESTINATION: str = (
-        "/app/tacacs_shared_data/log/%Y/%m/authentication-%m-%d-%Y.txt"
+        "/app/tacacs_shared_data/log/%Y/%m/authentication-%Y-%m-%d.log"
     )
     LOGIN_BACKEND: str = "mavis"
     USER_BACKEND: str = "mavis"

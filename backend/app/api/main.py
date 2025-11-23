@@ -20,6 +20,7 @@ from app.api.routes import (
     rulesetscripts,
     rulesetscriptsets,
     tacacs_logs,
+    tacacs_statistics,
 )
 from app.core.config import settings
 
@@ -42,6 +43,7 @@ api_router.include_router(rulesets.router)
 api_router.include_router(rulesetscripts.router)
 api_router.include_router(rulesetscriptsets.router)
 api_router.include_router(tacacs_logs.router)
+api_router.include_router(tacacs_statistics.router)
 
 if settings.ENVIRONMENT == "local":
     api_router.include_router(private.router)

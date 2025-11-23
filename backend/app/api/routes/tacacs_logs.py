@@ -47,9 +47,9 @@ def list_log_files(
             ).first()
             if not existing:
                 try:
-                    # Assuming filename format is like 'access-MM-DD-YYYY.txt'
+                    # Assuming filename format is like 'access-YYYY-mm-dd.log'
                     date_str = "-".join(file.split("-")[1:4]).split(".")[0]
-                    log_date = datetime.strptime(date_str, "%m-%d-%Y")
+                    log_date = datetime.strptime(date_str, "%Y-%m-%d")
                 except (IndexError, ValueError):
                     log_date = datetime.fromtimestamp(
                         os.path.getmtime(os.path.join(root, file))

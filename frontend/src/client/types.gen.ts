@@ -82,6 +82,11 @@ export type ItemUpdate = {
     description?: (string | null);
 };
 
+export type LogSummary = {
+    successful: number;
+    failed: number;
+};
+
 export type MavisPublic = {
     ldap_server_type?: string;
     ldap_hosts?: string;
@@ -338,6 +343,18 @@ export type TacacsConfigUpdate = {
     description?: (string | null);
 };
 
+export type TacacsFileLogStatistics = {
+    parsed_line_count: number;
+    log_summary: LogSummary;
+    top_successful_login_users: Array<TopEntry>;
+    top_nas_ips: Array<TopEntry>;
+    top_access_ips: Array<TopEntry>;
+    ip_access_by_users: {
+        [key: string]: Array<(string)>;
+    };
+    user_login_breakdown: Array<UserLoginBreakdown>;
+};
+
 export type TacacsGroupCreate = {
     group_name: string;
     description?: (string | null);
@@ -469,6 +486,11 @@ export type Token = {
     token_type?: string;
 };
 
+export type TopEntry = {
+    name: string;
+    count: number;
+};
+
 export type UpdatePassword = {
     current_password: string;
     new_password: string;
@@ -480,6 +502,12 @@ export type UserCreate = {
     is_superuser?: boolean;
     full_name?: (string | null);
     password: string;
+};
+
+export type UserLoginBreakdown = {
+    user: string;
+    successful: number;
+    failed: number;
 };
 
 export type UserPublic = {
@@ -952,6 +980,12 @@ export type TacacsServicesDeleteTacacsServiceData = {
 };
 
 export type TacacsServicesDeleteTacacsServiceResponse = (Message);
+
+export type TacacsStatisticsGetTacacsLogsStatisticsData = {
+    dateStr?: (string | null);
+};
+
+export type TacacsStatisticsGetTacacsLogsStatisticsResponse = (TacacsFileLogStatistics);
 
 export type TacacsUsersReadTacacsUsersData = {
     limit?: number;
