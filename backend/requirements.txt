@@ -41,7 +41,7 @@ python-multipart==0.0.20
 PyYAML==6.0.3
 requests==2.32.5
 rich==14.1.0
-rich-toolkit==0.15.1
+rich-toolkit==0.16.0
 rignore==0.7.0
 sentry-sdk==2.40.0
 shellingham==1.5.4
