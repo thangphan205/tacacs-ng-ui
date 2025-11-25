@@ -62,7 +62,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 ENV PYTHONPATH=/app
 
-COPY ./tacacs_config_and_logs /app/tacacs_config_and_logs
+COPY ./tacacs_config /app/tacacs_config
 
 COPY ./scripts /app/scripts
 

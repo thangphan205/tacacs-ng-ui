@@ -74,6 +74,8 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
       - USERS_OPEN_REGISTRATION=${USERS_OPEN_REGISTRATION}
+      - TACACS_LOG_DIRECTORY=${TACACS_LOG_DIRECTORY}
+      - TZ=${TZ:-UTC}
 
   backend:
     image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
@@ -108,6 +110,8 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
       - USERS_OPEN_REGISTRATION=${USERS_OPEN_REGISTRATION}
+      - TACACS_LOG_DIRECTORY=${TACACS_LOG_DIRECTORY}
+      - TZ=${TZ:-UTC}
 
     healthcheck:
       test:
@@ -125,7 +129,7 @@ services:
     build:
       context: ./backend
     volumes:
-      - ./backend/tacacs_config_and_logs:/app/tacacs_config_and_logs
+      - ./backend/tacacs_config:/app/tacacs_config
       - tacacs_log_data:/var/log/tacacs
     labels:
       - traefik.enable=true

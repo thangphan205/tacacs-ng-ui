@@ -1,6 +1,8 @@
 import {
   Container,
   Button,
+  Input,
+  InputGroup,
   Select,
   EmptyState,
   Flex,
@@ -12,7 +14,7 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { FiSearch, FiEye } from "react-icons/fi"
-import { z } from "zod"
+import { z } from "zod" // Keep z for schema validation
 
 import { TacacsLogsService } from "@/client"
 import ShowTacacsLog from "@/components/TacacsLogs/ShowTacacsLog"
@@ -22,7 +24,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react" // Add useEffect, useRef for debounce
 
 interface TacacsLogsSearch {
   page: number
@@ -56,9 +58,11 @@ export const Route = createFileRoute("/_layout/tacacs_logs")({
 function TacacsLogsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, search } = Route.useSearch()
-  const [searchString, setSearchString] = useState("")
+  const [localSearchInput, setLocalSearchInput] = useState(search || ""); // Local state for input field
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const { data, isLoading } = useQuery({
-    ...getTacacsLogsQueryOptions({ page, search: searchString }),
+    ...getTacacsLogsQueryOptions({ page, search: search }), // Use search from URL
     placeholderData: (prevData) => prevData,
   })
 
@@ -70,17 +74,41 @@ function TacacsLogsTable() {
   }
 
 
+  // Effect to update local input when URL search changes (e.g., back button)
+  useEffect(() => {
+    setLocalSearchInput(search || "");
+  }, [search]);
 
+  const handleSearchInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newSearchValue = event.target.value;
+    setLocalSearchInput(newSearchValue);
+
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    debounceTimeoutRef.current = setTimeout(() => {
+      navigate({
+        to: "/tacacs_logs",
+        search: (prev) => ({
+          ...prev,
+          page: 1, // Reset page when search changes
+          search: newSearchValue === "" ? undefined : newSearchValue,
+        }),
+      });
+    }, 500); // 500ms debounce
+  };
 
   const tacacs_logs = data?.data.slice(0, PER_PAGE) ?? []
   const count = data?.count ?? 0
-  console.log(searchString);
 
+  // console.log(searchString); // Remove this
   if (isLoading) {
     return null
   }
   const items_file_type = createListCollection<{ value: string; label: string }>({
     items: [
+      { value: '', label: 'All Types' }, // Add an option to clear the filter
       { value: 'access', label: 'access' },
       { value: 'authentication', label: 'authentication' },
       { value: 'accounting', label: 'accounting' },
@@ -91,10 +119,25 @@ function TacacsLogsTable() {
       <EmptyState.Root>
         <EmptyState.Content>
           <Flex mb={4} width="100%" justifyContent="flex-end">
+            {/* Search Input */}
+            <InputGroup maxW="sm" mr={4}>
+              <Input
+                type="text"
+                placeholder="Search logs..."
+                value={localSearchInput}
+                onChange={handleSearchInputChange}
+                size="sm"
+              />
+            </InputGroup>
+
+            {/* File Type Select */}
             <Select.Root
               collection={items_file_type}
               onSelect={(selection) => {
-                setSearchString(selection.value);
+                navigate({
+                  to: "/tacacs_logs",
+                  search: (prev) => ({ ...prev, page: 1, search: selection.value === "" ? undefined : selection.value }),
+                });
               }}
               size="sm"
             >
@@ -110,9 +153,9 @@ function TacacsLogsTable() {
               <Select.Positioner>
                 <Select.Content>
                   <Select.ItemGroup>
-                    {["access", "authentication", "accounting"].map((type) => (
-                      <Select.Item key={type} item={type}>
-                        {type}
+                    {items_file_type.items.map((item) => (
+                      <Select.Item key={item.value} item={item.value}>
+                        {item.label}
                         <Select.ItemIndicator />
                       </Select.Item>
                     ))}
@@ -137,23 +180,44 @@ function TacacsLogsTable() {
 
   return (
     <>
-      <Flex mt={4}>
+      <Flex mt={4} justifyContent="flex-end"> {/* Align items to the right */}
+        {/* Search Input */}
+        <InputGroup maxW="sm" mr={4}>
+          <Input
+            type="text"
+            placeholder="Search logs..."
+            value={localSearchInput}
+            onChange={handleSearchInputChange}
+            size="sm"
+          />
+        </InputGroup>
+
+        {/* File Type Select */}
         <Select.Root
           collection={items_file_type}
           onSelect={(selection) => {
-            setSearchString(selection.value);
+            navigate({
+              to: "/tacacs_logs",
+              search: (prev) => ({ ...prev, page: 1, search: selection.value === "" ? undefined : selection.value }),
+            });
           }}
           size="sm"
         >
-          <Select.Trigger>
-            <Select.ValueText placeholder="Select file type" />
-          </Select.Trigger>
+          <Select.Control>
+            <Select.Trigger>
+              <Select.ValueText placeholder="Select file type" />
+            </Select.Trigger>
+            <Select.IndicatorGroup>
+              <Select.ClearTrigger />
+              <Select.Indicator />
+            </Select.IndicatorGroup>
+          </Select.Control>
           <Select.Positioner>
             <Select.Content>
               <Select.ItemGroup>
-                {["access", "authentication", "accounting"].map((type) => (
-                  <Select.Item key={type} item={type}>
-                    {type}
+                {items_file_type.items.map((item) => (
+                  <Select.Item key={item.value} item={item.value}>
+                    {item.label}
                     <Select.ItemIndicator />
                   </Select.Item>
                 ))}

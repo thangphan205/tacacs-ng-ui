@@ -2,15 +2,18 @@ import {
   Button,
   ButtonGroup,
   Code,
+  Input,
+  InputGroup,
   Spinner,
   Text,
   VStack,
   Table,
 } from "@chakra-ui/react"
-import { useQuery, } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import { FaEye } from "react-icons/fa"
 import React from "react"
+import { FiSearch } from "react-icons/fi"
 import {
   TacacsLogsService,
 } from "@/client"
@@ -38,15 +41,20 @@ const ShowTacacsLog = ({
   children,
 }: ShowTacacsLogProps) => {
   const [isOpen, setIsOpen] = useState(false)
-
+  const [searchTerm, setSearchTerm] = useState("")
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["tacacs_log", tacacs_log.id],
-    queryFn: () => TacacsLogsService.readLogFile({ id: tacacs_log.id }),
+    // The search term is added to the query key to trigger a refetch when it changes
+    queryKey: ["tacacs_log", tacacs_log.id, searchTerm],
+    queryFn: () =>
+      TacacsLogsService.readLogFile({
+        id: tacacs_log.id,
+        search: searchTerm || undefined, // Pass undefined if search is empty
+      }),
     enabled: isOpen, // Only fetch when the dialog is open
+    // Adding a small staleTime to prevent refetching on window focus
+    staleTime: 1000 * 60, // 1 minute
   })
-
-
 
   const renderContent = () => {
     if (isLoading) {
@@ -98,6 +106,13 @@ const ShowTacacsLog = ({
         </DialogHeader>
         <DialogBody>
           <VStack gap={4} align="stretch">
+            <InputGroup>
+              <Input
+                placeholder="Search in log content..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </InputGroup>
             {renderContent()}
           </VStack>
         </DialogBody>
@@ -116,7 +131,7 @@ const ShowTacacsLog = ({
         </DialogFooter>
         <DialogCloseTrigger />
       </DialogContent>
-    </DialogRoot>
+    </DialogRoot >
   )
 }
 

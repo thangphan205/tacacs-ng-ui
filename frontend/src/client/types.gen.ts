@@ -35,6 +35,7 @@ export type HostPublic = {
     description?: (string | null);
     id: string;
     created_at: string;
+    updated_at: string;
 };
 
 export type HostsPublic = {
@@ -70,6 +71,7 @@ export type ItemPublic = {
     id: string;
     owner_id: string;
     created_at: string;
+    updated_at: string;
 };
 
 export type ItemsPublic = {
@@ -87,30 +89,33 @@ export type LogSummary = {
     failed: number;
 };
 
+export type MavisCreate = {
+    mavis_key: string;
+    mavis_value: string;
+};
+
+export type MavisesPublic = {
+    data: Array<MavisPublic>;
+    count: number;
+};
+
+export type MavisPreviewPublic = {
+    data?: (string | null);
+    created_at?: (string | null);
+    updated_at?: (string | null);
+};
+
 export type MavisPublic = {
-    ldap_server_type?: string;
-    ldap_hosts?: string;
-    ldap_base?: string;
-    ldap_user?: string;
-    ldap_passwd?: string;
-    ldap_filter?: string;
-    ldap_timeout?: number;
-    require_tacacs_group_prefix?: number;
-    tacacs_group_prefix?: string;
+    mavis_key: string;
+    mavis_value: string;
     id: string;
     created_at: string;
+    updated_at: string;
 };
 
 export type MavisUpdate = {
-    ldap_server_type?: string;
-    ldap_hosts?: string;
-    ldap_base?: string;
-    ldap_user?: string;
-    ldap_passwd?: string;
-    ldap_filter?: string;
-    ldap_timeout?: number;
-    require_tacacs_group_prefix?: number;
-    tacacs_group_prefix?: string;
+    mavis_key: string;
+    mavis_value: string;
 };
 
 export type Message = {
@@ -135,12 +140,19 @@ export type ProfileCreate = {
     description?: (string | null);
 };
 
+export type ProfilePreviewPublic = {
+    data?: (string | null);
+    created_at?: (string | null);
+    updated_at?: (string | null);
+};
+
 export type ProfilePublic = {
     name: string;
     action: string;
     description?: (string | null);
     id: string;
     created_at: string;
+    updated_at: string;
 };
 
 export type ProfileScriptCreate = {
@@ -162,6 +174,7 @@ export type ProfileScriptPublic = {
     id: string;
     profile_name?: (string | null);
     created_at: string;
+    updated_at: string;
 };
 
 export type ProfileScriptSetCreate = {
@@ -181,6 +194,7 @@ export type ProfileScriptSetPublic = {
     profile_name?: (string | null);
     profilescript_block?: (string | null);
     created_at: string;
+    updated_at: string;
 };
 
 export type ProfileScriptSetsPublic = {
@@ -227,6 +241,12 @@ export type RulesetCreate = {
     description?: (string | null);
 };
 
+export type RulesetPreviewPublic = {
+    data?: (string | null);
+    created_at?: (string | null);
+    updated_at?: (string | null);
+};
+
 export type RulesetPublic = {
     name: string;
     enabled?: string;
@@ -234,6 +254,7 @@ export type RulesetPublic = {
     description?: (string | null);
     id: string;
     created_at: string;
+    updated_at: string;
 };
 
 export type RulesetScriptCreate = {
@@ -255,6 +276,7 @@ export type RulesetScriptPublic = {
     id: string;
     ruleset_name?: (string | null);
     created_at: string;
+    updated_at: string;
 };
 
 export type RulesetScriptSetCreate = {
@@ -274,6 +296,7 @@ export type RulesetScriptSetPublic = {
     ruleset_name?: (string | null);
     rulesetscript_block?: (string | null);
     created_at: string;
+    updated_at: string;
 };
 
 export type RulesetScriptSetsPublic = {
@@ -322,6 +345,7 @@ export type TacacsConfigCreate = {
 export type TacacsConfigPreviewPublic = {
     created_at: string;
     data?: (string | null);
+    updated_at: string;
 };
 
 export type TacacsConfigPublic = {
@@ -330,6 +354,7 @@ export type TacacsConfigPublic = {
     id: string;
     active: boolean;
     created_at: string;
+    updated_at: string;
     data?: (string | null);
 };
 
@@ -365,6 +390,7 @@ export type TacacsGroupPublic = {
     description?: (string | null);
     id: string;
     created_at: string;
+    updated_at: string;
 };
 
 export type TacacsGroupsPublic = {
@@ -382,6 +408,7 @@ export type TacacsLogPublic = {
     filepath: string;
     created_at?: string;
     id: string;
+    updated_at: string;
     data?: (string | null);
 };
 
@@ -401,13 +428,15 @@ export type TacacsNgSettingPublic = {
     instances_max?: number;
     background?: string;
     access_logfile_destination?: string;
-    accounting_logfile_destination?: string;
     authentication_logfile_destination?: string;
+    authorization_logfile_destination?: string;
+    accounting_logfile_destination?: string;
     login_backend?: string;
     user_backend?: string;
     pap_backend?: string;
     id: string;
     created_at: string;
+    updated_at: string;
 };
 
 export type TacacsNgSettingUpdate = {
@@ -421,8 +450,9 @@ export type TacacsNgSettingUpdate = {
     instances_max?: number;
     background?: string;
     access_logfile_destination?: string;
-    accounting_logfile_destination?: string;
     authentication_logfile_destination?: string;
+    authorization_logfile_destination?: string;
+    accounting_logfile_destination?: string;
     login_backend?: string;
     user_backend?: string;
     pap_backend?: string;
@@ -438,6 +468,7 @@ export type TacacsServicePublic = {
     description?: (string | null);
     id: string;
     created_at: string;
+    updated_at: string;
 };
 
 export type TacacsServicesPublic = {
@@ -466,6 +497,7 @@ export type TacacsUserPublic = {
     password?: (string | null);
     id: string;
     created_at: string;
+    updated_at: string;
 };
 
 export type TacacsUsersPublic = {
@@ -517,6 +549,7 @@ export type UserPublic = {
     full_name?: (string | null);
     id: string;
     created_at: string;
+    updated_at: string;
 };
 
 export type UserRegister = {
@@ -639,13 +672,39 @@ export type LoginRecoverPasswordHtmlContentData = {
 
 export type LoginRecoverPasswordHtmlContentResponse = (string);
 
-export type MavisReadMavisSettingsResponse = (MavisPublic);
+export type MavisesReadMavisesData = {
+    limit?: number;
+    skip?: number;
+};
 
-export type MavisUpdateMavisSettingsData = {
+export type MavisesReadMavisesResponse = (MavisesPublic);
+
+export type MavisesCreateMavisData = {
+    requestBody: MavisCreate;
+};
+
+export type MavisesCreateMavisResponse = (MavisPublic);
+
+export type MavisesPreviewMavisResponse = (MavisPreviewPublic);
+
+export type MavisesReadMavisByIdData = {
+    id: string;
+};
+
+export type MavisesReadMavisByIdResponse = (MavisPublic);
+
+export type MavisesUpdateMavisData = {
+    id: string;
     requestBody: MavisUpdate;
 };
 
-export type MavisUpdateMavisSettingsResponse = (MavisPublic);
+export type MavisesUpdateMavisResponse = (MavisPublic);
+
+export type MavisesDeleteMavisData = {
+    id: string;
+};
+
+export type MavisesDeleteMavisResponse = (Message);
 
 export type PrivateCreateUserData = {
     requestBody: PrivateUserCreate;
@@ -666,7 +725,7 @@ export type ProfilesCreateProfileData = {
 
 export type ProfilesCreateProfileResponse = (ProfilePublic);
 
-export type ProfilesPreviewProfilesResponse = (unknown);
+export type ProfilesPreviewProfilesResponse = (ProfilePreviewPublic);
 
 export type ProfilesReadProfileByIdData = {
     id: string;
@@ -764,7 +823,7 @@ export type RulesetsCreateRulesetData = {
 
 export type RulesetsCreateRulesetResponse = (RulesetPublic);
 
-export type RulesetsPreviewRulesetsResponse = (unknown);
+export type RulesetsPreviewRulesetsResponse = (RulesetPreviewPublic);
 
 export type RulesetsReadRulesetByIdData = {
     id: string;
@@ -937,6 +996,7 @@ export type TacacsLogsListLogFilesResponse = (TacacsLogsPublic);
 
 export type TacacsLogsReadLogFileData = {
     id: string;
+    search?: (string | null);
 };
 
 export type TacacsLogsReadLogFileResponse = (TacacsLogPublic);

@@ -125,24 +125,35 @@ class Settings(BaseSettings):
     INSTANCES_MIN: int = 1
     INSTANCES_MAX: int = 10
     BACKGROUND: str = "no"
-
-    ACCESS_LOG_DESTINATION: str = "/var/log/tacacs/%Y/%m/access-%Y-%m-%d.log"
-    ACCOUNTING_LOG_DESTINATION: str = "/var/log/tacacs/%Y/%m/accounting-%Y-%m-%d.log"
+    TACACS_LOG_DIRECTORY: str = "/var/log/tacacs/"
+    ACCESS_LOG_DESTINATION: str = TACACS_LOG_DIRECTORY + "%Y/%m/access-%Y-%m-%d.log"
     AUTHENTICATION_LOG_DESTINATION: str = (
-        "/var/log/tacacs/%Y/%m/authentication-%Y-%m-%d.log"
+        TACACS_LOG_DIRECTORY + "%Y/%m/authentication-%Y-%m-%d.log"
     )
+    AUTHORIZATION_LOG_DESTINATION: str = (
+        TACACS_LOG_DIRECTORY + "%Y/%m/authorization-%Y-%m-%d.log"
+    )
+    ACCOUNTING_LOG_DESTINATION: str = (
+        TACACS_LOG_DIRECTORY + "%Y/%m/accounting-%Y-%m-%d.log"
+    )
+
     LOGIN_BACKEND: str = "mavis"
     USER_BACKEND: str = "mavis"
     PAP_BACKEND: str = "mavis"
 
-    LDAP_SERVER_TYPE: str = "freeipa"
-    LDAP_HOSTS: str = "ipa.example.com"
-    LDAP_BASE: str = "dc=example,dc=com"
-    LDAP_USER: str = "uid=app_tacacs,cn=users,cn=accounts,dc=example,dc=com"
-    LDAP_PASSWD: str = "change_this"
-    REQUIRE_TACACS_GROUP_PREFIX: int = 0
-    TACACS_GROUP_PREFIX: str = "tacacs_"
-    LDAP_FILTER: str = "(&(objectClass=inetorgperson)(uid=%s))"
+    DEFAULT_MAVIS_SETTINGS: list[dict[str, str]] = [
+        {"key": "LDAP_SERVER_TYPE", "value": "freeipa"},
+        {"key": "LDAP_HOSTS", "value": "ldaps://ipa.example.com:636"},
+        {"key": "LDAP_BASE", "value": "dc=example,dc=com"},
+        {
+            "key": "LDAP_USER",
+            "value": "uid=app_tacacs,cn=users,cn=accounts,dc=example,dc=com",
+        },
+        {"key": "LDAP_PASSWD", "value": "change_this"},
+        {"key": "REQUIRE_TACACS_GROUP_PREFIX", "value": "0"},
+        {"key": "LDAP_FILTER", "value": "(&(objectClass=inetorgperson)(uid=%s))"},
+        {"key": "TACACS_GROUP_PREFIX", "value": "tacacs_"},
+    ]
 
     USERS_OPEN_REGISTRATION: bool = False
 

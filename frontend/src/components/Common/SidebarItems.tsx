@@ -40,7 +40,7 @@ const items = [
     path: "/tacacs_ng_settings",
     level: 1,
   },
-  { icon: FiDatabase, title: "Mavis Settings", path: "/mavis_settings", level: 1 },
+  { icon: FiDatabase, title: "Mavis Settings", path: "/mavises", level: 1 },
   { icon: FiList, title: "Tacacs logs", path: "/tacacs_logs", level: 1 },
   { icon: FiSettings, title: "User Settings", path: "/settings", level: 1 },
 ]

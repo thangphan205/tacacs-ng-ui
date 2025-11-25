@@ -1,8 +1,8 @@
 """add tacacs models
 
-Revision ID: 097cd7afefc7
-Revises: 1a31ce608336
-Create Date: 2025-11-06 17:24:24.215005
+Revision ID: b7040293d0a2
+Revises: 
+Create Date: 2025-11-25 14:08:27.252004
 
 """
 from alembic import op
@@ -11,8 +11,8 @@ import sqlmodel.sql.sqltypes
 
 
 # revision identifiers, used by Alembic.
-revision = '097cd7afefc7'
-down_revision = '1a31ce608336'
+revision = 'b7040293d0a2'
+down_revision = None
 branch_labels = None
 depends_on = None
 
@@ -31,27 +31,27 @@ def upgrade():
     sa.Column('parent', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_host_name'), 'host', ['name'], unique=False)
+    op.create_index(op.f('ix_host_name'), 'host', ['name'], unique=True)
     op.create_table('mavis',
-    sa.Column('ldap_server_type', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('ldap_hosts', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('ldap_base', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('ldap_user', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('ldap_passwd', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('ldap_filter', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('ldap_timeout', sa.Integer(), nullable=False),
-    sa.Column('require_tacacs_group_prefix', sa.Integer(), nullable=False),
-    sa.Column('tacacs_group_prefix', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('mavis_key', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
+    sa.Column('mavis_value', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index(op.f('ix_mavis_mavis_key'), 'mavis', ['mavis_key'], unique=True)
     op.create_table('profile',
     sa.Column('name', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('action', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_profile_action'), 'profile', ['action'], unique=False)
@@ -62,14 +62,18 @@ def upgrade():
     sa.Column('action', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_ruleset_action'), 'ruleset', ['action'], unique=False)
-    op.create_index(op.f('ix_ruleset_name'), 'ruleset', ['name'], unique=False)
+    op.create_index(op.f('ix_ruleset_name'), 'ruleset', ['name'], unique=True)
     op.create_table('tacacsconfig',
     sa.Column('filename', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('active', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
@@ -78,14 +82,17 @@ def upgrade():
     sa.Column('group_name', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_tacacsgroup_group_name'), 'tacacsgroup', ['group_name'], unique=False)
+    op.create_index(op.f('ix_tacacsgroup_group_name'), 'tacacsgroup', ['group_name'], unique=True)
     op.create_table('tacacslog',
     sa.Column('filename', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('filepath', sqlmodel.sql.sqltypes.AutoString(length=1024), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_tacacslog_filename'), 'tacacslog', ['filename'], unique=False)
@@ -101,33 +108,62 @@ def upgrade():
     sa.Column('instances_max', sa.Integer(), nullable=False),
     sa.Column('background', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('access_logfile_destination', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('accounting_logfile_destination', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('authentication_logfile_destination', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('authorization_logfile_destination', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('accounting_logfile_destination', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('login_backend', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('user_backend', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('pap_backend', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('tacacsservice',
     sa.Column('name', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_tacacsservice_name'), 'tacacsservice', ['name'], unique=False)
+    op.create_index(op.f('ix_tacacsservice_name'), 'tacacsservice', ['name'], unique=True)
     op.create_table('tacacsuser',
     sa.Column('username', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('password_type', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('member', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('password', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_tacacsuser_member'), 'tacacsuser', ['member'], unique=False)
     op.create_index(op.f('ix_tacacsuser_password_type'), 'tacacsuser', ['password_type'], unique=False)
     op.create_index(op.f('ix_tacacsuser_username'), 'tacacsuser', ['username'], unique=True)
+    op.create_table('user',
+    sa.Column('email', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('is_superuser', sa.Boolean(), nullable=False),
+    sa.Column('full_name', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
+    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('hashed_password', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_user_email'), 'user', ['email'], unique=True)
+    op.create_table('item',
+    sa.Column('title', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
+    sa.Column('description', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
+    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
+    sa.Column('owner_id', sa.Uuid(), nullable=False),
+    sa.ForeignKeyConstraint(['owner_id'], ['user.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('profilescript',
     sa.Column('condition', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('key', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
@@ -135,6 +171,8 @@ def upgrade():
     sa.Column('action', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('profile_id', sa.Uuid(), nullable=False),
     sa.ForeignKeyConstraint(['profile_id'], ['profile.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
@@ -150,6 +188,8 @@ def upgrade():
     sa.Column('action', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('ruleset_id', sa.Uuid(), nullable=False),
     sa.ForeignKeyConstraint(['ruleset_id'], ['ruleset.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
@@ -163,6 +203,8 @@ def upgrade():
     sa.Column('value', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('profilescript_id', sa.Uuid(), nullable=False),
     sa.ForeignKeyConstraint(['profilescript_id'], ['profilescript.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
@@ -173,6 +215,8 @@ def upgrade():
     sa.Column('value', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('rulesetscript_id', sa.Uuid(), nullable=False),
     sa.ForeignKeyConstraint(['rulesetscript_id'], ['rulesetscript.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
@@ -199,6 +243,9 @@ def downgrade():
     op.drop_index(op.f('ix_profilescript_condition'), table_name='profilescript')
     op.drop_index(op.f('ix_profilescript_action'), table_name='profilescript')
     op.drop_table('profilescript')
+    op.drop_table('item')
+    op.drop_index(op.f('ix_user_email'), table_name='user')
+    op.drop_table('user')
     op.drop_index(op.f('ix_tacacsuser_username'), table_name='tacacsuser')
     op.drop_index(op.f('ix_tacacsuser_password_type'), table_name='tacacsuser')
     op.drop_index(op.f('ix_tacacsuser_member'), table_name='tacacsuser')
@@ -219,6 +266,7 @@ def downgrade():
     op.drop_index(op.f('ix_profile_name'), table_name='profile')
     op.drop_index(op.f('ix_profile_action'), table_name='profile')
     op.drop_table('profile')
+    op.drop_index(op.f('ix_mavis_mavis_key'), table_name='mavis')
     op.drop_table('mavis')
     op.drop_index(op.f('ix_host_name'), table_name='host')
     op.drop_table('host')

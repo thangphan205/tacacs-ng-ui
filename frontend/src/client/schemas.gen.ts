@@ -284,10 +284,15 @@ export const HostPublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['name', 'secret_key', 'id', 'created_at'],
+    required: ['name', 'secret_key', 'id', 'created_at', 'updated_at'],
     title: 'HostPublic'
 } as const;
 
@@ -476,10 +481,15 @@ export const ItemPublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['title', 'id', 'owner_id', 'created_at'],
+    required: ['title', 'id', 'owner_id', 'created_at', 'updated_at'],
     title: 'ItemPublic'
 } as const;
 
@@ -550,52 +560,77 @@ export const LogSummarySchema = {
     title: 'LogSummary'
 } as const;
 
+export const MavisCreateSchema = {
+    properties: {
+        mavis_key: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Mavis Key'
+        },
+        mavis_value: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Mavis Value'
+        }
+    },
+    type: 'object',
+    required: ['mavis_key', 'mavis_value'],
+    title: 'MavisCreate'
+} as const;
+
+export const MavisPreviewPublicSchema = {
+    properties: {
+        data: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Data'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        updated_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    title: 'MavisPreviewPublic'
+} as const;
+
 export const MavisPublicSchema = {
     properties: {
-        ldap_server_type: {
+        mavis_key: {
             type: 'string',
-            title: 'Ldap Server Type',
-            default: 'openldap'
+            maxLength: 255,
+            title: 'Mavis Key'
         },
-        ldap_hosts: {
+        mavis_value: {
             type: 'string',
-            title: 'Ldap Hosts',
-            default: 'ldaps://ldap-server'
-        },
-        ldap_base: {
-            type: 'string',
-            title: 'Ldap Base',
-            default: 'dc=example,dc=com'
-        },
-        ldap_user: {
-            type: 'string',
-            title: 'Ldap User',
-            default: 'cn=admin,dc=example,dc=com'
-        },
-        ldap_passwd: {
-            type: 'string',
-            title: 'Ldap Passwd',
-            default: 'admin_password'
-        },
-        ldap_filter: {
-            type: 'string',
-            title: 'Ldap Filter',
-            default: '(objectClass=person)'
-        },
-        ldap_timeout: {
-            type: 'integer',
-            title: 'Ldap Timeout',
-            default: 5
-        },
-        require_tacacs_group_prefix: {
-            type: 'integer',
-            title: 'Require Tacacs Group Prefix',
-            default: 0
-        },
-        tacacs_group_prefix: {
-            type: 'string',
-            title: 'Tacacs Group Prefix',
-            default: 'tacacs_'
+            maxLength: 255,
+            title: 'Mavis Value'
         },
         id: {
             type: 'string',
@@ -606,63 +641,53 @@ export const MavisPublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['id', 'created_at'],
+    required: ['mavis_key', 'mavis_value', 'id', 'created_at', 'updated_at'],
     title: 'MavisPublic'
 } as const;
 
 export const MavisUpdateSchema = {
     properties: {
-        ldap_server_type: {
+        mavis_key: {
             type: 'string',
-            title: 'Ldap Server Type',
-            default: 'openldap'
+            maxLength: 255,
+            title: 'Mavis Key'
         },
-        ldap_hosts: {
+        mavis_value: {
             type: 'string',
-            title: 'Ldap Hosts',
-            default: 'ldaps://ldap-server'
-        },
-        ldap_base: {
-            type: 'string',
-            title: 'Ldap Base',
-            default: 'dc=example,dc=com'
-        },
-        ldap_user: {
-            type: 'string',
-            title: 'Ldap User',
-            default: 'cn=admin,dc=example,dc=com'
-        },
-        ldap_passwd: {
-            type: 'string',
-            title: 'Ldap Passwd',
-            default: 'admin_password'
-        },
-        ldap_filter: {
-            type: 'string',
-            title: 'Ldap Filter',
-            default: '(objectClass=person)'
-        },
-        ldap_timeout: {
-            type: 'integer',
-            title: 'Ldap Timeout',
-            default: 5
-        },
-        require_tacacs_group_prefix: {
-            type: 'integer',
-            title: 'Require Tacacs Group Prefix',
-            default: 0
-        },
-        tacacs_group_prefix: {
-            type: 'string',
-            title: 'Tacacs Group Prefix',
-            default: 'tacacs_'
+            maxLength: 255,
+            title: 'Mavis Value'
         }
     },
     type: 'object',
+    required: ['mavis_key', 'mavis_value'],
     title: 'MavisUpdate'
+} as const;
+
+export const MavisesPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/MavisPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'MavisesPublic'
 } as const;
 
 export const MessageSchema = {
@@ -749,6 +774,48 @@ export const ProfileCreateSchema = {
     title: 'ProfileCreate'
 } as const;
 
+export const ProfilePreviewPublicSchema = {
+    properties: {
+        data: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Data'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        updated_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    title: 'ProfilePreviewPublic'
+} as const;
+
 export const ProfilePublicSchema = {
     properties: {
         name: {
@@ -781,10 +848,15 @@ export const ProfilePublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['name', 'action', 'id', 'created_at'],
+    required: ['name', 'action', 'id', 'created_at', 'updated_at'],
     title: 'ProfilePublic'
 } as const;
 
@@ -897,10 +969,15 @@ export const ProfileScriptPublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['condition', 'key', 'value', 'action', 'profile_id', 'id', 'created_at'],
+    required: ['condition', 'key', 'value', 'action', 'profile_id', 'id', 'created_at', 'updated_at'],
     title: 'ProfileScriptPublic'
 } as const;
 
@@ -1007,10 +1084,15 @@ export const ProfileScriptSetPublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['key', 'value', 'profilescript_id', 'id', 'created_at'],
+    required: ['key', 'value', 'profilescript_id', 'id', 'created_at', 'updated_at'],
     title: 'ProfileScriptSetPublic'
 } as const;
 
@@ -1218,6 +1300,48 @@ export const RulesetCreateSchema = {
     title: 'RulesetCreate'
 } as const;
 
+export const RulesetPreviewPublicSchema = {
+    properties: {
+        data: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Data'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        updated_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    title: 'RulesetPreviewPublic'
+} as const;
+
 export const RulesetPublicSchema = {
     properties: {
         name: {
@@ -1255,10 +1379,15 @@ export const RulesetPublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['name', 'action', 'id', 'created_at'],
+    required: ['name', 'action', 'id', 'created_at', 'updated_at'],
     title: 'RulesetPublic'
 } as const;
 
@@ -1364,10 +1493,15 @@ export const RulesetScriptPublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['condition', 'key', 'value', 'action', 'ruleset_id', 'id', 'created_at'],
+    required: ['condition', 'key', 'value', 'action', 'ruleset_id', 'id', 'created_at', 'updated_at'],
     title: 'RulesetScriptPublic'
 } as const;
 
@@ -1476,10 +1610,15 @@ export const RulesetScriptSetPublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['key', 'value', 'rulesetscript_id', 'id', 'created_at'],
+    required: ['key', 'value', 'rulesetscript_id', 'id', 'created_at', 'updated_at'],
     title: 'RulesetScriptSetPublic'
 } as const;
 
@@ -1693,10 +1832,15 @@ export const TacacsConfigPreviewPublicSchema = {
                 }
             ],
             title: 'Data'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['created_at'],
+    required: ['created_at', 'updated_at'],
     title: 'TacacsConfigPreviewPublic'
 } as const;
 
@@ -1732,6 +1876,11 @@ export const TacacsConfigPublicSchema = {
             format: 'date-time',
             title: 'Created At'
         },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        },
         data: {
             anyOf: [
                 {
@@ -1745,7 +1894,7 @@ export const TacacsConfigPublicSchema = {
         }
     },
     type: 'object',
-    required: ['filename', 'id', 'active', 'created_at'],
+    required: ['filename', 'id', 'active', 'created_at', 'updated_at'],
     title: 'TacacsConfigPublic'
 } as const;
 
@@ -1896,10 +2045,15 @@ export const TacacsGroupPublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['group_name', 'id', 'created_at'],
+    required: ['group_name', 'id', 'created_at', 'updated_at'],
     title: 'TacacsGroupPublic'
 } as const;
 
@@ -1968,6 +2122,11 @@ export const TacacsLogPublicSchema = {
             format: 'uuid',
             title: 'Id'
         },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        },
         data: {
             anyOf: [
                 {
@@ -1981,7 +2140,7 @@ export const TacacsLogPublicSchema = {
         }
     },
     type: 'object',
-    required: ['filename', 'filepath', 'id'],
+    required: ['filename', 'filepath', 'id', 'updated_at'],
     title: 'TacacsLogPublic'
 } as const;
 
@@ -2054,17 +2213,22 @@ export const TacacsNgSettingPublicSchema = {
         access_logfile_destination: {
             type: 'string',
             title: 'Access Logfile Destination',
-            default: '/app/tacacs_config_and_logs/log/%Y/%m/access-%m-%d-%Y.txt'
-        },
-        accounting_logfile_destination: {
-            type: 'string',
-            title: 'Accounting Logfile Destination',
-            default: '/app/tacacs_config_and_logs/log/%Y/%m/accounting-%m-%d-%Y.txt'
+            default: '/var/log/tacacs/%Y/%m/access-%Y-%m-%d.log'
         },
         authentication_logfile_destination: {
             type: 'string',
             title: 'Authentication Logfile Destination',
-            default: '/app/tacacs_config_and_logs/log/%Y/%m/authentication-%m-%d-%Y.txt'
+            default: '/var/log/tacacs/%Y/%m/authentication-%Y-%m-%d.log'
+        },
+        authorization_logfile_destination: {
+            type: 'string',
+            title: 'Authorization Logfile Destination',
+            default: '/var/log/tacacs/%Y/%m/authorization-%Y-%m-%d.log'
+        },
+        accounting_logfile_destination: {
+            type: 'string',
+            title: 'Accounting Logfile Destination',
+            default: '/var/log/tacacs/%Y/%m/accounting-%Y-%m-%d.log'
         },
         login_backend: {
             type: 'string',
@@ -2090,10 +2254,15 @@ export const TacacsNgSettingPublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['id', 'created_at'],
+    required: ['id', 'created_at', 'updated_at'],
     title: 'TacacsNgSettingPublic'
 } as const;
 
@@ -2147,17 +2316,22 @@ export const TacacsNgSettingUpdateSchema = {
         access_logfile_destination: {
             type: 'string',
             title: 'Access Logfile Destination',
-            default: '/app/tacacs_config_and_logs/log/%Y/%m/access-%m-%d-%Y.txt'
-        },
-        accounting_logfile_destination: {
-            type: 'string',
-            title: 'Accounting Logfile Destination',
-            default: '/app/tacacs_config_and_logs/log/%Y/%m/accounting-%m-%d-%Y.txt'
+            default: '/var/log/tacacs/%Y/%m/access-%Y-%m-%d.log'
         },
         authentication_logfile_destination: {
             type: 'string',
             title: 'Authentication Logfile Destination',
-            default: '/app/tacacs_config_and_logs/log/%Y/%m/authentication-%m-%d-%Y.txt'
+            default: '/var/log/tacacs/%Y/%m/authentication-%Y-%m-%d.log'
+        },
+        authorization_logfile_destination: {
+            type: 'string',
+            title: 'Authorization Logfile Destination',
+            default: '/var/log/tacacs/%Y/%m/authorization-%Y-%m-%d.log'
+        },
+        accounting_logfile_destination: {
+            type: 'string',
+            title: 'Accounting Logfile Destination',
+            default: '/var/log/tacacs/%Y/%m/accounting-%Y-%m-%d.log'
         },
         login_backend: {
             type: 'string',
@@ -2230,10 +2404,15 @@ export const TacacsServicePublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['name', 'id', 'created_at'],
+    required: ['name', 'id', 'created_at', 'updated_at'],
     title: 'TacacsServicePublic'
 } as const;
 
@@ -2374,10 +2553,15 @@ export const TacacsUserPublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['username', 'password_type', 'member', 'id', 'created_at'],
+    required: ['username', 'password_type', 'member', 'id', 'created_at', 'updated_at'],
     title: 'TacacsUserPublic'
 } as const;
 
@@ -2600,10 +2784,15 @@ export const UserPublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
         }
     },
     type: 'object',
-    required: ['email', 'id', 'created_at'],
+    required: ['email', 'id', 'created_at', 'updated_at'],
     title: 'UserPublic'
 } as const;
 

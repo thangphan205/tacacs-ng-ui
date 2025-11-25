@@ -90,21 +90,30 @@ def list_log_files(
 def read_log_file(
     id: uuid.UUID,
     session: SessionDep,
+    search: str | None = None,
 ) -> Any:
     """
-    Read a specific TACACS+ log file.
+    Read a specific TACACS+ log file. Can be filtered by a search term.
     """
     db_tacacs_log = session.get(TacacsLog, id)
     if not db_tacacs_log:
         raise HTTPException(status_code=404, detail="Log file not found in database.")
-    if not os.path.exists(os.path.join(LOG_DIRECTORY, db_tacacs_log.filepath)):
+
+    log_path = os.path.join(LOG_DIRECTORY, db_tacacs_log.filepath)
+    if not os.path.exists(log_path):
         raise HTTPException(status_code=404, detail="Log file not found.")
+
     try:
-        file_content = ""
-        with open(os.path.join(LOG_DIRECTORY, db_tacacs_log.filepath), "r") as f:
-            file_content = f.readlines()
+        with open(log_path, "r", errors="ignore") as f:
+            file_content_lines = f.readlines()
+
+        if search:
+            file_content_lines = [
+                line for line in file_content_lines if search.lower() in line.lower()
+            ]
+
         tacacs_log_result = TacacsLogPublic.model_validate(db_tacacs_log)
-        tacacs_log_result.data = "".join(file_content)
+        tacacs_log_result.data = "".join(file_content_lines)
         return tacacs_log_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading log file: {e}")

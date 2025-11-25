@@ -1,7 +1,7 @@
 import { Table } from "@chakra-ui/react"
 import { SkeletonText } from "../ui/skeleton"
 
-const PendingMavisSettings = () => (
+const PendingMavises = () => (
   <Table.Root size={{ base: "sm", md: "md" }}>
     <Table.Header>
       <Table.Row>
@@ -32,4 +32,4 @@ const PendingMavisSettings = () => (
   </Table.Root>
 )
 
-export default PendingMavisSettings
+export default PendingMavises

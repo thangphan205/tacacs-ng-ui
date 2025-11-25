@@ -22,13 +22,30 @@ from app.crud import profiles, rulesets
 
 log = logging.getLogger(__name__)
 
-# Change to default paths for tacacs config and logs
-SHARED_BASE_PATH = "/app/tacacs_config_and_logs"
+# Change to default paths for tacacs config
+SHARED_BASE_PATH = "/app/tacacs_config/"
 CONFIG_PATH = os.path.join(SHARED_BASE_PATH, "etc")
-LOG_PATH = os.path.join(SHARED_BASE_PATH, "log")
 CONFIG_FILE_PATH = os.path.join(SHARED_BASE_PATH, "etc/tac_plus-ng.cfg")
-LOG_FILE_PATH = os.path.join(SHARED_BASE_PATH, "log")
-RELOAD_TRIGGER_PATH = os.path.join(SHARED_BASE_PATH, "restart_trigger.txt")
+
+
+def generate_tacacs_mavis_setting(*, session: Session) -> Any:
+    statement = select(Mavis)
+    mavises_db = session.exec(statement).all()
+    mavis_template = ""
+    for mavis in mavises_db:
+        mavis_template += """setenv {key}="{value}"
+        """.format(
+            key=mavis.mavis_key, value=mavis.mavis_value
+        )
+
+    mavises_template = """mavis module = external {{
+        # Set environment variables for LDAP connection
+        {mavis_template}
+        exec = /usr/local/lib/mavis/mavis_tacplus-ng_ldap.pl
+    }}""".format(
+        mavis_template=mavis_template
+    )
+    return mavises_template
 
 
 def generate_tacacs_ng_config(*, session: Session) -> Any:
@@ -49,12 +66,10 @@ def generate_tacacs_ng_config(*, session: Session) -> Any:
     tacacs_ng_basic = session.exec(statement).first()
     tacacs_ng_info = tacacs_ng_basic.model_dump()
 
-    statement = select(Mavis).limit(1)
-    mavis_basic = session.exec(statement).first()
-    mavis_info = mavis_basic.model_dump()
-
     statement = select(Host)
     host_basic = session.exec(statement).all()
+
+    mavises_template = generate_tacacs_mavis_setting(session=session)
 
     config_file_template = """#!/usr/local/sbin/tac_plus-ng
 id = spawnd {{
@@ -70,24 +85,17 @@ id = spawnd {{
 }}
 id = tac_plus-ng {{
     log accesslog {{ destination = {accesslog} }}
-    log accountinglog {{ destination = {accountinglog} }}
     log authenticationlog {{ destination = {authenticationlog} }}
+    log authorizationlog {{ destination = {authorizationlog} }}
+    log accountinglog {{ destination = {accountinglog} }}
+    
     access log = accesslog
-    accounting log = accountinglog
     authentication log = authenticationlog
-    mavis module = external {{
-        # Set environment variables for LDAP connection
-        setenv LDAP_SERVER_TYPE = "{ldap_server_type}"
-        setenv LDAP_HOSTS = "{ldap_hosts}"
-        setenv LDAP_BASE = "{ldap_base}"
-        setenv LDAP_USER = "{ldap_user}"
-        setenv LDAP_PASSWD = "{ldap_passwd}"
-        setenv REQUIRE_TACACS_GROUP_PREFIX = 0
-        setenv LDAP_FILTER = "{ldap_filter}"
-        setenv TACACS_GROUP_PREFIX = "tacacs_"
+    authorization log = authorizationlog
+    accounting log = accountinglog
+    
+    {mavises_template}
 
-        exec = /usr/local/lib/mavis/mavis_tacplus-ng_ldap.pl
-    }}
     login backend = mavis
     user backend = mavis
     pap backend = mavis""".format(
@@ -97,14 +105,10 @@ id = tac_plus-ng {{
         inst_max=tacacs_ng_info["instances_max"],
         bg=str(tacacs_ng_info["background"]).lower(),
         accesslog=tacacs_ng_info["access_logfile_destination"],
-        accountinglog=tacacs_ng_info["accounting_logfile_destination"],
         authenticationlog=tacacs_ng_info["authentication_logfile_destination"],
-        ldap_server_type=mavis_info["ldap_server_type"],
-        ldap_hosts=mavis_info["ldap_hosts"],
-        ldap_base=mavis_info["ldap_base"],
-        ldap_user=mavis_info["ldap_user"],
-        ldap_passwd=mavis_info["ldap_passwd"],
-        ldap_filter=mavis_info["ldap_filter"],
+        authorizationlog=tacacs_ng_info["authorization_logfile_destination"],
+        accountinglog=tacacs_ng_info["accounting_logfile_destination"],
+        mavises_template=mavises_template,
     )
     hosts_template = ""
     for host in host_basic:

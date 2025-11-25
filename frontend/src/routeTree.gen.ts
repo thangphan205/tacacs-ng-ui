@@ -22,7 +22,6 @@ import { Route as LayoutTacacs_ng_settingsRouteImport } from './routes/_layout/t
 import { Route as LayoutTacacs_logsRouteImport } from './routes/_layout/tacacs_logs'
 import { Route as LayoutTacacs_groupsRouteImport } from './routes/_layout/tacacs_groups'
 import { Route as LayoutTacacs_configsRouteImport } from './routes/_layout/tacacs_configs'
-import { Route as LayoutStatisticsRouteImport } from './routes/_layout/statistics'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
 import { Route as LayoutRulesetscriptsetsRouteImport } from './routes/_layout/rulesetscriptsets'
 import { Route as LayoutRulesetscriptsRouteImport } from './routes/_layout/rulesetscripts'
@@ -30,7 +29,7 @@ import { Route as LayoutRulesetsRouteImport } from './routes/_layout/rulesets'
 import { Route as LayoutProfilescriptsetsRouteImport } from './routes/_layout/profilescriptsets'
 import { Route as LayoutProfilescriptsRouteImport } from './routes/_layout/profilescripts'
 import { Route as LayoutProfilesRouteImport } from './routes/_layout/profiles'
-import { Route as LayoutMavis_settingsRouteImport } from './routes/_layout/mavis_settings'
+import { Route as LayoutMavisesRouteImport } from './routes/_layout/mavises'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutHostsRouteImport } from './routes/_layout/hosts'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
@@ -100,11 +99,6 @@ const LayoutTacacs_configsRoute = LayoutTacacs_configsRouteImport.update({
   path: '/tacacs_configs',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutStatisticsRoute = LayoutStatisticsRouteImport.update({
-  id: '/statistics',
-  path: '/statistics',
-  getParentRoute: () => LayoutRoute,
-} as any)
 const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -140,9 +134,9 @@ const LayoutProfilesRoute = LayoutProfilesRouteImport.update({
   path: '/profiles',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutMavis_settingsRoute = LayoutMavis_settingsRouteImport.update({
-  id: '/mavis_settings',
-  path: '/mavis_settings',
+const LayoutMavisesRoute = LayoutMavisesRouteImport.update({
+  id: '/mavises',
+  path: '/mavises',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutItemsRoute = LayoutItemsRouteImport.update({
@@ -169,7 +163,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof LayoutAdminRoute
   '/hosts': typeof LayoutHostsRoute
   '/items': typeof LayoutItemsRoute
-  '/mavis_settings': typeof LayoutMavis_settingsRoute
+  '/mavises': typeof LayoutMavisesRoute
   '/profiles': typeof LayoutProfilesRoute
   '/profilescripts': typeof LayoutProfilescriptsRoute
   '/profilescriptsets': typeof LayoutProfilescriptsetsRoute
@@ -177,7 +171,6 @@ export interface FileRoutesByFullPath {
   '/rulesetscripts': typeof LayoutRulesetscriptsRoute
   '/rulesetscriptsets': typeof LayoutRulesetscriptsetsRoute
   '/settings': typeof LayoutSettingsRoute
-  '/statistics': typeof LayoutStatisticsRoute
   '/tacacs_configs': typeof LayoutTacacs_configsRoute
   '/tacacs_groups': typeof LayoutTacacs_groupsRoute
   '/tacacs_logs': typeof LayoutTacacs_logsRoute
@@ -195,7 +188,7 @@ export interface FileRoutesByTo {
   '/admin': typeof LayoutAdminRoute
   '/hosts': typeof LayoutHostsRoute
   '/items': typeof LayoutItemsRoute
-  '/mavis_settings': typeof LayoutMavis_settingsRoute
+  '/mavises': typeof LayoutMavisesRoute
   '/profiles': typeof LayoutProfilesRoute
   '/profilescripts': typeof LayoutProfilescriptsRoute
   '/profilescriptsets': typeof LayoutProfilescriptsetsRoute
@@ -203,7 +196,6 @@ export interface FileRoutesByTo {
   '/rulesetscripts': typeof LayoutRulesetscriptsRoute
   '/rulesetscriptsets': typeof LayoutRulesetscriptsetsRoute
   '/settings': typeof LayoutSettingsRoute
-  '/statistics': typeof LayoutStatisticsRoute
   '/tacacs_configs': typeof LayoutTacacs_configsRoute
   '/tacacs_groups': typeof LayoutTacacs_groupsRoute
   '/tacacs_logs': typeof LayoutTacacs_logsRoute
@@ -223,7 +215,7 @@ export interface FileRoutesById {
   '/_layout/admin': typeof LayoutAdminRoute
   '/_layout/hosts': typeof LayoutHostsRoute
   '/_layout/items': typeof LayoutItemsRoute
-  '/_layout/mavis_settings': typeof LayoutMavis_settingsRoute
+  '/_layout/mavises': typeof LayoutMavisesRoute
   '/_layout/profiles': typeof LayoutProfilesRoute
   '/_layout/profilescripts': typeof LayoutProfilescriptsRoute
   '/_layout/profilescriptsets': typeof LayoutProfilescriptsetsRoute
@@ -231,7 +223,6 @@ export interface FileRoutesById {
   '/_layout/rulesetscripts': typeof LayoutRulesetscriptsRoute
   '/_layout/rulesetscriptsets': typeof LayoutRulesetscriptsetsRoute
   '/_layout/settings': typeof LayoutSettingsRoute
-  '/_layout/statistics': typeof LayoutStatisticsRoute
   '/_layout/tacacs_configs': typeof LayoutTacacs_configsRoute
   '/_layout/tacacs_groups': typeof LayoutTacacs_groupsRoute
   '/_layout/tacacs_logs': typeof LayoutTacacs_logsRoute
@@ -251,7 +242,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/hosts'
     | '/items'
-    | '/mavis_settings'
+    | '/mavises'
     | '/profiles'
     | '/profilescripts'
     | '/profilescriptsets'
@@ -259,7 +250,6 @@ export interface FileRouteTypes {
     | '/rulesetscripts'
     | '/rulesetscriptsets'
     | '/settings'
-    | '/statistics'
     | '/tacacs_configs'
     | '/tacacs_groups'
     | '/tacacs_logs'
@@ -277,7 +267,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/hosts'
     | '/items'
-    | '/mavis_settings'
+    | '/mavises'
     | '/profiles'
     | '/profilescripts'
     | '/profilescriptsets'
@@ -285,7 +275,6 @@ export interface FileRouteTypes {
     | '/rulesetscripts'
     | '/rulesetscriptsets'
     | '/settings'
-    | '/statistics'
     | '/tacacs_configs'
     | '/tacacs_groups'
     | '/tacacs_logs'
@@ -304,7 +293,7 @@ export interface FileRouteTypes {
     | '/_layout/admin'
     | '/_layout/hosts'
     | '/_layout/items'
-    | '/_layout/mavis_settings'
+    | '/_layout/mavises'
     | '/_layout/profiles'
     | '/_layout/profilescripts'
     | '/_layout/profilescriptsets'
@@ -312,7 +301,6 @@ export interface FileRouteTypes {
     | '/_layout/rulesetscripts'
     | '/_layout/rulesetscriptsets'
     | '/_layout/settings'
-    | '/_layout/statistics'
     | '/_layout/tacacs_configs'
     | '/_layout/tacacs_groups'
     | '/_layout/tacacs_logs'
@@ -424,13 +412,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutTacacs_configsRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/statistics': {
-      id: '/_layout/statistics'
-      path: '/statistics'
-      fullPath: '/statistics'
-      preLoaderRoute: typeof LayoutStatisticsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
     '/_layout/settings': {
       id: '/_layout/settings'
       path: '/settings'
@@ -480,11 +461,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutProfilesRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/mavis_settings': {
-      id: '/_layout/mavis_settings'
-      path: '/mavis_settings'
-      fullPath: '/mavis_settings'
-      preLoaderRoute: typeof LayoutMavis_settingsRouteImport
+    '/_layout/mavises': {
+      id: '/_layout/mavises'
+      path: '/mavises'
+      fullPath: '/mavises'
+      preLoaderRoute: typeof LayoutMavisesRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/items': {
@@ -515,7 +496,7 @@ interface LayoutRouteChildren {
   LayoutAdminRoute: typeof LayoutAdminRoute
   LayoutHostsRoute: typeof LayoutHostsRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
-  LayoutMavis_settingsRoute: typeof LayoutMavis_settingsRoute
+  LayoutMavisesRoute: typeof LayoutMavisesRoute
   LayoutProfilesRoute: typeof LayoutProfilesRoute
   LayoutProfilescriptsRoute: typeof LayoutProfilescriptsRoute
   LayoutProfilescriptsetsRoute: typeof LayoutProfilescriptsetsRoute
@@ -523,7 +504,6 @@ interface LayoutRouteChildren {
   LayoutRulesetscriptsRoute: typeof LayoutRulesetscriptsRoute
   LayoutRulesetscriptsetsRoute: typeof LayoutRulesetscriptsetsRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
-  LayoutStatisticsRoute: typeof LayoutStatisticsRoute
   LayoutTacacs_configsRoute: typeof LayoutTacacs_configsRoute
   LayoutTacacs_groupsRoute: typeof LayoutTacacs_groupsRoute
   LayoutTacacs_logsRoute: typeof LayoutTacacs_logsRoute
@@ -538,7 +518,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAdminRoute: LayoutAdminRoute,
   LayoutHostsRoute: LayoutHostsRoute,
   LayoutItemsRoute: LayoutItemsRoute,
-  LayoutMavis_settingsRoute: LayoutMavis_settingsRoute,
+  LayoutMavisesRoute: LayoutMavisesRoute,
   LayoutProfilesRoute: LayoutProfilesRoute,
   LayoutProfilescriptsRoute: LayoutProfilescriptsRoute,
   LayoutProfilescriptsetsRoute: LayoutProfilescriptsetsRoute,
@@ -546,7 +526,6 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutRulesetscriptsRoute: LayoutRulesetscriptsRoute,
   LayoutRulesetscriptsetsRoute: LayoutRulesetscriptsetsRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
-  LayoutStatisticsRoute: LayoutStatisticsRoute,
   LayoutTacacs_configsRoute: LayoutTacacs_configsRoute,
   LayoutTacacs_groupsRoute: LayoutTacacs_groupsRoute,
   LayoutTacacs_logsRoute: LayoutTacacs_logsRoute,

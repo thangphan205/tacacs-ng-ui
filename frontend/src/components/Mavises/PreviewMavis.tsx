@@ -9,7 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiEye } from "react-icons/fi"
 
-import { type ApiError, ProfilesService } from "@/client"
+import { type ApiError, MavisesService } from "@/client"
 import {
     DialogBody,
     DialogCloseTrigger,
@@ -21,29 +21,25 @@ import {
 } from "@/components/ui/dialog"
 import { handleError } from "@/utils"
 import type { HighlighterGeneric } from "shiki"
-import { useColorMode } from "@/components/ui/color-mode"
 
 const shikiAdapter = createShikiAdapter<HighlighterGeneric<any, any>>({
     async load() {
         const { createHighlighter } = await import("shiki")
         return createHighlighter({
             langs: ["bash"],
-            themes: ["github-dark", "github-light"],
+            themes: ["github-dark"],
         })
     },
-    theme: {
-        light: "github-light",
-        dark: "github-dark",
-    },
+    theme: "github-dark",
 })
 
-export default function PreviewProfile() {
+export default function PreviewMavis() {
     const [isOpen, setIsOpen] = useState(false)
     const queryClient = useQueryClient()
-    const { colorMode } = useColorMode()
+
     const { data: previewData, isLoading } = useQuery({
-        queryKey: ["profilePreview"],
-        queryFn: () => ProfilesService.previewProfiles(),
+        queryKey: ["mavisPreview"],
+        queryFn: () => MavisesService.previewMavis(),
         enabled: isOpen, // Only fetch when the modal is open
         staleTime: Infinity,
         gcTime: 0,
@@ -54,12 +50,8 @@ export default function PreviewProfile() {
         },
     })
 
-
-
-
-
     const handlePreview = () => {
-        queryClient.invalidateQueries({ queryKey: ["profilePreview"] })
+        queryClient.invalidateQueries({ queryKey: ["mavisPreview"] })
     }
 
     return (
@@ -75,12 +67,12 @@ export default function PreviewProfile() {
                     loading={isLoading && isOpen}
                 >
                     <FiEye fontSize="16px" />
-                    Preview Profile
+                    Preview Mavis
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Preview Candidate Profile</DialogTitle>
+                    <DialogTitle>Preview Candidate Mavis Settings</DialogTitle>
                 </DialogHeader>
                 <DialogBody>
                     {isLoading ? (
@@ -90,7 +82,7 @@ export default function PreviewProfile() {
                             <CodeBlock.Root
                                 code={previewData.data}
                                 language="bash"
-                                meta={{ showLineNumbers: true, colorScheme: colorMode }}
+                                meta={{ showLineNumbers: true }}
                                 maxH="400px"
                                 overflowY="auto"
                             >
