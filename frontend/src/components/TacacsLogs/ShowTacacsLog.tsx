@@ -13,7 +13,6 @@ import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import { FaEye } from "react-icons/fa"
 import React from "react"
-import { FiSearch } from "react-icons/fi"
 import {
   TacacsLogsService,
 } from "@/client"
