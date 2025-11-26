@@ -26,6 +26,11 @@ first_superuser_password:
   help: The password of the first superuser (in .env)
   default: changethis
 
+users_open_registration:
+  type: bool
+  help: Allow anyone to register as a user (in .env)
+  default: false
+
 smtp_host:
   type: str
   help: The SMTP server host to send emails, you can set it later in .env

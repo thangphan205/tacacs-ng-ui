@@ -1,4 +1,81 @@
-# TACACS-NG-GUI
+# TACACS-NG-UI
+
+**tacacs-ng-ui** is a modern, full-stack web application that provides a user-friendly graphical interface for managing TACACS+ server configurations. It simplifies the administration of network device authentication, authorization, and accounting (AAA) by offering a clean and intuitive web-based dashboard.
+
+Built with a powerful and modern technology stack, the application features a FastAPI backend and a React frontend. This combination ensures a high-performance, scalable, and maintainable solution for network administrators.
+
+## Key Features
+
+- Intuitive Web Interface: Manage TACACS+ users, groups, and policies through a clean and responsive UI built with React and Chakra UI.
+- **TACACS+ Server**: Utilizes [tac_plus-ng](https://github.com/MarcJHuber/event-driven-servers) as the backend TACACS+ server, a modern and actively maintained implementation.
+- Secure by Design: Includes secure password hashing, JWT (JSON Web Token) authentication, and email-based password recovery.
+- Integrated Tooling: Comes with Traefik for reverse proxying, automatic API documentation via Swagger UI, and end-to-end testing with Playwright.
+- tacacs-ng-ui is designed to make TACACS+ management more accessible and efficient, reducing the reliance on command-line interfaces and complex configuration files.
+
+## Live Demo
+
+- **Dashboard:** <https://dashboard.tacacs.9ping.cloud>
+- **IP TACACS Server:** Resolve from `dashboard.tacacs.9ping.cloud`
+- **TACACS key:** `change_this`
+
+**Demo Credentials:**
+
+- **Admin User**
+  - **Username:** `user_admin`
+  - **Password:** `change_this`
+- **Read-Only User**
+  - **Username:** `user_read_only`
+  - **Password:** `change_this`
+
+## Juniper Config
+
+```bash
+# Example Juniper configuration for TACACS+
+
+# 1. Define local user classes for TACACS+ users
+set system login class read-only-local idle-timeout 15
+set system login class read-only-local permissions view
+set system login class read-only-local permissions view-configuration
+set system login class super-user-local idle-timeout 15
+set system login class super-user-local permissions all
+set system login user tacacs_read_only uid 2001
+set system login user tacacs_read_only class read-only-local
+set system login user tacacs_super_user uid 2002
+set system login user tacacs_super_user class super-user-local
+
+# 2. Set authentication order to check TACACS+ first, then local password
+set system authentication-order tacplus
+set system authentication-order password
+
+# 3. Configure the TACACS+ server details
+set system tacplus-server <IP_TACACS_SERVER> port 49
+set system tacplus-server <IP_TACACS_SERVER> secret "<TACACS_SECRET_KEY>"
+set system tacplus-server <IP_TACACS_SERVER> source-address <DEVICE_SOURCE_IP>
+
+# 4. Configure accounting to send logs to the TACACS+ server
+set system accounting events login
+set system accounting events change-log
+set system accounting events interactive-commands
+set system accounting destination tacplus server <IP_TACACS_SERVER> secret "<ACCOUNTING_SECRET_KEY>"
+set system accounting destination tacplus server <IP_TACACS_SERVER> source-address <DEVICE_SOURCE_IP>
+```
+
+## Arista Config
+
+```bash
+# Sample config run with containerlab
+tacacs-server host <IP_TACACS_SERVER> key 0 <ACCOUNTING_SECRET_KEY>
+!
+aaa group server tacacs+ TACACS_GROUP
+server <IP_TACACS_SERVER>
+!
+aaa authentication login default group TACACS_GROUP local
+aaa authorization exec default group TACACS_GROUP local
+aaa authorization commands all default group TACACS_GROUP local
+aaa accounting exec default start-stop group TACACS_GROUP
+
+ip tacacs source-interface Management1
+```
 
 ## Technology Stack and Features
 
@@ -93,17 +170,25 @@ General development docs: [development.md](./development.md).
 
 This includes using Docker Compose, custom local domains, `.env` configurations, etc.
 
+### Dashboard
+
+[![API docs](img/dashboard.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
 ### Docs API
 
-[![API docs](img/docs.png)](https://github.com/thangphan205/tacacs-ng-gui)
+[![API docs](img/api.png)](https://github.com/thangphan205/tacacs-ng-ui)
 
 ### Tacacs Config File Generator
 
-[![API docs](img/tacacs_config.png)](https://github.com/thangphan205/tacacs-ng-gui)
+[![API docs](img/dashboard-tacacs-config.png)](https://github.com/thangphan205/tacacs-ng-ui)
 
-### Tacacs Mavis Settings
+### Traefik
 
-[![API docs](img/mavis_settings.png)](https://github.com/thangphan205/tacacs-ng-gui)
+[![API docs](img/traefik.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+### adminer
+
+[![API docs](img/adminer.png)](https://github.com/thangphan205/tacacs-ng-ui)
 
 ## Release Notes
 
