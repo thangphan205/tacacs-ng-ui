@@ -14,8 +14,15 @@ Built with a powerful and modern technology stack, the application features a Fa
 
 ## Live Demo
 
+You can signup an account and use this tacacs server to test with your simulator lab.
+
 - **Dashboard:** <https://dashboard.tacacs.9ping.cloud>
-- **IP TACACS Server:** Resolve from `dashboard.tacacs.9ping.cloud`
+- **IP TACACS Server:** Ping dashboard.tacacs.9ping.cloud to get IP TACACS Server.
+
+```bash
+ping dashboard.tacacs.9ping.cloud 
+```
+
 - **TACACS key:** `change_this`
 
 **Demo Credentials:**
@@ -101,8 +108,8 @@ ip tacacs source-interface Management1
 ## How To Use It
 
 ```bash
-git clone https://github.com/thangphan205/tacacs-ng-gui
-cd tacacs-ng-gui
+git clone https://github.com/thangphan205/tacacs-ng-ui
+cd tacacs-ng-ui
 docker compose up -d
 ```
 
