@@ -40,7 +40,7 @@ const AddRuleset = () => {
     criteriaMode: "all",
     defaultValues: {
       name: "",
-      action: "",
+      action: "deny",
       description: "",
     },
   })

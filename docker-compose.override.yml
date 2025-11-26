@@ -74,7 +74,7 @@ services:
     # TODO: remove once coverage is done locally
     volumes:
       - ./backend/htmlcov:/app/htmlcov
-      - ./backend/tacacs_config_and_logs:/app/tacacs_config_and_logs
+      - ./backend/tacacs_config:/app/tacacs_config
     environment:
       SMTP_HOST: "mailcatcher"
       SMTP_PORT: "1025"

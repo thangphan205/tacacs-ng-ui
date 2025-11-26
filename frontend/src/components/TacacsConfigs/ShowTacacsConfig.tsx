@@ -33,6 +33,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import type { HighlighterGeneric } from "shiki"
+import { useColorMode } from "@/components/ui/color-mode"
 
 
 interface ShowTacacsConfigProps {
@@ -51,11 +52,14 @@ const shikiAdapter = createShikiAdapter<HighlighterGeneric<any, any>>({
   async load() {
     const { createHighlighter } = await import("shiki")
     return createHighlighter({
-      langs: ["tsx", "bash"],
-      themes: ["github-dark"],
+      langs: ["bash"],
+      themes: ["github-dark", "github-light"],
     })
   },
-  theme: "github-dark",
+  theme: {
+    light: "github-light",
+    dark: "github-dark",
+  },
 })
 
 const ShowTacacsConfig = ({
@@ -63,6 +67,7 @@ const ShowTacacsConfig = ({
   children,
 }: ShowTacacsConfigProps) => {
   const [isOpen, setIsOpen] = useState(false)
+  const { colorMode } = useColorMode()
   const queryClient = useQueryClient()
   const [checkResult, setCheckResult] = useState<CheckTacacsConfigProps>({ status: "", raw_output: "", line: -1, message: "" })
   const { showSuccessToast } = useCustomToast()
@@ -150,7 +155,7 @@ const ShowTacacsConfig = ({
                 key={checkResult.line}
                 code={data.data}
                 language="bash"
-                meta={{ showLineNumbers: true }}
+                meta={{ showLineNumbers: true, colorScheme: colorMode }}
                 maxH="400px"
                 overflowY="auto"
 

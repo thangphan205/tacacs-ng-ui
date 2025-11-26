@@ -21,21 +21,26 @@ import {
 } from "@/components/ui/dialog"
 import { handleError } from "@/utils"
 import type { HighlighterGeneric } from "shiki"
+import { useColorMode } from "@/components/ui/color-mode"
 
 const shikiAdapter = createShikiAdapter<HighlighterGeneric<any, any>>({
     async load() {
         const { createHighlighter } = await import("shiki")
         return createHighlighter({
             langs: ["bash"],
-            themes: ["github-dark"],
+            themes: ["github-dark", "github-light"],
         })
     },
-    theme: "github-dark",
+    theme: {
+        light: "github-light",
+        dark: "github-dark",
+    },
 })
 
 export default function PreviewMavis() {
     const [isOpen, setIsOpen] = useState(false)
     const queryClient = useQueryClient()
+    const { colorMode } = useColorMode()
 
     const { data: previewData, isLoading } = useQuery({
         queryKey: ["mavisPreview"],
@@ -82,7 +87,7 @@ export default function PreviewMavis() {
                             <CodeBlock.Root
                                 code={previewData.data}
                                 language="bash"
-                                meta={{ showLineNumbers: true }}
+                                meta={{ showLineNumbers: true, colorScheme: colorMode }}
                                 maxH="400px"
                                 overflowY="auto"
                             >

@@ -40,7 +40,7 @@ const AddProfile = () => {
     criteriaMode: "all",
     defaultValues: {
       name: "",
-      action: "",
+      action: "deny",
       description: "",
     },
   })

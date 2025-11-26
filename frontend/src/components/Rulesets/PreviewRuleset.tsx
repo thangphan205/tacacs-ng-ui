@@ -1,4 +1,9 @@
-import { Button, Textarea, VStack } from "@chakra-ui/react"
+import {
+    Button,
+    CodeBlock,
+    Spinner,
+    Text, createShikiAdapter,
+} from "@chakra-ui/react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiEye } from "react-icons/fi"
@@ -13,15 +18,31 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-
+import type { HighlighterGeneric } from "shiki"
+import { useColorMode } from "@/components/ui/color-mode"
 
 interface PreviewResponse {
-    data: string;
+    data: string
 }
+
+const shikiAdapter = createShikiAdapter<HighlighterGeneric<any, any>>({
+    async load() {
+        const { createHighlighter } = await import("shiki")
+        return createHighlighter({
+            langs: ["bash"],
+            themes: ["github-dark", "github-light"],
+        })
+    },
+    theme: {
+        light: "github-light",
+        dark: "github-dark",
+    },
+})
 
 const PreviewRuleset = () => {
     const [isOpen, setIsOpen] = useState(false)
     const queryClient = useQueryClient()
+    const { colorMode } = useColorMode()
 
     const { data: previewData, isLoading } = useQuery<PreviewResponse>({
         queryKey: ["rulesetPreview"],
@@ -35,7 +56,7 @@ const PreviewRuleset = () => {
 
     return (
         <DialogRoot
-            size={{ base: "md", md: "xl" }}
+            size={{ base: "xs", md: "xl" }}
             open={isOpen}
             onOpenChange={({ open }) => setIsOpen(open)}
         >
@@ -54,18 +75,27 @@ const PreviewRuleset = () => {
                     <DialogTitle>Preview Candidate Ruleset</DialogTitle>
                 </DialogHeader>
                 <DialogBody>
-                    <VStack>
-                        {isLoading ? (
-                            <p>Loading...</p>
+                    {isLoading ?
+                        <Spinner />
+                        : previewData?.data ? (
+                            <CodeBlock.AdapterProvider value={shikiAdapter}>
+                                <CodeBlock.Root
+                                    code={previewData.data}
+                                    language="bash"
+                                    meta={{ showLineNumbers: true, colorScheme: colorMode }}
+                                    maxH="400px"
+                                    overflowY="auto"
+                                >
+                                    <CodeBlock.Content>
+                                        <CodeBlock.Code>
+                                            <CodeBlock.CodeText />
+                                        </CodeBlock.Code>
+                                    </CodeBlock.Content>
+                                </CodeBlock.Root>
+                            </CodeBlock.AdapterProvider>
                         ) : (
-                            <Textarea
-                                readOnly
-                                value={previewData?.data || "No preview available."}
-                                rows={20}
-                                fontFamily="monospace"
-                            />
+                            <Text>No preview available.</Text>
                         )}
-                    </VStack>
                 </DialogBody>
                 <DialogCloseTrigger />
             </DialogContent>

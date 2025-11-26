@@ -21,20 +21,25 @@ import {
 } from "@/components/ui/dialog"
 import { handleError } from "@/utils"
 import type { HighlighterGeneric } from "shiki"
+import { useColorMode } from "@/components/ui/color-mode"
 
 const shikiAdapter = createShikiAdapter<HighlighterGeneric<any, any>>({
     async load() {
         const { createHighlighter } = await import("shiki")
         return createHighlighter({
             langs: ["bash"],
-            themes: ["github-dark"],
+            themes: ["github-dark", "github-light"],
         })
     },
-    theme: "github-dark",
+    theme: {
+        light: "github-light",
+        dark: "github-dark",
+    },
 })
 
 const ShowActiveTacacsConfig = () => {
     const [isOpen, setIsOpen] = useState(false)
+    const { colorMode } = useColorMode()
 
     const { data: activeConfigData, isLoading } = useQuery({
         queryKey: ["activeTacacsConfig"],
@@ -71,7 +76,7 @@ const ShowActiveTacacsConfig = () => {
                             <CodeBlock.Root
                                 code={activeConfigData.data}
                                 language="bash"
-                                meta={{ showLineNumbers: true }}
+                                meta={{ showLineNumbers: true, colorScheme: colorMode }}
                                 maxH="400px"
                                 overflowY="auto"
                             >

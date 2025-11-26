@@ -63,7 +63,11 @@ def generate_preview_tacacs_config(*, session: SessionDep) -> Any:
     """
 
     tacacs_config = tacacs_configs.generate_preview_tacacs_config(session=session)
-    return {"data": tacacs_config, "created_at": datetime.utcnow()}
+    return {
+        "data": tacacs_config,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+    }
 
 
 @router.get(
@@ -202,6 +206,7 @@ def update_tacacs_config(
 @router.delete(
     "/{id}",
     dependencies=[Depends(get_current_active_superuser)],
+    response_model=Message,
 )
 def delete_tacacs_config(session: SessionDep, id: uuid.UUID) -> Message:
     """
