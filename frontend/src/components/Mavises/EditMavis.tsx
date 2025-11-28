@@ -66,7 +66,7 @@ const EditMavis = ({ mavis }: EditMavisProps) => {
       handleError(err)
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["maviss"] })
+      queryClient.invalidateQueries({ queryKey: ["mavises"] })
     },
   })
 
