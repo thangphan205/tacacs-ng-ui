@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     wget \
     supervisor \
-    procps \
+    libio-socket-ssl-perl \
     && rm -rf /var/lib/apt/lists/*
 
 # --- Download and install tac_plus-ng ---
