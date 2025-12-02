@@ -12,6 +12,7 @@ import {
   FiList,
   FiSettings,
   FiServer,
+  FiSliders,
   FiShield,
   FiUser,
   FiUsers,
@@ -41,6 +42,7 @@ const items = [
     level: 1,
   },
   { icon: FiDatabase, title: "Mavis Settings", path: "/mavises", level: 1 },
+  { icon: FiSliders, title: "Configuration Options", path: "/configuration_options", level: 1 },
   { icon: FiList, title: "Tacacs logs", path: "/tacacs_logs", level: 1 },
   { icon: FiSettings, title: "User Settings", path: "/settings", level: 1 },
 ]

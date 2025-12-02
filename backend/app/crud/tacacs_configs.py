@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 from sqlmodel import Session, select
 from app.models import (
+    ConfigurationOption,
     TacacsConfig,
     TacacsConfigCreate,
     TacacsConfigUpdate,
@@ -66,9 +67,6 @@ def generate_tacacs_ng_config(*, session: Session) -> Any:
     tacacs_ng_basic = session.exec(statement).first()
     tacacs_ng_info = tacacs_ng_basic.model_dump()
 
-    statement = select(Host)
-    host_basic = session.exec(statement).all()
-
     mavises_template = generate_tacacs_mavis_setting(session=session)
 
     config_file_template = """#!/usr/local/sbin/tac_plus-ng
@@ -110,7 +108,21 @@ id = tac_plus-ng {{
         accountinglog=tacacs_ng_info["accounting_logfile_destination"],
         mavises_template=mavises_template,
     )
+
+    # Begin host
     hosts_template = ""
+    statement_configuration_host = select(ConfigurationOption).where(
+        ConfigurationOption.name == "host"
+    )
+    configuration_host_option = session.exec(statement_configuration_host).first()
+    if configuration_host_option:
+        hosts_template += """
+    {}""".format(
+            configuration_host_option.config_option
+        )
+    statement = select(Host)
+    host_basic = session.exec(statement).all()
+
     for host in host_basic:
         host_info = host.model_dump()
         hosts_template += """
@@ -123,9 +135,19 @@ id = tac_plus-ng {{
             host_key=host_info["secret_key"],
         )
 
+    statement_configuration_group = select(ConfigurationOption).where(
+        ConfigurationOption.name == "group"
+    )
+    configuration_group_option = session.exec(statement_configuration_group).first()
+    tacacs_groups_template = ""
+    if configuration_group_option:
+        tacacs_groups_template += """
+    {}""".format(
+            configuration_group_option.config_option
+        )
     statement = select(TacacsGroup)
     tacacs_group_basic = session.exec(statement).all()
-    tacacs_groups_template = ""
+
     for tacacs_group in tacacs_group_basic:
         tacacs_group_info = tacacs_group.model_dump()
         tacacs_groups_template += """
@@ -133,9 +155,21 @@ id = tac_plus-ng {{
             group_name=tacacs_group_info["group_name"]
         )
 
+    # Begin user
+    statement_configuration_user = select(ConfigurationOption).where(
+        ConfigurationOption.name == "user"
+    )
+    configuration_user_option = session.exec(statement_configuration_user).first()
+    tacacs_users_template = ""
+    if configuration_user_option:
+        tacacs_users_template += """
+    {}""".format(
+            configuration_user_option.config_option
+        )
+
     statement = select(TacacsUser)
     tacacs_users_basic = session.exec(statement).all()
-    tacacs_users_template = ""
+
     for tacacs_user in tacacs_users_basic:
         tacacs_user_info = tacacs_user.model_dump()
         if tacacs_user_info["password_type"] == "mavis":

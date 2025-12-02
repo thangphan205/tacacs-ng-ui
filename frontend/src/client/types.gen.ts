@@ -9,6 +9,32 @@ export type Body_login_login_access_token = {
     client_secret?: (string | null);
 };
 
+export type ConfigurationOptionCreate = {
+    name: string;
+    config_option: string;
+    description?: (string | null);
+};
+
+export type ConfigurationOptionPublic = {
+    name: string;
+    config_option: string;
+    description?: (string | null);
+    id: string;
+    created_at: string;
+    updated_at: string;
+};
+
+export type ConfigurationOptionsPublic = {
+    data: Array<ConfigurationOptionPublic>;
+    count: number;
+};
+
+export type ConfigurationOptionUpdate = {
+    name: string;
+    config_option: string;
+    description?: (string | null);
+};
+
 export type HostCreate = {
     name: string;
     ipv4_address?: (string | null);
@@ -582,6 +608,38 @@ export type ValidationError = {
     type: string;
 };
 
+export type ConfigurationOptionsReadConfigurationOptionsData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type ConfigurationOptionsReadConfigurationOptionsResponse = (ConfigurationOptionsPublic);
+
+export type ConfigurationOptionsCreateConfigurationOptionData = {
+    requestBody: ConfigurationOptionCreate;
+};
+
+export type ConfigurationOptionsCreateConfigurationOptionResponse = (ConfigurationOptionPublic);
+
+export type ConfigurationOptionsReadConfigurationOptionByIdData = {
+    id: string;
+};
+
+export type ConfigurationOptionsReadConfigurationOptionByIdResponse = (ConfigurationOptionPublic);
+
+export type ConfigurationOptionsUpdateConfigurationOptionData = {
+    id: string;
+    requestBody: ConfigurationOptionUpdate;
+};
+
+export type ConfigurationOptionsUpdateConfigurationOptionResponse = (ConfigurationOptionPublic);
+
+export type ConfigurationOptionsDeleteConfigurationOptionData = {
+    id: string;
+};
+
+export type ConfigurationOptionsDeleteConfigurationOptionResponse = (Message);
+
 export type HostsReadHostsData = {
     limit?: number;
     skip?: number;
@@ -646,6 +704,10 @@ export type ItemsDeleteItemData = {
 
 export type ItemsDeleteItemResponse = (Message);
 
+export type LoginGoogleLoginResponse = (unknown);
+
+export type LoginGoogleCallbackResponse = (Token);
+
 export type LoginLoginAccessTokenData = {
     formData: Body_login_login_access_token;
 };
@@ -665,12 +727,6 @@ export type LoginResetPasswordData = {
 };
 
 export type LoginResetPasswordResponse = (Message);
-
-export type LoginRecoverPasswordHtmlContentData = {
-    email: string;
-};
-
-export type LoginRecoverPasswordHtmlContentResponse = (string);
 
 export type MavisesReadMavisesData = {
     limit?: number;

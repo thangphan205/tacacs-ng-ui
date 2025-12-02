@@ -745,3 +745,41 @@ class TacacsLogPublic(TacacsLogBase):
 class TacacsLogsPublic(SQLModel):
     data: list[TacacsLogPublic]
     count: int
+
+
+# -- Tacacs Custom Section Table ---
+class ConfigurationOptionBase(SQLModel):
+    name: str = Field(index=True, unique=True, max_length=255)
+    config_option: str
+    description: Optional[str] = None
+
+
+class ConfigurationOptionCreate(ConfigurationOptionBase):
+    pass
+
+
+class ConfigurationOptionUpdate(ConfigurationOptionBase):
+    pass
+
+
+# Database model, database table inferred from class name
+class ConfigurationOption(ConfigurationOptionBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
+    )
+
+
+# Properties to return via API, id is always required
+
+
+class ConfigurationOptionPublic(ConfigurationOptionBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class ConfigurationOptionsPublic(SQLModel):
+    data: list[ConfigurationOptionPublic]
+    count: int

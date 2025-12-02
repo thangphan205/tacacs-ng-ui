@@ -195,6 +195,14 @@ def update_tacacs_config(
             status_code=404,
             detail="The tacacs_config with this id does not exist in the system",
         )
+
+    result = tacacs_configs.check_tacacs_config_by_id(session=session, id=id)
+    if result["line"] > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=result["message"],
+        )
+
     db_tacacs_config = tacacs_configs.update_tacacs_config(
         session=session,
         db_tacacs_config=db_tacacs_config,

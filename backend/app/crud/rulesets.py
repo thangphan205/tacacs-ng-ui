@@ -7,6 +7,7 @@ from app.models import (
     RulesetUpdate,
     RulesetScript,
     RulesetScriptSet,
+    ConfigurationOption,
 )
 
 
@@ -37,8 +38,19 @@ def update_ruleset(
 
 
 def ruleset_generator(session: Session) -> str:
-    rulesets_db = session.exec(select(Ruleset)).all()
+
+    statement_configuration_rule = select(ConfigurationOption).where(
+        ConfigurationOption.name == "rule"
+    )
+    configuration_rule_option = session.exec(statement_configuration_rule).first()
     ruleset_template = ""
+    if configuration_rule_option:
+        ruleset_template += """
+    {}""".format(
+            configuration_rule_option.config_option
+        )
+    rulesets_db = session.exec(select(Ruleset)).all()
+
     for ruleset_db in rulesets_db:
         statement = select(RulesetScript).where(
             RulesetScript.ruleset_id == ruleset_db.id
@@ -88,6 +100,7 @@ def ruleset_generator(session: Session) -> str:
             rulesetscript_template=rulesetscript_template,
             action=ruleset_db.action,
         )
+
     ruleset_all = """
     ruleset {{
         {ruleset_template}

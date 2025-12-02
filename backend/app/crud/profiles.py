@@ -7,6 +7,7 @@ from app.models import (
     ProfileUpdate,
     ProfileScript,
     ProfileScriptSet,
+    ConfigurationOption,
 )
 
 
@@ -37,8 +38,18 @@ def update_profile(
 
 
 def profile_generator(session: Session) -> str:
-    profiles_db = session.exec(select(Profile)).all()
+
+    statement_configuration_profile = select(ConfigurationOption).where(
+        ConfigurationOption.name == "profile"
+    )
+    configuration_profile_option = session.exec(statement_configuration_profile).first()
     profile_template = ""
+    if configuration_profile_option:
+        profile_template += """
+    {}""".format(
+            configuration_profile_option.config_option
+        )
+    profiles_db = session.exec(select(Profile)).all()
     for profile_db in profiles_db:
 
         statement = select(ProfileScript).where(
