@@ -14,6 +14,10 @@ Built with a powerful and modern technology stack, the application features a Fa
 
 ## Live Demo
 
+Video Demo: [English - Demo tacacs-ng-iu - Setup for Juniper Devices](https://youtu.be/MUGusXOFJBI)
+
+Video Tiếng Việt:[tacacs-ng-ui - Demo - Cấu hình chứng thực tập trung với thiết bị Juniper](https://youtu.be/vnuZMcHxpH4)
+
 You can signup an account and use this tacacs server to test with your simulator lab.
 
 - **Dashboard:** <https://dashboard.tacacs.9ping.cloud>
