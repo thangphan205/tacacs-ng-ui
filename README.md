@@ -60,32 +60,73 @@ set system authentication-order password
 
 # 3. Configure the TACACS+ server details
 set system tacplus-server <IP_TACACS_SERVER> port 49
-set system tacplus-server <IP_TACACS_SERVER> secret "<TACACS_SECRET_KEY>"
+set system tacplus-server <IP_TACACS_SERVER> secret <TACACS_SECRET_KEY>
 set system tacplus-server <IP_TACACS_SERVER> source-address <DEVICE_SOURCE_IP>
 
 # 4. Configure accounting to send logs to the TACACS+ server
 set system accounting events login
 set system accounting events change-log
 set system accounting events interactive-commands
-set system accounting destination tacplus server <IP_TACACS_SERVER> secret "<ACCOUNTING_SECRET_KEY>"
+set system accounting destination tacplus server <IP_TACACS_SERVER> secret <TACACS_SECRET_KEY>
 set system accounting destination tacplus server <IP_TACACS_SERVER> source-address <DEVICE_SOURCE_IP>
+```
+
+## Cisco config
+
+```bash
+# 1. Enable AAA (Authentication, Authorization, and Accounting)
+aaa new-model
+
+# 2. Define the TACACS+ server
+tacacs server TACACS-9PING
+  # IP address of your TACACS-NG-UI server
+  address ipv4 <IP_TACACS_SERVER>
+  # Shared secret key, must match the server configuration
+  key <TACACS_SECRET_KEY>
+  exit
+
+# 3. Create a server group (best practice for redundancy)
+aaa group server tacacs+ TACACS-GROUP
+  server name TACACS-9PING
+  exit
+
+# 4. Configure Authentication, Authorization, and Accounting methods
+# Use TACACS+ first, then fall back to the local database if the server is unreachable
+aaa authentication login default group TACACS-GROUP local
+aaa authorization exec default group TACACS-GROUP local
+aaa accounting exec default start-stop group TACACS-GROUP
+# Log all commands run in privileged (enable) mode
+aaa accounting commands 15 default start-stop group TACACS-GROUP
+
+# 5. Apply the authentication method to VTY lines (for SSH/Telnet)
+line vty 0 4
+  login authentication default
+exit
 ```
 
 ## Arista Config
 
 ```bash
-# Sample config run with containerlab
-tacacs-server host <IP_TACACS_SERVER> key 0 <ACCOUNTING_SECRET_KEY>
+# 1. Define the TACACS+ server and shared key
+# 'key 0' specifies the key is in clear text. For production, use an encrypted key.
+tacacs-server host <IP_TACACS_SERVER> key 0 <TACACS_SECRET_KEY>
 !
+# 2. Create a server group for TACACS+ (best practice)
 aaa group server tacacs+ TACACS_GROUP
-server <IP_TACACS_SERVER>
+  # Add the server to the group
+  server <IP_TACACS_SERVER>
 !
+# 3. Configure Authentication, Authorization, and Accounting methods
+# Use the TACACS+ group first, then fall back to the local database if unreachable.
 aaa authentication login default group TACACS_GROUP local
 aaa authorization exec default group TACACS_GROUP local
+# Authorize all commands against the TACACS+ server for granular control.
 aaa authorization commands all default group TACACS_GROUP local
+# Log the start and stop of exec sessions for auditing.
 aaa accounting exec default start-stop group TACACS_GROUP
 
-ip tacacs source-interface Management1
+# 4. (Optional) Specify the source interface for TACACS+ traffic.
+ip tacacs source-interface Management0
 ```
 
 ## Technology Stack and Features
