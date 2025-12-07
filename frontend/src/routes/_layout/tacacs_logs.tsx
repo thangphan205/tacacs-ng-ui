@@ -111,6 +111,7 @@ function TacacsLogsTable() {
       { value: '', label: 'All Types' }, // Add an option to clear the filter
       { value: 'access', label: 'access' },
       { value: 'authentication', label: 'authentication' },
+      { value: 'authorization', label: 'authorization' },
       { value: 'accounting', label: 'accounting' },
     ],
   });

@@ -7,6 +7,7 @@ import {
   Spinner,
   Text,
   createShikiAdapter,
+  IconButton
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
@@ -88,12 +89,31 @@ const ShowTacacsLog = ({
             code={data.data}
             language="log"
             meta={{ showLineNumbers: true, colorScheme: colorMode }}
-            flex={1}
+            maxLines={20}
           >
+            <CodeBlock.Header>
+              <CodeBlock.Control>
+                <CodeBlock.CollapseTrigger asChild>
+                  <IconButton variant="solid" size="sm">
+                    <CodeBlock.CollapseIndicator />
+                  </IconButton>
+                </CodeBlock.CollapseTrigger>
+                <CodeBlock.CopyTrigger asChild>
+                  <IconButton variant="solid" size="sm">
+                    <CodeBlock.CopyIndicator />
+                  </IconButton>
+                </CodeBlock.CopyTrigger>
+              </CodeBlock.Control>
+            </CodeBlock.Header>
             <CodeBlock.Content>
               <CodeBlock.Code>
                 <CodeBlock.CodeText />
               </CodeBlock.Code>
+              <CodeBlock.Overlay>
+                <CodeBlock.CollapseTrigger>
+                  <CodeBlock.CollapseText textStyle="sm" />
+                </CodeBlock.CollapseTrigger>
+              </CodeBlock.Overlay>
             </CodeBlock.Content>
           </CodeBlock.Root>
         </CodeBlock.AdapterProvider>
@@ -133,7 +153,7 @@ const ShowTacacsLog = ({
             Log for: {tacacs_log.filename}
           </DialogTitle>
         </DialogHeader>
-        <DialogBody display="flex" flexDirection="column" gap={4}>
+        <DialogBody display="flex" flexDirection="column" gap={4} maxLines={30}>
           <Group attached w="full" maxW="md">
             <Input
               placeholder="Search in log content..."
