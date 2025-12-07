@@ -134,7 +134,7 @@ const EditProfileScriptSet = ({ profilescriptset }: EditProfileScriptSetProps) =
                 <Select.Root
                   collection={items_tacacs_profilescripts}
                   size="sm"
-                  defaultValue={[profilescriptset.profilescript_id || ""]}
+                  defaultValue={[profilescriptset.profilescript_id]}
                   onValueChange={(selection) => {
                     setValue("profilescript_id", selection.value.toString());
                   }}
@@ -167,7 +167,7 @@ const EditProfileScriptSet = ({ profilescriptset }: EditProfileScriptSetProps) =
                 required
                 invalid={!!errors.key}
                 errorText={errors.key?.message}
-                label="key"
+                label="Set Key"
               >
                 <Input
                   {...register("key", {
@@ -181,7 +181,7 @@ const EditProfileScriptSet = ({ profilescriptset }: EditProfileScriptSetProps) =
                 required
                 invalid={!!errors.value}
                 errorText={errors.value?.message}
-                label="value"
+                label="Set Value"
               >
                 <Input
                   {...register("value", {

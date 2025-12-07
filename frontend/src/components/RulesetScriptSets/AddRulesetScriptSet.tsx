@@ -177,7 +177,7 @@ const AddRulesetScriptSet = () => {
                 required
                 invalid={!!errors.key}
                 errorText={errors.key?.message}
-                label="Set key"
+                label="Key"
               >
                 <Input
                   {...register("key", {
@@ -191,7 +191,7 @@ const AddRulesetScriptSet = () => {
                 required
                 invalid={!!errors.value}
                 errorText={errors.value?.message}
-                label="Set Value"
+                label="Value"
               >
                 {watchedKey === "profile" ? (
                   <Select.Root

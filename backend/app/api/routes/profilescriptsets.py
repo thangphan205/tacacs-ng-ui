@@ -1,6 +1,5 @@
 import uuid
 from typing import Any
-from sqlalchemy.orm import joinedload
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import func, select
 
@@ -92,15 +91,7 @@ def read_profilescriptset_by_id(
     """
     Get a specific profilescriptset by id.
     """
-    statement = (
-        select(ProfileScriptSet)
-        .where(ProfileScriptSet.id == id)
-        .options(
-            joinedload(ProfileScriptSet.profile),
-            joinedload(ProfileScriptSet.profilescript),
-        )
-    )
-    profilescriptset = session.exec(statement).first()
+    profilescriptset = session.get(ProfileScriptSet, id)
 
     if not profilescriptset:
         raise HTTPException(status_code=404, detail="ProfileScriptSet not found")
@@ -122,15 +113,7 @@ def update_profilescriptset(
     Update a profilescriptset.
     """
 
-    statement = (
-        select(ProfileScriptSet)
-        .where(ProfileScriptSet.id == id)
-        .options(
-            joinedload(ProfileScriptSet.profile),
-            joinedload(ProfileScriptSet.profilescript),
-        )
-    )
-    db_profilescriptset = session.exec(statement).first()
+    db_profilescriptset = session.get(ProfileScriptSet, id)
     if not db_profilescriptset:
         raise HTTPException(
             status_code=404,

@@ -165,7 +165,7 @@ const EditRulesetScriptSet = ({ rulesetscriptset }: EditRulesetScriptSetProps) =
 
                 >
                   <Select.Trigger>
-                    <Select.ValueText placeholder="Select Tacacs ProfileScript" />
+                    <Select.ValueText placeholder="Select Tacacs RulesetScript" />
                   </Select.Trigger>
                   <Select.Positioner>
                     <Select.Content>
@@ -191,7 +191,7 @@ const EditRulesetScriptSet = ({ rulesetscriptset }: EditRulesetScriptSetProps) =
                 required
                 invalid={!!errors.key}
                 errorText={errors.key?.message}
-                label="Set Key"
+                label="Key"
               >
                 <Input
                   {...register("key", {
@@ -205,7 +205,7 @@ const EditRulesetScriptSet = ({ rulesetscriptset }: EditRulesetScriptSetProps) =
                 required
                 invalid={!!errors.value}
                 errorText={errors.value?.message}
-                label="Set Value"
+                label="Value"
               >
                 {watchedKey === "profile" ? (
                   <Select.Root

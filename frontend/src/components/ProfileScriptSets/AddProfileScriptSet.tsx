@@ -152,7 +152,7 @@ const AddProfileScriptSet = () => {
                 required
                 invalid={!!errors.key}
                 errorText={errors.key?.message}
-                label="key"
+                label="Set Key"
               >
                 <Input
                   {...register("key", {
@@ -166,7 +166,7 @@ const AddProfileScriptSet = () => {
                 required
                 invalid={!!errors.value}
                 errorText={errors.value?.message}
-                label="value"
+                label="Set Value"
               >
                 <Input
                   {...register("value", {
