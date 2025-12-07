@@ -42,13 +42,18 @@ def profile_generator(session: Session) -> str:
     statement_configuration_profile = select(ConfigurationOption).where(
         ConfigurationOption.name == "profile"
     )
-    configuration_profile_option = session.exec(statement_configuration_profile).first()
+    configuration_profile_options = session.exec(statement_configuration_profile).all()
     profile_template = ""
-    if configuration_profile_option:
-        profile_template += """
-    {}""".format(
-            configuration_profile_option.config_option
-        )
+    if configuration_profile_options:
+        profile_template += "\n    # Profile Configuration Options\n"
+        for configuration_profile_option in configuration_profile_options:
+            profile_template += """
+    {}
+""".format(
+                configuration_profile_option.config_option
+            )
+        profile_template += "\n    # End of Profile Configuration Options\n"
+
     profiles_db = session.exec(select(Profile)).all()
     for profile_db in profiles_db:
 
@@ -70,14 +75,14 @@ def profile_generator(session: Session) -> str:
             profilescriptset_template = ""
             for profilescriptset in scriptset_in_profilescript:
                 profilescriptset_info = profilescriptset.model_dump()
-                profilescriptset_template += """            set {key}={value}
+                profilescriptset_template += """              set {key}={value}
 """.format(
                     key=profilescriptset_info["key"],
                     value=profilescriptset_info["value"],
                 )
 
             profilescript_info = profilescript.model_dump()
-            profilescript_template += """       {condition} ({key}=={value}){{
+            profilescript_template += """           {condition} ({key}=={value}){{
 {profilescriptset_template}
             {action}
             }}
@@ -94,7 +99,8 @@ def profile_generator(session: Session) -> str:
 {profilescript_template}
         {action}
         }}
-    }}""".format(
+    }}
+""".format(
             profile_name=profile_db.name,
             profilescript_template=profilescript_template,
             action=profile_db.action,

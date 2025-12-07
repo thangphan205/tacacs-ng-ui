@@ -114,18 +114,20 @@ id = tac_plus-ng {{
     statement_configuration_host = select(ConfigurationOption).where(
         ConfigurationOption.name == "host"
     )
-    configuration_host_option = session.exec(statement_configuration_host).first()
-    if configuration_host_option:
-        hosts_template += """
-    {}""".format(
-            configuration_host_option.config_option
-        )
+    configuration_host_options = session.exec(statement_configuration_host).all()
+    if configuration_host_options:
+        for configuration_host_option in configuration_host_options:
+            hosts_template += "\n   # Host Configuration Options"
+            hosts_template += """   {}\n""".format(
+                configuration_host_option.config_option
+            )
+            hosts_template += "\n    # End of Host Configuration Options\n"
     statement = select(Host)
     host_basic = session.exec(statement).all()
 
     for host in host_basic:
         host_info = host.model_dump()
-        hosts_template += """
+        hosts_template += """   
     host = {host_name} {{
         address = {host_address}
         key = "{host_key}"
@@ -138,13 +140,15 @@ id = tac_plus-ng {{
     statement_configuration_group = select(ConfigurationOption).where(
         ConfigurationOption.name == "group"
     )
-    configuration_group_option = session.exec(statement_configuration_group).first()
+    configuration_group_options = session.exec(statement_configuration_group).all()
     tacacs_groups_template = ""
-    if configuration_group_option:
-        tacacs_groups_template += """
-    {}""".format(
-            configuration_group_option.config_option
-        )
+    if configuration_group_options:
+        tacacs_groups_template += "\n    # Group Configuration Options\n"
+        for configuration_group_option in configuration_group_options:
+            tacacs_groups_template += """    {}\n""".format(
+                configuration_group_option.config_option
+            )
+        tacacs_groups_template += "    # End of Group Configuration Options\n"
     statement = select(TacacsGroup)
     tacacs_group_basic = session.exec(statement).all()
 
@@ -159,13 +163,15 @@ id = tac_plus-ng {{
     statement_configuration_user = select(ConfigurationOption).where(
         ConfigurationOption.name == "user"
     )
-    configuration_user_option = session.exec(statement_configuration_user).first()
+    configuration_user_options = session.exec(statement_configuration_user).all()
     tacacs_users_template = ""
-    if configuration_user_option:
-        tacacs_users_template += """
-    {}""".format(
-            configuration_user_option.config_option
-        )
+    if configuration_user_options:
+        tacacs_users_template += "\n    # User Configuration Options\n"
+        for configuration_user_option in configuration_user_options:
+            tacacs_users_template += """    {}\n""".format(
+                configuration_user_option.config_option
+            )
+        tacacs_users_template += "    # End of User Configuration Options\n"
 
     statement = select(TacacsUser)
     tacacs_users_basic = session.exec(statement).all()

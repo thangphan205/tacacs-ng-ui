@@ -42,13 +42,16 @@ def ruleset_generator(session: Session) -> str:
     statement_configuration_rule = select(ConfigurationOption).where(
         ConfigurationOption.name == "rule"
     )
-    configuration_rule_option = session.exec(statement_configuration_rule).first()
+    configuration_rule_options = session.exec(statement_configuration_rule).all()
     ruleset_template = ""
-    if configuration_rule_option:
-        ruleset_template += """
-    {}""".format(
-            configuration_rule_option.config_option
-        )
+    if configuration_rule_options:
+        ruleset_template += "\n   # Ruleset Configuration Options\n"
+        for configuration_rule_option in configuration_rule_options:
+            ruleset_template += """     {}\n""".format(
+                configuration_rule_option.config_option
+            )
+        ruleset_template += "\n   # End of Ruleset Configuration Options\n"
+
     rulesets_db = session.exec(select(Ruleset)).all()
 
     for ruleset_db in rulesets_db:
@@ -71,8 +74,7 @@ def ruleset_generator(session: Session) -> str:
             rulesetscriptset_template = ""
             for rulesetscriptset in scriptset_in_ruleset:
                 rulesetscriptset_info = rulesetscriptset.model_dump()
-                rulesetscriptset_template += """             {key}={value}
-            """.format(
+                rulesetscriptset_template += """          {key}={value}\n""".format(
                     key=rulesetscriptset_info["key"],
                     value=rulesetscriptset_info["value"],
                 )
@@ -80,9 +82,8 @@ def ruleset_generator(session: Session) -> str:
             rulesetscript_info = rulesetscript.model_dump()
             rulesetscript_template += """       {condition} ({key}=={value}){{
 {rulesetscriptset_template}
-                {action}
-            }}
-            """.format(
+          {action}
+        }}\n""".format(
                 condition=rulesetscript_info["condition"],
                 key=rulesetscript_info["key"],
                 value=rulesetscript_info["value"],
@@ -90,13 +91,12 @@ def ruleset_generator(session: Session) -> str:
                 action=rulesetscript_info["action"],
             )
         ruleset_template += """     rule {rule_name} {{
-            enabled=yes
-            script {{
+        enabled=yes
+        script {{
 {rulesetscript_template}
             {action}
             }}
-        }}
-        """.format(
+        }}\n""".format(
             rule_name=ruleset_db.name,
             rulesetscript_template=rulesetscript_template,
             action=ruleset_db.action,
@@ -105,7 +105,7 @@ def ruleset_generator(session: Session) -> str:
     ruleset_all = """
     ruleset {{
 {ruleset_template}
-    }}""".format(
+    }}\n""".format(
         ruleset_template=ruleset_template
     )
     return ruleset_all
