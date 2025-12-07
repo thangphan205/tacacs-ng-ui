@@ -71,14 +71,15 @@ def ruleset_generator(session: Session) -> str:
             rulesetscriptset_template = ""
             for rulesetscriptset in scriptset_in_ruleset:
                 rulesetscriptset_info = rulesetscriptset.model_dump()
-                rulesetscriptset_template += """{key}={value}""".format(
+                rulesetscriptset_template += """             {key}={value}
+            """.format(
                     key=rulesetscriptset_info["key"],
                     value=rulesetscriptset_info["value"],
                 )
 
             rulesetscript_info = rulesetscript.model_dump()
-            rulesetscript_template += """{condition} ({key}=={value}){{
-                {rulesetscriptset_template}
+            rulesetscript_template += """       {condition} ({key}=={value}){{
+{rulesetscriptset_template}
                 {action}
             }}
             """.format(
@@ -88,10 +89,10 @@ def ruleset_generator(session: Session) -> str:
                 rulesetscriptset_template=rulesetscriptset_template,
                 action=rulesetscript_info["action"],
             )
-        ruleset_template += """rule {rule_name} {{
+        ruleset_template += """     rule {rule_name} {{
             enabled=yes
             script {{
-                {rulesetscript_template}
+{rulesetscript_template}
             {action}
             }}
         }}
@@ -103,7 +104,7 @@ def ruleset_generator(session: Session) -> str:
 
     ruleset_all = """
     ruleset {{
-        {ruleset_template}
+{ruleset_template}
     }}""".format(
         ruleset_template=ruleset_template
     )

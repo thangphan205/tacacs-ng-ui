@@ -70,16 +70,18 @@ def profile_generator(session: Session) -> str:
             profilescriptset_template = ""
             for profilescriptset in scriptset_in_profilescript:
                 profilescriptset_info = profilescriptset.model_dump()
-                profilescriptset_template += """set {key}={value}""".format(
+                profilescriptset_template += """            set {key}={value}
+""".format(
                     key=profilescriptset_info["key"],
                     value=profilescriptset_info["value"],
                 )
 
             profilescript_info = profilescript.model_dump()
-            profilescript_template += """{condition} ({key}=={value}){{
-            {profilescriptset_template}
+            profilescript_template += """       {condition} ({key}=={value}){{
+{profilescriptset_template}
             {action}
-            }}""".format(
+            }}
+""".format(
                 condition=profilescript_info["condition"],
                 key=profilescript_info["key"],
                 value=profilescript_info["value"],
@@ -89,7 +91,7 @@ def profile_generator(session: Session) -> str:
         profile_template += """
     profile {profile_name} {{
         script {{
-        {profilescript_template}
+{profilescript_template}
         {action}
         }}
     }}""".format(
