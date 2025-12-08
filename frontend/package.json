@@ -38,7 +38,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react-swc": "^4.2.2",
     "dotenv": "^17.2.2",
-    "shiki": "^3.15.0",
+    "shiki": "^3.19.0",
     "typescript": "^5.2.2",
     "vite": "^7.2.6"
   }
