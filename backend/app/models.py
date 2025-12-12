@@ -7,6 +7,14 @@ from typing import List, Optional
 from app.core.config import settings
 
 
+class TimestampModel(SQLModel):
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs={"onupdate": datetime.utcnow},
+    )
+
+
 # Shared properties
 class UserBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True, max_length=255)
@@ -43,13 +51,9 @@ class UpdatePassword(SQLModel):
 
 
 # Database model, database table inferred from class name
-class User(UserBase, table=True):
+class User(UserBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
 
 
@@ -82,12 +86,8 @@ class ItemUpdate(ItemBase):
 
 
 # Database model, database table inferred from class name
-class Item(ItemBase, table=True):
+class Item(ItemBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
     owner_id: uuid.UUID = Field(
         foreign_key="user.id", nullable=False, ondelete="CASCADE"
     )
@@ -167,12 +167,8 @@ class TacacsNgSettingUpdate(TacacsNgSettingBase):
 
 
 # Database model, database table inferred from class name
-class TacacsNgSetting(TacacsNgSettingBase, table=True):
+class TacacsNgSetting(TacacsNgSettingBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
 
 
 # Properties to return via API, id is always required
@@ -201,12 +197,8 @@ class MavisUpdate(MavisBase):
 
 
 # Database model, database table inferred from class name
-class Mavis(MavisBase, table=True):
+class Mavis(MavisBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
 
 
 # Properties to return via API, id is always required
@@ -249,12 +241,8 @@ class HostUpdate(HostBase):
 
 
 # Database model, database table inferred from class name
-class Host(HostBase, table=True):
+class Host(HostBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
 
 
 # Properties to return via API, id is always required
@@ -283,12 +271,8 @@ class TacacsGroupUpdate(TacacsGroupBase):
 
 
 # Database model, database table inferred from class name
-class TacacsGroup(TacacsGroupBase, table=True):
+class TacacsGroup(TacacsGroupBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
 
 
 # Properties to return via API, id is always required
@@ -321,12 +305,8 @@ class TacacsUserUpdate(TacacsUserBase):
 
 
 # Database model, database table inferred from class name
-class TacacsUser(TacacsUserBase, table=True):
+class TacacsUser(TacacsUserBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
     password: str | None = Field(default=None, max_length=255)
 
 
@@ -357,12 +337,8 @@ class TacacsServiceUpdate(TacacsServiceBase):
 
 
 # Database model, database table inferred from class name
-class TacacsService(TacacsServiceBase, table=True):
+class TacacsService(TacacsServiceBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
 
 
 # Properties to return via API, id is always required
@@ -394,12 +370,8 @@ class ProfileUpdate(ProfileBase):
 
 
 # Database model, database table inferred from class name
-class Profile(ProfileBase, table=True):
+class Profile(ProfileBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
     profile_scripts: List["ProfileScript"] = Relationship(
         back_populates="profile", cascade_delete=True
     )
@@ -442,12 +414,8 @@ class ProfileScriptUpdate(ProfileScriptBase):
 
 
 # Database model, database table inferred from class name
-class ProfileScript(ProfileScriptBase, table=True):
+class ProfileScript(ProfileScriptBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
     profile_id: uuid.UUID = Field(
         foreign_key="profile.id", nullable=False, ondelete="CASCADE"
     )
@@ -490,12 +458,8 @@ class ProfileScriptSetUpdate(ProfileScriptSetBase):
 
 
 # Database model, database table inferred from class name
-class ProfileScriptSet(ProfileScriptSetBase, table=True):
+class ProfileScriptSet(ProfileScriptSetBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
     profilescript_id: uuid.UUID = Field(
         foreign_key="profilescript.id",
         nullable=False,
@@ -540,12 +504,8 @@ class RulesetUpdate(RulesetBase):
 
 
 # Database model, database table inferred from class name
-class Ruleset(RulesetBase, table=True):
+class Ruleset(RulesetBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
     ruleset_scripts: List["RulesetScript"] = Relationship(
         back_populates="ruleset", cascade_delete=True
     )
@@ -588,12 +548,8 @@ class RulesetScriptUpdate(RulesetScriptBase):
 
 
 # Database model, database table inferred from class name
-class RulesetScript(RulesetScriptBase, table=True):
+class RulesetScript(RulesetScriptBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
     ruleset_id: uuid.UUID = Field(
         foreign_key="ruleset.id", nullable=False, ondelete="CASCADE"
     )
@@ -634,12 +590,8 @@ class RulesetScriptSetUpdate(RulesetScriptSetBase):
 
 
 # Database model, database table inferred from class name
-class RulesetScriptSet(RulesetScriptSetBase, table=True):
+class RulesetScriptSet(RulesetScriptSetBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
     rulesetscript_id: uuid.UUID = Field(
         foreign_key="rulesetscript.id",
         nullable=False,
@@ -683,12 +635,8 @@ class TacacsConfigUpdate(TacacsConfigBase):
 
 
 # Database model, database table inferred from class name
-class TacacsConfig(TacacsConfigBase, table=True):
+class TacacsConfig(TacacsConfigBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
     active: bool = Field(default=False)
 
 
@@ -763,12 +711,8 @@ class ConfigurationOptionUpdate(ConfigurationOptionBase):
 
 
 # Database model, database table inferred from class name
-class ConfigurationOption(ConfigurationOptionBase, table=True):
+class ConfigurationOption(ConfigurationOptionBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
 
 
 # Properties to return via API, id is always required
@@ -783,3 +727,113 @@ class ConfigurationOptionPublic(ConfigurationOptionBase):
 class ConfigurationOptionsPublic(SQLModel):
     data: list[ConfigurationOptionPublic]
     count: int
+
+
+# -- Authentication Statistics Table ---
+class AuthenticationStatisticsBase(SQLModel):
+    username: str = Field(index=True, max_length=255)
+    nas_ip: str = Field(index=True, max_length=1024)
+    user_source_ip: str = Field(index=True, max_length=1024)
+    success_count: int = Field(default=0)
+    fail_count: int = Field(default=0)
+    log_date: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AuthenticationStatisticsCreate(AuthenticationStatisticsBase):
+    pass
+
+
+class AuthenticationStatisticsUpdate(AuthenticationStatisticsBase):
+    pass
+
+
+# Database model, database table inferred from class name
+class AuthenticationStatistics(
+    AuthenticationStatisticsBase, TimestampModel, table=True
+):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
+
+# Properties to return via API, id is always required
+class AuthenticationStatisticPublic(AuthenticationStatisticsBase):
+    id: uuid.UUID
+    updated_at: datetime
+    data: str | None = None
+
+
+class AuthenticationStatisticsPublic(SQLModel):
+    data: list[AuthenticationStatisticPublic]
+    count: int
+
+
+# -- Authrorization Statistics Table ---
+class AuthorizationStatisticsBase(SQLModel):
+    username: str = Field(index=True, max_length=255)
+    nas_ip: str = Field(index=True, max_length=1024)
+    user_source_ip: str = Field(index=True, max_length=1024)
+    permit_count: int = Field(default=0)
+    deny_count: int = Field(default=0)
+    log_date: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AuthorizationStatisticsCreate(AuthorizationStatisticsBase):
+    pass
+
+
+class AuthorizationStatisticsUpdate(AuthorizationStatisticsBase):
+    pass
+
+
+# Database model, database table inferred from class name
+class AuthorizationStatistics(AuthorizationStatisticsBase, TimestampModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
+
+# Properties to return via API, id is always required
+class AuthorizationStatisticPublic(AuthorizationStatisticsBase):
+    id: uuid.UUID
+    updated_at: datetime
+    data: str | None = None
+
+
+class AuthorizationStatisticsPublic(SQLModel):
+    data: list[AuthorizationStatisticPublic]
+    count: int
+
+
+# --- Accounting Statistics Table ---
+class AccountingStatisticsBase(SQLModel):
+    username: str = Field(index=True, max_length=255)
+    nas_ip: str = Field(index=True, max_length=1024)
+    user_source_ip: str = Field(index=True, max_length=1024)
+    start_count: int = Field(default=0)
+    stop_count: int = Field(default=0)
+    log_date: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AccountingStatisticsCreate(AccountingStatisticsBase):
+    pass
+
+
+class AccountingStatisticsUpdate(AccountingStatisticsBase):
+    pass
+
+
+# Database model, database table inferred from class name
+class AccountingStatistics(AccountingStatisticsBase, TimestampModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
+
+# Properties to return via API, id is always required
+class AccountingStatisticPublic(AccountingStatisticsBase):
+    id: uuid.UUID
+    updated_at: datetime
+    data: str | None = None
+
+
+class AccountingStatisticsPublic(SQLModel):
+    data: list[AccountingStatisticPublic]
+    count: int
+
+
+# --- End of Accounting Statistics Table ---

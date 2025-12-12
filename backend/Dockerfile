@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     supervisor \
     libio-socket-ssl-perl \
+    cron \
     && rm -rf /var/lib/apt/lists/*
 
 # --- Download and install tac_plus-ng ---
@@ -66,6 +67,8 @@ COPY ./tacacs_config /app/tacacs_config
 
 COPY ./scripts /app/scripts
 
+RUN chmod +x /app/scripts/*.sh
+
 COPY ./pyproject.toml ./uv.lock ./alembic.ini /app/
 
 COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
@@ -78,4 +81,11 @@ COPY ./tests /app/tests
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync
 
-CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# --- Setup cron ---
+COPY ./tacacs-cron-jobs /etc/cron.d/tacacs-cron-jobs
+RUN set -eux; \
+    chmod 0644 /etc/cron.d/tacacs-cron-jobs; \
+    echo "" >> /etc/cron.d/tacacs-cron-jobs; \
+    mkdir -p /var/log/cron && touch /var/log/cron/cron.log
+# Use the entrypoint script to set up the environment and start supervisord
+CMD ["/app/scripts/entrypoint.sh"]
