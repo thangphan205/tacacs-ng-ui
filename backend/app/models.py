@@ -837,3 +837,19 @@ class AccountingStatisticsPublic(SQLModel):
 
 
 # --- End of Accounting Statistics Table ---
+
+
+class AaaStatisticsSummaryPublic(SQLModel):
+
+    authentication: list[AuthenticationStatisticPublic] = []
+    authorization: list[AuthorizationStatisticPublic] = []
+    accounting: list[AccountingStatisticPublic] = []
+    authentication_failed_count_by_user: list[dict] = []
+    authentication_success_count_by_user: list[dict] = []
+    authorization_deny_count_by_user: list[dict] = []
+    authentication_success_count_by_user_source_ip: list[dict] = []
+    last_7_days_authentication_success: list[dict] = []
+    last_7_days_authentication_fail: list[dict] = []
+    last_7_days_authorization_pass: list[dict] = []
+    last_7_days_authorization_deny: list[dict] = []
+    last_7_days_accounting: list[dict] = []

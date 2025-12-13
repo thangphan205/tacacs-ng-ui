@@ -34,6 +34,7 @@ import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutHostsRouteImport } from './routes/_layout/hosts'
 import { Route as LayoutConfiguration_optionsRouteImport } from './routes/_layout/configuration_options'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as LayoutAaa_statisticsRouteImport } from './routes/_layout/aaa_statistics'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -161,12 +162,18 @@ const LayoutAdminRoute = LayoutAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutAaa_statisticsRoute = LayoutAaa_statisticsRouteImport.update({
+  id: '/aaa_statistics',
+  path: '/aaa_statistics',
+  getParentRoute: () => LayoutRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/recover-password': typeof RecoverPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/aaa_statistics': typeof LayoutAaa_statisticsRoute
   '/admin': typeof LayoutAdminRoute
   '/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/hosts': typeof LayoutHostsRoute
@@ -193,6 +200,7 @@ export interface FileRoutesByTo {
   '/recover-password': typeof RecoverPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/aaa_statistics': typeof LayoutAaa_statisticsRoute
   '/admin': typeof LayoutAdminRoute
   '/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/hosts': typeof LayoutHostsRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/recover-password': typeof RecoverPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/_layout/aaa_statistics': typeof LayoutAaa_statisticsRoute
   '/_layout/admin': typeof LayoutAdminRoute
   '/_layout/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/_layout/hosts': typeof LayoutHostsRoute
@@ -249,6 +258,7 @@ export interface FileRouteTypes {
     | '/recover-password'
     | '/reset-password'
     | '/signup'
+    | '/aaa_statistics'
     | '/admin'
     | '/configuration_options'
     | '/hosts'
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
     | '/recover-password'
     | '/reset-password'
     | '/signup'
+    | '/aaa_statistics'
     | '/admin'
     | '/configuration_options'
     | '/hosts'
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '/recover-password'
     | '/reset-password'
     | '/signup'
+    | '/_layout/aaa_statistics'
     | '/_layout/admin'
     | '/_layout/configuration_options'
     | '/_layout/hosts'
@@ -509,10 +521,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/aaa_statistics': {
+      id: '/_layout/aaa_statistics'
+      path: '/aaa_statistics'
+      fullPath: '/aaa_statistics'
+      preLoaderRoute: typeof LayoutAaa_statisticsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
   }
 }
 
 interface LayoutRouteChildren {
+  LayoutAaa_statisticsRoute: typeof LayoutAaa_statisticsRoute
   LayoutAdminRoute: typeof LayoutAdminRoute
   LayoutConfiguration_optionsRoute: typeof LayoutConfiguration_optionsRoute
   LayoutHostsRoute: typeof LayoutHostsRoute
@@ -536,6 +556,7 @@ interface LayoutRouteChildren {
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
+  LayoutAaa_statisticsRoute: LayoutAaa_statisticsRoute,
   LayoutAdminRoute: LayoutAdminRoute,
   LayoutConfiguration_optionsRoute: LayoutConfiguration_optionsRoute,
   LayoutHostsRoute: LayoutHostsRoute,

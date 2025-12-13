@@ -22,6 +22,10 @@ from app.api.routes import (
     tacacs_logs,
     tacacs_statistics,
     configuration_options,
+    authentication_statistics,
+    authorization_statistics,
+    accounting_statistics,
+    aaa_statistics,
 )
 from app.core.config import settings
 
@@ -46,6 +50,11 @@ api_router.include_router(rulesetscriptsets.router)
 api_router.include_router(tacacs_logs.router)
 api_router.include_router(tacacs_statistics.router)
 api_router.include_router(configuration_options.router)
+api_router.include_router(authentication_statistics.router)
+api_router.include_router(authorization_statistics.router)
+api_router.include_router(accounting_statistics.router)
+api_router.include_router(aaa_statistics.router)
+
 
 if settings.ENVIRONMENT == "local":
     api_router.include_router(private.router)
