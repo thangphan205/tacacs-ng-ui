@@ -185,7 +185,7 @@ export function AaaStatistics() {
           <GridItem>
             <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
               <Heading size="md" mb={4}>
-                Top 5 Users Source IP Login Success
+                Top 5 Source IPs Login Success
               </Heading>
               <Chart.Root boxSize="320px" mx="auto" chart={chart_authentication_success_count_by_user_source_ip}>
                 <PieChart>
@@ -236,7 +236,6 @@ export function AaaStatistics() {
               </Chart.Root>
             </Box>
           </GridItem>
-
           <GridItem colSpan={{ base: 1, md: 2, xl: 3 }}>
             <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
               <Heading size="md" mb={4}>
