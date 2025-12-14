@@ -5,7 +5,6 @@ import { FaBars } from "react-icons/fa"
 import { FiLogOut } from "react-icons/fi"
 
 import type { UserPublic } from "@/client"
-import { version } from "../../../package.json"
 import useAuth from "@/hooks/useAuth"
 import {
   DrawerBackdrop,
@@ -71,7 +70,6 @@ const Sidebar = () => {
                     Logged in as: {currentUser.email}
                   </Text>
                 )}
-                <Text fontSize="sm">Version {version}</Text>
               </VStack>
             </Flex>
           </DrawerBody>
@@ -90,15 +88,14 @@ const Sidebar = () => {
         h="100vh"
         p={4}
       >
-        <Flex direction="column" w="100%">
-          <Box>
+        <Flex direction="column" w="100%" justify="space-between">
+          <Box overflowY="auto" flex="1">
             <SidebarItems />
           </Box>
-          <VStack align="start" >
+          <VStack align="start" pt={4}>
             {currentUser?.email && (
               <Text fontSize="sm">Logged in as: {currentUser.email}</Text>
             )}
-            <Text fontSize="sm">Version {version}</Text>
           </VStack>
         </Flex>
       </Box>
