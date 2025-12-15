@@ -15,7 +15,7 @@ from app.models import AuthenticationStatistics
 # --- Configuration ---
 # The script will process all authentication-*.log files in the current directory.
 # It will filter for log entries on the specific date below.
-yesterday = datetime.now() - timedelta(days=0)
+yesterday = datetime.now() - timedelta(days=1)
 TARGET_DATE_STR = yesterday.strftime("%Y-%m-%d")
 
 # --- REGEX CONFIGURATION ---
@@ -99,7 +99,24 @@ def process_authentication_logs():
     print(f"  - Failed:     {failed_auths}")
     print(f"Unique User/NAS/Client combinations: {len(all_keys)}")
     print("--------------------------------------------------")
-
+    list_authentication_details = []
+    for username, nas_ip, user_source_ip in sorted(all_keys):
+        key = (username, nas_ip, user_source_ip)
+        success_count = successful_logins.get(key, 0)
+        fail_count = failed_logins.get(key, 0)
+        print(
+            f"User: {username}, NAS IP: {nas_ip}, Client IP: {user_source_ip} "
+            f"=> Success: {success_count}, Fail: {fail_count}"
+        )
+        list_authentication_details.append(
+            {
+                "username": username,
+                "nas_ip": nas_ip,
+                "user_source_ip": user_source_ip,
+                "success_count": success_count,
+                "fail_count": fail_count,
+            }
+        )
     # Save the summary to the database
     save_statistics_to_db(summary_date, all_keys, successful_logins, failed_logins)
 

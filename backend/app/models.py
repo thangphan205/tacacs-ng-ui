@@ -839,11 +839,8 @@ class AccountingStatisticsPublic(SQLModel):
 # --- End of Accounting Statistics Table ---
 
 
-class AaaStatisticsSummaryPublic(SQLModel):
+class AaaStatisticsTodayPublic(SQLModel):
 
-    authentication: list[AuthenticationStatisticPublic] = []
-    authorization: list[AuthorizationStatisticPublic] = []
-    accounting: list[AccountingStatisticPublic] = []
     authentication_failed_count_by_user: list[dict] = []
     authentication_success_count_by_user: list[dict] = []
     authorization_deny_count_by_user: list[dict] = []
@@ -853,3 +850,29 @@ class AaaStatisticsSummaryPublic(SQLModel):
     last_7_days_authorization_pass: list[dict] = []
     last_7_days_authorization_deny: list[dict] = []
     last_7_days_accounting: list[dict] = []
+    today: str | None = None
+    today_total_authentication_events: int = 0
+    today_list_authentication_details: list[dict] = []
+    today_unique_user_nas_client_combinations: int = 0
+    today_successful_logins: int = 0
+    today_failed_logins: int = 0
+    today_unique_user_source_ip_count: int = 0
+    today_unique_nas_ip_count: int = 0
+
+    today_authentication_failed_count_by_user: list[dict] = []
+    today_authentication_success_count_by_user: list[dict] = []
+    today_authentication_success_count_by_user_source_ip: list[dict] = []
+    today_authentication_success_count_by_nas_ip: list[dict] = []
+
+
+class AaaStatisticsDateRangePublic(SQLModel):
+    authentication_failed_count_by_user: list[dict] = []
+    authentication_success_count_by_user: list[dict] = []
+    authorization_deny_count_by_user: list[dict] = []
+    authentication_success_count_by_user_source_ip: list[dict] = []
+    authentication_success_count_by_nas_ip: list[dict] = []
+    last_range_days_authentication_success: list[dict] = []
+    last_range_days_authentication_fail: list[dict] = []
+    last_range_days_authorization_pass: list[dict] = []
+    last_range_days_authorization_deny: list[dict] = []
+    last_range_days_accounting: list[dict] = []

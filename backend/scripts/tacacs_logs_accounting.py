@@ -15,7 +15,7 @@ from app.models import AccountingStatistics
 # --- Configuration ---
 # The script will process all accounting-*.log files for the previous day.
 # It will filter for log entries on the specific date below.
-yesterday = datetime.now() - timedelta(days=0)
+yesterday = datetime.now() - timedelta(days=1)
 TARGET_DATE_STR = yesterday.strftime("%Y-%m-%d")
 
 # --- REGEX CONFIGURATION ---

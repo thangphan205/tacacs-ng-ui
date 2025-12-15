@@ -34,6 +34,7 @@ import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutHostsRouteImport } from './routes/_layout/hosts'
 import { Route as LayoutConfiguration_optionsRouteImport } from './routes/_layout/configuration_options'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as LayoutAaa_statistics_rangeRouteImport } from './routes/_layout/aaa_statistics_range'
 import { Route as LayoutAaa_statisticsRouteImport } from './routes/_layout/aaa_statistics'
 
 const SignupRoute = SignupRouteImport.update({
@@ -162,6 +163,12 @@ const LayoutAdminRoute = LayoutAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutAaa_statistics_rangeRoute =
+  LayoutAaa_statistics_rangeRouteImport.update({
+    id: '/aaa_statistics_range',
+    path: '/aaa_statistics_range',
+    getParentRoute: () => LayoutRoute,
+  } as any)
 const LayoutAaa_statisticsRoute = LayoutAaa_statisticsRouteImport.update({
   id: '/aaa_statistics',
   path: '/aaa_statistics',
@@ -174,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/aaa_statistics': typeof LayoutAaa_statisticsRoute
+  '/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
   '/admin': typeof LayoutAdminRoute
   '/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/hosts': typeof LayoutHostsRoute
@@ -201,6 +209,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/aaa_statistics': typeof LayoutAaa_statisticsRoute
+  '/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
   '/admin': typeof LayoutAdminRoute
   '/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/hosts': typeof LayoutHostsRoute
@@ -230,6 +239,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_layout/aaa_statistics': typeof LayoutAaa_statisticsRoute
+  '/_layout/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
   '/_layout/admin': typeof LayoutAdminRoute
   '/_layout/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/_layout/hosts': typeof LayoutHostsRoute
@@ -259,6 +269,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/aaa_statistics'
+    | '/aaa_statistics_range'
     | '/admin'
     | '/configuration_options'
     | '/hosts'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/aaa_statistics'
+    | '/aaa_statistics_range'
     | '/admin'
     | '/configuration_options'
     | '/hosts'
@@ -314,6 +326,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/_layout/aaa_statistics'
+    | '/_layout/aaa_statistics_range'
     | '/_layout/admin'
     | '/_layout/configuration_options'
     | '/_layout/hosts'
@@ -521,6 +534,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/aaa_statistics_range': {
+      id: '/_layout/aaa_statistics_range'
+      path: '/aaa_statistics_range'
+      fullPath: '/aaa_statistics_range'
+      preLoaderRoute: typeof LayoutAaa_statistics_rangeRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/aaa_statistics': {
       id: '/_layout/aaa_statistics'
       path: '/aaa_statistics'
@@ -533,6 +553,7 @@ declare module '@tanstack/react-router' {
 
 interface LayoutRouteChildren {
   LayoutAaa_statisticsRoute: typeof LayoutAaa_statisticsRoute
+  LayoutAaa_statistics_rangeRoute: typeof LayoutAaa_statistics_rangeRoute
   LayoutAdminRoute: typeof LayoutAdminRoute
   LayoutConfiguration_optionsRoute: typeof LayoutConfiguration_optionsRoute
   LayoutHostsRoute: typeof LayoutHostsRoute
@@ -557,6 +578,7 @@ interface LayoutRouteChildren {
 
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAaa_statisticsRoute: LayoutAaa_statisticsRoute,
+  LayoutAaa_statistics_rangeRoute: LayoutAaa_statistics_rangeRoute,
   LayoutAdminRoute: LayoutAdminRoute,
   LayoutConfiguration_optionsRoute: LayoutConfiguration_optionsRoute,
   LayoutHostsRoute: LayoutHostsRoute,
