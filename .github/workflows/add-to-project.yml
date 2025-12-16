@@ -14,5 +14,5 @@ jobs:
     steps:
       - uses: actions/add-to-project@v1.0.2
         with:
-          project-url: https://github.com/thangphan205/tacacs-ng-ui/
+          project-url: https://github.com/users/thangphan205/projects/3
           github-token: ${{ secrets.GITHUB_TOKEN }}
