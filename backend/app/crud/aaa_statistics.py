@@ -18,40 +18,24 @@ logger = logging.getLogger(__name__)
 TACACS_LOG_DIRECTORY = "/var/log/tacacs/"
 
 
-def fill_missing_dates(data, date_range):
-    data_map = {item["date"]: item["count"] for item in data}
-    return [
-        {"date": d.isoformat(), "count": data_map.get(d.isoformat(), 0)}
-        for d in date_range
-    ]
+def fill_missing_dates(db_results: list[Any], date_range: list[date]) -> list[dict]:
+    """Fills missing dates in a list of DB results with a count of 0."""
+    data_map = {r.date.date(): r.count for r in db_results}
+    return [{"date": d.isoformat(), "count": data_map.get(d, 0)} for d in date_range]
 
 
-def fill_missing_acct_dates(data, date_range):
-    data_map = {
-        item["date"]: (item["start_count"], item["stop_count"]) for item in data
-    }
+def fill_missing_acct_dates(
+    db_results: list[Any], date_range: list[date]
+) -> list[dict]:
+    """Fills missing accounting dates in a list of DB results with counts of 0."""
+    data_map = {r.date: (r.start_count, r.stop_count) for r in db_results}
     return [
         {
             "date": d.isoformat(),
-            "start_count": data_map.get(d.isoformat(), (0, 0))[0],
-            "stop_count": data_map.get(d.isoformat(), (0, 0))[1],
+            "start_count": data_map.get(d, (0, 0))[0],
+            "stop_count": data_map.get(d, (0, 0))[1],
         }
         for d in date_range
-    ]
-
-
-def format_daily_data(results):
-    return [{"date": r.date.isoformat(), "count": r.count} for r in results]
-
-
-def format_acct_daily_data(results):
-    return [
-        {
-            "date": r.date.isoformat(),
-            "start_count": r.start_count,
-            "stop_count": r.stop_count,
-        }
-        for r in results
     ]
 
 
@@ -120,19 +104,19 @@ def _get_range_statistics(
 
     return {
         f"{key_prefix}_authentication_success": fill_missing_dates(
-            format_daily_data(auth_success_daily_results), all_dates
+            auth_success_daily_results, all_dates
         ),
         f"{key_prefix}_authentication_fail": fill_missing_dates(
-            format_daily_data(auth_fail_daily_results), all_dates
+            auth_fail_daily_results, all_dates
         ),
         f"{key_prefix}_authorization_pass": fill_missing_dates(
-            format_daily_data(authz_pass_daily_results), all_dates
+            authz_pass_daily_results, all_dates
         ),
         f"{key_prefix}_authorization_deny": fill_missing_dates(
-            format_daily_data(authz_deny_daily_results), all_dates
+            authz_deny_daily_results, all_dates
         ),
         f"{key_prefix}_accounting": fill_missing_acct_dates(
-            format_acct_daily_data(acct_daily_results), all_dates
+            acct_daily_results, all_dates
         ),
     }
 

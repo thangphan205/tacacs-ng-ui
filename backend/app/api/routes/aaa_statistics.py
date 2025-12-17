@@ -27,39 +27,18 @@ def read_aaa_statistics(session: SessionDep, skip: int = 0, limit: int = 5) -> A
     Retrieve aaa_statistics.
     """
 
-    today = datetime.now().date()
-    start_date = datetime.combine(today, time.min)
-    end_date = datetime.combine(today, time.max)
-
     return_statistics = {}
     return_statistics.update(
         aaa_statistics.get_last_7_days_statistics(
             session=session,
         )
     )
+
     return_statistics.update(
-        aaa_statistics.process_authentication_statistics(
+        aaa_statistics.process_today_authentication_statistics(
             session=session,
-            start_date=start_date,
-            end_date=end_date,
-            skip=skip,
-            limit=limit,
         )
     )
-    return_statistics.update(
-        aaa_statistics.process_authorization_statistics(
-            session=session,
-            start_date=start_date,
-            end_date=end_date,
-            skip=skip,
-            limit=limit,
-        )
-    )
-    today_results = aaa_statistics.process_today_authentication_statistics(
-        session=session,
-    )
-    if today_results:
-        return_statistics.update(today_results)
 
     return return_statistics
 
@@ -120,10 +99,5 @@ def read_aaa_statistics_range(
             limit=limit,
         )
     )
-    today_results = aaa_statistics.process_today_authentication_statistics(
-        session=session,
-    )
-    if today_results:
-        return_statistics.update(today_results)
 
     return return_statistics
