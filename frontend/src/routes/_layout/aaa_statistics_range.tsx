@@ -100,21 +100,18 @@ export function AaaStatisticsRange() {
     date: new Date(item.date as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     'Auth Success': item.count,
     'Auth Fail': stats?.last_range_days_authentication_fail?.[index]?.count || 0,
-    'Authz Pass': stats?.last_range_days_authorization_pass?.[index]?.count || 0,
+    'Authz Permit': stats?.last_range_days_authorization_permit?.[index]?.count || 0,
     'Authz Deny': stats?.last_range_days_authorization_deny?.[index]?.count || 0,
-    'Acct Start': stats?.last_range_days_accounting?.[index]?.start_count || 0,
-    'Acct Stop': stats?.last_range_days_accounting?.[index]?.stop_count || 0,
+    'Acct Start': stats?.last_range_days_accounting_start?.[index]?.count || 0,
+    'Acct Stop': stats?.last_range_days_accounting_stop?.[index]?.count || 0,
   })) || [];
-
-  console.log(last_range_days_data);
-
 
   const chart_last_range_days = useChart({
     data: last_range_days_data,
     series: [
       { name: 'Auth Success', color: 'green.500' },
       { name: 'Auth Fail', color: 'red.500' },
-      { name: 'Authz Pass', color: 'blue.500' },
+      { name: 'Authz Permit', color: 'blue.500' },
       { name: 'Authz Deny', color: 'orange.500' },
       { name: 'Acct Start', color: 'purple.500' },
       { name: 'Acct Stop', color: 'gray.500' },
@@ -292,7 +289,7 @@ export function AaaStatisticsRange() {
                   <YAxis />
                   <Area dataKey="Auth Success" type="monotone" fill="var(--chakra-colors-green-500)" stroke="var(--chakra-colors-green-600)" />
                   <Area dataKey="Auth Fail" type="monotone" fill="var(--chakra-colors-red-500)" stroke="var(--chakra-colors-red-600)" />
-                  <Area dataKey="Authz Pass" type="monotone" fill="var(--chakra-colors-blue-500)" stroke="var(--chakra-colors-blue-600)" />
+                  <Area dataKey="Authz Permit" type="monotone" fill="var(--chakra-colors-blue-500)" stroke="var(--chakra-colors-blue-600)" />
                   <Area dataKey="Authz Deny" type="monotone" fill="var(--chakra-colors-orange-500)" stroke="var(--chakra-colors-orange-600)" />
                   <Area dataKey="Acct Start" type="monotone" fill="var(--chakra-colors-purple-500)" stroke="var(--chakra-colors-purple-600)" />
                   <Area dataKey="Acct Stop" type="monotone" fill="var(--chakra-colors-gray-500)" stroke="var(--chakra-colors-gray-600)" />

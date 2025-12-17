@@ -847,9 +847,10 @@ class AaaStatisticsTodayPublic(SQLModel):
     authentication_success_count_by_user_source_ip: list[dict] = []
     last_7_days_authentication_success: list[dict] = []
     last_7_days_authentication_fail: list[dict] = []
-    last_7_days_authorization_pass: list[dict] = []
+    last_7_days_authorization_permit: list[dict] = []
     last_7_days_authorization_deny: list[dict] = []
-    last_7_days_accounting: list[dict] = []
+    last_7_days_accounting_start: list[dict] = []
+    last_7_days_accounting_stop: list[dict] = []
     today: str | None = None
     today_total_authentication_events: int = 0
     today_list_authentication_details: list[dict] = []
@@ -873,6 +874,7 @@ class AaaStatisticsDateRangePublic(SQLModel):
     authentication_success_count_by_nas_ip: list[dict] = []
     last_range_days_authentication_success: list[dict] = []
     last_range_days_authentication_fail: list[dict] = []
-    last_range_days_authorization_pass: list[dict] = []
+    last_range_days_authorization_permit: list[dict] = []
     last_range_days_authorization_deny: list[dict] = []
-    last_range_days_accounting: list[dict] = []
+    last_range_days_accounting_start: list[dict] = []
+    last_range_days_accounting_stop: list[dict] = []

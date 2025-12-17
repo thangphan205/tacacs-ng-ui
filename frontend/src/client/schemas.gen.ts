@@ -65,13 +65,13 @@ export const AaaStatisticsDateRangePublicSchema = {
             title: 'Last Range Days Authentication Fail',
             default: []
         },
-        last_range_days_authorization_pass: {
+        last_range_days_authorization_permit: {
             items: {
                 additionalProperties: true,
                 type: 'object'
             },
             type: 'array',
-            title: 'Last Range Days Authorization Pass',
+            title: 'Last Range Days Authorization Permit',
             default: []
         },
         last_range_days_authorization_deny: {
@@ -83,13 +83,22 @@ export const AaaStatisticsDateRangePublicSchema = {
             title: 'Last Range Days Authorization Deny',
             default: []
         },
-        last_range_days_accounting: {
+        last_range_days_accounting_start: {
             items: {
                 additionalProperties: true,
                 type: 'object'
             },
             type: 'array',
-            title: 'Last Range Days Accounting',
+            title: 'Last Range Days Accounting Start',
+            default: []
+        },
+        last_range_days_accounting_stop: {
+            items: {
+                additionalProperties: true,
+                type: 'object'
+            },
+            type: 'array',
+            title: 'Last Range Days Accounting Stop',
             default: []
         }
     },
@@ -153,13 +162,13 @@ export const AaaStatisticsTodayPublicSchema = {
             title: 'Last 7 Days Authentication Fail',
             default: []
         },
-        last_7_days_authorization_pass: {
+        last_7_days_authorization_permit: {
             items: {
                 additionalProperties: true,
                 type: 'object'
             },
             type: 'array',
-            title: 'Last 7 Days Authorization Pass',
+            title: 'Last 7 Days Authorization Permit',
             default: []
         },
         last_7_days_authorization_deny: {
@@ -171,13 +180,22 @@ export const AaaStatisticsTodayPublicSchema = {
             title: 'Last 7 Days Authorization Deny',
             default: []
         },
-        last_7_days_accounting: {
+        last_7_days_accounting_start: {
             items: {
                 additionalProperties: true,
                 type: 'object'
             },
             type: 'array',
-            title: 'Last 7 Days Accounting',
+            title: 'Last 7 Days Accounting Start',
+            default: []
+        },
+        last_7_days_accounting_stop: {
+            items: {
+                additionalProperties: true,
+                type: 'object'
+            },
+            type: 'array',
+            title: 'Last 7 Days Accounting Stop',
             default: []
         },
         today: {

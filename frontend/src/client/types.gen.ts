@@ -22,13 +22,16 @@ export type AaaStatisticsDateRangePublic = {
     last_range_days_authentication_fail?: Array<{
         [key: string]: unknown;
     }>;
-    last_range_days_authorization_pass?: Array<{
+    last_range_days_authorization_permit?: Array<{
         [key: string]: unknown;
     }>;
     last_range_days_authorization_deny?: Array<{
         [key: string]: unknown;
     }>;
-    last_range_days_accounting?: Array<{
+    last_range_days_accounting_start?: Array<{
+        [key: string]: unknown;
+    }>;
+    last_range_days_accounting_stop?: Array<{
         [key: string]: unknown;
     }>;
 };
@@ -52,13 +55,16 @@ export type AaaStatisticsTodayPublic = {
     last_7_days_authentication_fail?: Array<{
         [key: string]: unknown;
     }>;
-    last_7_days_authorization_pass?: Array<{
+    last_7_days_authorization_permit?: Array<{
         [key: string]: unknown;
     }>;
     last_7_days_authorization_deny?: Array<{
         [key: string]: unknown;
     }>;
-    last_7_days_accounting?: Array<{
+    last_7_days_accounting_start?: Array<{
+        [key: string]: unknown;
+    }>;
+    last_7_days_accounting_stop?: Array<{
         [key: string]: unknown;
     }>;
     today?: (string | null);
