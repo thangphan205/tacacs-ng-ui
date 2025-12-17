@@ -1,6 +1,6 @@
 import re
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from collections import Counter, defaultdict
 from typing import Any
 
@@ -55,23 +55,18 @@ def format_acct_daily_data(results):
     ]
 
 
-def get_last_7_days_statistics(
-    *,
-    session: Session,
-) -> list[Any]:
+def _get_range_statistics(
+    session: Session, start_date: date, end_date: date, key_prefix: str
+) -> dict[str, Any]:
     """
-    Retrieves statistics for the last 7 days from the database.
+    A helper function to retrieve and format statistics for a given date range.
     """
-    end_date = datetime.utcnow() - timedelta(days=1)
-    start_date = end_date - timedelta(days=7)
-
-    # Queries for last 7 days statistics
     auth_success_daily_stmt = (
         select(
             AuthenticationStatistics.log_date.label("date"),
             func.sum(AuthenticationStatistics.success_count).label("count"),
         )
-        .where(AuthenticationStatistics.log_date >= start_date.date())
+        .where(AuthenticationStatistics.log_date.between(start_date, end_date))
         .group_by(AuthenticationStatistics.log_date)
         .order_by(AuthenticationStatistics.log_date)
     )
@@ -80,7 +75,7 @@ def get_last_7_days_statistics(
             AuthenticationStatistics.log_date.label("date"),
             func.sum(AuthenticationStatistics.fail_count).label("count"),
         )
-        .where(AuthenticationStatistics.log_date >= start_date.date())
+        .where(AuthenticationStatistics.log_date.between(start_date, end_date))
         .group_by(AuthenticationStatistics.log_date)
         .order_by(AuthenticationStatistics.log_date)
     )
@@ -89,7 +84,7 @@ def get_last_7_days_statistics(
             AuthorizationStatistics.log_date.label("date"),
             func.sum(AuthorizationStatistics.permit_count).label("count"),
         )
-        .where(AuthorizationStatistics.log_date >= start_date.date())
+        .where(AuthorizationStatistics.log_date.between(start_date, end_date))
         .group_by(AuthorizationStatistics.log_date)
         .order_by(AuthorizationStatistics.log_date)
     )
@@ -98,7 +93,7 @@ def get_last_7_days_statistics(
             AuthorizationStatistics.log_date.label("date"),
             func.sum(AuthorizationStatistics.deny_count).label("count"),
         )
-        .where(AuthorizationStatistics.log_date >= start_date.date())
+        .where(AuthorizationStatistics.log_date.between(start_date, end_date))
         .group_by(AuthorizationStatistics.log_date)
         .order_by(AuthorizationStatistics.log_date)
     )
@@ -108,7 +103,7 @@ def get_last_7_days_statistics(
             func.sum(AccountingStatistics.start_count).label("start_count"),
             func.sum(AccountingStatistics.stop_count).label("stop_count"),
         )
-        .where(AccountingStatistics.log_date >= start_date.date())
+        .where(AccountingStatistics.log_date.between(start_date, end_date))
         .group_by(AccountingStatistics.log_date)
         .order_by(AccountingStatistics.log_date)
     )
@@ -118,27 +113,40 @@ def get_last_7_days_statistics(
     authz_pass_daily_results = session.exec(authz_permit_daily_stmt).all()
     authz_deny_daily_results = session.exec(authz_deny_daily_stmt).all()
     acct_daily_results = session.exec(acct_daily_stmt).all()
-    # Generate date range for the last 7 days to ensure all days are present
-    all_dates = [(end_date.date() - timedelta(days=i)) for i in range(7)]
-    all_dates.reverse()
+
+    # Generate date range to ensure all days are present in the final output
+    num_days = (end_date - start_date).days + 1
+    all_dates = [(start_date + timedelta(days=i)) for i in range(num_days)]
 
     return {
-        "last_7_days_authentication_success": fill_missing_dates(
+        f"{key_prefix}_authentication_success": fill_missing_dates(
             format_daily_data(auth_success_daily_results), all_dates
         ),
-        "last_7_days_authentication_fail": fill_missing_dates(
+        f"{key_prefix}_authentication_fail": fill_missing_dates(
             format_daily_data(auth_fail_daily_results), all_dates
         ),
-        "last_7_days_authorization_pass": fill_missing_dates(
+        f"{key_prefix}_authorization_pass": fill_missing_dates(
             format_daily_data(authz_pass_daily_results), all_dates
         ),
-        "last_7_days_authorization_deny": fill_missing_dates(
+        f"{key_prefix}_authorization_deny": fill_missing_dates(
             format_daily_data(authz_deny_daily_results), all_dates
         ),
-        "last_7_days_accounting": fill_missing_acct_dates(
+        f"{key_prefix}_accounting": fill_missing_acct_dates(
             format_acct_daily_data(acct_daily_results), all_dates
         ),
     }
+
+
+def get_last_7_days_statistics(
+    *,
+    session: Session,
+) -> dict[str, Any]:
+    """
+    Retrieves statistics for the last 7 days from the database.
+    """
+    end_date = datetime.utcnow().date() - timedelta(days=1)
+    start_date = end_date - timedelta(days=6)
+    return _get_range_statistics(session, start_date, end_date, "last_7_days")
 
 
 def get_date_range_statistics(
@@ -146,106 +154,13 @@ def get_date_range_statistics(
     session: Session,
     start_date: datetime,
     end_date: datetime,
-) -> list[Any]:
+) -> dict[str, Any]:
     """
     Retrieves statistics for the range of days from the database.
     """
-
-    # Queries for last range of days statistics
-    auth_success_daily_stmt = (
-        select(
-            AuthenticationStatistics.log_date.label("date"),
-            func.sum(AuthenticationStatistics.success_count).label("count"),
-        )
-        .where(
-            col(AuthenticationStatistics.log_date).between(
-                start_date.date(), end_date.date()
-            )
-        )
-        .group_by(AuthenticationStatistics.log_date)
-        .order_by(AuthenticationStatistics.log_date)
+    return _get_range_statistics(
+        session, start_date.date(), end_date.date(), "last_range_days"
     )
-    auth_fail_daily_stmt = (
-        select(
-            AuthenticationStatistics.log_date.label("date"),
-            func.sum(AuthenticationStatistics.fail_count).label("count"),
-        )
-        .where(
-            col(AuthenticationStatistics.log_date).between(
-                start_date.date(), end_date.date()
-            )
-        )
-        .group_by(AuthenticationStatistics.log_date)
-        .order_by(AuthenticationStatistics.log_date)
-    )
-    authz_permit_daily_stmt = (
-        select(
-            AuthorizationStatistics.log_date.label("date"),
-            func.sum(AuthorizationStatistics.permit_count).label("count"),
-        )
-        .where(
-            col(AuthorizationStatistics.log_date).between(
-                start_date.date(), end_date.date()
-            )
-        )
-        .group_by(AuthorizationStatistics.log_date)
-        .order_by(AuthorizationStatistics.log_date)
-    )
-    authz_deny_daily_stmt = (
-        select(
-            AuthorizationStatistics.log_date.label("date"),
-            func.sum(AuthorizationStatistics.deny_count).label("count"),
-        )
-        .where(
-            col(AuthorizationStatistics.log_date).between(
-                start_date.date(), end_date.date()
-            )
-        )
-        .group_by(AuthorizationStatistics.log_date)
-        .order_by(AuthorizationStatistics.log_date)
-    )
-    acct_daily_stmt = (
-        select(
-            AccountingStatistics.log_date.label("date"),
-            func.sum(AccountingStatistics.start_count).label("start_count"),
-            func.sum(AccountingStatistics.stop_count).label("stop_count"),
-        )
-        .where(
-            col(AccountingStatistics.log_date).between(
-                start_date.date(), end_date.date()
-            )
-        )
-        .group_by(AccountingStatistics.log_date)
-        .order_by(AccountingStatistics.log_date)
-    )
-    # Execute daily count queries
-    auth_success_daily_results = session.exec(auth_success_daily_stmt).all()
-    auth_fail_daily_results = session.exec(auth_fail_daily_stmt).all()
-    authz_pass_daily_results = session.exec(authz_permit_daily_stmt).all()
-    authz_deny_daily_results = session.exec(authz_deny_daily_stmt).all()
-    acct_daily_results = session.exec(acct_daily_stmt).all()
-    # Generate date range from user input to ensure all days are present
-    num_days = (end_date.date() - start_date.date()).days + 1
-    all_dates = [(start_date.date() + timedelta(days=i)) for i in range(num_days)]
-    # all_dates.reverse()
-
-    return {
-        "last_range_days_authentication_success": fill_missing_dates(
-            format_daily_data(auth_success_daily_results), all_dates
-        ),
-        "last_range_days_authentication_fail": fill_missing_dates(
-            format_daily_data(auth_fail_daily_results), all_dates
-        ),
-        "last_range_days_authorization_pass": fill_missing_dates(
-            format_daily_data(authz_pass_daily_results), all_dates
-        ),
-        "last_range_days_authorization_deny": fill_missing_dates(
-            format_daily_data(authz_deny_daily_results), all_dates
-        ),
-        "last_range_days_accounting": fill_missing_acct_dates(
-            format_acct_daily_data(acct_daily_results), all_dates
-        ),
-    }
 
 
 def process_authentication_statistics(
