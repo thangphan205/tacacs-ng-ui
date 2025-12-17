@@ -68,49 +68,49 @@ def get_last_7_days_statistics(
     # Queries for last 7 days statistics
     auth_success_daily_stmt = (
         select(
-            func.date(AuthenticationStatistics.created_at).label("date"),
+            AuthenticationStatistics.log_date.label("date"),
             func.sum(AuthenticationStatistics.success_count).label("count"),
         )
-        .where(AuthenticationStatistics.created_at >= start_date)
-        .group_by(func.date(AuthenticationStatistics.created_at))
-        .order_by(func.date(AuthenticationStatistics.created_at))
+        .where(AuthenticationStatistics.log_date >= start_date.date())
+        .group_by(AuthenticationStatistics.log_date)
+        .order_by(AuthenticationStatistics.log_date)
     )
     auth_fail_daily_stmt = (
         select(
-            func.date(AuthenticationStatistics.created_at).label("date"),
+            AuthenticationStatistics.log_date.label("date"),
             func.sum(AuthenticationStatistics.fail_count).label("count"),
         )
-        .where(AuthenticationStatistics.created_at >= start_date)
-        .group_by(func.date(AuthenticationStatistics.created_at))
-        .order_by(func.date(AuthenticationStatistics.created_at))
+        .where(AuthenticationStatistics.log_date >= start_date.date())
+        .group_by(AuthenticationStatistics.log_date)
+        .order_by(AuthenticationStatistics.log_date)
     )
     authz_permit_daily_stmt = (
         select(
-            func.date(AuthorizationStatistics.created_at).label("date"),
+            AuthorizationStatistics.log_date.label("date"),
             func.sum(AuthorizationStatistics.permit_count).label("count"),
         )
-        .where(AuthorizationStatistics.created_at >= start_date)
-        .group_by(func.date(AuthorizationStatistics.created_at))
-        .order_by(func.date(AuthorizationStatistics.created_at))
+        .where(AuthorizationStatistics.log_date >= start_date.date())
+        .group_by(AuthorizationStatistics.log_date)
+        .order_by(AuthorizationStatistics.log_date)
     )
     authz_deny_daily_stmt = (
         select(
-            func.date(AuthorizationStatistics.created_at).label("date"),
+            AuthorizationStatistics.log_date.label("date"),
             func.sum(AuthorizationStatistics.deny_count).label("count"),
         )
-        .where(AuthorizationStatistics.created_at >= start_date)
-        .group_by(func.date(AuthorizationStatistics.created_at))
-        .order_by(func.date(AuthorizationStatistics.created_at))
+        .where(AuthorizationStatistics.log_date >= start_date.date())
+        .group_by(AuthorizationStatistics.log_date)
+        .order_by(AuthorizationStatistics.log_date)
     )
     acct_daily_stmt = (
         select(
-            func.date(AccountingStatistics.created_at).label("date"),
+            AccountingStatistics.log_date.label("date"),
             func.sum(AccountingStatistics.start_count).label("start_count"),
             func.sum(AccountingStatistics.stop_count).label("stop_count"),
         )
-        .where(AccountingStatistics.created_at >= start_date)
-        .group_by(func.date(AccountingStatistics.created_at))
-        .order_by(func.date(AccountingStatistics.created_at))
+        .where(AccountingStatistics.log_date >= start_date.date())
+        .group_by(AccountingStatistics.log_date)
+        .order_by(AccountingStatistics.log_date)
     )
     # Execute daily count queries
     auth_success_daily_results = session.exec(auth_success_daily_stmt).all()
@@ -154,49 +154,69 @@ def get_date_range_statistics(
     # Queries for last range of days statistics
     auth_success_daily_stmt = (
         select(
-            func.date(AuthenticationStatistics.created_at).label("date"),
+            AuthenticationStatistics.log_date.label("date"),
             func.sum(AuthenticationStatistics.success_count).label("count"),
         )
-        .where(col(AuthenticationStatistics.created_at).between(start_date, end_date))
-        .group_by(func.date(AuthenticationStatistics.created_at))
-        .order_by(func.date(AuthenticationStatistics.created_at))
+        .where(
+            col(AuthenticationStatistics.log_date).between(
+                start_date.date(), end_date.date()
+            )
+        )
+        .group_by(AuthenticationStatistics.log_date)
+        .order_by(AuthenticationStatistics.log_date)
     )
     auth_fail_daily_stmt = (
         select(
-            func.date(AuthenticationStatistics.created_at).label("date"),
+            AuthenticationStatistics.log_date.label("date"),
             func.sum(AuthenticationStatistics.fail_count).label("count"),
         )
-        .where(col(AuthenticationStatistics.created_at).between(start_date, end_date))
-        .group_by(func.date(AuthenticationStatistics.created_at))
-        .order_by(func.date(AuthenticationStatistics.created_at))
+        .where(
+            col(AuthenticationStatistics.log_date).between(
+                start_date.date(), end_date.date()
+            )
+        )
+        .group_by(AuthenticationStatistics.log_date)
+        .order_by(AuthenticationStatistics.log_date)
     )
     authz_permit_daily_stmt = (
         select(
-            func.date(AuthorizationStatistics.created_at).label("date"),
+            AuthorizationStatistics.log_date.label("date"),
             func.sum(AuthorizationStatistics.permit_count).label("count"),
         )
-        .where(col(AuthorizationStatistics.created_at).between(start_date, end_date))
-        .group_by(func.date(AuthorizationStatistics.created_at))
-        .order_by(func.date(AuthorizationStatistics.created_at))
+        .where(
+            col(AuthorizationStatistics.log_date).between(
+                start_date.date(), end_date.date()
+            )
+        )
+        .group_by(AuthorizationStatistics.log_date)
+        .order_by(AuthorizationStatistics.log_date)
     )
     authz_deny_daily_stmt = (
         select(
-            func.date(AuthorizationStatistics.created_at).label("date"),
+            AuthorizationStatistics.log_date.label("date"),
             func.sum(AuthorizationStatistics.deny_count).label("count"),
         )
-        .where(col(AuthorizationStatistics.created_at).between(start_date, end_date))
-        .group_by(func.date(AuthorizationStatistics.created_at))
-        .order_by(func.date(AuthorizationStatistics.created_at))
+        .where(
+            col(AuthorizationStatistics.log_date).between(
+                start_date.date(), end_date.date()
+            )
+        )
+        .group_by(AuthorizationStatistics.log_date)
+        .order_by(AuthorizationStatistics.log_date)
     )
     acct_daily_stmt = (
         select(
-            func.date(AccountingStatistics.created_at).label("date"),
+            AccountingStatistics.log_date.label("date"),
             func.sum(AccountingStatistics.start_count).label("start_count"),
             func.sum(AccountingStatistics.stop_count).label("stop_count"),
         )
-        .where(col(AccountingStatistics.created_at).between(start_date, end_date))
-        .group_by(func.date(AccountingStatistics.created_at))
-        .order_by(func.date(AccountingStatistics.created_at))
+        .where(
+            col(AccountingStatistics.log_date).between(
+                start_date.date(), end_date.date()
+            )
+        )
+        .group_by(AccountingStatistics.log_date)
+        .order_by(AccountingStatistics.log_date)
     )
     # Execute daily count queries
     auth_success_daily_results = session.exec(auth_success_daily_stmt).all()
@@ -282,16 +302,16 @@ def process_authentication_statistics(
     # Apply the date range filter to all queries
 
     failed_count_stmt = failed_count_stmt.where(
-        AuthenticationStatistics.created_at.between(start_date, end_date)
+        AuthenticationStatistics.log_date.between(start_date.date(), end_date.date())
     )
     success_count_stmt = success_count_stmt.where(
-        AuthenticationStatistics.created_at.between(start_date, end_date)
+        AuthenticationStatistics.log_date.between(start_date.date(), end_date.date())
     )
     success_count_by_ip_stmt = success_count_by_ip_stmt.where(
-        AuthenticationStatistics.created_at.between(start_date, end_date)
+        AuthenticationStatistics.log_date.between(start_date.date(), end_date.date())
     )
     success_count_by_nas_ip_stmt = success_count_by_nas_ip_stmt.where(
-        AuthenticationStatistics.created_at.between(start_date, end_date)
+        AuthenticationStatistics.log_date.between(start_date.date(), end_date.date())
     )
 
     # The result of this query is a list of Row objects, which are not directly JSON-serializable.
@@ -364,7 +384,7 @@ def process_authorization_statistics(
     )
 
     authz_deny_count_stmt = authz_deny_count_stmt.where(
-        AuthorizationStatistics.created_at.between(start_date, end_date)
+        AuthorizationStatistics.log_date.between(start_date.date(), end_date.date())
     )
 
     authz_deny_count_results = session.exec(authz_deny_count_stmt).all()
