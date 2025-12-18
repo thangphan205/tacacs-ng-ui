@@ -169,7 +169,7 @@ export function AaaStatisticsRange() {
               <Heading size="md" mb={4}>
                 Top 5 Users Login Success
               </Heading>
-              <Chart.Root boxSize="320px" mx="auto" chart={chart_authentication_success_count_by_user}>
+              <Chart.Root mx="auto" chart={chart_authentication_success_count_by_user}>
                 <PieChart>
                   <Tooltip
                     cursor={false}
@@ -196,7 +196,7 @@ export function AaaStatisticsRange() {
               <Heading size="md" mb={4}>
                 Top 5 Source IPs Login Success
               </Heading>
-              <Chart.Root boxSize="320px" mx="auto" chart={chart_authentication_success_count_by_user_source_ip}>
+              <Chart.Root mx="auto" chart={chart_authentication_success_count_by_user_source_ip}>
                 <PieChart>
                   <Tooltip
                     cursor={false}
@@ -223,7 +223,7 @@ export function AaaStatisticsRange() {
               <Heading size="md" mb={4}>
                 Top 5 NAS IPs Login Success
               </Heading>
-              <Chart.Root boxSize="320px" mx="auto" chart={chart_authentication_success_count_by_nas_ip}>
+              <Chart.Root mx="auto" chart={chart_authentication_success_count_by_nas_ip}>
                 <PieChart>
                   <Tooltip
                     cursor={false}
@@ -250,7 +250,7 @@ export function AaaStatisticsRange() {
               <Heading size="md" mb={4}>
                 Top 5 Users - Failed Login Attempts
               </Heading>
-              <Chart.Root boxSize="320px" mx="auto" chart={chart_authentication_failed_count_by_user}>
+              <Chart.Root mx="auto" chart={chart_authentication_failed_count_by_user}>
                 <PieChart>
                   <Tooltip
                     cursor={false}

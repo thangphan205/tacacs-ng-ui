@@ -155,12 +155,13 @@ export function AaaStatistics() {
               </Stat.Root>
             </Box>
           </GridItem>
+
           <GridItem>
             <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
               <Heading size="md" mb={4}>
                 Top 5 Users Login Success
               </Heading>
-              <Chart.Root boxSize="320px" mx="auto" chart={chart_authentication_success_count_by_user}>
+              <Chart.Root mx="auto" chart={chart_authentication_success_count_by_user}>
                 <PieChart>
                   <Tooltip
                     cursor={false}
@@ -187,7 +188,7 @@ export function AaaStatistics() {
               <Heading size="md" mb={4}>
                 Top 5 Source IPs Login Success
               </Heading>
-              <Chart.Root boxSize="320px" mx="auto" chart={chart_authentication_success_count_by_user_source_ip}>
+              <Chart.Root mx="auto" chart={chart_authentication_success_count_by_user_source_ip}>
                 <PieChart>
                   <Tooltip
                     cursor={false}
@@ -214,7 +215,7 @@ export function AaaStatistics() {
               <Heading size="md" mb={4}>
                 Top 5 NAS IPs Login Success
               </Heading>
-              <Chart.Root boxSize="320px" mx="auto" chart={chart_authentication_success_count_by_nas_ip}>
+              <Chart.Root mx="auto" chart={chart_authentication_success_count_by_nas_ip}>
                 <PieChart>
                   <Tooltip
                     cursor={false}
@@ -236,14 +237,12 @@ export function AaaStatistics() {
               </Chart.Root>
             </Box>
           </GridItem>
-
-
           <GridItem>
             <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
               <Heading size="md" mb={4}>
                 Top 5 Users - Failed Login Attempts
               </Heading>
-              <Chart.Root boxSize="320px" mx="auto" chart={chart_authentication_failed_count_by_user}>
+              <Chart.Root mx="auto" chart={chart_authentication_failed_count_by_user}>
                 <PieChart>
                   <Tooltip
                     cursor={false}
@@ -265,6 +264,7 @@ export function AaaStatistics() {
               </Chart.Root>
             </Box>
           </GridItem>
+
           <GridItem colSpan={{ base: 2, md: 4, xl: 4 }}>
             <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
               <Heading size="md" mb={4}>
