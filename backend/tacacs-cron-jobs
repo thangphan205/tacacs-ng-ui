@@ -1,5 +1,5 @@
 # Use the cron_runner.sh script to ensure the environment is loaded correctly.
-0 1 * * * * root /app/scripts/cron_runner.sh /app/.venv/bin/python /app/scripts/tacacs_logs_authentication.py >> /var/log/cron/authentication.log 2>&1
-5 1 * * * * root /app/scripts/cron_runner.sh /app/.venv/bin/python /app/scripts/tacacs_logs_authorization.py >> /var/log/cron/authorization.log 2>&1
-10 1 * * * * root /app/scripts/cron_runner.sh /app/.venv/bin/python /app/scripts/tacacs_logs_accounting.py >> /var/log/cron/accounting.log 2>&1
+0 1 * * * root /app/scripts/cron_runner.sh /app/.venv/bin/python /app/scripts/tacacs_logs_authentication.py >> /var/log/cron/authentication.log 2>&1
+5 1 * * * root /app/scripts/cron_runner.sh /app/.venv/bin/python /app/scripts/tacacs_logs_authorization.py >> /var/log/cron/authorization.log 2>&1
+10 1 * * * root /app/scripts/cron_runner.sh /app/.venv/bin/python /app/scripts/tacacs_logs_accounting.py >> /var/log/cron/accounting.log 2>&1
 # An empty line is required at the end of this file for cron to work correctly.
