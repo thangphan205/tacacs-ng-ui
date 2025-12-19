@@ -186,7 +186,7 @@ export function AaaStatistics() {
           <GridItem>
             <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
               <Heading size="md" mb={4}>
-                Top 5 Source IPs Login Success
+                Top 5 Source IPs
               </Heading>
               <Chart.Root mx="auto" chart={chart_authentication_success_count_by_user_source_ip}>
                 <PieChart>
@@ -213,7 +213,7 @@ export function AaaStatistics() {
           <GridItem>
             <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
               <Heading size="md" mb={4}>
-                Top 5 NAS IPs Login Success
+                Top 5 NAS IPs
               </Heading>
               <Chart.Root mx="auto" chart={chart_authentication_success_count_by_nas_ip}>
                 <PieChart>
@@ -240,7 +240,7 @@ export function AaaStatistics() {
           <GridItem>
             <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
               <Heading size="md" mb={4}>
-                Top 5 Users - Failed Login Attempts
+                Top 5 Users Login Failed
               </Heading>
               <Chart.Root mx="auto" chart={chart_authentication_failed_count_by_user}>
                 <PieChart>

@@ -47,7 +47,6 @@ export function AaaStatisticsRange() {
       }),
   })
 
-
   const handleStartDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setStartDate(event.target.value)
   }
@@ -55,7 +54,6 @@ export function AaaStatisticsRange() {
   const handleEndDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setEndDate(event.target.value)
   }
-
 
   const color_chart = ["blue.500", "green.500", "pink.500", "orange.500", "red.500"]
   const data_authentication_success_count_by_user = stats?.authentication_success_count_by_user?.map((user, index) => ({
@@ -117,9 +115,6 @@ export function AaaStatisticsRange() {
       { name: 'Acct Stop', color: 'gray.500' },
     ],
   });
-
-
-
 
   return (
     <Container maxW="full" py={8}>
@@ -194,7 +189,7 @@ export function AaaStatisticsRange() {
           <GridItem>
             <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
               <Heading size="md" mb={4}>
-                Top 5 Source IPs Login Success
+                Top 5 Source IPs
               </Heading>
               <Chart.Root mx="auto" chart={chart_authentication_success_count_by_user_source_ip}>
                 <PieChart>
@@ -221,7 +216,7 @@ export function AaaStatisticsRange() {
           <GridItem>
             <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
               <Heading size="md" mb={4}>
-                Top 5 NAS IPs Login Success
+                Top 5 NAS IPs
               </Heading>
               <Chart.Root mx="auto" chart={chart_authentication_success_count_by_nas_ip}>
                 <PieChart>
@@ -248,7 +243,7 @@ export function AaaStatisticsRange() {
           <GridItem>
             <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
               <Heading size="md" mb={4}>
-                Top 5 Users - Failed Login Attempts
+                Top 5 Users Login Failed
               </Heading>
               <Chart.Root mx="auto" chart={chart_authentication_failed_count_by_user}>
                 <PieChart>
