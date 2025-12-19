@@ -88,6 +88,8 @@ tacacs server TACACS-9PING
 # 3. Create a server group (best practice for redundancy)
 aaa group server tacacs+ TACACS-GROUP
   server name TACACS-9PING
+  # Optional to use vrf forwarding
+  # ip vrf forwarding clab-mgmt
   exit
 
 # 4. Configure Authentication, Authorization, and Accounting methods
