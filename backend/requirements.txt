@@ -11,7 +11,7 @@ cssutils==2.11.1
 dnspython==2.8.0
 email-validator==2.3.0
 emails==0.6
-fastapi==0.118.2
+fastapi==0.124.4
 fastapi-cli==0.0.16
 fastapi-cloud-cli==0.3.1
 h11==0.16.0
