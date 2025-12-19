@@ -1,4 +1,4 @@
-import { Box, Flex, Icon, Text } from "@chakra-ui/react"
+import { Box, Flex, Icon, Link, Text } from "@chakra-ui/react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link as RouterLink } from "@tanstack/react-router"
 import {
@@ -16,10 +16,11 @@ import {
   FiShield,
   FiUser,
   FiUsers,
+  FiGithub,
 } from "react-icons/fi"
 import type { IconType } from "react-icons/lib"
-
 import type { UserPublic } from "@/client"
+import { version } from "../../../package.json"
 
 const items = [
   { icon: FiHome, title: "Dashboard", path: "/", level: 1 },
@@ -86,10 +87,22 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
 
   return (
     <>
-      <Text fontSize="xs" px={4} py={2} fontWeight="bold">
-        Menu
-      </Text>
-      <Box>{listItems}</Box>
+      <Box overflowY="auto">
+        <Text fontSize="xs" px={4} py={2} fontWeight="bold">
+          Menu
+        </Text>
+        {listItems}
+      </Box>
+      <Link
+        as="a"
+        href="https://github.com/thangphan205/tacacs-ng-ui"
+        target="_blank"
+        rel="noopener noreferrer"
+
+      >
+        <Icon as={FiGithub} />
+        <Text fontSize="sm" fontWeight="bold">Version {version}</Text>
+      </Link>
     </>
   )
 }

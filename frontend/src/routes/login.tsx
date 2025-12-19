@@ -1,11 +1,11 @@
-import { Container, Image, Input, Text } from "@chakra-ui/react"
+import { Container, Icon, Image, Input, Link, Text } from "@chakra-ui/react"
 import {
   createFileRoute,
   Link as RouterLink,
   redirect,
 } from "@tanstack/react-router"
 import { type SubmitHandler, useForm } from "react-hook-form"
-import { FiLock, FiMail } from "react-icons/fi"
+import { FiGithub, FiLock, FiMail } from "react-icons/fi"
 
 import type { Body_login_login_access_token as AccessToken } from "@/client"
 import { Button } from "@/components/ui/button"
@@ -108,9 +108,16 @@ function Login() {
           Sign Up
         </RouterLink>
       </Text>
-      <Text fontSize="sm" color="gray.500" mt={2}>
-        Version {version}
-      </Text>
+      <Link
+        as="a"
+        href="https://github.com/thangphan205/tacacs-ng-ui"
+        target="_blank"
+        rel="noopener noreferrer"
+
+      >
+        <Icon as={FiGithub} />
+        <Text fontSize="sm" fontWeight="bold">Version {version}</Text>
+      </Link>
     </Container>
   )
 }
