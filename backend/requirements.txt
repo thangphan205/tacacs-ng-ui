@@ -29,7 +29,7 @@ more-itertools==10.8.0
 passlib==1.7.4
 premailer==3.10.0
 psycopg==3.2.10
-psycopg-binary==3.2.10
+psycopg-binary==3.3.2
 pydantic==2.12.5
 pydantic-settings==2.12.0
 pydantic_core==2.41.1
