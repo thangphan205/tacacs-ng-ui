@@ -34,7 +34,7 @@
     "@tanstack/router-devtools": "^1.141.2",
     "@tanstack/router-plugin": "^1.139.1",
     "@types/node": "^25.0.3",
-    "@types/react": "^19.2.7",
+    "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react-swc": "^4.2.2",
     "dotenv": "^17.2.2",
