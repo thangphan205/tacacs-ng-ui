@@ -111,7 +111,7 @@ test("Sign up with weak password", async ({ page }) => {
   await page.getByRole("button", { name: "Sign Up" }).click()
 
   await expect(
-    page.getByText("Password must be at least 8 characters"),
+    page.getByText("Password must be at least 12 characters"),
   ).toBeVisible()
 })
 
