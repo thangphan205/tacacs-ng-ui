@@ -1,7 +1,7 @@
 alembic==1.17.1
 annotated-types==0.7.0
 anyio==4.11.0
-cachetools==6.2.3
+cachetools==6.2.4
 certifi==2025.11.12
 chardet==5.2.0
 charset-normalizer==3.4.3
@@ -29,7 +29,7 @@ more-itertools==10.8.0
 passlib==1.7.4
 premailer==3.10.0
 psycopg==3.3.2
-psycopg-binary==3.2.10
+psycopg-binary==3.3.2
 pydantic==2.12.5
 pydantic-settings==2.12.0
 pydantic_core==2.41.1
@@ -41,7 +41,7 @@ python-multipart==0.0.20
 PyYAML==6.0.3
 requests==2.32.5
 rich==14.1.0
-rich-toolkit==0.15.1
+rich-toolkit==0.17.1
 rignore==0.7.6
 sentry-sdk==2.46.0
 shellingham==1.5.4
@@ -54,7 +54,7 @@ typer==0.20.0
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 urllib3==2.5.0
-uvicorn==0.38.0
+uvicorn==0.40.0
 uvloop==0.22.1
 watchfiles==1.1.0
 websockets==15.0.1
