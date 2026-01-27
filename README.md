@@ -154,7 +154,7 @@ ip tacacs source-interface Management0
 
 ## How To Use It
 
-**Deploy on a localhost**
+## Deploy on a localhost
 
 ```bash
 git clone https://github.com/thangphan205/tacacs-ng-ui
@@ -163,8 +163,11 @@ docker compose up -d
 ```
 
 Access: <http://localhost:5173> with default account:
-Username: <admin@example.com>
+
+```bash
+Username: admin@example.com
 Password: ooG5adij3achohgai6eeceiY5jee4oCh
+```
 
 Development URLs, for local development.
 
@@ -182,7 +185,8 @@ Traefik UI: <http://localhost:8090>
 
 MailCatcher: <http://localhost:1080>
 
-**Deploy on a remote server**
+## Deploy on a remote server
+
 For example, you deploy tacacs-ng-ui on the server: 192.168.8.8
 
 ```bash
@@ -208,6 +212,7 @@ Change IP API Servers:
 Add your server to  BACKEND_CORS_ORIGINS:
 
 ```vi .env```
+
 ```BACKEND_CORS_ORIGINS="http://192.168.8.8:5173,..."```
 
 Run server:
@@ -215,8 +220,11 @@ Run server:
 ```docker compose up -d```
 
 Access: <http://192.168.8.8:5173> with default account:
-Username: ```admin@example.com```
-Password: ```ooG5adij3achohgai6eeceiY5jee4oCh```
+
+```bash
+Username: admin@example.com
+Password: ooG5adij3achohgai6eeceiY5jee4oCh
+```
 
 Notes: run "docker compose build" whenever you change configure/code
 
@@ -225,7 +233,8 @@ docker compose build
 docker compose up -d
 ```
 
-**Deploy on a remote server: with domain name**
+## Deploy on a remote server: with domain name
+
 please see [deployment.md](./deployment.md)
 
 ### Configure
