@@ -154,6 +154,8 @@ ip tacacs source-interface Management0
 
 ## How To Use It
 
+**Deploy on a localhost**
+
 ```bash
 git clone https://github.com/thangphan205/tacacs-ng-ui
 cd tacacs-ng-ui
@@ -179,6 +181,52 @@ Adminer: <http://localhost:8080>
 Traefik UI: <http://localhost:8090>
 
 MailCatcher: <http://localhost:1080>
+
+**Deploy on a remote server**
+For example, you deploy tacacs-ng-ui on the server: 192.168.8.8
+
+```bash
+git clone https://github.com/thangphan205/tacacs-ng-ui
+cd tacacs-ng-ui
+```
+
+Change IP API Servers:
+```vi docker-compose.override.yml```
+
+```bash
+  frontend:
+    restart: "no"
+    ports:
+      - "5173:80"
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://192.168.8.8:8000
+        - NODE_ENV=development
+```
+
+Add your server to  BACKEND_CORS_ORIGINS:
+
+```vi .env```
+```BACKEND_CORS_ORIGINS="http://192.168.8.8:5173,..."```
+
+Run server:
+
+```docker compose up -d```
+
+Access: <http://192.168.8.8:5173> with default account:
+Username: ```admin@example.com```
+Password: ```ooG5adij3achohgai6eeceiY5jee4oCh```
+
+Notes: run "docker compose build" whenever you change configure/code
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+**Deploy on a remote server: with domain name**
+please see [deployment.md](./deployment.md)
 
 ### Configure
 
