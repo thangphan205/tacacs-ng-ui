@@ -20,6 +20,8 @@ Video Tiếng Việt:[tacacs-ng-ui - Demo - Cấu hình chứng thực tập tru
 
 Telegram Group: <https://t.me/+v1eAXg-BhotlODY1>
 
+Reddit Community: https://www.reddit.com/r/tacacs_ng_ui/
+
 You can signup an account and use this tacacs server to test with your simulator lab.
 
 - **Dashboard:** <https://dashboard.tacacs.9ping.cloud>
