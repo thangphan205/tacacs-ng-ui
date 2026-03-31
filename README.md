@@ -20,7 +20,7 @@ Video Tiếng Việt:[tacacs-ng-ui - Demo - Cấu hình chứng thực tập tru
 
 Telegram Group: <https://t.me/+v1eAXg-BhotlODY1>
 
-Reddit Community: https://www.reddit.com/r/tacacs_ng_ui/
+Reddit Community: <https://www.reddit.com/r/tacacs_ng_ui/>
 
 You can signup an account and use this tacacs server to test with your simulator lab.
 
@@ -304,6 +304,15 @@ This includes using Docker Compose, custom local domains, `.env` configurations,
 ### adminer
 
 [![API docs](img/adminer.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+## Future Works & Research Roadmap
+
+To further enhance the security and utility of tacacs-ng-ui, the following roadmap has been established:
+
+1. **Modernized Authentication Framework**: Enhance UI security by integrating OAuth2 and Passkeys (WebAuthn). This ensures that the management interface itself adheres to modern passwordless and Multi-Factor Authentication (MFA) standards.
+2. **Comprehensive Frontend Audit Logging**: Implement User Activity Tracking to record every action performed within the web interface. This creates a secondary layer of accountability, ensuring that changes to the AAA policies themselves are fully auditable.
+3. **Advanced Observability Dashboard**: Develop sophisticated statistical analysis and granular filtering capabilities. This will allow administrators to visualize login trends, command execution frequencies, and system health through interactive charts and real-time data feeds.
+4. **Proactive Abnormal Access Detection & Alerting**: Integrate an automated Anomaly Detection engine that triggers Webhook alerts (e.g., to Telegram, Discord, Slack, Microsoft Teams). This feature will immediately notify administrators of suspicious patterns, such as repeated failed logins or unauthorized privilege escalation attempts.
 
 ## Release Notes
 
