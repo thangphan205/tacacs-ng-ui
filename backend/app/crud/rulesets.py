@@ -29,8 +29,7 @@ def update_ruleset(
     *, session: Session, db_ruleset: Ruleset, ruleset_in: RulesetUpdate
 ) -> Any:
     ruleset_data = ruleset_in.model_dump(exclude_unset=True)
-    extra_data = {}
-    db_ruleset.sqlmodel_update(ruleset_data, update=extra_data)
+    db_ruleset.sqlmodel_update(ruleset_data)
     session.add(db_ruleset)
     session.commit()
     session.refresh(db_ruleset)

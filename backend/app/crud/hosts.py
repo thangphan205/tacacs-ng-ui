@@ -20,8 +20,7 @@ def create_host(*, session: Session, host_create: HostCreate) -> Host:
 
 def update_host(*, session: Session, db_host: Host, host_in: HostUpdate) -> Any:
     host_data = host_in.model_dump(exclude_unset=True)
-    extra_data = {}
-    db_host.sqlmodel_update(host_data, update=extra_data)
+    db_host.sqlmodel_update(host_data)
     session.add(db_host)
     session.commit()
     session.refresh(db_host)

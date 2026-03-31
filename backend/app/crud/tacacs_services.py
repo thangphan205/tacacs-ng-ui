@@ -27,8 +27,7 @@ def update_tacacs_service(
     tacacs_service_in: TacacsServiceUpdate
 ) -> Any:
     tacacs_service_data = tacacs_service_in.model_dump(exclude_unset=True)
-    extra_data = {}
-    db_tacacs_service.sqlmodel_update(tacacs_service_data, update=extra_data)
+    db_tacacs_service.sqlmodel_update(tacacs_service_data)
     session.add(db_tacacs_service)
     session.commit()
     session.refresh(db_tacacs_service)

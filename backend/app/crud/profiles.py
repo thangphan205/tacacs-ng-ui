@@ -29,8 +29,7 @@ def update_profile(
     *, session: Session, db_profile: Profile, profile_in: ProfileUpdate
 ) -> Any:
     profile_data = profile_in.model_dump(exclude_unset=True)
-    extra_data = {}
-    db_profile.sqlmodel_update(profile_data, update=extra_data)
+    db_profile.sqlmodel_update(profile_data)
     session.add(db_profile)
     session.commit()
     session.refresh(db_profile)

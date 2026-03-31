@@ -26,8 +26,7 @@ def update_tacacs_user(
     *, session: Session, db_user: TacacsUser, user_in: TacacsUserUpdate
 ) -> Any:
     user_data = user_in.model_dump(exclude_unset=True)
-    extra_data = {}
-    db_user.sqlmodel_update(user_data, update=extra_data)
+    db_user.sqlmodel_update(user_data)
     session.add(db_user)
     session.commit()
     session.refresh(db_user)

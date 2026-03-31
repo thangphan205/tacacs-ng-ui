@@ -21,8 +21,7 @@ def update_profilescriptset(
     profilescriptset_in: ProfileScriptSetUpdate
 ) -> Any:
     profilescriptset_data = profilescriptset_in.model_dump(exclude_unset=True)
-    extra_data = {}
-    db_profilescriptset.sqlmodel_update(profilescriptset_data, update=extra_data)
+    db_profilescriptset.sqlmodel_update(profilescriptset_data)
     session.add(db_profilescriptset)
     session.commit()
     session.refresh(db_profilescriptset)

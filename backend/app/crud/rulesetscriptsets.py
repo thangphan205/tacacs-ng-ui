@@ -21,8 +21,7 @@ def update_rulesetscriptset(
     rulesetscriptset_in: RulesetScriptSetUpdate
 ) -> Any:
     rulesetscriptset_data = rulesetscriptset_in.model_dump(exclude_unset=True)
-    extra_data = {}
-    db_rulesetscriptset.sqlmodel_update(rulesetscriptset_data, update=extra_data)
+    db_rulesetscriptset.sqlmodel_update(rulesetscriptset_data)
     session.add(db_rulesetscriptset)
     session.commit()
     session.refresh(db_rulesetscriptset)

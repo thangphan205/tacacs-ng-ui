@@ -26,8 +26,7 @@ def update_tacacs_group(
     *, session: Session, db_tacacs_group: TacacsGroup, group_in: TacacsGroupUpdate
 ) -> Any:
     user_data = group_in.model_dump(exclude_unset=True)
-    extra_data = {}
-    db_tacacs_group.sqlmodel_update(user_data, update=extra_data)
+    db_tacacs_group.sqlmodel_update(user_data)
     session.add(db_tacacs_group)
     session.commit()
     session.refresh(db_tacacs_group)
