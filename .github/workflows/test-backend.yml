@@ -31,20 +31,9 @@ jobs:
       - run: docker compose down -v --remove-orphans
       - run: docker compose up -d db mailcatcher
       - name: Migrate DB
-        env:
-          POSTGRES_SERVER: localhost
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: changethis
-          POSTGRES_DB: app
         run: uv run bash scripts/prestart.sh
         working-directory: backend
       - name: Run tests
-        env:
-          POSTGRES_SERVER: localhost
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: changethis
-          POSTGRES_DB: app
-          SECRET_KEY: changethis
         run: uv run bash scripts/tests-start.sh "Coverage for ${{ github.sha }}"
         working-directory: backend
       - run: docker compose down -v --remove-orphans
