@@ -1352,7 +1352,7 @@ export const NewPasswordSchema = {
         new_password: {
             type: 'string',
             maxLength: 40,
-            minLength: 8,
+            minLength: 12,
             title: 'New Password'
         }
     },
@@ -3309,13 +3309,13 @@ export const UpdatePasswordSchema = {
         current_password: {
             type: 'string',
             maxLength: 40,
-            minLength: 8,
+            minLength: 12,
             title: 'Current Password'
         },
         new_password: {
             type: 'string',
             maxLength: 40,
-            minLength: 8,
+            minLength: 12,
             title: 'New Password'
         }
     },
@@ -3357,7 +3357,7 @@ export const UserCreateSchema = {
         password: {
             type: 'string',
             maxLength: 40,
-            minLength: 8,
+            minLength: 12,
             title: 'Password'
         }
     },
@@ -3448,7 +3448,7 @@ export const UserRegisterSchema = {
         password: {
             type: 'string',
             maxLength: 40,
-            minLength: 8,
+            minLength: 12,
             title: 'Password'
         },
         full_name: {
@@ -3511,7 +3511,7 @@ export const UserUpdateSchema = {
                 {
                     type: 'string',
                     maxLength: 40,
-                    minLength: 8
+                    minLength: 12
                 },
                 {
                     type: 'null'
