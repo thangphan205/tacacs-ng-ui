@@ -13,6 +13,15 @@ on:
 jobs:
   test-backend:
     runs-on: ubuntu-latest
+    env:
+      POSTGRES_SERVER: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: fixed_password_for_tests
+      POSTGRES_DB: app
+      SECRET_KEY: fixed_secret_key_for_tests_1234567890
+      FIRST_SUPERUSER: admin@example.com
+      FIRST_SUPERUSER_PASSWORD: fixed_admin_password_123
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,6 +39,10 @@ jobs:
         working-directory: backend
       - run: docker compose down -v --remove-orphans
       - run: docker compose up -d db mailcatcher
+      - name: Wait for DB
+        run: |
+          until docker compose exec db pg_isready -U postgres; do sleep 1; done
+        working-directory: backend
       - name: Migrate DB
         run: uv run bash scripts/prestart.sh
         working-directory: backend
