@@ -4,7 +4,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from backend.app.crud import users
+from app.crud import users
 from app.core.config import settings
 from app.core.security import verify_password
 from app.models import User, UserCreate
