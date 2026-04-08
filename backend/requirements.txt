@@ -31,7 +31,7 @@ premailer==3.10.0
 psycopg==3.3.2
 psycopg-binary==3.3.2
 pydantic==2.12.5
-pydantic-settings==2.12.0
+pydantic-settings==2.13.1
 pydantic_core==2.41.1
 Pygments==2.19.2
 PyJWT==2.10.1
