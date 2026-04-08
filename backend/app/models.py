@@ -1,17 +1,19 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
-from typing import List, Optional
+from typing import Optional
 from app.core.config import settings
 
 
 class TimestampModel(SQLModel):
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc), nullable=False
+    )
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column_kwargs={"onupdate": datetime.utcnow},
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
     )
 
 
@@ -25,19 +27,19 @@ class UserBase(SQLModel):
 
 # Properties to receive via API on creation
 class UserCreate(UserBase):
-    password: str = Field(min_length=8, max_length=40)
+    password: str = Field(min_length=12, max_length=40)
 
 
 class UserRegister(SQLModel):
     email: EmailStr = Field(max_length=255)
-    password: str = Field(min_length=8, max_length=40)
+    password: str = Field(min_length=12, max_length=40)
     full_name: str | None = Field(default=None, max_length=255)
 
 
 # Properties to receive via API on update, all are optional
 class UserUpdate(UserBase):
     email: EmailStr | None = Field(default=None, max_length=255)  # type: ignore
-    password: str | None = Field(default=None, min_length=8, max_length=40)
+    password: str | None = Field(default=None, min_length=12, max_length=40)
 
 
 class UserUpdateMe(SQLModel):
@@ -46,8 +48,8 @@ class UserUpdateMe(SQLModel):
 
 
 class UpdatePassword(SQLModel):
-    current_password: str = Field(min_length=8, max_length=40)
-    new_password: str = Field(min_length=8, max_length=40)
+    current_password: str = Field(min_length=12, max_length=40)
+    new_password: str = Field(min_length=12, max_length=40)
 
 
 # Database model, database table inferred from class name
@@ -125,7 +127,7 @@ class TokenPayload(SQLModel):
 
 class NewPassword(SQLModel):
     token: str
-    new_password: str = Field(min_length=8, max_length=40)
+    new_password: str = Field(min_length=12, max_length=40)
 
 
 # --- TACACS+ Configuration Tables ---
@@ -372,7 +374,7 @@ class ProfileUpdate(ProfileBase):
 # Database model, database table inferred from class name
 class Profile(ProfileBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    profile_scripts: List["ProfileScript"] = Relationship(
+    profile_scripts: list["ProfileScript"] = Relationship(
         back_populates="profile", cascade_delete=True
     )
 
@@ -421,7 +423,7 @@ class ProfileScript(ProfileScriptBase, TimestampModel, table=True):
     )
     profile: Profile | None = Relationship(back_populates="profile_scripts")
 
-    profile_script_sets: List["ProfileScriptSet"] = Relationship(
+    profile_script_sets: list["ProfileScriptSet"] = Relationship(
         back_populates="profile_script",
         cascade_delete=True,
     )
@@ -506,7 +508,7 @@ class RulesetUpdate(RulesetBase):
 # Database model, database table inferred from class name
 class Ruleset(RulesetBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    ruleset_scripts: List["RulesetScript"] = Relationship(
+    ruleset_scripts: list["RulesetScript"] = Relationship(
         back_populates="ruleset", cascade_delete=True
     )
 
@@ -555,7 +557,7 @@ class RulesetScript(RulesetScriptBase, TimestampModel, table=True):
     )
     ruleset: Ruleset | None = Relationship(back_populates="ruleset_scripts")
 
-    ruleset_script_sets: List["RulesetScriptSet"] = Relationship(
+    ruleset_script_sets: list["RulesetScriptSet"] = Relationship(
         back_populates="ruleset_script", cascade_delete=True
     )
 
