@@ -314,7 +314,7 @@ def process_today_authentication_statistics(
 
     IP_REGEX = r"([a-fA-F0-9:.]+|[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})"
     LOG_REGEX = re.compile(
-        r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \+\d{4})\s+"
+        r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
         rf"(?P<nas_ip>{IP_REGEX})\s+"
         r"(?P<username>[\w.-]+)\s+"
         r"(?:[\w.-]+\s+)?"  # Optional non-capturing group for fields like 'ssh'

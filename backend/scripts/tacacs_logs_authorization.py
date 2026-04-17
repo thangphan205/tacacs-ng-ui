@@ -25,7 +25,7 @@ TARGET_DATE_STR = yesterday.strftime("%Y-%m-%d")
 # Example: "2025-12-06 14:55:28 +0700 42.117.111.77	admin	vty12	3fff:172:20:20::1		deny	shell	ip tacacs source-interface Management0 <cr>"
 IP_REGEX = r"([a-fA-F0-9:.]+|[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})"
 LOG_REGEX = re.compile(
-    r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \+\d{4})\s+"
+    r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
     rf"(?P<nas_ip>{IP_REGEX})\s+"
     r"(?P<username>[\w.-]+)\s+"
     r"(?P<tty>[\w/.-]+)\s+"  # Capture the tty/port field
