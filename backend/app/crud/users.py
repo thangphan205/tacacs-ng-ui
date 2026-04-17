@@ -83,6 +83,42 @@ def get_or_create_google_user(
     return user
 
 
+def get_user_by_keycloak_id(*, session: Session, keycloak_id: str) -> User | None:
+    return session.exec(select(User).where(User.keycloak_id == keycloak_id)).first()
+
+
+def get_or_create_keycloak_user(
+    *, session: Session, email: str, full_name: str | None, keycloak_id: str
+) -> User:
+    # 1. Already linked via keycloak_id
+    user = get_user_by_keycloak_id(session=session, keycloak_id=keycloak_id)
+    if user:
+        return user
+
+    # 2. Existing account with same email — link it
+    user = get_user_by_email(session=session, email=email)
+    if user:
+        user.keycloak_id = keycloak_id
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return user
+
+    # 3. New user — create with random unguessable password
+    user = User(
+        email=email,
+        full_name=full_name,
+        is_active=True,
+        is_superuser=False,
+        hashed_password=get_password_hash(secrets.token_hex(32)),
+        keycloak_id=keycloak_id,
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
 def create_item(*, session: Session, item_in: ItemCreate, owner_id: uuid.UUID) -> Item:
     db_item = Item.model_validate(item_in, update={"owner_id": owner_id})
     session.add(db_item)

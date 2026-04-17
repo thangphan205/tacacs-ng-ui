@@ -11,7 +11,7 @@ from fastapi.responses import RedirectResponse
 from app.api.deps import SessionDep
 from app.core.config import settings
 from app.core.security import create_access_token
-from app.crud.users import get_or_create_google_user
+from app.crud.users import get_or_create_google_user, get_or_create_keycloak_user
 
 router = APIRouter(prefix="/oauth", tags=["oauth"])
 
@@ -111,6 +111,79 @@ def google_callback(
         email=email,
         full_name=full_name,
         google_id=google_id,
+    )
+
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+
+    jwt = create_access_token(
+        subject=str(user.id),
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    redirect_url = f"{settings.FRONTEND_HOST}/oauth-callback?token={jwt}"
+    return RedirectResponse(url=redirect_url)
+
+
+@router.get("/keycloak/authorize")
+def keycloak_authorize() -> dict[str, str]:
+    if not settings.KEYCLOAK_CLIENT_ID:
+        raise HTTPException(status_code=503, detail="Keycloak is not configured")
+
+    params = {
+        "client_id": settings.KEYCLOAK_CLIENT_ID,
+        "redirect_uri": settings.KEYCLOAK_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": _make_state(),
+    }
+    return {"url": settings.KEYCLOAK_AUTH_URL + "?" + urlencode(params)}
+
+
+@router.get("/keycloak/callback")
+def keycloak_callback(
+    session: SessionDep,
+    code: str,
+    state: str,
+) -> RedirectResponse:
+    if not _verify_state(state):
+        raise HTTPException(status_code=400, detail="Invalid OAuth state")
+
+    with httpx.Client() as client:
+        token_resp = client.post(
+            settings.KEYCLOAK_TOKEN_URL,
+            data={
+                "code": code,
+                "client_id": settings.KEYCLOAK_CLIENT_ID,
+                "client_secret": settings.KEYCLOAK_CLIENT_SECRET,
+                "redirect_uri": settings.KEYCLOAK_REDIRECT_URI,
+                "grant_type": "authorization_code",
+            },
+        )
+
+    if token_resp.status_code != 200:
+        raise HTTPException(status_code=400, detail="Failed to exchange code with Keycloak")
+
+    access_token = token_resp.json().get("access_token")
+
+    with httpx.Client() as client:
+        userinfo_resp = client.get(
+            settings.KEYCLOAK_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+    if userinfo_resp.status_code != 200:
+        raise HTTPException(status_code=400, detail="Failed to fetch Keycloak user info")
+
+    userinfo = userinfo_resp.json()
+    keycloak_id: str = userinfo["sub"]
+    email: str = userinfo["email"]
+    full_name: str | None = userinfo.get("name")
+
+    user = get_or_create_keycloak_user(
+        session=session,
+        email=email,
+        full_name=full_name,
+        keycloak_id=keycloak_id,
     )
 
     if not user.is_active:

@@ -64,7 +64,11 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
 
   const finalItems: Item[] = currentUser?.is_superuser
-    ? [...items, { icon: FiUsers, title: "Admin", path: "/admin", level: 1 }]
+    ? [
+        ...items,
+        { icon: FiUsers, title: "Admin", path: "/admin", level: 1 },
+        { icon: FiShield, title: "Auth Providers", path: "/admin/auth-providers", level: 2 },
+      ]
     : items
 
   const listItems = finalItems.map(({ icon, title, path, level }) => (
