@@ -1,3 +1,4 @@
+import secrets
 import uuid
 from typing import Any
 
@@ -44,6 +45,42 @@ def authenticate(*, session: Session, email: str, password: str) -> User | None:
     if not verify_password(password, db_user.hashed_password):
         return None
     return db_user
+
+
+def get_user_by_google_id(*, session: Session, google_id: str) -> User | None:
+    return session.exec(select(User).where(User.google_id == google_id)).first()
+
+
+def get_or_create_google_user(
+    *, session: Session, email: str, full_name: str | None, google_id: str
+) -> User:
+    # 1. Already linked via google_id
+    user = get_user_by_google_id(session=session, google_id=google_id)
+    if user:
+        return user
+
+    # 2. Existing account with same email — link it
+    user = get_user_by_email(session=session, email=email)
+    if user:
+        user.google_id = google_id
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return user
+
+    # 3. New user — create with random unguessable password
+    user = User(
+        email=email,
+        full_name=full_name,
+        is_active=True,
+        is_superuser=False,
+        hashed_password=get_password_hash(secrets.token_hex(32)),
+        google_id=google_id,
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
 
 
 def create_item(*, session: Session, item_in: ItemCreate, owner_id: uuid.UUID) -> Item:

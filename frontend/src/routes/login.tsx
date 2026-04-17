@@ -1,4 +1,4 @@
-import { Container, Icon, Image, Input, Link, Text } from "@chakra-ui/react"
+import { Container, Icon, Image, Input, Link, Separator, Text } from "@chakra-ui/react"
 import {
   createFileRoute,
   Link as RouterLink,
@@ -6,6 +6,8 @@ import {
 } from "@tanstack/react-router"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FiGithub, FiLock, FiMail } from "react-icons/fi"
+import { FcGoogle } from "react-icons/fc"
+import { OpenAPI } from "@/client"
 
 import type { Body_login_login_access_token as AccessToken } from "@/client"
 import { Button } from "@/components/ui/button"
@@ -42,6 +44,12 @@ function Login() {
       password: "",
     },
   })
+
+  const handleGoogleLogin = async () => {
+    const res = await fetch(`${OpenAPI.BASE}/api/v1/oauth/google/authorize`)
+    const { url } = await res.json()
+    window.location.href = url
+  }
 
   const onSubmit: SubmitHandler<AccessToken> = async (data) => {
     if (isSubmitting) return
@@ -101,6 +109,11 @@ function Login() {
       </RouterLink>
       <Button variant="solid" type="submit" loading={isSubmitting} size="md">
         Log In
+      </Button>
+      <Separator />
+      <Button variant="outline" size="md" onClick={handleGoogleLogin} type="button">
+        <FcGoogle />
+        Sign in with Google
       </Button>
       <Text>
         Don't have an account?{" "}
