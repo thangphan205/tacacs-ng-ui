@@ -163,14 +163,15 @@ ip tacacs source-interface Management0
 ```bash
 git clone https://github.com/thangphan205/tacacs-ng-ui
 cd tacacs-ng-ui
+cp .env.example .env   # then edit .env and set your own secrets
 docker compose up -d
 ```
 
-Access: <http://localhost:5173> with default account:
+Access: <http://localhost:5173> with the credentials you set in `.env`:
 
 ```bash
-Username: admin@example.com
-Password: ooG5adij3achohgai6eeceiY5jee4oCh
+Username: admin@example.com   # FIRST_SUPERUSER in .env
+Password: <FIRST_SUPERUSER_PASSWORD in .env>
 ```
 
 Development URLs, for local development.
@@ -196,6 +197,7 @@ For example, you deploy tacacs-ng-ui on the server: 192.168.8.8
 ```bash
 git clone https://github.com/thangphan205/tacacs-ng-ui
 cd tacacs-ng-ui
+cp .env.example .env   # then edit .env with your IP, secrets, and passwords
 ```
 
 Change IP API Servers:
@@ -223,11 +225,11 @@ Run server:
 
 ```docker compose up -d```
 
-Access: <http://192.168.8.8:5173> with default account:
+Access: <http://192.168.8.8:5173> with the credentials you set in `.env`:
 
 ```bash
-Username: admin@example.com
-Password: ooG5adij3achohgai6eeceiY5jee4oCh
+Username: admin@example.com   # FIRST_SUPERUSER in .env
+Password: <FIRST_SUPERUSER_PASSWORD in .env>
 ```
 
 Notes: run "docker compose build" whenever you change configure/code
@@ -254,6 +256,18 @@ Before deploying it, make sure you change at least the values for:
 You can (and should) pass these as environment variables from secrets.
 
 Read the [deployment.md](./deployment.md) docs for more details.
+
+### Google OAuth (optional)
+
+To enable "Sign in with Google", create OAuth credentials in [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials → OAuth 2.0 Client ID, then add to `.env`:
+
+```bash
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
+GOOGLE_REDIRECT_URI=http://<your-host>:8000/api/v1/oauth/google/callback
+```
+
+Also add `GOOGLE_REDIRECT_URI` as an **Authorized Redirect URI** in Google Console. If Google OAuth is not configured, the "Sign in with Google" button shows an error and email/password login continues to work normally.
 
 ### Generate Secret Keys
 
@@ -309,7 +323,7 @@ This includes using Docker Compose, custom local domains, `.env` configurations,
 
 To further enhance the security and utility of tacacs-ng-ui, the following roadmap has been established:
 
-1. **Modernized Authentication Framework**: Enhance UI security by integrating OAuth2 and Passkeys (WebAuthn). This ensures that the management interface itself adheres to modern passwordless and Multi-Factor Authentication (MFA) standards.
+1. **Modernized Authentication Framework**: ~~OAuth2~~ ✅ Google OAuth (Authorization Code flow) is now supported. Next: Passkeys (WebAuthn) for passwordless / MFA login.
 2. **Comprehensive Frontend Audit Logging**: Implement User Activity Tracking to record every action performed within the web interface. This creates a secondary layer of accountability, ensuring that changes to the AAA policies themselves are fully auditable.
 3. **Advanced Observability Dashboard**: Develop sophisticated statistical analysis and granular filtering capabilities. This will allow administrators to visualize login trends, command execution frequencies, and system health through interactive charts and real-time data feeds.
 4. **Proactive Abnormal Access Detection & Alerting**: Integrate an automated Anomaly Detection engine that triggers Webhook alerts (e.g., to Telegram, Discord, Slack, Microsoft Teams). This feature will immediately notify administrators of suspicious patterns, such as repeated failed logins or unauthorized privilege escalation attempts.
