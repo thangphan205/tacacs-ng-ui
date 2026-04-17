@@ -4,3 +4,8 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Environment files — never commit secrets
+.env
+.env.local
+.env.*.local

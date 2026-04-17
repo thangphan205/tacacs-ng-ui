@@ -1,4 +1,4 @@
-import { Container, Icon, Image, Input, Link, Text } from "@chakra-ui/react"
+import { Container, Icon, Image, Input, Link, Separator, Text } from "@chakra-ui/react"
 import {
   createFileRoute,
   Link as RouterLink,
@@ -6,6 +6,8 @@ import {
 } from "@tanstack/react-router"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FiGithub, FiLock, FiMail } from "react-icons/fi"
+import { FcGoogle } from "react-icons/fc"
+import { OpenAPI } from "@/client"
 
 import type { Body_login_login_access_token as AccessToken } from "@/client"
 import { Button } from "@/components/ui/button"
@@ -13,6 +15,7 @@ import { Field } from "@/components/ui/field"
 import { InputGroup } from "@/components/ui/input-group"
 import { PasswordInput } from "@/components/ui/password-input"
 import useAuth, { isLoggedIn } from "@/hooks/useAuth"
+import { handleError } from "@/utils"
 import Logo from "/assets/images/tacacs-ng-ui.svg"
 import { version } from "../../package.json"
 import { emailPattern, passwordRules } from "../utils"
@@ -42,6 +45,20 @@ function Login() {
       password: "",
     },
   })
+
+  const handleGoogleLogin = async () => {
+    try {
+      const res = await fetch(`${OpenAPI.BASE}/api/v1/oauth/google/authorize`)
+      const data = await res.json()
+      if (!res.ok || !data.url) {
+        handleError({ status: res.status, body: data } as any)
+        return
+      }
+      window.location.href = data.url
+    } catch {
+      handleError({ status: 0, body: { detail: "Could not reach the server." } } as any)
+    }
+  }
 
   const onSubmit: SubmitHandler<AccessToken> = async (data) => {
     if (isSubmitting) return
@@ -101,6 +118,11 @@ function Login() {
       </RouterLink>
       <Button variant="solid" type="submit" loading={isSubmitting} size="md">
         Log In
+      </Button>
+      <Separator />
+      <Button variant="outline" size="md" onClick={handleGoogleLogin} type="button">
+        <FcGoogle />
+        Sign in with Google
       </Button>
       <Text>
         Don't have an account?{" "}

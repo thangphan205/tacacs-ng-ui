@@ -57,6 +57,7 @@ class UpdatePassword(SQLModel):
 class User(UserBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
+    google_id: str | None = Field(default=None, index=True, unique=True)
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
 
 
