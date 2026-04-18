@@ -142,6 +142,23 @@ export type AuthorizationStatisticsPublic = {
     count: number;
 };
 
+export type AuthProviderConfigPublic = {
+    provider: string;
+    enabled: boolean;
+    config: {
+        [key: string]: unknown;
+    };
+    secret_is_set: boolean;
+};
+
+export type AuthProviderConfigUpdate = {
+    enabled?: (boolean | null);
+    config?: ({
+    [key: string]: unknown;
+} | null);
+    secret?: (string | null);
+};
+
 export type Body_login_login_access_token = {
     grant_type?: (string | null);
     username: string;
@@ -293,6 +310,19 @@ export type Message = {
 export type NewPassword = {
     token: string;
     new_password: string;
+};
+
+export type PasskeyAuthenticateCompleteRequest = {
+    credential: {
+        [key: string]: unknown;
+    };
+};
+
+export type PasskeyRegisterCompleteRequest = {
+    credential: {
+        [key: string]: unknown;
+    };
+    name?: (string | null);
 };
 
 export type PrivateUserCreate = {
@@ -750,6 +780,19 @@ export type ValidationError = {
     type: string;
 };
 
+export type WebAuthnCredentialPublic = {
+    id: string;
+    credential_id: string;
+    name: (string | null);
+    created_at: string;
+    last_used_at: (string | null);
+};
+
+export type WebAuthnCredentialsPublic = {
+    data: Array<WebAuthnCredentialPublic>;
+    count: number;
+};
+
 export type AaaStatisticsReadAaaStatisticsData = {
     limit?: number;
     skip?: number;
@@ -772,6 +815,21 @@ export type AccountingStatisticsReadAccountingStatisticsData = {
 
 export type AccountingStatisticsReadAccountingStatisticsResponse = (AccountingStatisticsPublic);
 
+export type AdminListAuthProvidersResponse = (Array<AuthProviderConfigPublic>);
+
+export type AdminGetAuthProviderData = {
+    provider: string;
+};
+
+export type AdminGetAuthProviderResponse = (AuthProviderConfigPublic);
+
+export type AdminUpdateAuthProviderData = {
+    provider: string;
+    requestBody: AuthProviderConfigUpdate;
+};
+
+export type AdminUpdateAuthProviderResponse = (AuthProviderConfigPublic);
+
 export type AuthenticationStatisticsReadAuthenticationStatisticsData = {
     limit?: number;
     skip?: number;
@@ -785,6 +843,10 @@ export type AuthorizationStatisticsReadAuthorizationStatisticsData = {
 };
 
 export type AuthorizationStatisticsReadAuthorizationStatisticsResponse = (AuthorizationStatisticsPublic);
+
+export type AuthProvidersAuthProvidersStatusResponse = ({
+    [key: string]: (boolean);
+});
 
 export type ConfigurationOptionsReadConfigurationOptionsData = {
     limit?: number;
@@ -941,6 +1003,52 @@ export type MavisesDeleteMavisData = {
 };
 
 export type MavisesDeleteMavisResponse = (Message);
+
+export type OauthGoogleAuthorizeResponse = ({
+    [key: string]: (string);
+});
+
+export type OauthGoogleCallbackData = {
+    code: string;
+    state: string;
+};
+
+export type OauthGoogleCallbackResponse = (unknown);
+
+export type OauthKeycloakAuthorizeResponse = ({
+    [key: string]: (string);
+});
+
+export type OauthKeycloakCallbackData = {
+    code: string;
+    state: string;
+};
+
+export type OauthKeycloakCallbackResponse = (unknown);
+
+export type PasskeysRegisterBeginResponse = (unknown);
+
+export type PasskeysRegisterCompleteData = {
+    requestBody: PasskeyRegisterCompleteRequest;
+};
+
+export type PasskeysRegisterCompleteResponse = (WebAuthnCredentialPublic);
+
+export type PasskeysListCredentialsResponse = (WebAuthnCredentialsPublic);
+
+export type PasskeysDeleteCredentialData = {
+    credentialId: string;
+};
+
+export type PasskeysDeleteCredentialResponse = (Message);
+
+export type PasskeysAuthenticateBeginResponse = (unknown);
+
+export type PasskeysAuthenticateCompleteData = {
+    requestBody: PasskeyAuthenticateCompleteRequest;
+};
+
+export type PasskeysAuthenticateCompleteResponse = (Token);
 
 export type PrivateCreateUserData = {
     requestBody: PrivateUserCreate;

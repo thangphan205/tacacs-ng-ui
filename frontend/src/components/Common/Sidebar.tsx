@@ -1,11 +1,12 @@
-import { Box, Flex, IconButton, Text, VStack } from "@chakra-ui/react"
+import { Box, Flex, Icon, IconButton, Link, Text, VStack } from "@chakra-ui/react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FaBars } from "react-icons/fa"
-import { FiLogOut } from "react-icons/fi"
+import { FiGithub, FiLogOut } from "react-icons/fi"
 
 import type { UserPublic } from "@/client"
 import useAuth from "@/hooks/useAuth"
+import { version } from "../../../package.json"
 import {
   DrawerBackdrop,
   DrawerBody,
@@ -15,6 +16,20 @@ import {
   DrawerTrigger,
 } from "../ui/drawer"
 import SidebarItems from "./SidebarItems"
+
+const VersionLink = () => (
+  <Link
+    href="https://github.com/thangphan205/tacacs-ng-ui"
+    target="_blank"
+    rel="noopener noreferrer"
+    display="flex"
+    alignItems="center"
+    gap={2}
+  >
+    <Icon as={FiGithub} />
+    <Text fontSize="sm" fontWeight="bold">Version {version}</Text>
+  </Link>
+)
 
 const Sidebar = () => {
   const queryClient = useQueryClient()
@@ -52,9 +67,7 @@ const Sidebar = () => {
                 <SidebarItems onClose={() => setOpen(false)} />
                 <Flex
                   as="button"
-                  onClick={() => {
-                    logout()
-                  }}
+                  onClick={logout}
                   alignItems="center"
                   gap={4}
                   px={4}
@@ -64,7 +77,8 @@ const Sidebar = () => {
                   <Text>Log Out</Text>
                 </Flex>
               </Box>
-              <VStack align="start" p={2}>
+              <VStack align="start" p={2} gap={2}>
+                <VersionLink />
                 {currentUser?.email && (
                   <Text fontSize="sm" truncate maxW="full">
                     Logged in as: {currentUser.email}
@@ -78,27 +92,24 @@ const Sidebar = () => {
       </DrawerRoot>
 
       {/* Desktop */}
-
-      <Box
+      <Flex
         display={{ base: "none", md: "flex" }}
-        position="sticky"
+        direction="column"
         bg="bg.subtle"
-        top={0}
         minW="xs"
-        h="100vh"
+        h="full"
         p={4}
       >
-        <Flex direction="column" w="100%" justify="space-between">
-          <Box overflowY="auto" flex="1">
-            <SidebarItems />
-          </Box>
-          <VStack align="start" pt={4}>
-            {currentUser?.email && (
-              <Text fontSize="sm">Logged in as: {currentUser.email}</Text>
-            )}
-          </VStack>
-        </Flex>
-      </Box>
+        <Box overflowY="auto" flex="1" minH={0}>
+          <SidebarItems />
+        </Box>
+        <VStack align="start" pt={4} gap={2}>
+          <VersionLink />
+          {currentUser?.email && (
+            <Text fontSize="sm">Logged in as: {currentUser.email}</Text>
+          )}
+        </VStack>
+      </Flex>
     </>
   )
 }

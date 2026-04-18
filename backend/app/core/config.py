@@ -162,5 +162,44 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = ""
 
+    # Keycloak OIDC
+    KEYCLOAK_SERVER_URL: str = ""
+    KEYCLOAK_REALM: str = ""
+    KEYCLOAK_CLIENT_ID: str = ""
+    KEYCLOAK_CLIENT_SECRET: str = ""
+    KEYCLOAK_REDIRECT_URI: str = ""
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def KEYCLOAK_AUTH_URL(self) -> str:
+        return f"{self.KEYCLOAK_SERVER_URL}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/auth"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def KEYCLOAK_TOKEN_URL(self) -> str:
+        return f"{self.KEYCLOAK_SERVER_URL}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/token"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def KEYCLOAK_USERINFO_URL(self) -> str:
+        return f"{self.KEYCLOAK_SERVER_URL}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/userinfo"
+
+    # WebAuthn / Passkeys
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def WEBAUTHN_RP_ID(self) -> str:
+        from urllib.parse import urlparse
+        return urlparse(self.FRONTEND_HOST).hostname or "localhost"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def WEBAUTHN_RP_NAME(self) -> str:
+        return self.PROJECT_NAME
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def WEBAUTHN_ORIGIN(self) -> str:
+        return self.FRONTEND_HOST.rstrip("/")
+
 
 settings = Settings()  # type: ignore

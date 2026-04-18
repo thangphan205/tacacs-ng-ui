@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime, timezone
 
+import sqlalchemy as sa
 from pydantic import EmailStr
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Column, Field, Relationship, SQLModel
 from app.core.config import settings
 
 
@@ -46,6 +47,7 @@ class UserUpdate(UserBase):
 class UserUpdateMe(SQLModel):
     full_name: str | None = Field(default=None, max_length=255)
     email: EmailStr | None = Field(default=None, max_length=255)
+    password_login_disabled: bool | None = Field(default=None)
 
 
 class UpdatePassword(SQLModel):
@@ -58,7 +60,12 @@ class User(UserBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
     google_id: str | None = Field(default=None, index=True, unique=True)
+    keycloak_id: str | None = Field(default=None, index=True, unique=True)
+    password_login_disabled: bool = Field(default=False)
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
+    webauthn_credentials: list["WebAuthnCredential"] = Relationship(
+        back_populates="user", cascade_delete=True
+    )
 
 
 # Properties to return via API, id is always required
@@ -66,6 +73,7 @@ class UserPublic(UserBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    password_login_disabled: bool
 
 
 class UsersPublic(SQLModel):
@@ -882,3 +890,88 @@ class AaaStatisticsDateRangePublic(SQLModel):
     last_range_days_authorization_deny: list[dict] = []
     last_range_days_accounting_start: list[dict] = []
     last_range_days_accounting_stop: list[dict] = []
+
+
+# --- WebAuthn / Passkey Tables ---
+
+
+class WebAuthnCredential(SQLModel, table=True):
+    __tablename__ = "webauthncredential"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(
+        foreign_key="user.id", nullable=False, ondelete="CASCADE", index=True
+    )
+    credential_id: bytes = Field(
+        sa_column=Column(sa.LargeBinary, unique=True, index=True, nullable=False)
+    )
+    public_key: bytes = Field(sa_column=Column(sa.LargeBinary, nullable=False))
+    sign_count: int = Field(default=0, nullable=False)
+    name: str | None = Field(default=None, max_length=100)
+    created_at: datetime = Field(default_factory=_utc_now, nullable=False)
+    last_used_at: datetime | None = Field(default=None)
+
+    user: User | None = Relationship(back_populates="webauthn_credentials")
+
+
+class WebAuthnChallenge(SQLModel, table=True):
+    __tablename__ = "webauthchallenge"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    challenge: bytes = Field(sa_column=Column(sa.LargeBinary, nullable=False))
+    user_id: uuid.UUID | None = Field(default=None, index=True)
+    expires_at: datetime = Field(sa_column=Column(sa.DateTime(timezone=True), nullable=False))
+    created_at: datetime = Field(default_factory=_utc_now, nullable=False)
+
+
+# WebAuthn API schemas
+class WebAuthnCredentialPublic(SQLModel):
+    id: uuid.UUID
+    credential_id: str  # base64url-encoded
+    name: str | None
+    created_at: datetime
+    last_used_at: datetime | None
+
+
+class WebAuthnCredentialsPublic(SQLModel):
+    data: list[WebAuthnCredentialPublic]
+    count: int
+
+
+class PasskeyRegisterCompleteRequest(SQLModel):
+    credential: dict  # type: ignore[type-arg]
+    name: str | None = Field(default=None, max_length=100)
+
+
+class PasskeyAuthenticateCompleteRequest(SQLModel):
+    credential: dict  # type: ignore[type-arg]
+
+
+# --- Auth Provider Config Table ---
+
+
+class AuthProviderConfig(SQLModel, table=True):
+    __tablename__ = "authproviderconfig"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    provider: str = Field(unique=True, index=True, max_length=32)
+    enabled: bool = Field(default=False)
+    config_json: str = Field(default="{}")
+    encrypted_secret: str | None = Field(default=None)
+    created_at: datetime = Field(default_factory=_utc_now, nullable=False)
+    updated_at: datetime = Field(
+        default_factory=_utc_now, sa_column_kwargs={"onupdate": _utc_now}
+    )
+
+
+class AuthProviderConfigPublic(SQLModel):
+    provider: str
+    enabled: bool
+    config: dict  # type: ignore[type-arg]
+    secret_is_set: bool
+
+
+class AuthProviderConfigUpdate(SQLModel):
+    enabled: bool | None = None
+    config: dict | None = None  # type: ignore[type-arg]
+    secret: str | None = None

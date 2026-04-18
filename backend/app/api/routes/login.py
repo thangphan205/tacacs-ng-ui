@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 from typing import Annotated, Any
 
@@ -6,6 +7,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.crud import users
+from app.crud import auth_providers as auth_providers_crud
 from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
 from app.core import security
 from app.core.config import settings
@@ -35,6 +37,24 @@ def login_access_token(
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+
+    # Check admin-level global password login disable
+    passkey_cfg = auth_providers_crud.get_provider_config(session=session, provider="passkey")
+    if passkey_cfg and passkey_cfg.enabled:
+        cfg = json.loads(passkey_cfg.config_json)
+        if cfg.get("allow_password_login") == "false":
+            raise HTTPException(
+                status_code=400,
+                detail="Password login has been disabled by the administrator.",
+            )
+
+    # Check per-user password login disable
+    if user.password_login_disabled:
+        raise HTTPException(
+            status_code=400,
+            detail="Password login is disabled for this account. Use a passkey to sign in.",
+        )
+
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return Token(
         access_token=security.create_access_token(
