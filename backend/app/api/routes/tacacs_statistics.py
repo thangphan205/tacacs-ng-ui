@@ -23,7 +23,7 @@ LOG_DIR = os.path.join(os.path.dirname(__file__), "..")
 # It captures: 1. Timestamp, 2. NAS IP, 3. Username, 4. TTY (optional), 5. User IP, 6. Message
 # It requires the User IP to be present.
 LOG_PATTERN = re.compile(
-    r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \+\d{4})\s+([\d.]+)\t([\w_]+)\t(?:[\w/]*)\t([\d.]+)\t(.*)"
+    r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+([\d.]+)\t([\w_]+)\t(?:[\w/]*)\t([\d.]+)\t(.*)"
 )
 
 
