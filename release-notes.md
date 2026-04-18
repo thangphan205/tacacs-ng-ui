@@ -1,5 +1,27 @@
 # Release Notes
 
+## v0.2.0
+
+### Features
+
+* ✨ Add Google OAuth sign-in (Authorization Code flow). PR [#113](https://github.com/thangphan205/tacacs-ng-ui/pull/113) by [@thangphan205](https://github.com/thangphan205).
+* ✨ Add Keycloak OIDC sign-in. PR [#116](https://github.com/thangphan205/tacacs-ng-ui/pull/116) by [@thangphan205](https://github.com/thangphan205).
+* ✨ Add Passkeys (WebAuthn) — register and sign in with device biometrics or PIN. PR [#116](https://github.com/thangphan205/tacacs-ng-ui/pull/116) by [@thangphan205](https://github.com/thangphan205).
+* ✨ Add Admin Auth Providers page — tabbed UI to configure and enable/disable Google OAuth, Keycloak OIDC, and Passkeys with live status badges. PR [#116](https://github.com/thangphan205/tacacs-ng-ui/pull/116) by [@thangphan205](https://github.com/thangphan205).
+* ✨ Add persistent passkey prompt banner on all pages when no passkey is registered, with inline registration dialog and option to disable password login. PR [#116](https://github.com/thangphan205/tacacs-ng-ui/pull/116) by [@thangphan205](https://github.com/thangphan205).
+* ✨ Add per-user `password_login_disabled` flag — users can opt out of password auth after registering a passkey; admin can also disable it globally. PR [#116](https://github.com/thangphan205/tacacs-ng-ui/pull/116) by [@thangphan205](https://github.com/thangphan205).
+
+### Fixes
+
+* 🐛 Fix passkey registration 500 error caused by timezone-naive datetime comparison in challenge expiry check. PR [#116](https://github.com/thangphan205/tacacs-ng-ui/pull/116) by [@thangphan205](https://github.com/thangphan205).
+* 🐛 Fix auth-providers page not rendering inside admin layout (missing `<Outlet />`). PR [#116](https://github.com/thangphan205/tacacs-ng-ui/pull/116) by [@thangphan205](https://github.com/thangphan205).
+* 🐛 Fix negative UTC timezone offsets (e.g. `-0600`) being silently skipped in log parsing regex, causing empty statistics for users west of UTC. PR [#115](https://github.com/thangphan205/tacacs-ng-ui/pull/115) by [@AlexDeKalb](https://github.com/AlexDeKalb).
+* 🐛 Fix sidebar overflow — version and logged-in email now always visible at the bottom; nav items scroll on short viewports. PR [#116](https://github.com/thangphan205/tacacs-ng-ui/pull/116) by [@thangphan205](https://github.com/thangphan205).
+
+### Security
+
+* 🔒 Remove `.env` from version control and add `.env.example`. PR [#112](https://github.com/thangphan205/tacacs-ng-ui/pull/112) by [@thangphan205](https://github.com/thangphan205).
+
 ## Latest Changes
 
 ### Fixes
