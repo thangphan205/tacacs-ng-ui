@@ -47,6 +47,7 @@ class UserUpdate(UserBase):
 class UserUpdateMe(SQLModel):
     full_name: str | None = Field(default=None, max_length=255)
     email: EmailStr | None = Field(default=None, max_length=255)
+    password_login_disabled: bool | None = Field(default=None)
 
 
 class UpdatePassword(SQLModel):
@@ -60,6 +61,7 @@ class User(UserBase, TimestampModel, table=True):
     hashed_password: str
     google_id: str | None = Field(default=None, index=True, unique=True)
     keycloak_id: str | None = Field(default=None, index=True, unique=True)
+    password_login_disabled: bool = Field(default=False)
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
     webauthn_credentials: list["WebAuthnCredential"] = Relationship(
         back_populates="user", cascade_delete=True
@@ -71,6 +73,7 @@ class UserPublic(UserBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    password_login_disabled: bool
 
 
 class UsersPublic(SQLModel):
@@ -917,7 +920,7 @@ class WebAuthnChallenge(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     challenge: bytes = Field(sa_column=Column(sa.LargeBinary, nullable=False))
     user_id: uuid.UUID | None = Field(default=None, index=True)
-    expires_at: datetime = Field(nullable=False)
+    expires_at: datetime = Field(sa_column=Column(sa.DateTime(timezone=True), nullable=False))
     created_at: datetime = Field(default_factory=_utc_now, nullable=False)
 
 

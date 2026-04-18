@@ -1,4 +1,4 @@
-import { Box, Flex, Icon, Link, Text } from "@chakra-ui/react"
+import { Box, Flex, Icon, Text } from "@chakra-ui/react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link as RouterLink } from "@tanstack/react-router"
 import {
@@ -16,11 +16,9 @@ import {
   FiShield,
   FiUser,
   FiUsers,
-  FiGithub,
 } from "react-icons/fi"
 import type { IconType } from "react-icons/lib"
 import type { UserPublic } from "@/client"
-import { version } from "../../../package.json"
 
 const items = [
   { icon: FiHome, title: "Dashboard", path: "/", level: 1 },
@@ -65,21 +63,19 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
 
   const finalItems: Item[] = currentUser?.is_superuser
     ? [
-        ...items,
-        { icon: FiUsers, title: "Admin", path: "/admin", level: 1 },
-        { icon: FiShield, title: "Auth Providers", path: "/admin/auth-providers", level: 2 },
-      ]
+      ...items,
+      { icon: FiUsers, title: "Admin", path: "/admin", level: 1 },
+      { icon: FiShield, title: "Auth Providers", path: "/admin/auth-providers", level: 1 },
+    ]
     : items
 
   const listItems = finalItems.map(({ icon, title, path, level }) => (
-    <RouterLink key={title} to={path} onClick={onClose}>
+    <RouterLink key={title} to={path as never} onClick={onClose}>
       <Flex
         gap={4}
         px={level === 1 ? 4 : 8}
         py={2}
-        _hover={{
-          background: "gray.subtle",
-        }}
+        _hover={{ background: "gray.subtle" }}
         alignItems="center"
         fontSize="sm"
       >
@@ -90,24 +86,12 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   ))
 
   return (
-    <>
-      <Box overflowY="auto">
-        <Text fontSize="xs" px={4} py={2} fontWeight="bold">
-          Menu
-        </Text>
-        {listItems}
-      </Box>
-      <Link
-        as="a"
-        href="https://github.com/thangphan205/tacacs-ng-ui"
-        target="_blank"
-        rel="noopener noreferrer"
-
-      >
-        <Icon as={FiGithub} />
-        <Text fontSize="sm" fontWeight="bold">Version {version}</Text>
-      </Link>
-    </>
+    <Box>
+      <Text fontSize="xs" px={4} py={2} fontWeight="bold">
+        Menu
+      </Text>
+      {listItems}
+    </Box>
   )
 }
 

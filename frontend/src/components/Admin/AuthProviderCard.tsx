@@ -10,7 +10,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { OpenAPI } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
@@ -33,6 +33,7 @@ interface AuthProviderCardProps {
   provider: string
   title: string
   fields: FieldDef[]
+  onEnabled?: () => void
 }
 
 function adminHeader() {
@@ -66,7 +67,7 @@ async function saveProvider(
   return res.json()
 }
 
-const AuthProviderCard = ({ provider, title, fields }: AuthProviderCardProps) => {
+const AuthProviderCard = ({ provider, title, fields, onEnabled }: AuthProviderCardProps) => {
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
 
@@ -79,10 +80,12 @@ const AuthProviderCard = ({ provider, title, fields }: AuthProviderCardProps) =>
   const [secret, setSecret] = useState("")
   const [initialized, setInitialized] = useState(false)
 
-  if (data && !initialized) {
-    setFormConfig(data.config ?? {})
-    setInitialized(true)
-  }
+  useEffect(() => {
+    if (data && !initialized) {
+      setFormConfig(data.config ?? {})
+      setInitialized(true)
+    }
+  }, [data, initialized])
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -106,6 +109,7 @@ const AuthProviderCard = ({ provider, title, fields }: AuthProviderCardProps) =>
       showSuccessToast(`${title} ${updated.enabled ? "enabled" : "disabled"}.`)
       queryClient.invalidateQueries({ queryKey: ["auth-provider", provider] })
       queryClient.invalidateQueries({ queryKey: ["auth-providers-status"] })
+      if (updated.enabled && onEnabled) onEnabled()
     },
     onError: (err: Error) => handleError(err as never),
   })

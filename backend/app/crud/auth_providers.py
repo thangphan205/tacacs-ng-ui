@@ -41,7 +41,7 @@ def upsert_provider_config(
     if config is not None:
         db.config_json = json.dumps(config)
     if secret is not None:
-        db.encrypted_secret = encrypt_secret(secret) if secret else None
+        db.encrypted_secret = encrypt_secret(secret)
     db.updated_at = _utc_now()
 
     session.commit()

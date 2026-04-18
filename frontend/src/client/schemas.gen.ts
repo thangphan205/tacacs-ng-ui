@@ -367,6 +367,72 @@ export const AccountingStatisticsPublicSchema = {
     title: 'AccountingStatisticsPublic'
 } as const;
 
+export const AuthProviderConfigPublicSchema = {
+    properties: {
+        provider: {
+            type: 'string',
+            title: 'Provider'
+        },
+        enabled: {
+            type: 'boolean',
+            title: 'Enabled'
+        },
+        config: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Config'
+        },
+        secret_is_set: {
+            type: 'boolean',
+            title: 'Secret Is Set'
+        }
+    },
+    type: 'object',
+    required: ['provider', 'enabled', 'config', 'secret_is_set'],
+    title: 'AuthProviderConfigPublic'
+} as const;
+
+export const AuthProviderConfigUpdateSchema = {
+    properties: {
+        enabled: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Enabled'
+        },
+        config: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Config'
+        },
+        secret: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Secret'
+        }
+    },
+    type: 'object',
+    title: 'AuthProviderConfigUpdate'
+} as const;
+
 export const AuthenticationStatisticPublicSchema = {
     properties: {
         username: {
@@ -1359,6 +1425,44 @@ export const NewPasswordSchema = {
     type: 'object',
     required: ['token', 'new_password'],
     title: 'NewPassword'
+} as const;
+
+export const PasskeyAuthenticateCompleteRequestSchema = {
+    properties: {
+        credential: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Credential'
+        }
+    },
+    type: 'object',
+    required: ['credential'],
+    title: 'PasskeyAuthenticateCompleteRequest'
+} as const;
+
+export const PasskeyRegisterCompleteRequestSchema = {
+    properties: {
+        credential: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Credential'
+        },
+        name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        }
+    },
+    type: 'object',
+    required: ['credential'],
+    title: 'PasskeyRegisterCompleteRequest'
 } as const;
 
 export const PrivateUserCreateSchema = {
@@ -3603,4 +3707,68 @@ export const ValidationErrorSchema = {
     type: 'object',
     required: ['loc', 'msg', 'type'],
     title: 'ValidationError'
+} as const;
+
+export const WebAuthnCredentialPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        credential_id: {
+            type: 'string',
+            title: 'Credential Id'
+        },
+        name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        last_used_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Last Used At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'credential_id', 'name', 'created_at', 'last_used_at'],
+    title: 'WebAuthnCredentialPublic'
+} as const;
+
+export const WebAuthnCredentialsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/WebAuthnCredentialPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'WebAuthnCredentialsPublic'
 } as const;

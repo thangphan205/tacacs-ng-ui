@@ -37,6 +37,8 @@ import { Route as LayoutConfiguration_optionsRouteImport } from './routes/_layou
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutAaa_statistics_rangeRouteImport } from './routes/_layout/aaa_statistics_range'
 import { Route as LayoutAaa_statisticsRouteImport } from './routes/_layout/aaa_statistics'
+import { Route as LayoutAdminIndexRouteImport } from './routes/_layout/admin/index'
+import { Route as LayoutAdminAuthProvidersRouteImport } from './routes/_layout/admin/auth-providers'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -180,6 +182,17 @@ const LayoutAaa_statisticsRoute = LayoutAaa_statisticsRouteImport.update({
   path: '/aaa_statistics',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutAdminIndexRoute = LayoutAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LayoutAdminRoute,
+} as any)
+const LayoutAdminAuthProvidersRoute =
+  LayoutAdminAuthProvidersRouteImport.update({
+    id: '/auth-providers',
+    path: '/auth-providers',
+    getParentRoute: () => LayoutAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
@@ -189,7 +202,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/aaa_statistics': typeof LayoutAaa_statisticsRoute
   '/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
-  '/admin': typeof LayoutAdminRoute
+  '/admin': typeof LayoutAdminRouteWithChildren
   '/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/hosts': typeof LayoutHostsRoute
   '/items': typeof LayoutItemsRoute
@@ -209,6 +222,8 @@ export interface FileRoutesByFullPath {
   '/tacacs_statistics': typeof LayoutTacacs_statisticsRoute
   '/tacacs_users': typeof LayoutTacacs_usersRoute
   '/': typeof LayoutIndexRoute
+  '/admin/auth-providers': typeof LayoutAdminAuthProvidersRoute
+  '/admin/': typeof LayoutAdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -218,7 +233,6 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/aaa_statistics': typeof LayoutAaa_statisticsRoute
   '/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
-  '/admin': typeof LayoutAdminRoute
   '/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/hosts': typeof LayoutHostsRoute
   '/items': typeof LayoutItemsRoute
@@ -238,6 +252,8 @@ export interface FileRoutesByTo {
   '/tacacs_statistics': typeof LayoutTacacs_statisticsRoute
   '/tacacs_users': typeof LayoutTacacs_usersRoute
   '/': typeof LayoutIndexRoute
+  '/admin/auth-providers': typeof LayoutAdminAuthProvidersRoute
+  '/admin': typeof LayoutAdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -249,7 +265,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_layout/aaa_statistics': typeof LayoutAaa_statisticsRoute
   '/_layout/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
-  '/_layout/admin': typeof LayoutAdminRoute
+  '/_layout/admin': typeof LayoutAdminRouteWithChildren
   '/_layout/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/_layout/hosts': typeof LayoutHostsRoute
   '/_layout/items': typeof LayoutItemsRoute
@@ -269,6 +285,8 @@ export interface FileRoutesById {
   '/_layout/tacacs_statistics': typeof LayoutTacacs_statisticsRoute
   '/_layout/tacacs_users': typeof LayoutTacacs_usersRoute
   '/_layout/': typeof LayoutIndexRoute
+  '/_layout/admin/auth-providers': typeof LayoutAdminAuthProvidersRoute
+  '/_layout/admin/': typeof LayoutAdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -300,6 +318,8 @@ export interface FileRouteTypes {
     | '/tacacs_statistics'
     | '/tacacs_users'
     | '/'
+    | '/admin/auth-providers'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -309,7 +329,6 @@ export interface FileRouteTypes {
     | '/signup'
     | '/aaa_statistics'
     | '/aaa_statistics_range'
-    | '/admin'
     | '/configuration_options'
     | '/hosts'
     | '/items'
@@ -329,6 +348,8 @@ export interface FileRouteTypes {
     | '/tacacs_statistics'
     | '/tacacs_users'
     | '/'
+    | '/admin/auth-providers'
+    | '/admin'
   id:
     | '__root__'
     | '/_layout'
@@ -359,6 +380,8 @@ export interface FileRouteTypes {
     | '/_layout/tacacs_statistics'
     | '/_layout/tacacs_users'
     | '/_layout/'
+    | '/_layout/admin/auth-providers'
+    | '/_layout/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -568,13 +591,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAaa_statisticsRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/admin/': {
+      id: '/_layout/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof LayoutAdminIndexRouteImport
+      parentRoute: typeof LayoutAdminRoute
+    }
+    '/_layout/admin/auth-providers': {
+      id: '/_layout/admin/auth-providers'
+      path: '/auth-providers'
+      fullPath: '/admin/auth-providers'
+      preLoaderRoute: typeof LayoutAdminAuthProvidersRouteImport
+      parentRoute: typeof LayoutAdminRoute
+    }
   }
 }
+
+interface LayoutAdminRouteChildren {
+  LayoutAdminAuthProvidersRoute: typeof LayoutAdminAuthProvidersRoute
+  LayoutAdminIndexRoute: typeof LayoutAdminIndexRoute
+}
+
+const LayoutAdminRouteChildren: LayoutAdminRouteChildren = {
+  LayoutAdminAuthProvidersRoute: LayoutAdminAuthProvidersRoute,
+  LayoutAdminIndexRoute: LayoutAdminIndexRoute,
+}
+
+const LayoutAdminRouteWithChildren = LayoutAdminRoute._addFileChildren(
+  LayoutAdminRouteChildren,
+)
 
 interface LayoutRouteChildren {
   LayoutAaa_statisticsRoute: typeof LayoutAaa_statisticsRoute
   LayoutAaa_statistics_rangeRoute: typeof LayoutAaa_statistics_rangeRoute
-  LayoutAdminRoute: typeof LayoutAdminRoute
+  LayoutAdminRoute: typeof LayoutAdminRouteWithChildren
   LayoutConfiguration_optionsRoute: typeof LayoutConfiguration_optionsRoute
   LayoutHostsRoute: typeof LayoutHostsRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
@@ -599,7 +650,7 @@ interface LayoutRouteChildren {
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAaa_statisticsRoute: LayoutAaa_statisticsRoute,
   LayoutAaa_statistics_rangeRoute: LayoutAaa_statistics_rangeRoute,
-  LayoutAdminRoute: LayoutAdminRoute,
+  LayoutAdminRoute: LayoutAdminRouteWithChildren,
   LayoutConfiguration_optionsRoute: LayoutConfiguration_optionsRoute,
   LayoutHostsRoute: LayoutHostsRoute,
   LayoutItemsRoute: LayoutItemsRoute,

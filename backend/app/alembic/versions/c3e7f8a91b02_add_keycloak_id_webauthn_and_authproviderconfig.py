@@ -26,8 +26,8 @@ def upgrade() -> None:
     # WebAuthn credential table
     op.create_table(
         'webauthncredential',
-        sa.Column('id', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column('user_id', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+        sa.Column('id', sa.UUID(), nullable=False),
+        sa.Column('user_id', sa.UUID(), nullable=False),
         sa.Column('credential_id', sa.LargeBinary(), nullable=False),
         sa.Column('public_key', sa.LargeBinary(), nullable=False),
         sa.Column('sign_count', sa.Integer(), nullable=False, server_default='0'),
@@ -48,9 +48,9 @@ def upgrade() -> None:
     # WebAuthn challenge table
     op.create_table(
         'webauthchallenge',
-        sa.Column('id', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+        sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('challenge', sa.LargeBinary(), nullable=False),
-        sa.Column('user_id', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+        sa.Column('user_id', sa.UUID(), nullable=True),
         sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint('id'),
@@ -61,7 +61,7 @@ def upgrade() -> None:
     # Auth provider config table
     op.create_table(
         'authproviderconfig',
-        sa.Column('id', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+        sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('provider', sqlmodel.sql.sqltypes.AutoString(length=32), nullable=False),
         sa.Column('enabled', sa.Boolean(), nullable=False, server_default='false'),
         sa.Column('config_json', sa.Text(), nullable=False, server_default='{}'),

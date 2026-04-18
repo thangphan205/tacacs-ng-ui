@@ -1,5 +1,5 @@
-import base64
 import json
+import logging
 import secrets
 import uuid
 from datetime import timedelta
@@ -11,8 +11,12 @@ from fastapi.responses import JSONResponse
 from webauthn.helpers.base64url_to_bytes import base64url_to_bytes
 from webauthn.helpers.structs import (
     AttestationConveyancePreference,
+    AuthenticationCredential,
+    AuthenticatorAssertionResponse,
+    AuthenticatorAttestationResponse,
     AuthenticatorSelectionCriteria,
     PublicKeyCredentialDescriptor,
+    RegistrationCredential,
     ResidentKeyRequirement,
     UserVerificationRequirement,
 )
@@ -31,16 +35,46 @@ from app.models import (
     WebAuthnCredentialsPublic,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/passkeys", tags=["passkeys"])
 
 
 def _to_public(cred: Any) -> WebAuthnCredentialPublic:
+    import base64
     return WebAuthnCredentialPublic(
         id=cred.id,
         credential_id=base64.urlsafe_b64encode(cred.credential_id).rstrip(b"=").decode(),
         name=cred.name,
         created_at=cred.created_at,
         last_used_at=cred.last_used_at,
+    )
+
+
+def _parse_registration_credential(data: dict) -> RegistrationCredential:  # type: ignore[type-arg]
+    resp = data["response"]
+    return RegistrationCredential(
+        id=data["id"],
+        raw_id=base64url_to_bytes(data["rawId"]),
+        response=AuthenticatorAttestationResponse(
+            client_data_json=base64url_to_bytes(resp["clientDataJSON"]),
+            attestation_object=base64url_to_bytes(resp["attestationObject"]),
+            transports=resp.get("transports"),
+        ),
+    )
+
+
+def _parse_authentication_credential(data: dict) -> AuthenticationCredential:  # type: ignore[type-arg]
+    resp = data["response"]
+    return AuthenticationCredential(
+        id=data["id"],
+        raw_id=base64url_to_bytes(data["rawId"]),
+        response=AuthenticatorAssertionResponse(
+            client_data_json=base64url_to_bytes(resp["clientDataJSON"]),
+            authenticator_data=base64url_to_bytes(resp["authenticatorData"]),
+            signature=base64url_to_bytes(resp["signature"]),
+            user_handle=base64url_to_bytes(resp["userHandle"]) if resp.get("userHandle") else None,
+        ),
     )
 
 
@@ -70,7 +104,7 @@ def register_begin(session: SessionDep, current_user: CurrentUser) -> JSONRespon
         challenge=challenge_bytes,
         timeout=60000,
     )
-    return JSONResponse(content=webauthn.options_to_json(options))
+    return JSONResponse(content=json.loads(webauthn.options_to_json(options)))
 
 
 @router.post("/register/complete", response_model=WebAuthnCredentialPublic)
@@ -79,8 +113,6 @@ def register_complete(
     current_user: CurrentUser,
     body: PasskeyRegisterCompleteRequest,
 ) -> Any:
-    from webauthn.helpers.structs import RegistrationCredential
-
     challenge_record = passkeys_crud.consume_challenge_for_user(
         session=session, user_id=current_user.id
     )
@@ -88,7 +120,7 @@ def register_complete(
         raise HTTPException(status_code=400, detail="Challenge expired or not found")
 
     try:
-        reg_cred = RegistrationCredential.parse_raw(json.dumps(body.credential))
+        reg_cred = _parse_registration_credential(body.credential)
         verified = webauthn.verify_registration_response(
             credential=reg_cred,
             expected_challenge=challenge_record.challenge,
@@ -97,6 +129,7 @@ def register_complete(
             require_user_verification=False,
         )
     except Exception as exc:
+        logger.exception("Passkey registration failed")
         raise HTTPException(status_code=400, detail=f"Registration failed: {exc}") from exc
 
     cred = passkeys_crud.create_credential(
@@ -146,7 +179,7 @@ def authenticate_begin(session: SessionDep) -> JSONResponse:
         challenge=challenge_bytes,
         timeout=60000,
     )
-    return JSONResponse(content=webauthn.options_to_json(options))
+    return JSONResponse(content=json.loads(webauthn.options_to_json(options)))
 
 
 @router.post("/authenticate/complete", response_model=Token)
@@ -154,19 +187,13 @@ def authenticate_complete(
     session: SessionDep,
     body: PasskeyAuthenticateCompleteRequest,
 ) -> Any:
-    from webauthn.helpers.structs import AuthenticationCredential
-
     try:
-        auth_cred = AuthenticationCredential.parse_raw(json.dumps(body.credential))
+        auth_cred = _parse_authentication_credential(body.credential)
     except Exception as exc:
         raise HTTPException(status_code=400, detail="Invalid credential format") from exc
 
-    # Extract challenge bytes from clientDataJSON
-    client_data = json.loads(
-        base64.urlsafe_b64decode(
-            auth_cred.response.client_data_json + b"=="
-        )
-    )
+    # client_data_json is already decoded bytes — parse directly
+    client_data = json.loads(auth_cred.response.client_data_json)
     expected_challenge = base64url_to_bytes(client_data["challenge"])
 
     challenge_record = passkeys_crud.consume_challenge_by_bytes(
@@ -175,9 +202,8 @@ def authenticate_complete(
     if not challenge_record:
         raise HTTPException(status_code=400, detail="Invalid or expired challenge")
 
-    cred_id_bytes = base64url_to_bytes(auth_cred.raw_id)
     db_cred = passkeys_crud.get_credential_by_id(
-        session=session, credential_id=cred_id_bytes
+        session=session, credential_id=auth_cred.raw_id
     )
     if not db_cred:
         raise HTTPException(status_code=404, detail="Passkey not registered")
@@ -193,6 +219,7 @@ def authenticate_complete(
             require_user_verification=False,
         )
     except Exception as exc:
+        logger.exception("Passkey authentication failed")
         raise HTTPException(status_code=400, detail=f"Authentication failed: {exc}") from exc
 
     passkeys_crud.update_sign_count(
