@@ -323,7 +323,7 @@ This includes using Docker Compose, custom local domains, `.env` configurations,
 
 To further enhance the security and utility of tacacs-ng-ui, the following roadmap has been established:
 
-1. **Modernized Authentication Framework**: ~~OAuth2~~ ✅ Google OAuth (Authorization Code flow) is now supported. Next: Passkeys (WebAuthn) for passwordless / MFA login.
+1. **Modernized Authentication Framework**: ✅ Google OAuth (Authorization Code flow), ✅ Keycloak OIDC, and ✅ Passkeys (WebAuthn) for passwordless login are all supported as of v0.2.0.
 2. **Comprehensive Frontend Audit Logging**: Implement User Activity Tracking to record every action performed within the web interface. This creates a secondary layer of accountability, ensuring that changes to the AAA policies themselves are fully auditable.
 3. **Advanced Observability Dashboard**: Develop sophisticated statistical analysis and granular filtering capabilities. This will allow administrators to visualize login trends, command execution frequencies, and system health through interactive charts and real-time data feeds.
 4. **Proactive Abnormal Access Detection & Alerting**: Integrate an automated Anomaly Detection engine that triggers Webhook alerts (e.g., to Telegram, Discord, Slack, Microsoft Teams). This feature will immediately notify administrators of suspicious patterns, such as repeated failed logins or unauthorized privilege escalation attempts.
