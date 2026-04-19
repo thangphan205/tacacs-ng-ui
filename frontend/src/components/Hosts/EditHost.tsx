@@ -2,22 +2,20 @@ import {
   Button,
   ButtonGroup,
   Collapsible,
+  createListCollection,
   DialogActionTrigger,
   Input,
-  SimpleGrid,
   Select,
+  SimpleGrid,
   Text,
-  VStack,
   Textarea,
-  createListCollection,
+  VStack,
 } from "@chakra-ui/react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
-
 import { type ApiError, type HostPublic, HostsService } from "@/client"
-import { useQuery } from "@tanstack/react-query"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -49,8 +47,6 @@ interface HostUpdateForm {
   parent?: string
 }
 
-
-
 const EditHost = ({ host }: EditHostProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -74,7 +70,8 @@ const EditHost = ({ host }: EditHostProps) => {
       welcome_banner: host.welcome_banner ?? undefined,
       reject_banner: host.reject_banner ?? undefined,
       motd_banner: host.motd_banner ?? undefined,
-      failed_authentication_banner: host.failed_authentication_banner ?? undefined,
+      failed_authentication_banner:
+        host.failed_authentication_banner ?? undefined,
       parent: host.parent ?? undefined,
     },
   })
@@ -103,14 +100,16 @@ const EditHost = ({ host }: EditHostProps) => {
   const onSubmit: SubmitHandler<HostUpdateForm> = async (data) => {
     mutation.mutate(data)
   }
-  let items_hosts = createListCollection<{ value: string; label: string }>({ items: [] });
+  const items_hosts = createListCollection<{ value: string; label: string }>({
+    items: [],
+  })
   if (hostsData && hostsData.data.length > 0) {
     hostsData.data.forEach((hostData) => {
       items_hosts.items.push({
         value: hostData.name,
         label: hostData.name,
-      });
-    });
+      })
+    })
   }
   return (
     <DialogRoot
@@ -187,12 +186,16 @@ const EditHost = ({ host }: EditHostProps) => {
                     type="text"
                   />
                 </Field>
-                <Field invalid={!!errors.parent} errorText={errors.parent?.message} label="parent">
+                <Field
+                  invalid={!!errors.parent}
+                  errorText={errors.parent?.message}
+                  label="parent"
+                >
                   <Select.Root
                     collection={items_hosts}
                     size="sm"
                     onSelect={(selection) => {
-                      setValue("parent", selection.value);
+                      setValue("parent", selection.value)
                     }}
                   >
                     <Select.Trigger>
@@ -214,7 +217,11 @@ const EditHost = ({ host }: EditHostProps) => {
                 </Field>
               </SimpleGrid>
               <Collapsible.Root style={{ width: "100%" }}>
-                <Collapsible.Trigger asChild><Button w="full" variant="outline">Configure Banner Messages</Button></Collapsible.Trigger>
+                <Collapsible.Trigger asChild>
+                  <Button w="full" variant="outline">
+                    Configure Banner Messages
+                  </Button>
+                </Collapsible.Trigger>
                 <Collapsible.Content>
                   <VStack gap={4} pt={4}>
                     <Field

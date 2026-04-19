@@ -157,6 +157,12 @@ class Settings(BaseSettings):
 
     USERS_OPEN_REGISTRATION: bool = False
 
+    # Audit logging
+    AUDIT_LOG_RETENTION_DAYS: int = 90   # delete logs older than N days; 0 = keep forever
+    AUDIT_LOG_MAX_ROWS: int = 0          # keep only the N most recent rows; 0 = no limit
+    SIEM_WEBHOOK_URL: str | None = None  # Splunk HEC or Logstash HTTP input URL
+    SIEM_WEBHOOK_TOKEN: str | None = None  # Splunk HEC token or other bearer token
+
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""

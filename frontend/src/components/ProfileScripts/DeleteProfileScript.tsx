@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { FiTrash2 } from "react-icons/fi"
 
-import { ProfileScriptPublic, ProfilescriptsService } from "@/client"
+import { type ProfileScriptPublic, ProfilescriptsService } from "@/client"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -17,7 +17,11 @@ import {
 } from "@/components/ui/dialog"
 import useCustomToast from "@/hooks/useCustomToast"
 
-const DeleteProfileScript = ({ profilescript }: { profilescript: ProfileScriptPublic }) => {
+const DeleteProfileScript = ({
+  profilescript,
+}: {
+  profilescript: ProfileScriptPublic
+}) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
@@ -70,7 +74,9 @@ const DeleteProfileScript = ({ profilescript }: { profilescript: ProfileScriptPu
             <DialogTitle>Delete ProfileScript</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Badge colorPalette="red" variant="solid">Profile Script: {profilescript.key}=={profilescript.value} </Badge>
+            <Badge colorPalette="red" variant="solid">
+              Profile Script: {profilescript.key}=={profilescript.value}{" "}
+            </Badge>
             <Text mb={4}>
               This item will be permanently deleted. Are you sure? You will not
               be able to undo this action.

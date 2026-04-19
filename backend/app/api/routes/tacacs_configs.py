@@ -1,27 +1,31 @@
-import uuid
-from typing import Any
-from datetime import datetime, timezone
 import re
-from fastapi import APIRouter, Depends, HTTPException
+import uuid
+from datetime import datetime, timezone
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import func, select
 
-from app.crud import tacacs_configs
 from app.api.deps import (
     SessionDep,
-    get_current_active_superuser,
+    SuperUser,
     get_current_user,
 )
+from app.crud import audit_logs as audit_logs_crud
+from app.crud import tacacs_configs
 from app.models import (
     Message,
     TacacsConfig,
     TacacsConfigCreate,
+    TacacsConfigPreviewPublic,
     TacacsConfigPublic,
     TacacsConfigsPublic,
     TacacsConfigUpdate,
-    TacacsConfigPreviewPublic,
 )
 
 router = APIRouter(prefix="/tacacs_configs", tags=["tacacs_configs"])
+
+_SENSITIVE = audit_logs_crud._SENSITIVE
 
 
 @router.get(
@@ -90,12 +94,13 @@ def get_active_tacacs_config(*, session: SessionDep) -> Any:
 
 @router.post(
     "/",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=TacacsConfigPublic,
 )
 def create_tacacs_config(
     *,
     session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
     tacacs_config_in: TacacsConfigCreate,
 ) -> Any:
     """
@@ -125,6 +130,14 @@ def create_tacacs_config(
 
     tacacs_config = tacacs_configs.create_tacacs_config(
         session=session, tacacs_config_create=tacacs_config_in
+    )
+    audit_logs_crud.log_entity_action(
+        session=session, action="CREATE", entity_type="TacacsConfig",
+        entity_id=str(tacacs_config.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        new_values=tacacs_config.model_dump_json(exclude=_SENSITIVE),
     )
     return tacacs_config
 
@@ -176,12 +189,13 @@ def check_tacacs_config_by_id(
 
 @router.put(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=TacacsConfigPublic,
 )
 def update_tacacs_config(
     *,
     session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
     id: uuid.UUID,
     tacacs_config_in: TacacsConfigUpdate,
 ) -> Any:
@@ -203,20 +217,31 @@ def update_tacacs_config(
             detail=result["message"],
         )
 
+    old_values = db_tacacs_config.model_dump_json(exclude=_SENSITIVE)
     db_tacacs_config = tacacs_configs.update_tacacs_config(
         session=session,
         db_tacacs_config=db_tacacs_config,
         tacacs_config_in=tacacs_config_in,
+    )
+    audit_logs_crud.log_entity_action(
+        session=session, action="UPDATE", entity_type="TacacsConfig",
+        entity_id=str(db_tacacs_config.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=db_tacacs_config.model_dump_json(exclude=_SENSITIVE),
     )
     return db_tacacs_config
 
 
 @router.delete(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=Message,
 )
-def delete_tacacs_config(session: SessionDep, id: uuid.UUID) -> Message:
+def delete_tacacs_config(
+    session: SessionDep, current_user: SuperUser, request: Request, id: uuid.UUID
+) -> Message:
     """
     Delete a TACACS config.
     """
@@ -224,7 +249,16 @@ def delete_tacacs_config(session: SessionDep, id: uuid.UUID) -> Message:
     db_tacacs_config = session.get(TacacsConfig, id)
     if not db_tacacs_config:
         raise HTTPException(status_code=404, detail="TacacsConfig not found")
+    old_values = db_tacacs_config.model_dump_json(exclude=_SENSITIVE)
     tacacs_configs.delete_tacacs_config(
         session=session, db_tacacs_config=db_tacacs_config
+    )
+    audit_logs_crud.log_entity_action(
+        session=session, action="DELETE", entity_type="TacacsConfig",
+        entity_id=str(id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
     )
     return Message(message="TacacsConfig deleted successfully")

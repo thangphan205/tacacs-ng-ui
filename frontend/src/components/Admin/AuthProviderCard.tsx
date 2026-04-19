@@ -54,7 +54,11 @@ async function fetchProvider(provider: string): Promise<ProviderConfig> {
 
 async function saveProvider(
   provider: string,
-  payload: { enabled?: boolean; config?: Record<string, string>; secret?: string },
+  payload: {
+    enabled?: boolean
+    config?: Record<string, string>
+    secret?: string
+  },
 ): Promise<ProviderConfig> {
   const res = await fetch(
     `${OpenAPI.BASE}/api/v1/admin/auth-providers/${provider}`,
@@ -67,7 +71,12 @@ async function saveProvider(
   return res.json()
 }
 
-const AuthProviderCard = ({ provider, title, fields, onEnabled }: AuthProviderCardProps) => {
+const AuthProviderCard = ({
+  provider,
+  title,
+  fields,
+  onEnabled,
+}: AuthProviderCardProps) => {
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
 
@@ -136,7 +145,10 @@ const AuthProviderCard = ({ provider, title, fields, onEnabled }: AuthProviderCa
                 placeholder={field.placeholder ?? field.label}
                 value={formConfig[field.key] ?? ""}
                 onChange={(e) =>
-                  setFormConfig((prev) => ({ ...prev, [field.key]: e.target.value }))
+                  setFormConfig((prev) => ({
+                    ...prev,
+                    [field.key]: e.target.value,
+                  }))
                 }
               />
             </Box>
@@ -156,7 +168,9 @@ const AuthProviderCard = ({ provider, title, fields, onEnabled }: AuthProviderCa
                 size="sm"
                 type="password"
                 placeholder={
-                  data?.secret_is_set ? "Leave blank to keep existing" : "Enter secret"
+                  data?.secret_is_set
+                    ? "Leave blank to keep existing"
+                    : "Enter secret"
                 }
                 value={secret}
                 onChange={(e) => setSecret(e.target.value)}

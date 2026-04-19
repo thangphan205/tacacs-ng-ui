@@ -9,7 +9,9 @@ interface TacacsUserActionsMenuProps {
   tacacs_user: TacacsUserPublic
 }
 
-export const TacacsUserActionsMenu = ({ tacacs_user }: TacacsUserActionsMenuProps) => {
+export const TacacsUserActionsMenu = ({
+  tacacs_user,
+}: TacacsUserActionsMenuProps) => {
   return (
     <MenuRoot>
       <MenuTrigger asChild>

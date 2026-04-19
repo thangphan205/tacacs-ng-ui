@@ -1,4 +1,12 @@
-import { Box, Flex, Icon, IconButton, Link, Text, VStack } from "@chakra-ui/react"
+import {
+  Box,
+  Flex,
+  Icon,
+  IconButton,
+  Link,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FaBars } from "react-icons/fa"
@@ -27,7 +35,9 @@ const VersionLink = () => (
     gap={2}
   >
     <Icon as={FiGithub} />
-    <Text fontSize="sm" fontWeight="bold">Version {version}</Text>
+    <Text fontSize="sm" fontWeight="bold">
+      Version {version}
+    </Text>
   </Link>
 )
 

@@ -13,8 +13,8 @@ import { z } from "zod"
 
 import { ProfilesService } from "@/client"
 import { ProfileActionsMenu } from "@/components/Common/ProfileActionsMenu"
-import AddProfile from "@/components/Profiles/AddProfile"
 import PendingProfiles from "@/components/Pending/PendingProfiles"
+import AddProfile from "@/components/Profiles/AddProfile"
 import PreviewProfile from "@/components/Profiles/PreviewProfile"
 import {
   PaginationItems,
@@ -32,7 +32,10 @@ const PER_PAGE = 5
 function getProfilesQueryOptions({ page }: { page: number }) {
   return {
     queryFn: () =>
-      ProfilesService.readProfiles({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
+      ProfilesService.readProfiles({
+        skip: (page - 1) * PER_PAGE,
+        limit: PER_PAGE,
+      }),
     queryKey: ["profiles", { page }],
   }
 }

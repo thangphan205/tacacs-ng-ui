@@ -28,7 +28,10 @@ function authHeader() {
   return { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
 }
 
-async function fetchPasskeys(): Promise<{ data: PasskeyItem[]; count: number }> {
+async function fetchPasskeys(): Promise<{
+  data: PasskeyItem[]
+  count: number
+}> {
   const res = await fetch(`${OpenAPI.BASE}/api/v1/passkeys/`, {
     headers: authHeader(),
   })

@@ -1,21 +1,22 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.deps import (
-    get_current_active_superuser,
     SessionDep,
+    SuperUser,
     get_current_user,
 )
+from app.crud import audit_logs as audit_logs_crud
 from app.crud import tacacs_ng_settings
 from app.models import (
-    Message,
     TacacsNgSettingPublic,
     TacacsNgSettingUpdate,
 )
 
 router = APIRouter(prefix="/tacacs_ng_settings", tags=["tacacs_ng_settings"])
+
+_SENSITIVE = audit_logs_crud._SENSITIVE
 
 
 @router.get(
@@ -39,12 +40,13 @@ def read_tacacs_ng_settings(
 
 @router.put(
     "/",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=TacacsNgSettingPublic,
 )
 def update_tacacs_ng_settings(
     *,
     session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
     tacacs_ng_in: TacacsNgSettingUpdate,
 ) -> Any:
     """
@@ -56,7 +58,17 @@ def update_tacacs_ng_settings(
         raise HTTPException(
             status_code=404, detail="TacacsNgSetting settings not found"
         )
+    old_values = db_tacacs_ng.model_dump_json(exclude=_SENSITIVE)
     db_tacacs_ng = tacacs_ng_settings.update_tacacs_ng(
         session=session, db_tacacs_ng=db_tacacs_ng, tacacs_ng_in=tacacs_ng_in
+    )
+    audit_logs_crud.log_entity_action(
+        session=session, action="UPDATE", entity_type="TacacsNgSetting",
+        entity_id=str(db_tacacs_ng.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=db_tacacs_ng.model_dump_json(exclude=_SENSITIVE),
     )
     return db_tacacs_ng

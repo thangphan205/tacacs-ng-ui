@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { FiTrash2 } from "react-icons/fi"
 
-import { UserPublic, UsersService } from "@/client"
+import { type UserPublic, UsersService } from "@/client"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -68,7 +68,9 @@ const DeleteUser = ({ user }: { user: UserPublic }) => {
             <DialogTitle>Delete User</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Badge colorPalette="red" variant="solid">{user.email}</Badge>
+            <Badge colorPalette="red" variant="solid">
+              {user.email}
+            </Badge>
             <Text mb={4}>
               All items associated with this user will also be{" "}
               <strong>permanently deleted.</strong> Are you sure? You will not

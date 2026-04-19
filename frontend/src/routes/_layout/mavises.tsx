@@ -1,9 +1,9 @@
 import {
   Container,
   EmptyState,
-  HStack,
   Flex,
   Heading,
+  HStack,
   Table,
   VStack,
 } from "@chakra-ui/react"
@@ -33,7 +33,10 @@ const PER_PAGE = 5
 function getMavisesQueryOptions({ page }: { page: number }) {
   return {
     queryFn: () =>
-      MavisesService.readMavises({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
+      MavisesService.readMavises({
+        skip: (page - 1) * PER_PAGE,
+        limit: PER_PAGE,
+      }),
     queryKey: ["mavises", { page }],
   }
 }

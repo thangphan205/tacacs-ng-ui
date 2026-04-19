@@ -6,7 +6,7 @@ from datetime import timedelta
 from typing import Any
 
 import webauthn
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from webauthn.helpers.base64url_to_bytes import base64url_to_bytes
 from webauthn.helpers.structs import (
@@ -24,8 +24,10 @@ from webauthn.helpers.structs import (
 from app.api.deps import CurrentUser, SessionDep
 from app.core.config import settings
 from app.core.security import create_access_token
+from app.crud import audit_logs as audit_logs_crud
 from app.crud import passkeys as passkeys_crud
 from app.models import (
+    AuditLogCreate,
     Message,
     PasskeyAuthenticateCompleteRequest,
     PasskeyRegisterCompleteRequest,
@@ -184,6 +186,7 @@ def authenticate_begin(session: SessionDep) -> JSONResponse:
 
 @router.post("/authenticate/complete", response_model=Token)
 def authenticate_complete(
+    request: Request,
     session: SessionDep,
     body: PasskeyAuthenticateCompleteRequest,
 ) -> Any:
@@ -230,6 +233,19 @@ def authenticate_complete(
     if not user or not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive or deleted user")
 
+    audit_logs_crud.create_audit_log(
+        session=session,
+        audit_log_in=AuditLogCreate(
+            action="LOGIN_SUCCESS",
+            entity_type="User",
+            entity_id=str(user.id),
+            description="Passkey login",
+            user_agent=request.headers.get("user-agent"),
+        ),
+        user_id=user.id,
+        user_email=user.email,
+        ip_address=request.client.host if request.client else None,
+    )
     return Token(
         access_token=create_access_token(
             subject=str(user.id),

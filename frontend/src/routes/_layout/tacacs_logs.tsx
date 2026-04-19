@@ -1,21 +1,21 @@
 import {
-  Container,
   Button,
-  Input,
-  InputGroup,
-  Select,
+  Container,
+  createListCollection,
   EmptyState,
   Flex,
   Heading,
+  Input,
+  InputGroup,
+  Select,
   Table,
   VStack,
-  createListCollection,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { FiSearch, FiEye } from "react-icons/fi"
+import { useEffect, useRef, useState } from "react" // Add useEffect, useRef for debounce
+import { FiEye, FiSearch } from "react-icons/fi"
 import { z } from "zod" // Keep z for schema validation
-
 import { TacacsLogsService } from "@/client"
 import ShowTacacsLog from "@/components/TacacsLogs/ShowTacacsLog"
 import {
@@ -24,7 +24,6 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
-import { useState, useEffect, useRef } from "react" // Add useEffect, useRef for debounce
 
 interface TacacsLogsSearch {
   page: number
@@ -58,8 +57,8 @@ export const Route = createFileRoute("/_layout/tacacs_logs")({
 function TacacsLogsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, search } = Route.useSearch()
-  const [localSearchInput, setLocalSearchInput] = useState(search || ""); // Local state for input field
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [localSearchInput, setLocalSearchInput] = useState(search || "") // Local state for input field
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const { data, isLoading } = useQuery({
     ...getTacacsLogsQueryOptions({ page, search: search }), // Use search from URL
@@ -73,18 +72,19 @@ function TacacsLogsTable() {
     })
   }
 
-
   // Effect to update local input when URL search changes (e.g., back button)
   useEffect(() => {
-    setLocalSearchInput(search || "");
-  }, [search]);
+    setLocalSearchInput(search || "")
+  }, [search])
 
-  const handleSearchInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newSearchValue = event.target.value;
-    setLocalSearchInput(newSearchValue);
+  const handleSearchInputChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const newSearchValue = event.target.value
+    setLocalSearchInput(newSearchValue)
 
     if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
+      clearTimeout(debounceTimeoutRef.current)
     }
 
     debounceTimeoutRef.current = setTimeout(() => {
@@ -95,9 +95,9 @@ function TacacsLogsTable() {
           page: 1, // Reset page when search changes
           search: newSearchValue === "" ? undefined : newSearchValue,
         }),
-      });
-    }, 500); // 500ms debounce
-  };
+      })
+    }, 500) // 500ms debounce
+  }
 
   const tacacs_logs = data?.data.slice(0, PER_PAGE) ?? []
   const count = data?.count ?? 0
@@ -106,15 +106,18 @@ function TacacsLogsTable() {
   if (isLoading) {
     return null
   }
-  const items_file_type = createListCollection<{ value: string; label: string }>({
+  const items_file_type = createListCollection<{
+    value: string
+    label: string
+  }>({
     items: [
-      { value: '', label: 'All Types' }, // Add an option to clear the filter
-      { value: 'access', label: 'access' },
-      { value: 'authentication', label: 'authentication' },
-      { value: 'authorization', label: 'authorization' },
-      { value: 'accounting', label: 'accounting' },
+      { value: "", label: "All Types" }, // Add an option to clear the filter
+      { value: "access", label: "access" },
+      { value: "authentication", label: "authentication" },
+      { value: "authorization", label: "authorization" },
+      { value: "accounting", label: "accounting" },
     ],
-  });
+  })
   if (tacacs_logs.length === 0) {
     return (
       <EmptyState.Root>
@@ -137,8 +140,13 @@ function TacacsLogsTable() {
               onSelect={(selection) => {
                 navigate({
                   to: "/tacacs_logs",
-                  search: (prev) => ({ ...prev, page: 1, search: selection.value === "" ? undefined : selection.value }),
-                });
+                  search: (prev) => ({
+                    ...prev,
+                    page: 1,
+                    search:
+                      selection.value === "" ? undefined : selection.value,
+                  }),
+                })
               }}
               size="sm"
             >
@@ -169,7 +177,9 @@ function TacacsLogsTable() {
             <FiSearch />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>You don't have any tacacs_logs yet</EmptyState.Title>
+            <EmptyState.Title>
+              You don't have any tacacs_logs yet
+            </EmptyState.Title>
             <EmptyState.Description>
               Add a new tacacs_log to get started
             </EmptyState.Description>
@@ -181,7 +191,9 @@ function TacacsLogsTable() {
 
   return (
     <>
-      <Flex mt={4} justifyContent="flex-end"> {/* Align items to the right */}
+      <Flex mt={4} justifyContent="flex-end">
+        {" "}
+        {/* Align items to the right */}
         {/* Search Input */}
         <InputGroup maxW="sm" mr={4}>
           <Input
@@ -192,15 +204,18 @@ function TacacsLogsTable() {
             size="sm"
           />
         </InputGroup>
-
         {/* File Type Select */}
         <Select.Root
           collection={items_file_type}
           onSelect={(selection) => {
             navigate({
               to: "/tacacs_logs",
-              search: (prev) => ({ ...prev, page: 1, search: selection.value === "" ? undefined : selection.value }),
-            });
+              search: (prev) => ({
+                ...prev,
+                page: 1,
+                search: selection.value === "" ? undefined : selection.value,
+              }),
+            })
           }}
           size="sm"
         >
@@ -243,7 +258,10 @@ function TacacsLogsTable() {
               </Table.Cell>
               <Table.Cell truncate maxW="sm" cursor="pointer">
                 <ShowTacacsLog tacacs_log={tacacs_log}>
-                  <Button colorPalette="green"><FiEye />{tacacs_log.filename}</Button>
+                  <Button colorPalette="green">
+                    <FiEye />
+                    {tacacs_log.filename}
+                  </Button>
                 </ShowTacacsLog>
               </Table.Cell>
               <Table.Cell truncate maxW="sm">

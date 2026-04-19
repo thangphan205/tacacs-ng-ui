@@ -1,24 +1,22 @@
 import {
   Button,
   Collapsible,
+  createListCollection,
   DialogActionTrigger,
   DialogTitle,
   Input,
-  Text,
+  Select,
   SimpleGrid,
+  Text,
   Textarea,
   VStack,
-  Select,
-  createListCollection
 } from "@chakra-ui/react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
-
 import { type HostCreate, HostsService } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
-import { useQuery } from "@tanstack/react-query"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -84,14 +82,16 @@ const AddHost = () => {
     mutation.mutate(data)
   }
 
-  let items_hosts = createListCollection<{ value: string; label: string }>({ items: [] });
+  const items_hosts = createListCollection<{ value: string; label: string }>({
+    items: [],
+  })
   if (hostsData && hostsData.data.length > 0) {
     hostsData.data.forEach((hostData) => {
       items_hosts.items.push({
         value: hostData.name,
         label: hostData.name,
-      });
-    });
+      })
+    })
   }
   return (
     <DialogRoot
@@ -168,7 +168,11 @@ const AddHost = () => {
                     type="text"
                   />
                 </Field>
-                <Field invalid={!!errors.parent} errorText={errors.parent?.message} label="parent">
+                <Field
+                  invalid={!!errors.parent}
+                  errorText={errors.parent?.message}
+                  label="parent"
+                >
                   {/* <Select {...register("parent")} placeholder="Select parent">
                     <option value="">None</option>
                     {hostsData?.data.map((host) => (
@@ -182,7 +186,7 @@ const AddHost = () => {
                     collection={items_hosts}
                     size="sm"
                     onSelect={(selection) => {
-                      setValue("parent", selection.value);
+                      setValue("parent", selection.value)
                     }}
                   >
                     <Select.Trigger>
@@ -204,9 +208,12 @@ const AddHost = () => {
                 </Field>
               </SimpleGrid>
               <Collapsible.Root style={{ width: "100%" }}>
-                <Collapsible.Trigger asChild><Button w="full" variant="outline">Configure Banner Messages</Button></Collapsible.Trigger>
+                <Collapsible.Trigger asChild>
+                  <Button w="full" variant="outline">
+                    Configure Banner Messages
+                  </Button>
+                </Collapsible.Trigger>
                 <Collapsible.Content>
-
                   <Field
                     invalid={!!errors.welcome_banner}
                     errorText={errors.welcome_banner?.message}
@@ -215,7 +222,6 @@ const AddHost = () => {
                     <Textarea
                       {...register("welcome_banner")}
                       placeholder="welcome_banner"
-
                     />
                   </Field>
                   <Field
@@ -226,7 +232,6 @@ const AddHost = () => {
                     <Textarea
                       {...register("reject_banner")}
                       placeholder="reject_banner"
-
                     />
                   </Field>
                   <Field
@@ -237,7 +242,6 @@ const AddHost = () => {
                     <Textarea
                       {...register("motd_banner")}
                       placeholder="motd_banner"
-
                     />
                   </Field>
                   <Field
@@ -248,13 +252,10 @@ const AddHost = () => {
                     <Textarea
                       {...register("failed_authentication_banner")}
                       placeholder="failed_authentication_banner"
-
                     />
                   </Field>
-
                 </Collapsible.Content>
               </Collapsible.Root>
-
             </VStack>
           </DialogBody>
 
@@ -280,7 +281,7 @@ const AddHost = () => {
         </form>
         <DialogCloseTrigger />
       </DialogContent>
-    </DialogRoot >
+    </DialogRoot>
   )
 }
 

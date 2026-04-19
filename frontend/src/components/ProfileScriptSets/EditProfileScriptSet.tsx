@@ -15,7 +15,12 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
-import { type ApiError, type ProfileScriptSetPublic, ProfilescriptsetsService, ProfilescriptsService } from "@/client"
+import {
+  type ApiError,
+  type ProfileScriptSetPublic,
+  ProfilescriptsetsService,
+  ProfilescriptsService,
+} from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -35,13 +40,15 @@ interface EditProfileScriptSetProps {
 }
 
 interface ProfileScriptSetUpdateForm {
-  key: string;
-  value: string;
-  description?: (string | null);
-  profilescript_id: string;
+  key: string
+  value: string
+  description?: string | null
+  profilescript_id: string
 }
 
-const EditProfileScriptSet = ({ profilescriptset }: EditProfileScriptSetProps) => {
+const EditProfileScriptSet = ({
+  profilescriptset,
+}: EditProfileScriptSetProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
@@ -61,32 +68,35 @@ const EditProfileScriptSet = ({ profilescriptset }: EditProfileScriptSetProps) =
   })
   function getTacacsProfileScriptsQueryOptions() {
     return {
-      queryFn: () =>
-        ProfilescriptsService.readProfilescripts(),
-      queryKey: ["profilescripts",],
+      queryFn: () => ProfilescriptsService.readProfilescripts(),
+      queryKey: ["profilescripts"],
     }
   }
   const { data: data_profilescripts } = useQuery({
     ...getTacacsProfileScriptsQueryOptions(),
   })
 
-
-  let items_tacacs_profilescripts = createListCollection<{ value: string; label: string; description?: string }>({ items: [] });
+  const items_tacacs_profilescripts = createListCollection<{
+    value: string
+    label: string
+    description?: string
+  }>({ items: [] })
   if (data_profilescripts && data_profilescripts.data.length > 0) {
     data_profilescripts.data.forEach((profilescript) => {
       items_tacacs_profilescripts.items.push({
         value: profilescript.id,
-        label: "Profile: " + profilescript.profile_name || "No Profile",
-        description: "ProfileScript: " + profilescript.condition + "(" + profilescript.key + "==" + profilescript.value + ")",
-      });
-    });
+        label: `Profile: ${profilescript.profile_name}` || "No Profile",
+        description: `ProfileScript: ${profilescript.condition}(${profilescript.key}==${profilescript.value})`,
+      })
+    })
   }
-
-
 
   const mutation = useMutation({
     mutationFn: (data: ProfileScriptSetUpdateForm) =>
-      ProfilescriptsetsService.updateProfilescriptset({ id: profilescriptset.id, requestBody: data }),
+      ProfilescriptsetsService.updateProfilescriptset({
+        id: profilescriptset.id,
+        requestBody: data,
+      }),
     onSuccess: () => {
       showSuccessToast("ProfileScriptSet updated successfully.")
       reset()
@@ -136,9 +146,8 @@ const EditProfileScriptSet = ({ profilescriptset }: EditProfileScriptSetProps) =
                   size="sm"
                   defaultValue={[profilescriptset.profilescript_id]}
                   onValueChange={(selection) => {
-                    setValue("profilescript_id", selection.value.toString());
+                    setValue("profilescript_id", selection.value.toString())
                   }}
-
                 >
                   <Select.Trigger>
                     <Select.ValueText placeholder="Select Tacacs ProfileScript" />
@@ -156,7 +165,6 @@ const EditProfileScriptSet = ({ profilescriptset }: EditProfileScriptSetProps) =
                             </Stack>
                             <Select.ItemIndicator />
                           </Select.Item>
-
                         ))}
                       </Select.ItemGroup>
                     </Select.Content>

@@ -13,8 +13,8 @@ import { z } from "zod"
 
 import { TacacsUsersService } from "@/client"
 import { TacacsUserActionsMenu } from "@/components/Common/TacacsUserActionsMenu"
-import AddTacacsUser from "@/components/TacacsUsers/AddTacacsUser"
 import PendingTacacsUsers from "@/components/Pending/PendingTacacsUsers"
+import AddTacacsUser from "@/components/TacacsUsers/AddTacacsUser"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -31,11 +31,13 @@ const PER_PAGE = 10
 function getTacacsUsersQueryOptions({ page }: { page: number }) {
   return {
     queryFn: () =>
-      TacacsUsersService.readTacacsUsers({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
+      TacacsUsersService.readTacacsUsers({
+        skip: (page - 1) * PER_PAGE,
+        limit: PER_PAGE,
+      }),
     queryKey: ["tacacs_users", { page }],
   }
 }
-
 
 export const Route = createFileRoute("/_layout/tacacs_users")({
   component: TacacsUsers,
@@ -58,7 +60,6 @@ function TacacsUsersTable() {
     })
   }
 
-
   const tacacs_users = data?.data.slice(0, PER_PAGE) ?? []
   const count = data?.count ?? 0
 
@@ -74,7 +75,9 @@ function TacacsUsersTable() {
             <FiSearch />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>You don't have any tacacs_users yet</EmptyState.Title>
+            <EmptyState.Title>
+              You don't have any tacacs_users yet
+            </EmptyState.Title>
             <EmptyState.Description>
               Add a new tacacs_user to get started
             </EmptyState.Description>
@@ -98,7 +101,10 @@ function TacacsUsersTable() {
         </Table.Header>
         <Table.Body>
           {tacacs_users?.map((tacacs_user) => (
-            <Table.Row key={tacacs_user.id} opacity={isPlaceholderData ? 0.5 : 1}>
+            <Table.Row
+              key={tacacs_user.id}
+              opacity={isPlaceholderData ? 0.5 : 1}
+            >
               <Table.Cell truncate maxW="sm">
                 {tacacs_user.id}
               </Table.Cell>

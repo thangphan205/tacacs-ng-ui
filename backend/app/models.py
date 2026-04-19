@@ -975,3 +975,39 @@ class AuthProviderConfigUpdate(SQLModel):
     enabled: bool | None = None
     config: dict | None = None  # type: ignore[type-arg]
     secret: str | None = None
+
+
+# Audit Logging
+
+class AuditLogBase(SQLModel):
+    action: str = Field(index=True, max_length=50)
+    entity_type: str = Field(index=True, max_length=100)
+    entity_id: str | None = Field(default=None, max_length=255)
+    description: str | None = Field(default=None, max_length=1024)
+    user_agent: str | None = Field(default=None, max_length=512)
+    old_values: str | None = Field(default=None, sa_column=Column(sa.Text, nullable=True))
+    new_values: str | None = Field(default=None, sa_column=Column(sa.Text, nullable=True))
+
+
+class AuditLogCreate(AuditLogBase):
+    pass
+
+
+class AuditLog(AuditLogBase, TimestampModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID | None = Field(default=None, index=True)
+    user_email: str = Field(max_length=255)
+    ip_address: str | None = Field(default=None, max_length=45)
+
+
+class AuditLogPublic(AuditLogBase):
+    id: uuid.UUID
+    user_id: uuid.UUID | None
+    user_email: str
+    ip_address: str | None
+    created_at: datetime
+
+
+class AuditLogsPublic(SQLModel):
+    data: list[AuditLogPublic]
+    count: int

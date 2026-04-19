@@ -79,7 +79,7 @@ function SignUp() {
     },
     {
       text: "One special character (e.g. !@#$%)",
-      regex: /[!\"#$%&'()*+,-./:;<=>?@\[\\\]^_`{|}~]/,
+      regex: /[!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]/,
     },
   ]
 
@@ -149,9 +149,11 @@ function SignUp() {
                 /[a-z]/.test(value) || "Must contain one lowercase letter.",
               hasUpper: (value) =>
                 /[A-Z]/.test(value) || "Must contain one uppercase letter.",
-              hasNumber: (value) => /[0-9]/.test(value) || "Must contain one number.",
+              hasNumber: (value) =>
+                /[0-9]/.test(value) || "Must contain one number.",
               hasSpecial: (value) =>
-                /[!\"#$%&'()*+,-./:;<=>?@\[\\\]^_`{|}~]/.test(value) || "Must contain one special character.",
+                /[!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]/.test(value) ||
+                "Must contain one special character.",
             },
           })}
           placeholder="Password"
@@ -170,7 +172,7 @@ function SignUp() {
             const isMet = policy.regex.test(password)
             return (
               <HStack key={index} color={isMet ? "green" : "gray.500"}>
-                < Icon as={FiCheck} />
+                <Icon as={FiCheck} />
                 <Text as="span" fontSize="md">
                   {policy.text}
                 </Text>
@@ -189,7 +191,7 @@ function SignUp() {
           </RouterLink>
         </Text>
       </Container>
-    </Flex >
+    </Flex>
   )
 }
 

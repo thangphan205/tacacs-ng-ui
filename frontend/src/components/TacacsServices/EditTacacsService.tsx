@@ -11,7 +11,11 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
-import { type ApiError, type TacacsServicePublic, TacacsServicesService } from "@/client"
+import {
+  type ApiError,
+  type TacacsServicePublic,
+  TacacsServicesService,
+} from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -55,7 +59,10 @@ const EditTacacsService = ({ tacacs_service }: EditTacacsServiceProps) => {
 
   const mutation = useMutation({
     mutationFn: (data: TacacsServiceUpdateForm) =>
-      TacacsServicesService.updateTacacsService({ id: tacacs_service.id, requestBody: data }),
+      TacacsServicesService.updateTacacsService({
+        id: tacacs_service.id,
+        requestBody: data,
+      }),
     onSuccess: () => {
       showSuccessToast("TacacsService updated successfully.")
       reset()

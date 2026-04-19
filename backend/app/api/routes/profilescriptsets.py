@@ -1,26 +1,30 @@
 import uuid
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import func, select
 
-from app.crud import profilescriptsets
 from app.api.deps import (
     SessionDep,
-    get_current_active_superuser,
+    SuperUser,
     get_current_user,
 )
+from app.crud import audit_logs as audit_logs_crud
+from app.crud import profilescriptsets
 from app.models import (
     Message,
+    Profile,
+    ProfileScript,
     ProfileScriptSet,
     ProfileScriptSetCreate,
     ProfileScriptSetPublic,
     ProfileScriptSetsPublic,
     ProfileScriptSetUpdate,
-    ProfileScript,
-    Profile,
 )
 
 router = APIRouter(prefix="/profilescriptsets", tags=["profilescriptsets"])
+
+_SENSITIVE = audit_logs_crud._SENSITIVE
 
 
 @router.get(
@@ -36,7 +40,6 @@ def read_profilescriptsets(session: SessionDep, skip: int = 0, limit: int = 100)
     count_statement = select(func.count()).select_from(ProfileScriptSet)
     count = session.exec(count_statement).one()
 
-    # statement = select(ProfileScriptSet).offset(skip).limit(limit)
     statement = (
         select(ProfileScriptSet, ProfileScript)
         .join(ProfileScript)
@@ -60,12 +63,13 @@ def read_profilescriptsets(session: SessionDep, skip: int = 0, limit: int = 100)
 
 @router.post(
     "/",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=ProfileScriptSetPublic,
 )
 def create_profilescriptset(
     *,
     session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
     profilescriptset_in: ProfileScriptSetCreate,
 ) -> Any:
     """
@@ -75,7 +79,14 @@ def create_profilescriptset(
     profilescriptset = profilescriptsets.create_profilescriptset(
         session=session, profilescriptset_create=profilescriptset_in
     )
-
+    audit_logs_crud.log_entity_action(
+        session=session, action="CREATE", entity_type="ProfileScriptSet",
+        entity_id=str(profilescriptset.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        new_values=profilescriptset.model_dump_json(exclude=_SENSITIVE),
+    )
     return profilescriptset
 
 
@@ -100,12 +111,13 @@ def read_profilescriptset_by_id(
 
 @router.put(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=ProfileScriptSetPublic,
 )
 def update_profilescriptset(
     *,
     session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
     id: uuid.UUID,
     profilescriptset_in: ProfileScriptSetUpdate,
 ) -> Any:
@@ -119,19 +131,30 @@ def update_profilescriptset(
             status_code=404,
             detail="The profilescriptset with this id does not exist in the system",
         )
+    old_values = db_profilescriptset.model_dump_json(exclude=_SENSITIVE)
     db_profilescriptset = profilescriptsets.update_profilescriptset(
         session=session,
         db_profilescriptset=db_profilescriptset,
         profilescriptset_in=profilescriptset_in,
+    )
+    audit_logs_crud.log_entity_action(
+        session=session, action="UPDATE", entity_type="ProfileScriptSet",
+        entity_id=str(db_profilescriptset.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=db_profilescriptset.model_dump_json(exclude=_SENSITIVE),
     )
     return db_profilescriptset
 
 
 @router.delete(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
 )
-def delete_profilescriptset(session: SessionDep, id: uuid.UUID) -> Message:
+def delete_profilescriptset(
+    session: SessionDep, current_user: SuperUser, request: Request, id: uuid.UUID
+) -> Message:
     """
     Delete a profile script set.
     """
@@ -140,6 +163,15 @@ def delete_profilescriptset(session: SessionDep, id: uuid.UUID) -> Message:
     if not profilescriptset:
         raise HTTPException(status_code=404, detail="ProfileScriptSet not found")
 
+    old_values = profilescriptset.model_dump_json(exclude=_SENSITIVE)
     session.delete(profilescriptset)
     session.commit()
+    audit_logs_crud.log_entity_action(
+        session=session, action="DELETE", entity_type="ProfileScriptSet",
+        entity_id=str(id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+    )
     return Message(message="ProfileScriptSet deleted successfully")

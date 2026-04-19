@@ -79,7 +79,7 @@ const AddUser = () => {
     },
     {
       text: "One special character (e.g. !@#$%)",
-      regex: /[!\"#$%&'()*+,-./:;<=>?@\[\\\]^_`{|}~]/,
+      regex: /[!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]/,
     },
   ]
 
@@ -169,13 +169,16 @@ const AddUser = () => {
                     },
                     validate: {
                       hasLower: (value) =>
-                        /[a-z]/.test(value) || "Must contain one lowercase letter",
+                        /[a-z]/.test(value) ||
+                        "Must contain one lowercase letter",
                       hasUpper: (value) =>
-                        /[A-Z]/.test(value) || "Must contain one uppercase letter",
+                        /[A-Z]/.test(value) ||
+                        "Must contain one uppercase letter",
                       hasNumber: (value) =>
                         /[0-9]/.test(value) || "Must contain one number",
                       hasSpecial: (value) =>
-                        /[!\"#$%&'()*+,-./:;<=>?@\[\\\]^_`{|}~]/.test(value) || "Must contain one special character",
+                        /[!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]/.test(value) ||
+                        "Must contain one special character",
                     },
                   })}
                   placeholder="Password"
@@ -204,7 +207,10 @@ const AddUser = () => {
                 {passwordPolicies.map((policy, index) => {
                   const isMet = policy.regex.test(password)
                   return (
-                    <HStack key={index} color={isMet ? "green.500" : "gray.500"}>
+                    <HStack
+                      key={index}
+                      color={isMet ? "green.500" : "gray.500"}
+                    >
                       <Icon as={FiCheck} />
                       <Text as="span" fontSize="sm">
                         {policy.text}

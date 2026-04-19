@@ -9,7 +9,9 @@ interface RulesetScriptSetActionsMenuProps {
   rulesetscriptset: RulesetScriptSetPublic
 }
 
-export const RulesetScriptSetActionsMenu = ({ rulesetscriptset }: RulesetScriptSetActionsMenuProps) => {
+export const RulesetScriptSetActionsMenu = ({
+  rulesetscriptset,
+}: RulesetScriptSetActionsMenuProps) => {
   return (
     <MenuRoot>
       <MenuTrigger asChild>

@@ -108,6 +108,26 @@ export type AccountingStatisticsPublic = {
     count: number;
 };
 
+export type AuditLogPublic = {
+    action: string;
+    entity_type: string;
+    entity_id?: (string | null);
+    description?: (string | null);
+    user_agent?: (string | null);
+    old_values?: (string | null);
+    new_values?: (string | null);
+    id: string;
+    user_id: (string | null);
+    user_email: string;
+    ip_address: (string | null);
+    created_at: string;
+};
+
+export type AuditLogsPublic = {
+    data: Array<AuditLogPublic>;
+    count: number;
+};
+
 export type AuthenticationStatisticPublic = {
     username: string;
     nas_ip: string;
@@ -748,6 +768,7 @@ export type UserPublic = {
     id: string;
     created_at: string;
     updated_at: string;
+    password_login_disabled: boolean;
 };
 
 export type UserRegister = {
@@ -772,6 +793,7 @@ export type UserUpdate = {
 export type UserUpdateMe = {
     full_name?: (string | null);
     email?: (string | null);
+    password_login_disabled?: (boolean | null);
 };
 
 export type ValidationError = {
@@ -829,6 +851,24 @@ export type AdminUpdateAuthProviderData = {
 };
 
 export type AdminUpdateAuthProviderResponse = (AuthProviderConfigPublic);
+
+export type AuditLogsReadAuditLogsData = {
+    limit?: number;
+    search?: (string | null);
+    skip?: number;
+};
+
+export type AuditLogsReadAuditLogsResponse = (AuditLogsPublic);
+
+export type AuditLogsReadAuditLogByIdData = {
+    id: string;
+};
+
+export type AuditLogsReadAuditLogByIdResponse = (AuditLogPublic);
+
+export type AuditLogsPurgeAuditLogsResponse = ({
+    [key: string]: (number);
+});
 
 export type AuthenticationStatisticsReadAuthenticationStatisticsData = {
     limit?: number;

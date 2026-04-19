@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { FiTrash2 } from "react-icons/fi"
 
-import { MavisPublic, MavisesService } from "@/client"
+import { MavisesService, type MavisPublic } from "@/client"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -70,7 +70,9 @@ const DeleteMavis = ({ mavis }: { mavis: MavisPublic }) => {
             <DialogTitle>Delete Mavis</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Badge colorPalette="red" variant="solid">{mavis.mavis_key}</Badge>
+            <Badge colorPalette="red" variant="solid">
+              {mavis.mavis_key}
+            </Badge>
             <Text mb={4}>
               This item will be permanently deleted. Are you sure? You will not
               be able to undo this action.

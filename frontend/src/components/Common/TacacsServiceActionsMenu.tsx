@@ -9,7 +9,9 @@ interface TacacsServiceActionsMenuProps {
   tacacs_service: TacacsServicePublic
 }
 
-export const TacacsServiceActionsMenu = ({ tacacs_service }: TacacsServiceActionsMenuProps) => {
+export const TacacsServiceActionsMenu = ({
+  tacacs_service,
+}: TacacsServiceActionsMenuProps) => {
   return (
     <MenuRoot>
       <MenuTrigger asChild>

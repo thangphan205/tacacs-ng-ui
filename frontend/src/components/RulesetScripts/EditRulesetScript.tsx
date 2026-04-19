@@ -13,7 +13,13 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
-import { type ApiError, type RulesetScriptPublic, RulesetscriptsService, RulesetsService, TacacsGroupsService } from "@/client"
+import {
+  type ApiError,
+  type RulesetScriptPublic,
+  RulesetscriptsService,
+  RulesetsService,
+  TacacsGroupsService,
+} from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -33,12 +39,12 @@ interface EditRulesetScriptProps {
 }
 
 interface RulesetScriptUpdateForm {
-  condition: string;
-  key: string;
-  value: string;
-  action: string;
-  description?: (string | null);
-  ruleset_id: string;
+  condition: string
+  key: string
+  value: string
+  action: string
+  description?: string | null
+  ruleset_id: string
 }
 
 const EditRulesetScript = ({ rulesetscript }: EditRulesetScriptProps) => {
@@ -69,9 +75,8 @@ const EditRulesetScript = ({ rulesetscript }: EditRulesetScriptProps) => {
 
   function getTacacsProfilesQueryOptions() {
     return {
-      queryFn: () =>
-        RulesetsService.readRulesets(),
-      queryKey: ["rulesets",],
+      queryFn: () => RulesetsService.readRulesets(),
+      queryKey: ["rulesets"],
     }
   }
   const { data: data_rulesets } = useQuery({
@@ -80,39 +85,46 @@ const EditRulesetScript = ({ rulesetscript }: EditRulesetScriptProps) => {
 
   function getTacacsGroupsQueryOptions() {
     return {
-      queryFn: () =>
-        TacacsGroupsService.readTacacsGroups(),
-      queryKey: ["tacacs_groups",],
+      queryFn: () => TacacsGroupsService.readTacacsGroups(),
+      queryKey: ["tacacs_groups"],
     }
   }
   const { data: data_groups } = useQuery({
     ...getTacacsGroupsQueryOptions(),
   })
 
-
-  let items_tacacs_rulesets = createListCollection<{ value: string; label: string }>({ items: [] });
+  const items_tacacs_rulesets = createListCollection<{
+    value: string
+    label: string
+  }>({ items: [] })
   if (data_rulesets && data_rulesets.data.length > 0) {
     data_rulesets.data.forEach((ruleset) => {
       items_tacacs_rulesets.items.push({
         value: ruleset.id,
         label: ruleset.name,
-      });
-    });
+      })
+    })
   }
 
-  let items_tacacs_groups = createListCollection<{ value: string; label: string }>({ items: [] });
+  const items_tacacs_groups = createListCollection<{
+    value: string
+    label: string
+  }>({ items: [] })
   if (data_groups && data_groups.data.length > 0) {
     data_groups.data.forEach((group) => {
       items_tacacs_groups.items.push({
         value: group.group_name,
         label: group.group_name,
-      });
-    });
+      })
+    })
   }
 
   const mutation = useMutation({
     mutationFn: (data: RulesetScriptUpdateForm) =>
-      RulesetscriptsService.updateRulesetscript({ id: rulesetscript.id, requestBody: data }),
+      RulesetscriptsService.updateRulesetscript({
+        id: rulesetscript.id,
+        requestBody: data,
+      }),
     onSuccess: () => {
       showSuccessToast("RulesetScript updated successfully.")
       reset()
@@ -162,9 +174,8 @@ const EditRulesetScript = ({ rulesetscript }: EditRulesetScriptProps) => {
                   size="sm"
                   defaultValue={[rulesetscript.ruleset_id]}
                   onValueChange={(selection) => {
-                    setValue("ruleset_id", selection.value.toString());
+                    setValue("ruleset_id", selection.value.toString())
                   }}
-
                 >
                   <Select.Trigger>
                     <Select.ValueText placeholder="Select Tacacs Profile" />

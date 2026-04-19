@@ -13,9 +13,9 @@ import { z } from "zod"
 
 import { RulesetscriptsService } from "@/client"
 import { RulesetScriptActionsMenu } from "@/components/Common/RulesetScriptActionsMenu"
+import PendingRulesetScripts from "@/components/Pending/PendingRulesetScripts"
 import AddRulesetScript from "@/components/RulesetScripts/AddRulesetScript"
 import PreviewRuleset from "@/components/Rulesets/PreviewRuleset"
-import PendingRulesetScripts from "@/components/Pending/PendingRulesetScripts"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -32,7 +32,10 @@ const PER_PAGE = 5
 function getRulesetScriptsQueryOptions({ page }: { page: number }) {
   return {
     queryFn: () =>
-      RulesetscriptsService.readRulesetscripts({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
+      RulesetscriptsService.readRulesetscripts({
+        skip: (page - 1) * PER_PAGE,
+        limit: PER_PAGE,
+      }),
     queryKey: ["rulesetscripts", { page }],
   }
 }
@@ -73,7 +76,9 @@ function RulesetScriptsTable() {
             <FiSearch />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>You don't have any rulesetscripts yet</EmptyState.Title>
+            <EmptyState.Title>
+              You don't have any rulesetscripts yet
+            </EmptyState.Title>
             <EmptyState.Description>
               Add a new rulesetscript to get started
             </EmptyState.Description>
@@ -100,7 +105,10 @@ function RulesetScriptsTable() {
         </Table.Header>
         <Table.Body>
           {rulesetscripts?.map((rulesetscript) => (
-            <Table.Row key={rulesetscript.id} opacity={isPlaceholderData ? 0.5 : 1}>
+            <Table.Row
+              key={rulesetscript.id}
+              opacity={isPlaceholderData ? 0.5 : 1}
+            >
               <Table.Cell truncate maxW="sm">
                 {rulesetscript.id}
               </Table.Cell>

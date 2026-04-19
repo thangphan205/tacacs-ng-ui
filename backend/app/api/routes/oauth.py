@@ -5,13 +5,15 @@ from datetime import timedelta
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
 from app.api.deps import SessionDep
 from app.core.config import settings
 from app.core.security import create_access_token
+from app.crud import audit_logs as audit_logs_crud
 from app.crud.users import get_or_create_google_user, get_or_create_keycloak_user
+from app.models import AuditLogCreate
 
 router = APIRouter(prefix="/oauth", tags=["oauth"])
 
@@ -66,6 +68,7 @@ def google_authorize() -> dict[str, str]:
 
 @router.get("/google/callback")
 def google_callback(
+    request: Request,
     session: SessionDep,
     code: str,
     state: str,
@@ -116,6 +119,19 @@ def google_callback(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
+    audit_logs_crud.create_audit_log(
+        session=session,
+        audit_log_in=AuditLogCreate(
+            action="LOGIN_SUCCESS",
+            entity_type="User",
+            entity_id=str(user.id),
+            description="Google OAuth login",
+            user_agent=request.headers.get("user-agent"),
+        ),
+        user_id=user.id,
+        user_email=user.email,
+        ip_address=request.client.host if request.client else None,
+    )
     jwt = create_access_token(
         subject=str(user.id),
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
@@ -141,6 +157,7 @@ def keycloak_authorize() -> dict[str, str]:
 
 @router.get("/keycloak/callback")
 def keycloak_callback(
+    request: Request,
     session: SessionDep,
     code: str,
     state: str,
@@ -189,6 +206,19 @@ def keycloak_callback(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
+    audit_logs_crud.create_audit_log(
+        session=session,
+        audit_log_in=AuditLogCreate(
+            action="LOGIN_SUCCESS",
+            entity_type="User",
+            entity_id=str(user.id),
+            description="Keycloak OIDC login",
+            user_agent=request.headers.get("user-agent"),
+        ),
+        user_id=user.id,
+        user_email=user.email,
+        ip_address=request.client.host if request.client else None,
+    )
     jwt = create_access_token(
         subject=str(user.id),
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),

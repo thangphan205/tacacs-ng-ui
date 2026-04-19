@@ -79,7 +79,7 @@ const AddTacacsConfig = () => {
 
       reset({
         filename: defaultFilename,
-        description: "generated at " + datetimeString,
+        description: `generated at ${datetimeString}`,
       })
     }
   }, [isOpen, reset])

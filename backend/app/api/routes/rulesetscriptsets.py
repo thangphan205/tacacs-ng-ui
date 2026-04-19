@@ -1,27 +1,30 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import func, select
 
-from app.crud import rulesetscriptsets
 from app.api.deps import (
     SessionDep,
-    get_current_active_superuser,
+    SuperUser,
     get_current_user,
 )
+from app.crud import audit_logs as audit_logs_crud
+from app.crud import rulesetscriptsets
 from app.models import (
     Message,
+    Ruleset,
+    RulesetScript,
     RulesetScriptSet,
     RulesetScriptSetCreate,
     RulesetScriptSetPublic,
     RulesetScriptSetsPublic,
     RulesetScriptSetUpdate,
-    Ruleset,
-    RulesetScript,
 )
 
 router = APIRouter(prefix="/rulesetscriptsets", tags=["rulesetscriptsets"])
+
+_SENSITIVE = audit_logs_crud._SENSITIVE
 
 
 @router.get(
@@ -73,12 +76,13 @@ def read_rulesetscriptsets(session: SessionDep, skip: int = 0, limit: int = 100)
 
 @router.post(
     "/",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=RulesetScriptSetPublic,
 )
 def create_rulesetscriptset(
     *,
     session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
     rulesetscriptset_in: RulesetScriptSetCreate,
 ) -> Any:
     """
@@ -87,6 +91,14 @@ def create_rulesetscriptset(
 
     rulesetscriptset = rulesetscriptsets.create_rulesetscriptset(
         session=session, rulesetscriptset_create=rulesetscriptset_in
+    )
+    audit_logs_crud.log_entity_action(
+        session=session, action="CREATE", entity_type="RulesetScriptSet",
+        entity_id=str(rulesetscriptset.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        new_values=rulesetscriptset.model_dump_json(exclude=_SENSITIVE),
     )
     return rulesetscriptset
 
@@ -112,12 +124,13 @@ def read_rulesetscriptset_by_id(
 
 @router.put(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=RulesetScriptSetPublic,
 )
 def update_rulesetscriptset(
     *,
     session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
     id: uuid.UUID,
     rulesetscriptset_in: RulesetScriptSetUpdate,
 ) -> Any:
@@ -131,19 +144,30 @@ def update_rulesetscriptset(
             status_code=404,
             detail="The rulesetscriptset with this id does not exist in the system",
         )
+    old_values = db_rulesetscriptset.model_dump_json(exclude=_SENSITIVE)
     db_rulesetscriptset = rulesetscriptsets.update_rulesetscriptset(
         session=session,
         db_rulesetscriptset=db_rulesetscriptset,
         rulesetscriptset_in=rulesetscriptset_in,
+    )
+    audit_logs_crud.log_entity_action(
+        session=session, action="UPDATE", entity_type="RulesetScriptSet",
+        entity_id=str(db_rulesetscriptset.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=db_rulesetscriptset.model_dump_json(exclude=_SENSITIVE),
     )
     return db_rulesetscriptset
 
 
 @router.delete(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
 )
-def delete_rulesetscriptset(session: SessionDep, id: uuid.UUID) -> Message:
+def delete_rulesetscriptset(
+    session: SessionDep, current_user: SuperUser, request: Request, id: uuid.UUID
+) -> Message:
     """
     Delete a ruleset script set.
     """
@@ -152,6 +176,15 @@ def delete_rulesetscriptset(session: SessionDep, id: uuid.UUID) -> Message:
     if not rulesetscriptset:
         raise HTTPException(status_code=404, detail="RulesetScriptSet not found")
 
+    old_values = rulesetscriptset.model_dump_json(exclude=_SENSITIVE)
     session.delete(rulesetscriptset)
     session.commit()
+    audit_logs_crud.log_entity_action(
+        session=session, action="DELETE", entity_type="RulesetScriptSet",
+        entity_id=str(id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+    )
     return Message(message="RulesetScriptSet deleted successfully")

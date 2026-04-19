@@ -1,26 +1,29 @@
-from typing import Any
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlmodel import func, select
 
 from app.api.deps import (
-    get_current_active_superuser,
     SessionDep,
+    SuperUser,
     get_current_user,
 )
+from app.crud import audit_logs as audit_logs_crud
 from app.crud import mavises
 from app.models import (
     Mavis,
     MavisCreate,
-    MavisPublic,
-    MavisPreviewPublic,
-    MavisUpdate,
     MavisesPublic,
+    MavisPreviewPublic,
+    MavisPublic,
+    MavisUpdate,
     Message,
 )
-from sqlmodel import func, select
 
 router = APIRouter(prefix="/mavises", tags=["mavises"])
+
+_SENSITIVE = audit_logs_crud._SENSITIVE
 
 
 @router.get(
@@ -44,10 +47,11 @@ def read_mavises(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
 
 @router.post(
     "/",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=MavisPublic,
 )
-def create_mavis(*, session: SessionDep, mavis_in: MavisCreate) -> Any:
+def create_mavis(
+    *, session: SessionDep, current_user: SuperUser, request: Request, mavis_in: MavisCreate
+) -> Any:
     """
     Create new mavis.
     """
@@ -55,12 +59,18 @@ def create_mavis(*, session: SessionDep, mavis_in: MavisCreate) -> Any:
     if mavis:
         raise HTTPException(
             status_code=400,
-            detail="The mavis with this mavis key {} already exists in the system.".format(
-                mavis_in.mavis_key
-            ),
+            detail=f"The mavis with this mavis key {mavis_in.mavis_key} already exists in the system.",
         )
 
     mavis = mavises.create_mavis(session=session, mavis_create=mavis_in)
+    audit_logs_crud.log_entity_action(
+        session=session, action="CREATE", entity_type="Mavis",
+        entity_id=str(mavis.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        new_values=mavis.model_dump_json(exclude=_SENSITIVE),
+    )
     return mavis
 
 
@@ -79,10 +89,8 @@ def preview_mavis(session: SessionDep) -> Any:
     if not mavises:
         return MavisPreviewPublic(data=None, created_at=None, updated_at=None)
 
-    # Format the mavis data into key = "value" format
     data = "\n".join([f'setenv {m.mavis_key}="{m.mavis_value}"' for m in mavises])
 
-    # Find the earliest created_at and latest updated_at
     created_at = min(m.created_at for m in mavises)
     updated_at = max(m.updated_at for m in mavises)
 
@@ -111,12 +119,13 @@ def read_mavis_by_id(
 
 @router.put(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=MavisPublic,
 )
 def update_mavis(
     *,
     session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
     id: uuid.UUID,
     mavis_in: MavisUpdate,
 ) -> Any:
@@ -129,17 +138,28 @@ def update_mavis(
             status_code=404,
             detail="The mavis with this id does not exist in the system",
         )
+    old_values = db_mavis.model_dump_json(exclude=_SENSITIVE)
     db_mavis = mavises.update_mavis(
         session=session, db_mavis=db_mavis, mavis_in=mavis_in
+    )
+    audit_logs_crud.log_entity_action(
+        session=session, action="UPDATE", entity_type="Mavis",
+        entity_id=str(db_mavis.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=db_mavis.model_dump_json(exclude=_SENSITIVE),
     )
     return db_mavis
 
 
 @router.delete(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
 )
-def delete_mavis(session: SessionDep, id: uuid.UUID) -> Message:
+def delete_mavis(
+    session: SessionDep, current_user: SuperUser, request: Request, id: uuid.UUID
+) -> Message:
     """
     Delete a mavis.
     """
@@ -147,6 +167,15 @@ def delete_mavis(session: SessionDep, id: uuid.UUID) -> Message:
     if not mavis:
         raise HTTPException(status_code=404, detail="Mavis not found")
 
+    old_values = mavis.model_dump_json(exclude=_SENSITIVE)
     session.delete(mavis)
     session.commit()
+    audit_logs_crud.log_entity_action(
+        session=session, action="DELETE", entity_type="Mavis",
+        entity_id=str(id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+    )
     return Message(message="Mavis deleted successfully")

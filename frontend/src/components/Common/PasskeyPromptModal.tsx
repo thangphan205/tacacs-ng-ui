@@ -22,7 +22,9 @@ function authHeader() {
 }
 
 async function fetchPasskeys(): Promise<{ data: unknown[]; count: number }> {
-  const res = await fetch(`${OpenAPI.BASE}/api/v1/passkeys/`, { headers: authHeader() })
+  const res = await fetch(`${OpenAPI.BASE}/api/v1/passkeys/`, {
+    headers: authHeader(),
+  })
   if (!res.ok) throw new Error("Failed to load passkeys")
   return res.json()
 }
@@ -119,7 +121,9 @@ function RegisterDialog({ open, onClose }: RegisterDialogProps) {
       size={{ base: "xs", md: "md" }}
       placement="center"
       open={open}
-      onOpenChange={({ open: o }) => { if (!o) handleClose() }}
+      onOpenChange={({ open: o }) => {
+        if (!o) handleClose()
+      }}
     >
       <DialogContent>
         <DialogCloseTrigger />
@@ -132,18 +136,19 @@ function RegisterDialog({ open, onClose }: RegisterDialogProps) {
           {registered ? (
             <VStack align="start" gap={3}>
               <Text>
-                Your passkey has been saved. You can now sign in without a password.
+                Your passkey has been saved. You can now sign in without a
+                password.
               </Text>
               <Text color="fg.muted">
-                Would you like to disable password login for your account? You will
-                only be able to sign in using your passkey.
+                Would you like to disable password login for your account? You
+                will only be able to sign in using your passkey.
               </Text>
             </VStack>
           ) : (
             <VStack align="start" gap={3}>
               <Text>
-                Passkeys let you sign in with your device's biometrics or PIN — no
-                password required.
+                Passkeys let you sign in with your device's biometrics or PIN —
+                no password required.
               </Text>
               <Input
                 placeholder="Key name (optional, e.g. My MacBook)"
@@ -224,10 +229,7 @@ const PasskeyPromptModal = () => {
         </Button>
       </Alert.Root>
 
-      <RegisterDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-      />
+      <RegisterDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </>
   )
 }

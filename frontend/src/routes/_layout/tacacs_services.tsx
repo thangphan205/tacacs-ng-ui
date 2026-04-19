@@ -13,8 +13,8 @@ import { z } from "zod"
 
 import { TacacsServicesService } from "@/client"
 import { TacacsServiceActionsMenu } from "@/components/Common/TacacsServiceActionsMenu"
-import AddTacacsService from "@/components/TacacsServices/AddTacacsService"
 import PendingTacacsServices from "@/components/Pending/PendingTacacsServices"
+import AddTacacsService from "@/components/TacacsServices/AddTacacsService"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -31,7 +31,10 @@ const PER_PAGE = 5
 function getTacacsServicesQueryOptions({ page }: { page: number }) {
   return {
     queryFn: () =>
-      TacacsServicesService.readTacacsServices({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
+      TacacsServicesService.readTacacsServices({
+        skip: (page - 1) * PER_PAGE,
+        limit: PER_PAGE,
+      }),
     queryKey: ["tacacs_services", { page }],
   }
 }
@@ -72,7 +75,9 @@ function TacacsServicesTable() {
             <FiSearch />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>You don't have any tacacs_service yet</EmptyState.Title>
+            <EmptyState.Title>
+              You don't have any tacacs_service yet
+            </EmptyState.Title>
             <EmptyState.Description>
               Add a new tacacs_service to get started
             </EmptyState.Description>
@@ -95,7 +100,10 @@ function TacacsServicesTable() {
         </Table.Header>
         <Table.Body>
           {tacacs_service?.map((tacacs_service) => (
-            <Table.Row key={tacacs_service.id} opacity={isPlaceholderData ? 0.5 : 1}>
+            <Table.Row
+              key={tacacs_service.id}
+              opacity={isPlaceholderData ? 0.5 : 1}
+            >
               <Table.Cell truncate maxW="sm">
                 {tacacs_service.id}
               </Table.Cell>

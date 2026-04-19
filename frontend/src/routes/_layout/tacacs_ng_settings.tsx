@@ -12,13 +12,13 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect } from "react"
-import { useForm, type SubmitHandler } from "react-hook-form"
+import { type SubmitHandler, useForm } from "react-hook-form"
 import { FiSettings } from "react-icons/fi"
 
 import {
   type ApiError,
-  type TacacsNgSettingUpdate,
   TacacsNgSettingsService,
+  type TacacsNgSettingUpdate,
 } from "@/client"
 import PendingTacacsNgSettings from "@/components/Pending/PendingTacacsNgSettings"
 import { Field } from "@/components/ui/field"
@@ -87,9 +87,7 @@ function TacacsNgSettingsForm() {
             <FiSettings />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>
-              TACACS+ NG Settings not found
-            </EmptyState.Title>
+            <EmptyState.Title>TACACS+ NG Settings not found</EmptyState.Title>
             <EmptyState.Description>
               Settings have not been configured yet.
             </EmptyState.Description>
@@ -102,8 +100,8 @@ function TacacsNgSettingsForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <Box mt={4} p={4} borderWidth="1px" borderRadius="lg">
-        <VStack align="stretch" >
-          <SimpleGrid columns={{ base: 1, md: 2 }} >
+        <VStack align="stretch">
+          <SimpleGrid columns={{ base: 1, md: 2 }}>
             <Field
               label="IPv4 Address"
               required
@@ -159,10 +157,7 @@ function TacacsNgSettingsForm() {
               label="Login Backend"
               errorText={errors.login_backend?.message}
             >
-              <Input
-                {...register("login_backend")}
-                type="text"
-              />
+              <Input {...register("login_backend")} type="text" />
             </Field>
           </SimpleGrid>
           <Flex justifyContent="flex-end">
@@ -177,7 +172,7 @@ function TacacsNgSettingsForm() {
           </Flex>
         </VStack>
       </Box>
-    </form >
+    </form>
   )
 }
 

@@ -2,17 +2,18 @@ import json
 from datetime import timedelta
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.crud import users
+from app.crud import audit_logs as audit_logs_crud
 from app.crud import auth_providers as auth_providers_crud
 from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
 from app.core import security
 from app.core.config import settings
 from app.core.security import get_password_hash
-from app.models import Message, NewPassword, Token, UserPublic
+from app.models import AuditLogCreate, Message, NewPassword, Token, UserPublic
 from app.utils import (
     generate_password_reset_token,
     generate_reset_password_email,
@@ -25,15 +26,29 @@ router = APIRouter(tags=["login"])
 
 @router.post("/login/access-token")
 def login_access_token(
-    session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+    request: Request,
+    session: SessionDep,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
-    """
-    OAuth2 compatible token login, get an access token for future requests
-    """
+    ip = request.client.host if request.client else None
+
     user = users.authenticate(
         session=session, email=form_data.username, password=form_data.password
     )
     if not user:
+        audit_logs_crud.create_audit_log(
+            session=session,
+            audit_log_in=AuditLogCreate(
+                action="LOGIN_FAILED",
+                entity_type="User",
+                entity_id=form_data.username,
+                description="Incorrect email or password",
+                user_agent=request.headers.get("user-agent"),
+            ),
+            user_id=None,
+            user_email=form_data.username,
+            ip_address=ip,
+        )
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
@@ -56,6 +71,19 @@ def login_access_token(
         )
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    audit_logs_crud.create_audit_log(
+        session=session,
+        audit_log_in=AuditLogCreate(
+            action="LOGIN_SUCCESS",
+            entity_type="User",
+            entity_id=str(user.id),
+            description="Password login",
+            user_agent=request.headers.get("user-agent"),
+        ),
+        user_id=user.id,
+        user_email=user.email,
+        ip_address=ip,
+    )
     return Token(
         access_token=security.create_access_token(
             user.id, expires_delta=access_token_expires

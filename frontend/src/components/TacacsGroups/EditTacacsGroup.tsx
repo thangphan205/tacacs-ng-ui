@@ -11,7 +11,11 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
-import { type ApiError, type TacacsGroupPublic, TacacsGroupsService } from "@/client"
+import {
+  type ApiError,
+  type TacacsGroupPublic,
+  TacacsGroupsService,
+} from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -55,7 +59,10 @@ const EditTacacsGroup = ({ tacacs_group }: EditTacacsGroupProps) => {
 
   const mutation = useMutation({
     mutationFn: (data: TacacsGroupUpdateForm) =>
-      TacacsGroupsService.updateTacacsGroup({ id: tacacs_group.id, requestBody: data }),
+      TacacsGroupsService.updateTacacsGroup({
+        id: tacacs_group.id,
+        requestBody: data,
+      }),
     onSuccess: () => {
       showSuccessToast("TacacsGroup updated successfully.")
       reset()
