@@ -40,7 +40,11 @@ jobs:
         env:
           VIRTUAL_ENV: backend/.venv
           SECRET_KEY: just-for-generating-client
+          PROJECT_NAME: just-for-generating-client
+          POSTGRES_SERVER: just-for-generating-client
+          POSTGRES_USER: just-for-generating-client
           POSTGRES_PASSWORD: just-for-generating-client
+          FIRST_SUPERUSER: admin@example.com
           FIRST_SUPERUSER_PASSWORD: just-for-generating-client
       - name: Add changes to git
         run: |

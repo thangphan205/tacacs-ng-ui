@@ -68,11 +68,11 @@ jobs:
       working-directory: backend
     - run: npm ci
       working-directory: frontend
+    - name: Create .env file
+      run: cp .env.example .env
     - run: uv run bash scripts/generate-client.sh
       env:
         VIRTUAL_ENV: backend/.venv
-    - name: Create .env file
-      run: cp .env.example .env
     - run: docker compose build
     - run: docker compose down -v --remove-orphans
     - name: Run Playwright tests
