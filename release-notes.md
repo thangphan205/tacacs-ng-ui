@@ -1,5 +1,29 @@
 # Release Notes
 
+## Latest Changes
+
+## v0.2.1
+
+### Features
+
+* ✨ Add comprehensive audit logging — every API action (create/update/delete/login/logout/config-apply) is recorded with actor, IP, entity type, entity ID, old/new values, and timestamp. PR [#117](https://github.com/thangphan205/tacacs-ng-ui/pull/117) by [@thangphan205](https://github.com/thangphan205).
+* ✨ Add Audit Logs page — superuser-only table with search, date-range filter, export to CSV, and per-record detail modal. PR [#117](https://github.com/thangphan205/tacacs-ng-ui/pull/117) by [@thangphan205](https://github.com/thangphan205).
+* ✨ Add SIEM forwarding — audit log entries are asynchronously forwarded to a configurable webhook (e.g. Splunk HEC) with optional bearer token auth. PR [#117](https://github.com/thangphan205/tacacs-ng-ui/pull/117) by [@thangphan205](https://github.com/thangphan205).
+* ✨ Add nightly audit log auto-purge — configurable retention period (default 90 days) cleans old entries via a background task on startup. PR [#117](https://github.com/thangphan205/tacacs-ng-ui/pull/117) by [@thangphan205](https://github.com/thangphan205).
+* ✨ Add PCI DSS v4.0.1 password policy — all password fields (sign-up, reset, change) now require ≥12 characters with uppercase, lowercase, digit, and special character. PR [#117](https://github.com/thangphan205/tacacs-ng-ui/pull/117) by [@thangphan205](https://github.com/thangphan205).
+
+### Fixes
+
+* 🐛 Fix all GitHub Actions workflows using `master` branch trigger — changed to `main` so CI runs on merge. PR [#117](https://github.com/thangphan205/tacacs-ng-ui/pull/117) by [@thangphan205](https://github.com/thangphan205).
+* 🐛 Fix Playwright CI — add missing `.env` file creation, pin `@playwright/test` to match Docker image version, standardise artifact actions to v4. PR [#117](https://github.com/thangphan205/tacacs-ng-ui/pull/117) by [@thangphan205](https://github.com/thangphan205).
+* 🐛 Fix `generate-client` workflow missing required backend env vars. PR [#117](https://github.com/thangphan205/tacacs-ng-ui/pull/117) by [@thangphan205](https://github.com/thangphan205).
+* 🐛 Remove dead `issue-manager.yml` workflow hard-coded to upstream `fastapi` org. PR [#117](https://github.com/thangphan205/tacacs-ng-ui/pull/117) by [@thangphan205](https://github.com/thangphan205).
+
+### Internal
+
+* ⬆ Upgrade Node.js to 24 LTS across all CI workflows. PR [#117](https://github.com/thangphan205/tacacs-ng-ui/pull/117) by [@thangphan205](https://github.com/thangphan205).
+* ✅ Add composite DB index on `(entity_type, action, created_at)` for fast audit log queries. PR [#117](https://github.com/thangphan205/tacacs-ng-ui/pull/117) by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.2.0
 
 ### Features
