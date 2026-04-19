@@ -22,7 +22,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version: 24
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
