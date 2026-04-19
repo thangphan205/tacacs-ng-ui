@@ -1,19 +1,24 @@
 import {
   Button,
+  createListCollection,
   DialogActionTrigger,
   DialogTitle,
   Input,
-  Text,
   Select,
+  Text,
   VStack,
-  createListCollection,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
 
-import { type ProfileScriptCreate, ProfilescriptsService, ProfilesService, TacacsServicesService } from "@/client"
+import {
+  type ProfileScriptCreate,
+  ProfilescriptsService,
+  ProfilesService,
+  TacacsServicesService,
+} from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -55,9 +60,8 @@ const AddProfileScript = () => {
 
   function getTacacsProfilesQueryOptions() {
     return {
-      queryFn: () =>
-        ProfilesService.readProfiles(),
-      queryKey: ["profiles",],
+      queryFn: () => ProfilesService.readProfiles(),
+      queryKey: ["profiles"],
     }
   }
   const { data: data_profiles } = useQuery({
@@ -66,35 +70,39 @@ const AddProfileScript = () => {
 
   function getTacacsServicesQueryOptions() {
     return {
-      queryFn: () =>
-        TacacsServicesService.readTacacsServices(),
-      queryKey: ["tacacs_services",],
+      queryFn: () => TacacsServicesService.readTacacsServices(),
+      queryKey: ["tacacs_services"],
     }
   }
   const { data: data_services } = useQuery({
     ...getTacacsServicesQueryOptions(),
   })
 
-  let items_tacacs_profiles = createListCollection<{ value: string; label: string }>({ items: [] });
+  const items_tacacs_profiles = createListCollection<{
+    value: string
+    label: string
+  }>({ items: [] })
   if (data_profiles && data_profiles.data.length > 0) {
     data_profiles.data.forEach((profile) => {
       items_tacacs_profiles.items.push({
         value: profile.id,
         label: profile.name,
-      });
-    });
+      })
+    })
   }
 
-  let items_tacacs_services = createListCollection<{ value: string; label: string }>({ items: [] });
+  const items_tacacs_services = createListCollection<{
+    value: string
+    label: string
+  }>({ items: [] })
   if (data_services && data_services.data.length > 0) {
     data_services.data.forEach((service) => {
       items_tacacs_services.items.push({
         value: service.name,
         label: service.name,
-      });
-    });
+      })
+    })
   }
-
 
   const mutation = useMutation({
     mutationFn: (data: ProfileScriptCreate) =>
@@ -147,9 +155,8 @@ const AddProfileScript = () => {
                   collection={items_tacacs_profiles}
                   size="sm"
                   onValueChange={(selection) => {
-                    setValue("profile_id", selection.value.toString());
+                    setValue("profile_id", selection.value.toString())
                   }}
-
                 >
                   <Select.Trigger>
                     <Select.ValueText placeholder="Select Tacacs Profile" />
@@ -207,7 +214,9 @@ const AddProfileScript = () => {
                     collection={items_tacacs_services}
                     size="sm"
                     onValueChange={(selection) => {
-                      setValue("value", selection.value.toString(), { shouldValidate: true });
+                      setValue("value", selection.value.toString(), {
+                        shouldValidate: true,
+                      })
                     }}
                   >
                     <Select.Trigger>

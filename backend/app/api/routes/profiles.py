@@ -1,25 +1,29 @@
 import uuid
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import func, select
 
-from app.crud import profiles
 from app.api.deps import (
     SessionDep,
-    get_current_active_superuser,
+    SuperUser,
     get_current_user,
 )
+from app.crud import audit_logs as audit_logs_crud
+from app.crud import profiles
 from app.models import (
     Message,
     Profile,
     ProfileCreate,
-    ProfilePublic,
     ProfilePreviewPublic,
+    ProfilePublic,
     ProfilesPublic,
     ProfileUpdate,
 )
 
 router = APIRouter(prefix="/profiles", tags=["profiles"])
+
+_SENSITIVE = audit_logs_crud._SENSITIVE
 
 
 @router.get(
@@ -68,10 +72,11 @@ def preview_profiles(session: SessionDep) -> Any:
 
 @router.post(
     "/",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=ProfilePublic,
 )
-def create_profile(*, session: SessionDep, profile_in: ProfileCreate) -> Any:
+def create_profile(
+    *, session: SessionDep, current_user: SuperUser, request: Request, profile_in: ProfileCreate
+) -> Any:
     """
     Create new profile.
     """
@@ -83,6 +88,14 @@ def create_profile(*, session: SessionDep, profile_in: ProfileCreate) -> Any:
         )
 
     profile = profiles.create_profile(session=session, profile_create=profile_in)
+    audit_logs_crud.log_entity_action(
+        session=session, action="CREATE", entity_type="Profile",
+        entity_id=str(profile.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        new_values=profile.model_dump_json(exclude=_SENSITIVE),
+    )
     return profile
 
 
@@ -106,12 +119,13 @@ def read_profile_by_id(
 
 @router.put(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=ProfilePublic,
 )
 def update_profile(
     *,
     session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
     id: uuid.UUID,
     profile_in: ProfileUpdate,
 ) -> Any:
@@ -126,17 +140,28 @@ def update_profile(
             detail="The profile with this id does not exist in the system",
         )
 
+    old_values = db_profile.model_dump_json(exclude=_SENSITIVE)
     db_profile = profiles.update_profile(
         session=session, db_profile=db_profile, profile_in=profile_in
+    )
+    audit_logs_crud.log_entity_action(
+        session=session, action="UPDATE", entity_type="Profile",
+        entity_id=str(db_profile.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=db_profile.model_dump_json(exclude=_SENSITIVE),
     )
     return db_profile
 
 
 @router.delete(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
 )
-def delete_profile(session: SessionDep, id: uuid.UUID) -> Message:
+def delete_profile(
+    session: SessionDep, current_user: SuperUser, request: Request, id: uuid.UUID
+) -> Message:
     """
     Delete a profile.
     """
@@ -145,6 +170,15 @@ def delete_profile(session: SessionDep, id: uuid.UUID) -> Message:
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
 
+    old_values = profile.model_dump_json(exclude=_SENSITIVE)
     session.delete(profile)
     session.commit()
+    audit_logs_crud.log_entity_action(
+        session=session, action="DELETE", entity_type="Profile",
+        entity_id=str(id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+    )
     return Message(message="Profile deleted successfully")

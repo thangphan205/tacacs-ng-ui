@@ -1,19 +1,23 @@
 import {
   Button,
+  createListCollection,
   DialogActionTrigger,
   DialogTitle,
   Input,
   Select,
   Text,
   VStack,
-  createListCollection,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
 
-import { TacacsGroupsService, type TacacsUserCreate, TacacsUsersService } from "@/client"
+import {
+  TacacsGroupsService,
+  type TacacsUserCreate,
+  TacacsUsersService,
+} from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -50,32 +54,37 @@ const AddTacacsUser = () => {
 
   function getTacacsGroupsQueryOptions() {
     return {
-      queryFn: () =>
-        TacacsGroupsService.readTacacsGroups(),
-      queryKey: ["tacacs_groups",],
+      queryFn: () => TacacsGroupsService.readTacacsGroups(),
+      queryKey: ["tacacs_groups"],
     }
   }
   const { data: data_groups } = useQuery({
     ...getTacacsGroupsQueryOptions(),
   })
 
-  let items_tacacs_groups = createListCollection<{ value: string; label: string }>({ items: [] });
+  const items_tacacs_groups = createListCollection<{
+    value: string
+    label: string
+  }>({ items: [] })
   if (data_groups && data_groups.data.length > 0) {
     data_groups.data.forEach((group) => {
       items_tacacs_groups.items.push({
         value: group.group_name,
         label: group.group_name,
-      });
-    });
+      })
+    })
   }
-  const items_password_type = createListCollection<{ value: string; label: string }>({
+  const items_password_type = createListCollection<{
+    value: string
+    label: string
+  }>({
     items: [
-      { value: 'clear', label: 'clear' },
-      { value: 'crypt', label: 'crypt' },
-      { value: 'pbkdf2', label: 'pbkdf2' },
-      { value: 'mavis', label: 'mavis' },
+      { value: "clear", label: "clear" },
+      { value: "crypt", label: "crypt" },
+      { value: "pbkdf2", label: "pbkdf2" },
+      { value: "mavis", label: "mavis" },
     ],
-  });
+  })
 
   const mutation = useMutation({
     mutationFn: (data: TacacsUserCreate) =>
@@ -96,7 +105,6 @@ const AddTacacsUser = () => {
   const onSubmit: SubmitHandler<TacacsUserCreate> = (data) => {
     mutation.mutate(data)
   }
-
 
   return (
     <DialogRoot
@@ -142,8 +150,8 @@ const AddTacacsUser = () => {
                 <Select.Root
                   collection={items_password_type}
                   onSelect={(selection) => {
-                    setValue("password_type", selection.value);
-                    setIsSelectMavis(selection.value === "mavis");
+                    setValue("password_type", selection.value)
+                    setIsSelectMavis(selection.value === "mavis")
                   }}
                   size="sm"
                 >
@@ -191,9 +199,8 @@ const AddTacacsUser = () => {
                   size="sm"
                   multiple
                   onValueChange={(selection) => {
-                    setValue("member", selection.value.join(","));
+                    setValue("member", selection.value.join(","))
                   }}
-
                 >
                   <Select.Trigger>
                     <Select.ValueText placeholder="Select Tacacs Groups" />
@@ -248,7 +255,7 @@ const AddTacacsUser = () => {
         </form>
         <DialogCloseTrigger />
       </DialogContent>
-    </DialogRoot >
+    </DialogRoot>
   )
 }
 

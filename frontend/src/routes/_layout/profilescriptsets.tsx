@@ -13,9 +13,9 @@ import { z } from "zod"
 
 import { ProfilescriptsetsService } from "@/client"
 import { ProfileScriptSetActionsMenu } from "@/components/Common/ProfileScriptSetActionsMenu"
+import PendingProfileScriptSets from "@/components/Pending/PendingProfileScriptSets"
 import AddProfileScriptSet from "@/components/ProfileScriptSets/AddProfileScriptSet"
 import PreviewProfile from "@/components/Profiles/PreviewProfile"
-import PendingProfileScriptSets from "@/components/Pending/PendingProfileScriptSets"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -32,7 +32,10 @@ const PER_PAGE = 5
 function getProfileScriptSetsQueryOptions({ page }: { page: number }) {
   return {
     queryFn: () =>
-      ProfilescriptsetsService.readProfilescriptsets({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
+      ProfilescriptsetsService.readProfilescriptsets({
+        skip: (page - 1) * PER_PAGE,
+        limit: PER_PAGE,
+      }),
     queryKey: ["profilescriptsets", { page }],
   }
 }
@@ -73,7 +76,9 @@ function ProfileScriptSetsTable() {
             <FiSearch />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>You don't have any profilescriptsets yet</EmptyState.Title>
+            <EmptyState.Title>
+              You don't have any profilescriptsets yet
+            </EmptyState.Title>
             <EmptyState.Description>
               Add a new profilescriptset to get started
             </EmptyState.Description>
@@ -90,7 +95,9 @@ function ProfileScriptSetsTable() {
           <Table.Row>
             <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Profile</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Profile Script Condition</Table.ColumnHeader>
+            <Table.ColumnHeader w="sm">
+              Profile Script Condition
+            </Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Set Key</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Set Value</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Description</Table.ColumnHeader>
@@ -99,7 +106,10 @@ function ProfileScriptSetsTable() {
         </Table.Header>
         <Table.Body>
           {profilescriptsets?.map((profilescriptset) => (
-            <Table.Row key={profilescriptset.id} opacity={isPlaceholderData ? 0.5 : 1}>
+            <Table.Row
+              key={profilescriptset.id}
+              opacity={isPlaceholderData ? 0.5 : 1}
+            >
               <Table.Cell truncate maxW="sm">
                 {profilescriptset.id}
               </Table.Cell>
@@ -123,7 +133,9 @@ function ProfileScriptSetsTable() {
                 {profilescriptset.description || "N/A"}
               </Table.Cell>
               <Table.Cell>
-                <ProfileScriptSetActionsMenu profilescriptset={profilescriptset} />
+                <ProfileScriptSetActionsMenu
+                  profilescriptset={profilescriptset}
+                />
               </Table.Cell>
             </Table.Row>
           ))}

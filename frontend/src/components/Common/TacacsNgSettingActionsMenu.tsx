@@ -8,7 +8,9 @@ interface TacacsNgSettingActionsMenuProps {
   tacacs_ng_setting: TacacsNgSettingPublic
 }
 
-export const TacacsNgSettingActionsMenu = ({ tacacs_ng_setting }: TacacsNgSettingActionsMenuProps) => {
+export const TacacsNgSettingActionsMenu = ({
+  tacacs_ng_setting,
+}: TacacsNgSettingActionsMenuProps) => {
   return (
     <MenuRoot>
       <MenuTrigger asChild>

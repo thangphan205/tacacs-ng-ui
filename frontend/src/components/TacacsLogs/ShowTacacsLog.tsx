@@ -2,23 +2,20 @@ import {
   Button,
   ButtonGroup,
   CodeBlock,
+  createShikiAdapter,
   Group,
+  IconButton,
   Input,
   Spinner,
   Text,
-  createShikiAdapter,
-  IconButton
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
+import type React from "react"
 import { useState } from "react"
 import { FaEye } from "react-icons/fa"
-import React from "react"
-import {
-  TacacsLogsService,
-} from "@/client"
 import type { HighlighterGeneric } from "shiki"
+import { TacacsLogsService } from "@/client"
 import { useColorMode } from "@/components/ui/color-mode"
-
 
 import {
   DialogActionTrigger,
@@ -51,10 +48,7 @@ const shikiAdapter = createShikiAdapter<HighlighterGeneric<any, any>>({
   },
 })
 
-const ShowTacacsLog = ({
-  tacacs_log,
-  children,
-}: ShowTacacsLogProps) => {
+const ShowTacacsLog = ({ tacacs_log, children }: ShowTacacsLogProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const { colorMode } = useColorMode()
   // This state will hold the value from the input field
@@ -149,9 +143,7 @@ const ShowTacacsLog = ({
       </DialogTrigger>
       <DialogContent w="80vw" maxW="80vw" h="80vh" maxH="80vh">
         <DialogHeader>
-          <DialogTitle>
-            Log for: {tacacs_log.filename}
-          </DialogTitle>
+          <DialogTitle>Log for: {tacacs_log.filename}</DialogTitle>
         </DialogHeader>
         <DialogBody display="flex" flexDirection="column" gap={4} maxLines={30}>
           <Group attached w="full" maxW="md">
@@ -161,17 +153,16 @@ const ShowTacacsLog = ({
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleKeyDown}
             />
-            <Button onClick={handleSearch} variant="solid" >Search</Button>
+            <Button onClick={handleSearch} variant="solid">
+              Search
+            </Button>
           </Group>
           {renderContent()}
         </DialogBody>
         <DialogFooter gap={2}>
           <ButtonGroup>
             <DialogActionTrigger asChild>
-              <Button
-                variant="subtle"
-                colorPalette="gray"
-              >
+              <Button variant="subtle" colorPalette="gray">
                 Cancel
               </Button>
             </DialogActionTrigger>
@@ -179,7 +170,7 @@ const ShowTacacsLog = ({
         </DialogFooter>
         <DialogCloseTrigger />
       </DialogContent>
-    </DialogRoot >
+    </DialogRoot>
   )
 }
 

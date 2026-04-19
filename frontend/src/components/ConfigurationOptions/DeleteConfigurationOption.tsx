@@ -4,7 +4,10 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { FiTrash2 } from "react-icons/fi"
 
-import { ConfigurationOptionPublic, ConfigurationOptionsService } from "@/client"
+import {
+  type ConfigurationOptionPublic,
+  ConfigurationOptionsService,
+} from "@/client"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -17,7 +20,11 @@ import {
 } from "@/components/ui/dialog"
 import useCustomToast from "@/hooks/useCustomToast"
 
-const DeleteConfigurationOption = ({ configuration_option }: { configuration_option: ConfigurationOptionPublic }) => {
+const DeleteConfigurationOption = ({
+  configuration_option,
+}: {
+  configuration_option: ConfigurationOptionPublic
+}) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
@@ -70,7 +77,9 @@ const DeleteConfigurationOption = ({ configuration_option }: { configuration_opt
             <DialogTitle>Delete ConfigurationOption</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Badge colorPalette="red" variant="solid">{configuration_option.name}</Badge>
+            <Badge colorPalette="red" variant="solid">
+              {configuration_option.name}
+            </Badge>
             <Text mb={4}>
               This item will be permanently deleted. Are you sure? You will not
               be able to undo this action.

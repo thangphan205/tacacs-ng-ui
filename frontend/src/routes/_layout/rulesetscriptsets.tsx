@@ -13,9 +13,9 @@ import { z } from "zod"
 
 import { RulesetscriptsetsService } from "@/client"
 import { RulesetScriptSetActionsMenu } from "@/components/Common/RulesetScriptSetActionsMenu"
+import PendingRulesetScriptSets from "@/components/Pending/PendingRulesetScriptSets"
 import AddRulesetScriptSet from "@/components/RulesetScriptSets/AddRulesetScriptSet"
 import PreviewRuleset from "@/components/Rulesets/PreviewRuleset"
-import PendingRulesetScriptSets from "@/components/Pending/PendingRulesetScriptSets"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -32,7 +32,10 @@ const PER_PAGE = 5
 function getRulesetScriptSetsQueryOptions({ page }: { page: number }) {
   return {
     queryFn: () =>
-      RulesetscriptsetsService.readRulesetscriptsets({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
+      RulesetscriptsetsService.readRulesetscriptsets({
+        skip: (page - 1) * PER_PAGE,
+        limit: PER_PAGE,
+      }),
     queryKey: ["rulesetscriptsets", { page }],
   }
 }
@@ -73,7 +76,9 @@ function RulesetScriptSetsTable() {
             <FiSearch />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>You don't have any rulesetscriptsets yet</EmptyState.Title>
+            <EmptyState.Title>
+              You don't have any rulesetscriptsets yet
+            </EmptyState.Title>
             <EmptyState.Description>
               Add a new rulesetscriptset to get started
             </EmptyState.Description>
@@ -99,7 +104,10 @@ function RulesetScriptSetsTable() {
         </Table.Header>
         <Table.Body>
           {rulesetscriptsets?.map((rulesetscriptset) => (
-            <Table.Row key={rulesetscriptset.id} opacity={isPlaceholderData ? 0.5 : 1}>
+            <Table.Row
+              key={rulesetscriptset.id}
+              opacity={isPlaceholderData ? 0.5 : 1}
+            >
               <Table.Cell truncate maxW="sm">
                 {rulesetscriptset.id}
               </Table.Cell>
@@ -123,7 +131,9 @@ function RulesetScriptSetsTable() {
                 {rulesetscriptset.description || "N/A"}
               </Table.Cell>
               <Table.Cell>
-                <RulesetScriptSetActionsMenu rulesetscriptset={rulesetscriptset} />
+                <RulesetScriptSetActionsMenu
+                  rulesetscriptset={rulesetscriptset}
+                />
               </Table.Cell>
             </Table.Row>
           ))}

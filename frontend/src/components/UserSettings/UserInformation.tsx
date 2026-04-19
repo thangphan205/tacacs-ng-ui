@@ -34,7 +34,7 @@ const UserInformation = () => {
     getValues,
     formState: { isSubmitting, errors, isDirty },
   } = useForm<UserPublic>({
-    mode: "onBlur",
+    mode: "onTouched",
     criteriaMode: "all",
     defaultValues: {
       full_name: currentUser?.full_name,

@@ -3,7 +3,7 @@ name: Test Docker Compose
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     types:
       - opened
@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+      - name: Create .env file
+        run: cp .env.example .env
       - run: docker compose build
       - run: docker compose down -v --remove-orphans
       - run: docker compose up -d --wait backend frontend adminer

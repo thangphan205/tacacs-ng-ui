@@ -77,7 +77,7 @@ const EditUser = ({ user }: EditUserProps) => {
     },
     {
       text: "One special character (e.g. !@#$%)",
-      regex: /[!\"#$%&'()*+,-./:;<=>?@\[\\\]^_`{|}~]/,
+      regex: /[!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]/,
     },
   ]
 
@@ -168,9 +168,8 @@ const EditUser = ({ user }: EditUserProps) => {
                         return "Must contain one lowercase letter"
                       if (!/[A-Z]/.test(value))
                         return "Must contain one uppercase letter"
-                      if (!/[0-9]/.test(value))
-                        return "Must contain one number"
-                      if (!/[!\"#$%&'()*+,-./:;<=>?@\[\\\]^_`{|}~]/.test(value))
+                      if (!/[0-9]/.test(value)) return "Must contain one number"
+                      if (!/[!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]/.test(value))
                         return "Must contain one special character"
                       return true
                     },

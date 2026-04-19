@@ -15,7 +15,12 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
 
-import { type RulesetScriptSetCreate, RulesetscriptsetsService, RulesetscriptsService, ProfilesService } from "@/client"
+import {
+  ProfilesService,
+  type RulesetScriptSetCreate,
+  RulesetscriptsetsService,
+  RulesetscriptsService,
+} from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -54,9 +59,8 @@ const AddRulesetScriptSet = () => {
 
   function getTacacsRulesetScriptsQueryOptions() {
     return {
-      queryFn: () =>
-        RulesetscriptsService.readRulesetscripts(),
-      queryKey: ["rulesetscripts",],
+      queryFn: () => RulesetscriptsService.readRulesetscripts(),
+      queryKey: ["rulesetscripts"],
     }
   }
   const { data: data_rulesetscripts } = useQuery({
@@ -65,34 +69,41 @@ const AddRulesetScriptSet = () => {
 
   function getTacacsProfilesQueryOptions() {
     return {
-      queryFn: () =>
-        ProfilesService.readProfiles(),
-      queryKey: ["profiles",],
+      queryFn: () => ProfilesService.readProfiles(),
+      queryKey: ["profiles"],
     }
   }
   const { data: data_profiles } = useQuery({
     ...getTacacsProfilesQueryOptions(),
   })
 
-  let items_tacacs_rulesetscripts = createListCollection<{ value: string; label: string; description?: string }>({ items: [] });
+  const items_tacacs_rulesetscripts = createListCollection<{
+    value: string
+    label: string
+    description?: string
+  }>({ items: [] })
   if (data_rulesetscripts && data_rulesetscripts.data.length > 0) {
     data_rulesetscripts.data.forEach((rulesetscript) => {
       items_tacacs_rulesetscripts.items.push({
         value: rulesetscript.id,
-        label: "Ruleset: " + rulesetscript.ruleset_name,
-        description: "RulesetScript: " + rulesetscript.condition + "(" + rulesetscript.key + "==" + rulesetscript.value + ")",
-      });
-    });
+        label: `Ruleset: ${rulesetscript.ruleset_name}`,
+        description: `RulesetScript: ${rulesetscript.condition}(${rulesetscript.key}==${rulesetscript.value})`,
+      })
+    })
   }
-  let items_tacacs_profiles = createListCollection<{ value: string; label: string; description?: string }>({ items: [] });
+  const items_tacacs_profiles = createListCollection<{
+    value: string
+    label: string
+    description?: string
+  }>({ items: [] })
   if (data_profiles && data_profiles.data.length > 0) {
     data_profiles.data.forEach((profile) => {
       items_tacacs_profiles.items.push({
         value: profile.name,
         label: profile.name,
         description: profile.description || "",
-      });
-    });
+      })
+    })
   }
 
   const mutation = useMutation({
@@ -146,9 +157,8 @@ const AddRulesetScriptSet = () => {
                   collection={items_tacacs_rulesetscripts}
                   size="sm"
                   onValueChange={(selection) => {
-                    setValue("rulesetscript_id", selection.value.toString());
+                    setValue("rulesetscript_id", selection.value.toString())
                   }}
-
                 >
                   <Select.Trigger>
                     <Select.ValueText placeholder="Select Tacacs ProfileScript" />
@@ -166,7 +176,6 @@ const AddRulesetScriptSet = () => {
                             </Stack>
                             <Select.ItemIndicator />
                           </Select.Item>
-
                         ))}
                       </Select.ItemGroup>
                     </Select.Content>
@@ -198,7 +207,9 @@ const AddRulesetScriptSet = () => {
                     collection={items_tacacs_profiles}
                     size="sm"
                     onValueChange={(selection) => {
-                      setValue("value", selection.value.toString(), { shouldValidate: true });
+                      setValue("value", selection.value.toString(), {
+                        shouldValidate: true,
+                      })
                     }}
                   >
                     <Select.Trigger>

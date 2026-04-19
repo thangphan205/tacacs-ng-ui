@@ -13,9 +13,9 @@ import { z } from "zod"
 
 import { RulesetsService } from "@/client"
 import { RulesetActionsMenu } from "@/components/Common/RulesetActionsMenu"
+import PendingRulesets from "@/components/Pending/PendingRulesets"
 import AddRuleset from "@/components/Rulesets/AddRuleset"
 import PreviewRuleset from "@/components/Rulesets/PreviewRuleset"
-import PendingRulesets from "@/components/Pending/PendingRulesets"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -32,7 +32,10 @@ const PER_PAGE = 5
 function getRulesetsQueryOptions({ page }: { page: number }) {
   return {
     queryFn: () =>
-      RulesetsService.readRulesets({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
+      RulesetsService.readRulesets({
+        skip: (page - 1) * PER_PAGE,
+        limit: PER_PAGE,
+      }),
     queryKey: ["rulesets", { page }],
   }
 }

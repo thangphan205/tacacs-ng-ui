@@ -13,7 +13,13 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
-import { type ApiError, type ProfileScriptPublic, ProfilescriptsService, ProfilesService, TacacsServicesService } from "@/client"
+import {
+  type ApiError,
+  type ProfileScriptPublic,
+  ProfilescriptsService,
+  ProfilesService,
+  TacacsServicesService,
+} from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -33,12 +39,12 @@ interface EditProfileScriptProps {
 }
 
 interface ProfileScriptUpdateForm {
-  condition: string;
-  key: string;
-  value: string;
-  action: string;
-  description?: (string | null);
-  profile_id?: (string | null);
+  condition: string
+  key: string
+  value: string
+  action: string
+  description?: string | null
+  profile_id?: string | null
 }
 
 const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
@@ -70,9 +76,8 @@ const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
 
   function getTacacsProfilesQueryOptions() {
     return {
-      queryFn: () =>
-        ProfilesService.readProfiles(),
-      queryKey: ["profiles",],
+      queryFn: () => ProfilesService.readProfiles(),
+      queryKey: ["profiles"],
     }
   }
   const { data: data_profiles } = useQuery({
@@ -80,36 +85,44 @@ const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
   })
   function getTacacsServicesQueryOptions() {
     return {
-      queryFn: () =>
-        TacacsServicesService.readTacacsServices(),
-      queryKey: ["tacacs_services",],
+      queryFn: () => TacacsServicesService.readTacacsServices(),
+      queryKey: ["tacacs_services"],
     }
   }
   const { data: data_services } = useQuery({
     ...getTacacsServicesQueryOptions(),
   })
 
-  let items_tacacs_profiles = createListCollection<{ value: string; label: string }>({ items: [] });
+  const items_tacacs_profiles = createListCollection<{
+    value: string
+    label: string
+  }>({ items: [] })
   if (data_profiles && data_profiles.data.length > 0) {
     data_profiles.data.forEach((profile) => {
       items_tacacs_profiles.items.push({
         value: profile.id,
         label: profile.name,
-      });
-    });
+      })
+    })
   }
-  let items_tacacs_services = createListCollection<{ value: string; label: string }>({ items: [] });
+  const items_tacacs_services = createListCollection<{
+    value: string
+    label: string
+  }>({ items: [] })
   if (data_services && data_services.data.length > 0) {
     data_services.data.forEach((service) => {
       items_tacacs_services.items.push({
         value: service.name,
         label: service.name,
-      });
-    });
+      })
+    })
   }
   const mutation = useMutation({
     mutationFn: (data: ProfileScriptUpdateForm) =>
-      ProfilescriptsService.updateProfilescript({ id: profilescript.id, requestBody: data }),
+      ProfilescriptsService.updateProfilescript({
+        id: profilescript.id,
+        requestBody: data,
+      }),
     onSuccess: () => {
       showSuccessToast("ProfileScript updated successfully.")
       reset()
@@ -159,7 +172,7 @@ const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
                   size="sm"
                   defaultValue={[profilescript.profile_id || ""]}
                   onValueChange={(selection) => {
-                    setValue("profile_id", selection.value.toString());
+                    setValue("profile_id", selection.value.toString())
                   }}
                 >
                   <Select.Trigger>
@@ -219,7 +232,9 @@ const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
                     size="sm"
                     defaultValue={[profilescript.value || ""]}
                     onValueChange={(selection) => {
-                      setValue("value", selection.value.toString(), { shouldValidate: true });
+                      setValue("value", selection.value.toString(), {
+                        shouldValidate: true,
+                      })
                     }}
                   >
                     <Select.Trigger>
@@ -293,7 +308,7 @@ const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
         </form>
         <DialogCloseTrigger />
       </DialogContent>
-    </DialogRoot >
+    </DialogRoot>
   )
 }
 

@@ -4,9 +4,9 @@ import {
   EmptyState,
   Flex,
   Heading,
+  Link,
   Table,
   VStack,
-  Link
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -34,7 +34,10 @@ const PER_PAGE = 5
 function getConfigurationOptionsQueryOptions({ page }: { page: number }) {
   return {
     queryFn: () =>
-      ConfigurationOptionsService.readConfigurationOptions({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
+      ConfigurationOptionsService.readConfigurationOptions({
+        skip: (page - 1) * PER_PAGE,
+        limit: PER_PAGE,
+      }),
     queryKey: ["configuration_options", { page }],
   }
 }
@@ -75,7 +78,9 @@ function ConfigurationOptionsTable() {
             <FiSearch />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>You don't have any configuration_options yet</EmptyState.Title>
+            <EmptyState.Title>
+              You don't have any configuration_options yet
+            </EmptyState.Title>
             <EmptyState.Description>
               Add a new configuration_option to get started
             </EmptyState.Description>
@@ -99,7 +104,10 @@ function ConfigurationOptionsTable() {
         </Table.Header>
         <Table.Body>
           {configuration_options?.map((configuration_option) => (
-            <Table.Row key={configuration_option.id} opacity={isPlaceholderData ? 0.5 : 1}>
+            <Table.Row
+              key={configuration_option.id}
+              opacity={isPlaceholderData ? 0.5 : 1}
+            >
               <Table.Cell truncate maxW="sm">
                 {configuration_option.id}
               </Table.Cell>
@@ -117,7 +125,9 @@ function ConfigurationOptionsTable() {
                 {configuration_option.description || "N/A"}
               </Table.Cell>
               <Table.Cell>
-                <ConfigurationOptionActionsMenu configuration_option={configuration_option} />
+                <ConfigurationOptionActionsMenu
+                  configuration_option={configuration_option}
+                />
               </Table.Cell>
             </Table.Row>
           ))}
@@ -148,10 +158,12 @@ function ConfigurationOptions() {
       </Heading>
       For advanced use cases not covered by the UI, you can directly use{" "}
       <Code>tac_plus-ng</Code> script syntax. For details, see the{" "}
-      <Link href="https://projects.pro-bono-publico.de/event-driven-servers/doc/tac_plus-ng.html" color="blue.500">
+      <Link
+        href="https://projects.pro-bono-publico.de/event-driven-servers/doc/tac_plus-ng.html"
+        color="blue.500"
+      >
         official documentation
       </Link>
-
       <Flex gap={2}>
         <AddConfigurationOption />
         <PreviewTacacsConfig />

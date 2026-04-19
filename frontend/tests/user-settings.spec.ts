@@ -87,7 +87,7 @@ test.describe("Edit user with invalid data", () => {
     await page.getByRole("tab", { name: "My profile" }).click()
     await page.getByRole("button", { name: "Edit" }).click()
     await page.getByLabel("Email").fill(invalidEmail)
-    await page.locator("body").click()
+    await page.getByLabel("Email").press("Tab")
     await expect(page.getByText("Email is required")).toBeVisible()
   })
 

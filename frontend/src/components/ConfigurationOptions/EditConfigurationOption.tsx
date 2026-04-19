@@ -14,7 +14,11 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
-import { type ApiError, type ConfigurationOptionPublic, ConfigurationOptionsService } from "@/client"
+import {
+  type ApiError,
+  type ConfigurationOptionPublic,
+  ConfigurationOptionsService,
+} from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -39,7 +43,9 @@ interface ConfigurationOptionUpdateForm {
   description?: string
 }
 
-const EditConfigurationOption = ({ configuration_option }: EditConfigurationOptionProps) => {
+const EditConfigurationOption = ({
+  configuration_option,
+}: EditConfigurationOptionProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
@@ -62,7 +68,10 @@ const EditConfigurationOption = ({ configuration_option }: EditConfigurationOpti
 
   const mutation = useMutation({
     mutationFn: (data: ConfigurationOptionUpdateForm) =>
-      ConfigurationOptionsService.updateConfigurationOption({ id: configuration_option.id, requestBody: data }),
+      ConfigurationOptionsService.updateConfigurationOption({
+        id: configuration_option.id,
+        requestBody: data,
+      }),
     onSuccess: () => {
       showSuccessToast("ConfigurationOption updated successfully.")
       reset()
@@ -76,18 +85,23 @@ const EditConfigurationOption = ({ configuration_option }: EditConfigurationOpti
     },
   })
 
-  const onSubmit: SubmitHandler<ConfigurationOptionUpdateForm> = async (data) => {
+  const onSubmit: SubmitHandler<ConfigurationOptionUpdateForm> = async (
+    data,
+  ) => {
     mutation.mutate(data)
   }
-  const items_configuration_option = createListCollection<{ value: string; label: string }>({
+  const items_configuration_option = createListCollection<{
+    value: string
+    label: string
+  }>({
     items: [
-      { value: 'host', label: 'host' },
-      { value: 'group', label: 'group' },
-      { value: 'user', label: 'user' },
-      { value: 'profile', label: 'profile' },
-      { value: 'rule', label: 'rule' },
+      { value: "host", label: "host" },
+      { value: "group", label: "group" },
+      { value: "user", label: "user" },
+      { value: "profile", label: "profile" },
+      { value: "rule", label: "rule" },
     ],
-  });
+  })
   return (
     <DialogRoot
       size={{ base: "md", md: "md" }}
@@ -119,7 +133,7 @@ const EditConfigurationOption = ({ configuration_option }: EditConfigurationOpti
                   defaultValue={[configuration_option.name]}
                   collection={items_configuration_option}
                   onSelect={(selection) => {
-                    setValue("name", selection.value);
+                    setValue("name", selection.value)
                   }}
                   size="md"
                 >

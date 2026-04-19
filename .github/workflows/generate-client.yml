@@ -22,7 +22,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version: 24
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -40,7 +40,11 @@ jobs:
         env:
           VIRTUAL_ENV: backend/.venv
           SECRET_KEY: just-for-generating-client
+          PROJECT_NAME: just-for-generating-client
+          POSTGRES_SERVER: just-for-generating-client
+          POSTGRES_USER: just-for-generating-client
           POSTGRES_PASSWORD: just-for-generating-client
+          FIRST_SUPERUSER: admin@example.com
           FIRST_SUPERUSER_PASSWORD: just-for-generating-client
       - name: Add changes to git
         run: |

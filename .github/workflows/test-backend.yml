@@ -3,7 +3,7 @@ name: Test Backend
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     types:
       - opened
@@ -28,6 +28,8 @@ jobs:
       - name: Sync dependencies
         run: uv sync
         working-directory: backend
+      - name: Create .env file
+        run: cp .env.example .env
       - run: docker compose down -v --remove-orphans
       - run: docker compose up -d db mailcatcher
       - name: Migrate DB

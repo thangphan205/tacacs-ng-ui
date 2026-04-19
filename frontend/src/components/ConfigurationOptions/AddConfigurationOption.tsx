@@ -14,7 +14,10 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
 
-import { type ConfigurationOptionCreate, ConfigurationOptionsService } from "@/client"
+import {
+  type ConfigurationOptionCreate,
+  ConfigurationOptionsService,
+} from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -28,7 +31,6 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
-
 
 const AddConfigurationOption = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -52,7 +54,9 @@ const AddConfigurationOption = () => {
 
   const mutation = useMutation({
     mutationFn: (data: ConfigurationOptionCreate) =>
-      ConfigurationOptionsService.createConfigurationOption({ requestBody: data }),
+      ConfigurationOptionsService.createConfigurationOption({
+        requestBody: data,
+      }),
     onSuccess: () => {
       showSuccessToast("ConfigurationOption created successfully.")
       reset()
@@ -70,15 +74,18 @@ const AddConfigurationOption = () => {
     mutation.mutate(data)
   }
 
-  const items_configuration_option = createListCollection<{ value: string; label: string }>({
+  const items_configuration_option = createListCollection<{
+    value: string
+    label: string
+  }>({
     items: [
-      { value: 'host', label: 'host' },
-      { value: 'group', label: 'group' },
-      { value: 'user', label: 'user' },
-      { value: 'profile', label: 'profile' },
-      { value: 'rule', label: 'rule' },
+      { value: "host", label: "host" },
+      { value: "group", label: "group" },
+      { value: "user", label: "user" },
+      { value: "profile", label: "profile" },
+      { value: "rule", label: "rule" },
     ],
-  });
+  })
 
   return (
     <DialogRoot
@@ -110,7 +117,7 @@ const AddConfigurationOption = () => {
                 <Select.Root
                   collection={items_configuration_option}
                   onSelect={(selection) => {
-                    setValue("name", selection.value);
+                    setValue("name", selection.value)
                   }}
                   size="md"
                 >

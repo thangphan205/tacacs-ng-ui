@@ -1,15 +1,16 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import col, delete, func, select
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlmodel import func, select
 
-from app.crud import tacacs_groups
 from app.api.deps import (
     SessionDep,
-    get_current_active_superuser,
+    SuperUser,
     get_current_user,
 )
+from app.crud import audit_logs as audit_logs_crud
+from app.crud import tacacs_groups
 from app.models import (
     Message,
     TacacsGroup,
@@ -20,6 +21,8 @@ from app.models import (
 )
 
 router = APIRouter(prefix="/tacacs_groups", tags=["tacacs_groups"])
+
+_SENSITIVE = audit_logs_crud._SENSITIVE
 
 
 @router.get(
@@ -43,10 +46,11 @@ def read_tacacs_groups(session: SessionDep, skip: int = 0, limit: int = 100) -> 
 
 @router.post(
     "/",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=TacacsGroupPublic,
 )
-def create_tacacs_group(*, session: SessionDep, group_in: TacacsGroupCreate) -> Any:
+def create_tacacs_group(
+    *, session: SessionDep, current_user: SuperUser, request: Request, group_in: TacacsGroupCreate
+) -> Any:
     """
     Create new group.
     """
@@ -60,8 +64,16 @@ def create_tacacs_group(*, session: SessionDep, group_in: TacacsGroupCreate) -> 
             detail="The group with this group name already exists in the system.",
         )
 
-    user = tacacs_groups.create_tacacs_group(session=session, user_create=group_in)
-    return user
+    group = tacacs_groups.create_tacacs_group(session=session, user_create=group_in)
+    audit_logs_crud.log_entity_action(
+        session=session, action="CREATE", entity_type="TacacsGroup",
+        entity_id=str(group.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        new_values=group.model_dump_json(exclude=_SENSITIVE),
+    )
+    return group
 
 
 @router.get(
@@ -83,12 +95,13 @@ def read_tacacs_group_by_id(
 
 @router.put(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=TacacsGroupPublic,
 )
 def update_tacacs_group(
     *,
     session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
     id: uuid.UUID,
     group_in: TacacsGroupUpdate,
 ) -> Any:
@@ -103,17 +116,28 @@ def update_tacacs_group(
             detail="The group with this id does not exist in the system",
         )
 
+    old_values = db_tacacs_group.model_dump_json(exclude=_SENSITIVE)
     db_tacacs_group = tacacs_groups.update_tacacs_group(
         session=session, db_tacacs_group=db_tacacs_group, group_in=group_in
+    )
+    audit_logs_crud.log_entity_action(
+        session=session, action="UPDATE", entity_type="TacacsGroup",
+        entity_id=str(db_tacacs_group.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=db_tacacs_group.model_dump_json(exclude=_SENSITIVE),
     )
     return db_tacacs_group
 
 
 @router.delete(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
 )
-def delete_tacacs_group(session: SessionDep, id: uuid.UUID) -> Message:
+def delete_tacacs_group(
+    session: SessionDep, current_user: SuperUser, request: Request, id: uuid.UUID
+) -> Message:
     """
     Delete a group.
     """
@@ -121,6 +145,15 @@ def delete_tacacs_group(session: SessionDep, id: uuid.UUID) -> Message:
     tacacs_group = session.get(TacacsGroup, id)
     if not tacacs_group:
         raise HTTPException(status_code=404, detail="Group not found")
+    old_values = tacacs_group.model_dump_json(exclude=_SENSITIVE)
     session.delete(tacacs_group)
     session.commit()
+    audit_logs_crud.log_entity_action(
+        session=session, action="DELETE", entity_type="TacacsGroup",
+        entity_id=str(id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+    )
     return Message(message="Group deleted successfully")

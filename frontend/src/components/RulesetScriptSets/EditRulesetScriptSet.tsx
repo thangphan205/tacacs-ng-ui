@@ -15,7 +15,13 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
-import { type ApiError, type RulesetScriptSetPublic, RulesetscriptsetsService, RulesetscriptsService, ProfilesService } from "@/client"
+import {
+  type ApiError,
+  ProfilesService,
+  type RulesetScriptSetPublic,
+  RulesetscriptsetsService,
+  RulesetscriptsService,
+} from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -35,13 +41,15 @@ interface EditRulesetScriptSetProps {
 }
 
 interface RulesetScriptSetUpdateForm {
-  key: string;
-  value: string;
-  description?: (string | null);
-  rulesetscript_id: string;
+  key: string
+  value: string
+  description?: string | null
+  rulesetscript_id: string
 }
 
-const EditRulesetScriptSet = ({ rulesetscriptset }: EditRulesetScriptSetProps) => {
+const EditRulesetScriptSet = ({
+  rulesetscriptset,
+}: EditRulesetScriptSetProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
@@ -64,9 +72,8 @@ const EditRulesetScriptSet = ({ rulesetscriptset }: EditRulesetScriptSetProps) =
   })
   function getTacacsRulesetScriptsQueryOptions() {
     return {
-      queryFn: () =>
-        RulesetscriptsService.readRulesetscripts(),
-      queryKey: ["rulesetscripts",],
+      queryFn: () => RulesetscriptsService.readRulesetscripts(),
+      queryKey: ["rulesetscripts"],
     }
   }
 
@@ -77,40 +84,50 @@ const EditRulesetScriptSet = ({ rulesetscriptset }: EditRulesetScriptSetProps) =
   })
   function getTacacsProfilesQueryOptions() {
     return {
-      queryFn: () =>
-        ProfilesService.readProfiles(),
-      queryKey: ["profiles",],
+      queryFn: () => ProfilesService.readProfiles(),
+      queryKey: ["profiles"],
     }
   }
   const { data: data_profiles } = useQuery({
     ...getTacacsProfilesQueryOptions(),
   })
 
-  let items_tacacs_rulesetscripts = createListCollection<{ value: string; label: string; description?: string }>({ items: [] });
+  const items_tacacs_rulesetscripts = createListCollection<{
+    value: string
+    label: string
+    description?: string
+  }>({ items: [] })
   if (data_rulesetscripts && data_rulesetscripts.data.length > 0) {
     data_rulesetscripts.data.forEach((rulesetscript) => {
       items_tacacs_rulesetscripts.items.push({
         value: rulesetscript.id,
-        label: "Ruleset: " + rulesetscript.ruleset_name,
-        description: "RulesetScript: " + rulesetscript.condition + "(" + rulesetscript.key + "==" + rulesetscript.value + ")",
-      });
-    });
+        label: `Ruleset: ${rulesetscript.ruleset_name}`,
+        description: `RulesetScript: ${rulesetscript.condition}(${rulesetscript.key}==${rulesetscript.value})`,
+      })
+    })
   }
 
-  let items_tacacs_profiles = createListCollection<{ value: string; label: string; description?: string }>({ items: [] });
+  const items_tacacs_profiles = createListCollection<{
+    value: string
+    label: string
+    description?: string
+  }>({ items: [] })
   if (data_profiles && data_profiles.data.length > 0) {
     data_profiles.data.forEach((profile) => {
       items_tacacs_profiles.items.push({
         value: profile.name,
         label: profile.name,
         description: profile.description || "",
-      });
-    });
+      })
+    })
   }
 
   const mutation = useMutation({
     mutationFn: (data: RulesetScriptSetUpdateForm) =>
-      RulesetscriptsetsService.updateRulesetscriptset({ id: rulesetscriptset.id, requestBody: data }),
+      RulesetscriptsetsService.updateRulesetscriptset({
+        id: rulesetscriptset.id,
+        requestBody: data,
+      }),
     onSuccess: () => {
       showSuccessToast("RulesetScriptSet updated successfully.")
       reset()
@@ -160,9 +177,8 @@ const EditRulesetScriptSet = ({ rulesetscriptset }: EditRulesetScriptSetProps) =
                   size="sm"
                   defaultValue={[rulesetscriptset.rulesetscript_id]}
                   onValueChange={(selection) => {
-                    setValue("rulesetscript_id", selection.value.toString());
+                    setValue("rulesetscript_id", selection.value.toString())
                   }}
-
                 >
                   <Select.Trigger>
                     <Select.ValueText placeholder="Select Tacacs RulesetScript" />
@@ -180,7 +196,6 @@ const EditRulesetScriptSet = ({ rulesetscriptset }: EditRulesetScriptSetProps) =
                             </Stack>
                             <Select.ItemIndicator />
                           </Select.Item>
-
                         ))}
                       </Select.ItemGroup>
                     </Select.Content>
@@ -213,7 +228,9 @@ const EditRulesetScriptSet = ({ rulesetscriptset }: EditRulesetScriptSetProps) =
                     size="sm"
                     defaultValue={[rulesetscriptset.value]}
                     onValueChange={(selection) => {
-                      setValue("value", selection.value.toString(), { shouldValidate: true });
+                      setValue("value", selection.value.toString(), {
+                        shouldValidate: true,
+                      })
                     }}
                   >
                     <Select.Trigger>

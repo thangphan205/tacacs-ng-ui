@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { FiTrash2 } from "react-icons/fi"
 
-import { TacacsServicePublic, TacacsServicesService } from "@/client"
+import { type TacacsServicePublic, TacacsServicesService } from "@/client"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -17,7 +17,11 @@ import {
 } from "@/components/ui/dialog"
 import useCustomToast from "@/hooks/useCustomToast"
 
-const DeleteTacacsService = ({ tacacs_service }: { tacacs_service: TacacsServicePublic }) => {
+const DeleteTacacsService = ({
+  tacacs_service,
+}: {
+  tacacs_service: TacacsServicePublic
+}) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
@@ -70,7 +74,9 @@ const DeleteTacacsService = ({ tacacs_service }: { tacacs_service: TacacsService
             <DialogTitle>Delete TacacsService</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Badge colorPalette="red" variant="solid">{tacacs_service.name}</Badge>
+            <Badge colorPalette="red" variant="solid">
+              {tacacs_service.name}
+            </Badge>
             <Text mb={4}>
               This item will be permanently deleted. Are you sure? You will not
               be able to undo this action.

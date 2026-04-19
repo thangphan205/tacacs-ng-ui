@@ -13,7 +13,12 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
-import { type ApiError, TacacsGroupsService, type TacacsUserPublic, TacacsUsersService } from "@/client"
+import {
+  type ApiError,
+  TacacsGroupsService,
+  type TacacsUserPublic,
+  TacacsUsersService,
+} from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -42,7 +47,9 @@ interface TacacsUserUpdateForm {
 
 const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
   const [isOpen, setIsOpen] = useState(false)
-  const [isSelectMavis, setIsSelectMavis] = useState(tacacs_user.password_type === "mavis")
+  const [isSelectMavis, setIsSelectMavis] = useState(
+    tacacs_user.password_type === "mavis",
+  )
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const {
@@ -64,34 +71,42 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
   })
   function getTacacsGroupsQueryOptions() {
     return {
-      queryFn: () =>
-        TacacsGroupsService.readTacacsGroups(),
-      queryKey: ["tacacs_groups",],
+      queryFn: () => TacacsGroupsService.readTacacsGroups(),
+      queryKey: ["tacacs_groups"],
     }
   }
   const { data: data_groups } = useQuery({
     ...getTacacsGroupsQueryOptions(),
   })
-  let items_tacacs_groups = createListCollection<{ value: string; label: string }>({ items: [] });
+  const items_tacacs_groups = createListCollection<{
+    value: string
+    label: string
+  }>({ items: [] })
   if (data_groups && data_groups.data.length > 0) {
     data_groups.data.forEach((group) => {
       items_tacacs_groups.items.push({
         value: group.group_name,
         label: group.group_name,
-      });
-    });
+      })
+    })
   }
-  const items_password_type = createListCollection<{ value: string; label: string }>({
+  const items_password_type = createListCollection<{
+    value: string
+    label: string
+  }>({
     items: [
-      { value: 'clear', label: 'clear' },
-      { value: 'crypt', label: 'crypt' },
-      { value: 'pbkdf2', label: 'pbkdf2' },
-      { value: 'mavis', label: 'mavis' },
+      { value: "clear", label: "clear" },
+      { value: "crypt", label: "crypt" },
+      { value: "pbkdf2", label: "pbkdf2" },
+      { value: "mavis", label: "mavis" },
     ],
-  });
+  })
   const mutation = useMutation({
     mutationFn: (data: TacacsUserUpdateForm) =>
-      TacacsUsersService.updateTacacsUser({ id: tacacs_user.id, requestBody: data }),
+      TacacsUsersService.updateTacacsUser({
+        id: tacacs_user.id,
+        requestBody: data,
+      }),
     onSuccess: () => {
       showSuccessToast("TacacsUser updated successfully.")
       reset()
@@ -152,13 +167,18 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
                 label="password_type"
               >
                 <Select.Root
-                  defaultValue={[items_password_type.items.find(item => item.value === tacacs_user.password_type)?.value].filter(Boolean) as string[]}
+                  defaultValue={
+                    [
+                      items_password_type.items.find(
+                        (item) => item.value === tacacs_user.password_type,
+                      )?.value,
+                    ].filter(Boolean) as string[]
+                  }
                   collection={items_password_type}
                   onSelect={(selection) => {
-                    setValue("password_type", selection.value);
-                    setIsSelectMavis(selection.value === "mavis");
+                    setValue("password_type", selection.value)
+                    setIsSelectMavis(selection.value === "mavis")
                   }}
-
                   size="sm"
                 >
                   <Select.Trigger>
@@ -202,11 +222,13 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
               >
                 <Select.Root
                   collection={items_tacacs_groups}
-                  defaultValue={tacacs_user.member ? tacacs_user.member.split(",") : []}
+                  defaultValue={
+                    tacacs_user.member ? tacacs_user.member.split(",") : []
+                  }
                   size="sm"
                   multiple
                   onValueChange={(selection) => {
-                    setValue("member", selection.value.join(","));
+                    setValue("member", selection.value.join(","))
                   }}
                 >
                   <Select.Control>
@@ -214,7 +236,11 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
                       <Select.ValueText placeholder="Select Tacacs Groups" />
                     </Select.Trigger>
                     <Select.IndicatorGroup>
-                      <Select.ClearTrigger onChange={() => { setValue("member", ""); }} />
+                      <Select.ClearTrigger
+                        onChange={() => {
+                          setValue("member", "")
+                        }}
+                      />
                       <Select.Indicator />
                     </Select.IndicatorGroup>
                   </Select.Control>
@@ -265,7 +291,7 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
         </form>
         <DialogCloseTrigger />
       </DialogContent>
-    </DialogRoot >
+    </DialogRoot>
   )
 }
 

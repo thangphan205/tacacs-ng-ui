@@ -1,5 +1,3 @@
-const PendingTacacsStatistics = () => (
-  <>Loading data</>
-)
+const PendingTacacsStatistics = () => <>Loading data</>
 
 export default PendingTacacsStatistics

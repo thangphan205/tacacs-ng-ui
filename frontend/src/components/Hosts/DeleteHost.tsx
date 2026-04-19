@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { FiTrash2 } from "react-icons/fi"
 
-import { HostPublic, HostsService } from "@/client"
+import { type HostPublic, HostsService } from "@/client"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -70,7 +70,9 @@ const DeleteHost = ({ host }: { host: HostPublic }) => {
             <DialogTitle>Delete Host</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Badge colorPalette="red" variant="solid">{host.name}</Badge>
+            <Badge colorPalette="red" variant="solid">
+              {host.name}
+            </Badge>
             <Text mb={4}>
               This item will be permanently deleted. Are you sure? You will not
               be able to undo this action.
@@ -97,8 +99,8 @@ const DeleteHost = ({ host }: { host: HostPublic }) => {
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent >
-    </DialogRoot >
+      </DialogContent>
+    </DialogRoot>
   )
 }
 

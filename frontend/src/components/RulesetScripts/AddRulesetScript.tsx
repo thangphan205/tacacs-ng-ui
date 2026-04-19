@@ -13,7 +13,12 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
 
-import { type RulesetScriptCreate, RulesetscriptsService, RulesetsService, TacacsGroupsService } from "@/client"
+import {
+  type RulesetScriptCreate,
+  RulesetscriptsService,
+  RulesetsService,
+  TacacsGroupsService,
+} from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -47,7 +52,7 @@ const AddRulesetScript = () => {
       key: "group",
       value: "",
       description: "",
-      action: "permit"
+      action: "permit",
     },
   })
 
@@ -55,9 +60,8 @@ const AddRulesetScript = () => {
 
   function getTacacsProfilesQueryOptions() {
     return {
-      queryFn: () =>
-        RulesetsService.readRulesets(),
-      queryKey: ["rulesets",],
+      queryFn: () => RulesetsService.readRulesets(),
+      queryKey: ["rulesets"],
     }
   }
   const { data: data_rulesets } = useQuery({
@@ -66,34 +70,38 @@ const AddRulesetScript = () => {
 
   function getTacacsGroupsQueryOptions() {
     return {
-      queryFn: () =>
-        TacacsGroupsService.readTacacsGroups(),
-      queryKey: ["tacacs_groups",],
+      queryFn: () => TacacsGroupsService.readTacacsGroups(),
+      queryKey: ["tacacs_groups"],
     }
   }
   const { data: data_groups } = useQuery({
     ...getTacacsGroupsQueryOptions(),
   })
 
-
-  let items_tacacs_rulesets = createListCollection<{ value: string; label: string }>({ items: [] });
+  const items_tacacs_rulesets = createListCollection<{
+    value: string
+    label: string
+  }>({ items: [] })
   if (data_rulesets && data_rulesets.data.length > 0) {
     data_rulesets.data.forEach((ruleset) => {
       items_tacacs_rulesets.items.push({
         value: ruleset.id,
         label: ruleset.name,
-      });
-    });
+      })
+    })
   }
 
-  let items_tacacs_groups = createListCollection<{ value: string; label: string }>({ items: [] });
+  const items_tacacs_groups = createListCollection<{
+    value: string
+    label: string
+  }>({ items: [] })
   if (data_groups && data_groups.data.length > 0) {
     data_groups.data.forEach((group) => {
       items_tacacs_groups.items.push({
         value: group.group_name,
         label: group.group_name,
-      });
-    });
+      })
+    })
   }
   const mutation = useMutation({
     mutationFn: (data: RulesetScriptCreate) =>
@@ -146,9 +154,8 @@ const AddRulesetScript = () => {
                   collection={items_tacacs_rulesets}
                   size="sm"
                   onValueChange={(selection) => {
-                    setValue("ruleset_id", selection.value.toString());
+                    setValue("ruleset_id", selection.value.toString())
                   }}
-
                 >
                   <Select.Trigger>
                     <Select.ValueText placeholder="Select Tacacs Profile" />

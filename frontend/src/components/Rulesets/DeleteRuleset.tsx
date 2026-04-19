@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { FiTrash2 } from "react-icons/fi"
 
-import { RulesetPublic, RulesetsService } from "@/client"
+import { type RulesetPublic, RulesetsService } from "@/client"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -70,7 +70,9 @@ const DeleteRuleset = ({ ruleset }: { ruleset: RulesetPublic }) => {
             <DialogTitle>Delete Ruleset</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Badge colorPalette="red" variant="solid">{ruleset.name}</Badge>
+            <Badge colorPalette="red" variant="solid">
+              {ruleset.name}
+            </Badge>
             <Text mb={4}>
               This item will be permanently deleted. Are you sure? You will not
               be able to undo this action.

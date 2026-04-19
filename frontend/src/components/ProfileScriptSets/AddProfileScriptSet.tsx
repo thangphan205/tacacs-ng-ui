@@ -15,7 +15,11 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
 
-import { type ProfileScriptSetCreate, ProfilescriptsetsService, ProfilescriptsService } from "@/client"
+import {
+  type ProfileScriptSetCreate,
+  ProfilescriptsetsService,
+  ProfilescriptsService,
+} from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -50,25 +54,27 @@ const AddProfileScriptSet = () => {
   })
   function getTacacsProfileScriptsQueryOptions() {
     return {
-      queryFn: () =>
-        ProfilescriptsService.readProfilescripts(),
-      queryKey: ["profilescripts",],
+      queryFn: () => ProfilescriptsService.readProfilescripts(),
+      queryKey: ["profilescripts"],
     }
   }
   const { data: data_profilescripts } = useQuery({
     ...getTacacsProfileScriptsQueryOptions(),
   })
 
-
-  let items_tacacs_profilescripts = createListCollection<{ value: string; label: string; description?: string }>({ items: [] });
+  const items_tacacs_profilescripts = createListCollection<{
+    value: string
+    label: string
+    description?: string
+  }>({ items: [] })
   if (data_profilescripts && data_profilescripts.data.length > 0) {
     data_profilescripts.data.forEach((profilescript) => {
       items_tacacs_profilescripts.items.push({
         value: profilescript.id,
-        label: "Profile: " + profilescript.profile_name || "No Profile",
-        description: "ProfileScript: " + profilescript.condition + "(" + profilescript.key + "==" + profilescript.value + ")",
-      });
-    });
+        label: `Profile: ${profilescript.profile_name}` || "No Profile",
+        description: `ProfileScript: ${profilescript.condition}(${profilescript.key}==${profilescript.value})`,
+      })
+    })
   }
 
   const mutation = useMutation({
@@ -122,9 +128,8 @@ const AddProfileScriptSet = () => {
                   collection={items_tacacs_profilescripts}
                   size="sm"
                   onValueChange={(selection) => {
-                    setValue("profilescript_id", selection.value.toString());
+                    setValue("profilescript_id", selection.value.toString())
                   }}
-
                 >
                   <Select.Trigger>
                     <Select.ValueText placeholder="Select Tacacs ProfileScript" />
@@ -212,7 +217,7 @@ const AddProfileScriptSet = () => {
         </form>
         <DialogCloseTrigger />
       </DialogContent>
-    </DialogRoot >
+    </DialogRoot>
   )
 }
 

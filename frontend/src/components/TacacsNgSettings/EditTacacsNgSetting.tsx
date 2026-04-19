@@ -11,7 +11,11 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
-import { type ApiError, type TacacsNgSettingPublic, TacacsNgSettingsService } from "@/client"
+import {
+  type ApiError,
+  type TacacsNgSettingPublic,
+  TacacsNgSettingsService,
+} from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -44,7 +48,9 @@ interface TacacsNgSettingUpdateForm {
   pap_backend: string
 }
 
-const EditTacacsNgSetting = ({ tacacs_ng_setting }: EditTacacsNgSettingProps) => {
+const EditTacacsNgSetting = ({
+  tacacs_ng_setting,
+}: EditTacacsNgSettingProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
@@ -63,9 +69,12 @@ const EditTacacsNgSetting = ({ tacacs_ng_setting }: EditTacacsNgSettingProps) =>
       instances_min: tacacs_ng_setting.instances_min ?? undefined,
       instances_max: tacacs_ng_setting.instances_max ?? undefined,
       background: tacacs_ng_setting.background ?? undefined,
-      access_logfile_destination: tacacs_ng_setting.access_logfile_destination ?? undefined,
-      accounting_logfile_destination: tacacs_ng_setting.accounting_logfile_destination ?? undefined,
-      authentication_logfile_destination: tacacs_ng_setting.authentication_logfile_destination ?? undefined,
+      access_logfile_destination:
+        tacacs_ng_setting.access_logfile_destination ?? undefined,
+      accounting_logfile_destination:
+        tacacs_ng_setting.accounting_logfile_destination ?? undefined,
+      authentication_logfile_destination:
+        tacacs_ng_setting.authentication_logfile_destination ?? undefined,
       login_backend: tacacs_ng_setting.login_backend ?? undefined,
       user_backend: tacacs_ng_setting.user_backend ?? undefined,
       pap_backend: tacacs_ng_setting.pap_backend ?? undefined,

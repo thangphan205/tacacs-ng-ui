@@ -1,3 +1,4 @@
+import { Chart, useChart } from "@chakra-ui/charts"
 import {
   Box,
   Container,
@@ -9,14 +10,13 @@ import {
   Input,
   Spinner,
   Table,
+  Tag,
   Text,
-  Tag
 } from "@chakra-ui/react"
-import { Chart, useChart } from "@chakra-ui/charts"
-import { Cell, LabelList, Legend, Pie, PieChart, Tooltip } from "recharts"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
+import { Cell, LabelList, Legend, Pie, PieChart, Tooltip } from "recharts"
 
 import {
   type ApiError,
@@ -40,49 +40,59 @@ export function TacacsStatistics() {
   } = useQuery<TacacsFileLogStatistics, ApiError>({
     queryKey: ["tacacs_statistics", selectedDate],
     queryFn: () =>
-      TacacsStatisticsService.getTacacsLogsStatistics({ dateStr: selectedDate }),
+      TacacsStatisticsService.getTacacsLogsStatistics({
+        dateStr: selectedDate,
+      }),
   })
-  console.log(stats);
+  console.log(stats)
 
   const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedDate(event.target.value)
   }
 
-
-  const color_chart = ["blue.500", "orange.500", "pink.500", "green.500", "red.500"]
-  const data_top_successful_login_users = stats?.top_successful_login_users.map((user, index) => ({
-    name: user.name,
-    value: user.count,
-    color: color_chart[index]
-  })) || []
+  const color_chart = [
+    "blue.500",
+    "orange.500",
+    "pink.500",
+    "green.500",
+    "red.500",
+  ]
+  const data_top_successful_login_users =
+    stats?.top_successful_login_users.map((user, index) => ({
+      name: user.name,
+      value: user.count,
+      color: color_chart[index],
+    })) || []
   const chart_top_successful_login_users = useChart({
-    data: data_top_successful_login_users
+    data: data_top_successful_login_users,
   })
 
-  const data_top_nas_ips = stats?.top_nas_ips.map((user, index) => ({
-    name: user.name,
-    value: user.count,
-    color: color_chart[index]
-  })) || []
+  const data_top_nas_ips =
+    stats?.top_nas_ips.map((user, index) => ({
+      name: user.name,
+      value: user.count,
+      color: color_chart[index],
+    })) || []
 
   const chart_top_nas_ips = useChart({
-    data: data_top_nas_ips
+    data: data_top_nas_ips,
   })
 
-  const data_top_access_ips = stats?.top_access_ips.map((item, index) => ({
-    name: item.name,
-    value: item.count,
-    color: color_chart[index]
-  })) || []
+  const data_top_access_ips =
+    stats?.top_access_ips.map((item, index) => ({
+      name: item.name,
+      value: item.count,
+      color: color_chart[index],
+    })) || []
 
   const chart_top_access_ips = useChart({
-    data: data_top_access_ips
+    data: data_top_access_ips,
   })
 
   const stats_summary = [
     { label: "Entries log", value: stats?.parsed_line_count },
     { label: "Successful logins", value: stats?.log_summary.successful },
-    { label: "Failed logins", value: stats?.log_summary.failed }
+    { label: "Failed logins", value: stats?.log_summary.failed },
   ]
   return (
     <Container maxW="full" py={8}>
@@ -118,13 +128,16 @@ export function TacacsStatistics() {
           }}
           gap={6}
         >
-
           <GridItem>
             <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
               <Heading size="md" mb={4}>
                 Top 5 Successful Login Users
               </Heading>
-              <Chart.Root boxSize="320px" mx="auto" chart={chart_top_successful_login_users}>
+              <Chart.Root
+                boxSize="320px"
+                mx="auto"
+                chart={chart_top_successful_login_users}
+              >
                 <PieChart>
                   <Tooltip
                     cursor={false}
@@ -139,7 +152,12 @@ export function TacacsStatistics() {
                   >
                     <LabelList position="inside" fill="white" stroke="none" />
                     {chart_top_successful_login_users.data.map((item) => (
-                      <Cell key={item.name} fill={chart_top_successful_login_users.color(item.color)} />
+                      <Cell
+                        key={item.name}
+                        fill={chart_top_successful_login_users.color(
+                          item.color,
+                        )}
+                      />
                     ))}
                   </Pie>
                 </PieChart>
@@ -166,7 +184,10 @@ export function TacacsStatistics() {
                   >
                     <LabelList position="inside" fill="white" stroke="none" />
                     {chart_top_nas_ips.data.map((item) => (
-                      <Cell key={item.name} fill={chart_top_nas_ips.color(item.color)} />
+                      <Cell
+                        key={item.name}
+                        fill={chart_top_nas_ips.color(item.color)}
+                      />
                     ))}
                   </Pie>
                 </PieChart>
@@ -178,7 +199,11 @@ export function TacacsStatistics() {
               <Heading size="md" mb={4}>
                 Top 5 Access IP
               </Heading>
-              <Chart.Root boxSize="320px" mx="auto" chart={chart_top_access_ips}>
+              <Chart.Root
+                boxSize="320px"
+                mx="auto"
+                chart={chart_top_access_ips}
+              >
                 <PieChart>
                   <Tooltip
                     cursor={false}
@@ -193,7 +218,10 @@ export function TacacsStatistics() {
                   >
                     <LabelList position="inside" fill="white" stroke="none" />
                     {chart_top_access_ips.data.map((item) => (
-                      <Cell key={item.name} fill={chart_top_access_ips.color(item.color)} />
+                      <Cell
+                        key={item.name}
+                        fill={chart_top_access_ips.color(item.color)}
+                      />
                     ))}
                   </Pie>
                 </PieChart>
@@ -213,11 +241,8 @@ export function TacacsStatistics() {
                   </DataList.Item>
                 ))}
               </DataList.Root>
-
             </Box>
           </GridItem>
-
-
 
           <GridItem>
             <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
@@ -229,7 +254,7 @@ export function TacacsStatistics() {
                   <Table.Row>
                     <Table.ColumnHeader>Username</Table.ColumnHeader>
                     <Table.ColumnHeader>Successful</Table.ColumnHeader>
-                    <Table.ColumnHeader >Failed</Table.ColumnHeader>
+                    <Table.ColumnHeader>Failed</Table.ColumnHeader>
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
@@ -237,16 +262,23 @@ export function TacacsStatistics() {
                     <Table.Row key={index}>
                       <Table.Cell>{item.user}</Table.Cell>
                       <Table.Cell>{item.successful}</Table.Cell>
-                      <Table.Cell>{item.failed > 0 ? (
-                        <Tag.Root size="md" colorPalette="red" variant="solid">
-                          <Tag.Label>{item.failed}</Tag.Label>
-                        </Tag.Root>
-                      ) : item.failed}</Table.Cell>
+                      <Table.Cell>
+                        {item.failed > 0 ? (
+                          <Tag.Root
+                            size="md"
+                            colorPalette="red"
+                            variant="solid"
+                          >
+                            <Tag.Label>{item.failed}</Tag.Label>
+                          </Tag.Root>
+                        ) : (
+                          item.failed
+                        )}
+                      </Table.Cell>
                     </Table.Row>
                   ))}
                 </Table.Body>
               </Table.Root>
-
             </Box>
           </GridItem>
 
@@ -263,24 +295,19 @@ export function TacacsStatistics() {
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
-                  {stats?.ip_access_by_users && Object.entries(stats.ip_access_by_users).map(([ip, users]) => (
-                    <Table.Row key={ip}>
-                      <Table.Cell>{ip}</Table.Cell>
-                      <Table.Cell>
-                        {users.join(", ")}
-                      </Table.Cell>
-                    </Table.Row>
-                  ))}
+                  {stats?.ip_access_by_users &&
+                    Object.entries(stats.ip_access_by_users).map(
+                      ([ip, users]) => (
+                        <Table.Row key={ip}>
+                          <Table.Cell>{ip}</Table.Cell>
+                          <Table.Cell>{users.join(", ")}</Table.Cell>
+                        </Table.Row>
+                      ),
+                    )}
                 </Table.Body>
               </Table.Root>
-
             </Box>
           </GridItem>
-
-
-
-
-
         </Grid>
       )}
     </Container>

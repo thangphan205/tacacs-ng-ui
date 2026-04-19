@@ -55,7 +55,7 @@ const ChangePassword = () => {
     },
     {
       text: "One special character (e.g. !@#$%)",
-      regex: /[!\"#$%&'()*+,-./:;<=>?@\[\\\]^_`{|}~]/,
+      regex: /[!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]/,
     },
   ]
 
@@ -108,7 +108,8 @@ const ChangePassword = () => {
                 hasNumber: (value) =>
                   /[0-9]/.test(value) || "Must contain one number.",
                 hasSpecial: (value) =>
-                  /[!\"#$%&'()*+,-./:;<=>?@\[\\\]^_`{|}~]/.test(value) || "Must contain one special character.",
+                  /[!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]/.test(value) ||
+                  "Must contain one special character.",
               },
             })}
             placeholder="New Password"

@@ -1,26 +1,26 @@
 import {
-  Container,
   Badge,
   Button,
+  Code,
+  Container,
   EmptyState,
   Flex,
   Heading,
   Table,
   VStack,
-  Code
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { FiSearch, FiEye } from "react-icons/fi"
+import { FiEye, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { TacacsConfigsService } from "@/client"
 import { TacacsConfigActionsMenu } from "@/components/Common/TacacsConfigActionsMenu"
+import PendingTacacsConfigs from "@/components/Pending/PendingTacacsConfigs"
 import AddTacacsConfig from "@/components/TacacsConfigs/AddTacacsConfig"
-import ShowTacacsConfig from "@/components/TacacsConfigs/ShowTacacsConfig"
 import PreviewTacacsConfig from "@/components/TacacsConfigs/PreviewTacacsConfig"
 import ShowActiveTacacsConfig from "@/components/TacacsConfigs/ShowActiveTacacsConfig"
-import PendingTacacsConfigs from "@/components/Pending/PendingTacacsConfigs"
+import ShowTacacsConfig from "@/components/TacacsConfigs/ShowTacacsConfig"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -37,7 +37,10 @@ const PER_PAGE = 5
 function getTacacsConfigsQueryOptions({ page }: { page: number }) {
   return {
     queryFn: () =>
-      TacacsConfigsService.readTacacsConfigs({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
+      TacacsConfigsService.readTacacsConfigs({
+        skip: (page - 1) * PER_PAGE,
+        limit: PER_PAGE,
+      }),
     queryKey: ["tacacs_configs", { page }],
   }
 }
@@ -78,7 +81,9 @@ function TacacsConfigsTable() {
             <FiSearch />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>You don't have any tacacs_configs yet</EmptyState.Title>
+            <EmptyState.Title>
+              You don't have any tacacs_configs yet
+            </EmptyState.Title>
             <EmptyState.Description>
               Add a new tacacs_config to get started
             </EmptyState.Description>
@@ -103,22 +108,33 @@ function TacacsConfigsTable() {
         </Table.Header>
         <Table.Body>
           {tacacs_configs?.map((tacacs_config) => (
-            <Table.Row key={tacacs_config.id} opacity={isPlaceholderData ? 0.5 : 1}>
+            <Table.Row
+              key={tacacs_config.id}
+              opacity={isPlaceholderData ? 0.5 : 1}
+            >
               <Table.Cell truncate maxW="sm">
                 {tacacs_config.id}
               </Table.Cell>
               <Table.Cell truncate maxW="sm" cursor="pointer">
                 <ShowTacacsConfig tacacs_config={tacacs_config}>
                   {tacacs_config.active ? (
-                    <Button colorPalette="green"><FiEye />{tacacs_config.filename}</Button>
+                    <Button colorPalette="green">
+                      <FiEye />
+                      {tacacs_config.filename}
+                    </Button>
                   ) : (
-                    <Button variant="ghost" colorPalette="gray"><FiEye />{tacacs_config.filename}</Button>
+                    <Button variant="ghost" colorPalette="gray">
+                      <FiEye />
+                      {tacacs_config.filename}
+                    </Button>
                   )}
                 </ShowTacacsConfig>
               </Table.Cell>
               <Table.Cell truncate maxW="sm">
                 {tacacs_config.active ? (
-                  <Badge variant="solid" colorPalette="green">Yes</Badge>
+                  <Badge variant="solid" colorPalette="green">
+                    Yes
+                  </Badge>
                 ) : (
                   <Badge>No</Badge>
                 )}
@@ -163,8 +179,9 @@ function TacacsConfigs() {
       <Heading size="lg" pt={12}>
         TacacsConfigs Management
       </Heading>
-      <Code size="md" colorPalette="red" variant="subtle" >
-        Whenever you change the TACACS configuration, you must generate and activate the new configuration.
+      <Code size="md" colorPalette="red" variant="subtle">
+        Whenever you change the TACACS configuration, you must generate and
+        activate the new configuration.
       </Code>
       <Flex gap={2}>
         <AddTacacsConfig />
@@ -172,6 +189,6 @@ function TacacsConfigs() {
         <ShowActiveTacacsConfig />
       </Flex>
       <TacacsConfigsTable />
-    </Container >
+    </Container>
   )
 }

@@ -34,6 +34,7 @@ import { Route as LayoutMavisesRouteImport } from './routes/_layout/mavises'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutHostsRouteImport } from './routes/_layout/hosts'
 import { Route as LayoutConfiguration_optionsRouteImport } from './routes/_layout/configuration_options'
+import { Route as LayoutAudit_logsRouteImport } from './routes/_layout/audit_logs'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutAaa_statistics_rangeRouteImport } from './routes/_layout/aaa_statistics_range'
 import { Route as LayoutAaa_statisticsRouteImport } from './routes/_layout/aaa_statistics'
@@ -166,6 +167,11 @@ const LayoutConfiguration_optionsRoute =
     path: '/configuration_options',
     getParentRoute: () => LayoutRoute,
   } as any)
+const LayoutAudit_logsRoute = LayoutAudit_logsRouteImport.update({
+  id: '/audit_logs',
+  path: '/audit_logs',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutAdminRoute = LayoutAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -195,6 +201,7 @@ const LayoutAdminAuthProvidersRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof LayoutIndexRoute
   '/login': typeof LoginRoute
   '/oauth-callback': typeof OauthCallbackRoute
   '/recover-password': typeof RecoverPasswordRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/aaa_statistics': typeof LayoutAaa_statisticsRoute
   '/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
   '/admin': typeof LayoutAdminRouteWithChildren
+  '/audit_logs': typeof LayoutAudit_logsRoute
   '/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/hosts': typeof LayoutHostsRoute
   '/items': typeof LayoutItemsRoute
@@ -221,7 +229,6 @@ export interface FileRoutesByFullPath {
   '/tacacs_services': typeof LayoutTacacs_servicesRoute
   '/tacacs_statistics': typeof LayoutTacacs_statisticsRoute
   '/tacacs_users': typeof LayoutTacacs_usersRoute
-  '/': typeof LayoutIndexRoute
   '/admin/auth-providers': typeof LayoutAdminAuthProvidersRoute
   '/admin/': typeof LayoutAdminIndexRoute
 }
@@ -233,6 +240,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/aaa_statistics': typeof LayoutAaa_statisticsRoute
   '/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
+  '/audit_logs': typeof LayoutAudit_logsRoute
   '/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/hosts': typeof LayoutHostsRoute
   '/items': typeof LayoutItemsRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/_layout/aaa_statistics': typeof LayoutAaa_statisticsRoute
   '/_layout/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
   '/_layout/admin': typeof LayoutAdminRouteWithChildren
+  '/_layout/audit_logs': typeof LayoutAudit_logsRoute
   '/_layout/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/_layout/hosts': typeof LayoutHostsRoute
   '/_layout/items': typeof LayoutItemsRoute
@@ -291,6 +300,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/login'
     | '/oauth-callback'
     | '/recover-password'
@@ -299,6 +309,7 @@ export interface FileRouteTypes {
     | '/aaa_statistics'
     | '/aaa_statistics_range'
     | '/admin'
+    | '/audit_logs'
     | '/configuration_options'
     | '/hosts'
     | '/items'
@@ -317,7 +328,6 @@ export interface FileRouteTypes {
     | '/tacacs_services'
     | '/tacacs_statistics'
     | '/tacacs_users'
-    | '/'
     | '/admin/auth-providers'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/aaa_statistics'
     | '/aaa_statistics_range'
+    | '/audit_logs'
     | '/configuration_options'
     | '/hosts'
     | '/items'
@@ -361,6 +372,7 @@ export interface FileRouteTypes {
     | '/_layout/aaa_statistics'
     | '/_layout/aaa_statistics_range'
     | '/_layout/admin'
+    | '/_layout/audit_logs'
     | '/_layout/configuration_options'
     | '/_layout/hosts'
     | '/_layout/items'
@@ -433,7 +445,7 @@ declare module '@tanstack/react-router' {
     '/_layout': {
       id: '/_layout'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof LayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -570,6 +582,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutConfiguration_optionsRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/audit_logs': {
+      id: '/_layout/audit_logs'
+      path: '/audit_logs'
+      fullPath: '/audit_logs'
+      preLoaderRoute: typeof LayoutAudit_logsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/admin': {
       id: '/_layout/admin'
       path: '/admin'
@@ -626,6 +645,7 @@ interface LayoutRouteChildren {
   LayoutAaa_statisticsRoute: typeof LayoutAaa_statisticsRoute
   LayoutAaa_statistics_rangeRoute: typeof LayoutAaa_statistics_rangeRoute
   LayoutAdminRoute: typeof LayoutAdminRouteWithChildren
+  LayoutAudit_logsRoute: typeof LayoutAudit_logsRoute
   LayoutConfiguration_optionsRoute: typeof LayoutConfiguration_optionsRoute
   LayoutHostsRoute: typeof LayoutHostsRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
@@ -651,6 +671,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAaa_statisticsRoute: LayoutAaa_statisticsRoute,
   LayoutAaa_statistics_rangeRoute: LayoutAaa_statistics_rangeRoute,
   LayoutAdminRoute: LayoutAdminRouteWithChildren,
+  LayoutAudit_logsRoute: LayoutAudit_logsRoute,
   LayoutConfiguration_optionsRoute: LayoutConfiguration_optionsRoute,
   LayoutHostsRoute: LayoutHostsRoute,
   LayoutItemsRoute: LayoutItemsRoute,

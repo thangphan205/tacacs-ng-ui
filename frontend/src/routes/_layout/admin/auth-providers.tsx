@@ -1,8 +1,16 @@
-import { Badge, Button, Container, Heading, HStack, Text, Tabs } from "@chakra-ui/react"
-import { LuFolder, LuSquareCheck, LuUser } from "react-icons/lu"
-import { createFileRoute } from "@tanstack/react-router"
+import {
+  Badge,
+  Button,
+  Container,
+  Heading,
+  HStack,
+  Tabs,
+  Text,
+} from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
+import { LuFolder, LuSquareCheck, LuUser } from "react-icons/lu"
 
 import { OpenAPI } from "@/client"
 import AuthProviderCard from "@/components/Admin/AuthProviderCard"
@@ -25,14 +33,26 @@ export const Route = createFileRoute("/_layout/admin/auth-providers")({
 
 const googleFields = [
   { key: "client_id", label: "Client ID" },
-  { key: "redirect_uri", label: "Redirect URI", placeholder: "https://api.example.com/api/v1/oauth/google/callback" },
+  {
+    key: "redirect_uri",
+    label: "Redirect URI",
+    placeholder: "https://api.example.com/api/v1/oauth/google/callback",
+  },
 ]
 
 const keycloakFields = [
-  { key: "server_url", label: "Server URL", placeholder: "http://localhost:8080" },
+  {
+    key: "server_url",
+    label: "Server URL",
+    placeholder: "http://localhost:8080",
+  },
   { key: "realm", label: "Realm", placeholder: "tacacs" },
   { key: "client_id", label: "Client ID" },
-  { key: "redirect_uri", label: "Redirect URI", placeholder: "https://api.example.com/api/v1/oauth/keycloak/callback" },
+  {
+    key: "redirect_uri",
+    label: "Redirect URI",
+    placeholder: "https://api.example.com/api/v1/oauth/keycloak/callback",
+  },
 ]
 
 function adminHeader() {
@@ -48,12 +68,21 @@ async function fetchProvider(provider: string) {
     { headers: adminHeader() },
   )
   if (!res.ok) throw new Error("Failed to fetch provider config")
-  return res.json() as Promise<{ provider: string; enabled: boolean; config: Record<string, string>; secret_is_set: boolean }>
+  return res.json() as Promise<{
+    provider: string
+    enabled: boolean
+    config: Record<string, string>
+    secret_is_set: boolean
+  }>
 }
 
 async function saveProvider(
   provider: string,
-  payload: { enabled?: boolean; config?: Record<string, string>; secret?: string },
+  payload: {
+    enabled?: boolean
+    config?: Record<string, string>
+    secret?: string
+  },
 ) {
   const res = await fetch(
     `${OpenAPI.BASE}/api/v1/admin/auth-providers/${provider}`,

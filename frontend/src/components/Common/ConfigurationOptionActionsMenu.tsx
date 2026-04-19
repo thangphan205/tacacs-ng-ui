@@ -9,7 +9,9 @@ interface ConfigurationOptionActionsMenuProps {
   configuration_option: ConfigurationOptionPublic
 }
 
-export const ConfigurationOptionActionsMenu = ({ configuration_option }: ConfigurationOptionActionsMenuProps) => {
+export const ConfigurationOptionActionsMenu = ({
+  configuration_option,
+}: ConfigurationOptionActionsMenuProps) => {
   return (
     <MenuRoot>
       <MenuTrigger asChild>
@@ -19,7 +21,9 @@ export const ConfigurationOptionActionsMenu = ({ configuration_option }: Configu
       </MenuTrigger>
       <MenuContent>
         <EditConfigurationOption configuration_option={configuration_option} />
-        <DeleteConfigurationOption configuration_option={configuration_option} />
+        <DeleteConfigurationOption
+          configuration_option={configuration_option}
+        />
       </MenuContent>
     </MenuRoot>
   )

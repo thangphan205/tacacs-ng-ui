@@ -1,18 +1,20 @@
+import re
 import uuid
 from typing import Any
-import re
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import col, delete, func, select
 
-from app.crud import users
 from app.api.deps import (
     CurrentUser,
     SessionDep,
+    SuperUser,
     get_current_active_superuser,
 )
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
+from app.crud import audit_logs as audit_logs_crud
+from app.crud import users
 from app.models import (
     Item,
     Message,
@@ -28,6 +30,8 @@ from app.models import (
 from app.utils import generate_new_account_email, send_email
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+_SENSITIVE = audit_logs_crud._SENSITIVE
 
 
 def validate_password_pci_dss(password: str) -> None:
@@ -79,10 +83,10 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
     return UsersPublic(data=users, count=count)
 
 
-@router.post(
-    "/", dependencies=[Depends(get_current_active_superuser)], response_model=UserPublic
-)
-def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
+@router.post("/", response_model=UserPublic)
+def create_user(
+    *, session: SessionDep, current_user: SuperUser, request: Request, user_in: UserCreate
+) -> Any:
     """
     Create new user.
     """
@@ -105,12 +109,20 @@ def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
             subject=email_data.subject,
             html_content=email_data.html_content,
         )
+    audit_logs_crud.log_entity_action(
+        session=session, action="CREATE", entity_type="User",
+        entity_id=str(user.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        new_values=user.model_dump_json(exclude=_SENSITIVE),
+    )
     return user
 
 
 @router.patch("/me", response_model=UserPublic)
 def update_user_me(
-    *, session: SessionDep, user_in: UserUpdateMe, current_user: CurrentUser
+    *, session: SessionDep, request: Request, user_in: UserUpdateMe, current_user: CurrentUser
 ) -> Any:
     """
     Update own user.
@@ -122,17 +134,27 @@ def update_user_me(
             raise HTTPException(
                 status_code=409, detail="User with this email already exists"
             )
+    old_values = current_user.model_dump_json(exclude=_SENSITIVE)
     user_data = user_in.model_dump(exclude_unset=True)
     current_user.sqlmodel_update(user_data)
     session.add(current_user)
     session.commit()
     session.refresh(current_user)
+    audit_logs_crud.log_entity_action(
+        session=session, action="UPDATE", entity_type="User",
+        entity_id=str(current_user.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=current_user.model_dump_json(exclude=_SENSITIVE),
+    )
     return current_user
 
 
 @router.patch("/me/password", response_model=Message)
 def update_password_me(
-    *, session: SessionDep, body: UpdatePassword, current_user: CurrentUser
+    *, session: SessionDep, request: Request, body: UpdatePassword, current_user: CurrentUser
 ) -> Any:
     """
     Update own password.
@@ -149,6 +171,14 @@ def update_password_me(
     current_user.hashed_password = hashed_password
     session.add(current_user)
     session.commit()
+    audit_logs_crud.log_entity_action(
+        session=session, action="UPDATE", entity_type="User",
+        entity_id=str(current_user.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        description="Password updated",
+    )
     return Message(message="Password updated successfully")
 
 
@@ -161,7 +191,9 @@ def read_user_me(current_user: CurrentUser) -> Any:
 
 
 @router.delete("/me", response_model=Message)
-def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
+def delete_user_me(
+    session: SessionDep, request: Request, current_user: CurrentUser
+) -> Any:
     """
     Delete own user.
     """
@@ -169,8 +201,20 @@ def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
         raise HTTPException(
             status_code=403, detail="Super users are not allowed to delete themselves"
         )
+    old_values = current_user.model_dump_json(exclude=_SENSITIVE)
+    user_id = current_user.id
+    user_email = current_user.email
+    ip = request.client.host if request.client else None
+    ua = request.headers.get("user-agent")
     session.delete(current_user)
     session.commit()
+    audit_logs_crud.log_entity_action(
+        session=session, action="DELETE", entity_type="User",
+        entity_id=str(user_id),
+        user_id=user_id, user_email=user_email,
+        ip_address=ip, user_agent=ua,
+        old_values=old_values,
+    )
     return Message(message="User deleted successfully")
 
 
@@ -217,12 +261,13 @@ def read_user_by_id(
 
 @router.patch(
     "/{user_id}",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=UserPublic,
 )
 def update_user(
     *,
     session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
     user_id: uuid.UUID,
     user_in: UserUpdate,
 ) -> Any:
@@ -246,13 +291,23 @@ def update_user(
     if user_in.password:
         validate_password_pci_dss(user_in.password)
 
+    old_values = db_user.model_dump_json(exclude=_SENSITIVE)
     db_user = users.update_user(session=session, db_user=db_user, user_in=user_in)
+    audit_logs_crud.log_entity_action(
+        session=session, action="UPDATE", entity_type="User",
+        entity_id=str(db_user.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=db_user.model_dump_json(exclude=_SENSITIVE),
+    )
     return db_user
 
 
 @router.delete("/{user_id}", dependencies=[Depends(get_current_active_superuser)])
 def delete_user(
-    session: SessionDep, current_user: CurrentUser, user_id: uuid.UUID
+    session: SessionDep, request: Request, current_user: CurrentUser, user_id: uuid.UUID
 ) -> Message:
     """
     Delete a user.
@@ -264,8 +319,17 @@ def delete_user(
         raise HTTPException(
             status_code=403, detail="Super users are not allowed to delete themselves"
         )
+    old_values = user.model_dump_json(exclude=_SENSITIVE)
     statement = delete(Item).where(col(Item.owner_id) == user_id)
     session.exec(statement)  # type: ignore
     session.delete(user)
     session.commit()
+    audit_logs_crud.log_entity_action(
+        session=session, action="DELETE", entity_type="User",
+        entity_id=str(user_id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+    )
     return Message(message="User deleted successfully")

@@ -1,25 +1,28 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import func, select
 
-from app.crud import hosts
 from app.api.deps import (
     SessionDep,
-    get_current_active_superuser,
+    SuperUser,
     get_current_user,
 )
+from app.crud import audit_logs as audit_logs_crud
+from app.crud import hosts
 from app.models import (
-    Message,
     Host,
     HostCreate,
     HostPublic,
     HostsPublic,
     HostUpdate,
+    Message,
 )
 
 router = APIRouter(prefix="/hosts", tags=["hosts"])
+
+_SENSITIVE = audit_logs_crud._SENSITIVE
 
 
 @router.get(
@@ -43,10 +46,11 @@ def read_hosts(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
 
 @router.post(
     "/",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=HostPublic,
 )
-def create_host(*, session: SessionDep, host_in: HostCreate) -> Any:
+def create_host(
+    *, session: SessionDep, current_user: SuperUser, request: Request, host_in: HostCreate
+) -> Any:
     """
     Create new host.
     """
@@ -58,6 +62,14 @@ def create_host(*, session: SessionDep, host_in: HostCreate) -> Any:
         )
 
     host = hosts.create_host(session=session, host_create=host_in)
+    audit_logs_crud.log_entity_action(
+        session=session, action="CREATE", entity_type="Host",
+        entity_id=str(host.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        new_values=host.model_dump_json(exclude=_SENSITIVE),
+    )
     return host
 
 
@@ -79,12 +91,13 @@ def read_host_by_id(
 
 @router.put(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=HostPublic,
 )
 def update_host(
     *,
     session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
     id: uuid.UUID,
     host_in: HostUpdate,
 ) -> Any:
@@ -97,15 +110,26 @@ def update_host(
             status_code=404,
             detail="The host with this id does not exist in the system",
         )
+    old_values = db_host.model_dump_json(exclude=_SENSITIVE)
     db_host = hosts.update_host(session=session, db_host=db_host, host_in=host_in)
+    audit_logs_crud.log_entity_action(
+        session=session, action="UPDATE", entity_type="Host",
+        entity_id=str(db_host.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=db_host.model_dump_json(exclude=_SENSITIVE),
+    )
     return db_host
 
 
 @router.delete(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
 )
-def delete_host(session: SessionDep, id: uuid.UUID) -> Message:
+def delete_host(
+    session: SessionDep, current_user: SuperUser, request: Request, id: uuid.UUID
+) -> Message:
     """
     Delete a host.
     """
@@ -113,6 +137,15 @@ def delete_host(session: SessionDep, id: uuid.UUID) -> Message:
     if not host:
         raise HTTPException(status_code=404, detail="Host not found")
 
+    old_values = host.model_dump_json(exclude=_SENSITIVE)
     session.delete(host)
     session.commit()
+    audit_logs_crud.log_entity_action(
+        session=session, action="DELETE", entity_type="Host",
+        entity_id=str(id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+    )
     return Message(message="Host deleted successfully")

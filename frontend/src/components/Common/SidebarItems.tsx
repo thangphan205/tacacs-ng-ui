@@ -2,6 +2,7 @@ import { Box, Flex, Icon, Text } from "@chakra-ui/react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link as RouterLink } from "@tanstack/react-router"
 import {
+  FiActivity,
   FiArchive,
   FiCode,
   FiDatabase,
@@ -10,10 +11,10 @@ import {
   FiHome,
   FiLayers,
   FiList,
-  FiSettings,
   FiServer,
-  FiSliders,
+  FiSettings,
   FiShield,
+  FiSliders,
   FiUser,
   FiUsers,
 } from "react-icons/fi"
@@ -23,17 +24,37 @@ import type { UserPublic } from "@/client"
 const items = [
   { icon: FiHome, title: "Dashboard", path: "/", level: 1 },
   // { icon: FiHome, title: "Statistics", path: "/tacacs_statistics", level: 1 },
-  { icon: FiArchive, title: "Tacacs configs", path: "/tacacs_configs", level: 1 },
+  {
+    icon: FiArchive,
+    title: "Tacacs configs",
+    path: "/tacacs_configs",
+    level: 1,
+  },
   { icon: FiServer, title: "Hosts", path: "/hosts", level: 1 },
   { icon: FiUsers, title: "Tacacs Groups", path: "/tacacs_groups", level: 1 },
   { icon: FiUser, title: "Tacacs Users", path: "/tacacs_users", level: 1 },
-  { icon: FiGrid, title: "Tacacs Services", path: "/tacacs_services", level: 1 },
+  {
+    icon: FiGrid,
+    title: "Tacacs Services",
+    path: "/tacacs_services",
+    level: 1,
+  },
   { icon: FiFileText, title: "Profiles", path: "/profiles", level: 1 },
   { icon: FiCode, title: "Profiles Script", path: "/profilescripts", level: 2 },
-  { icon: FiLayers, title: "Profiles Script Set", path: "/profilescriptsets", level: 2 },
+  {
+    icon: FiLayers,
+    title: "Profiles Script Set",
+    path: "/profilescriptsets",
+    level: 2,
+  },
   { icon: FiShield, title: "Rulesets", path: "/rulesets", level: 1 },
   { icon: FiCode, title: "Rulesets Script", path: "/rulesetscripts", level: 2 },
-  { icon: FiLayers, title: "Rulesets Script Set", path: "/rulesetscriptsets", level: 2 },
+  {
+    icon: FiLayers,
+    title: "Rulesets Script Set",
+    path: "/rulesetscriptsets",
+    level: 2,
+  },
   {
     icon: FiSettings,
     title: "Tacacs-ng Settings",
@@ -41,7 +62,12 @@ const items = [
     level: 1,
   },
   { icon: FiDatabase, title: "Mavis Settings", path: "/mavises", level: 1 },
-  { icon: FiSliders, title: "Configuration Options", path: "/configuration_options", level: 1 },
+  {
+    icon: FiSliders,
+    title: "Configuration Options",
+    path: "/configuration_options",
+    level: 1,
+  },
   { icon: FiList, title: "Tacacs logs", path: "/tacacs_logs", level: 1 },
   { icon: FiSettings, title: "User Settings", path: "/settings", level: 1 },
 ]
@@ -63,10 +89,21 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
 
   const finalItems: Item[] = currentUser?.is_superuser
     ? [
-      ...items,
-      { icon: FiUsers, title: "Admin", path: "/admin", level: 1 },
-      { icon: FiShield, title: "Auth Providers", path: "/admin/auth-providers", level: 1 },
-    ]
+        ...items,
+        {
+          icon: FiActivity,
+          title: "Audit Logs",
+          path: "/audit_logs",
+          level: 1,
+        },
+        { icon: FiUsers, title: "Admin", path: "/admin", level: 1 },
+        {
+          icon: FiShield,
+          title: "Auth Providers",
+          path: "/admin/auth-providers",
+          level: 1,
+        },
+      ]
     : items
 
   const listItems = finalItems.map(({ icon, title, path, level }) => (

@@ -1,4 +1,12 @@
-import { Container, Icon, Image, Input, Link, Separator, Text } from "@chakra-ui/react"
+import {
+  Container,
+  Icon,
+  Image,
+  Input,
+  Link,
+  Separator,
+  Text,
+} from "@chakra-ui/react"
 import { startAuthentication } from "@simplewebauthn/browser"
 import {
   createFileRoute,
@@ -8,8 +16,8 @@ import {
 } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
-import { FiGithub, FiLock, FiMail } from "react-icons/fi"
 import { FcGoogle } from "react-icons/fc"
+import { FiGithub, FiLock, FiMail } from "react-icons/fi"
 
 import type { Body_login_login_access_token as AccessToken } from "@/client"
 import { OpenAPI } from "@/client"
@@ -74,7 +82,10 @@ function Login() {
       }
       window.location.href = data.url
     } catch {
-      handleError({ status: 0, body: { detail: "Could not reach the server." } } as never)
+      handleError({
+        status: 0,
+        body: { detail: "Could not reach the server." },
+      } as never)
     }
   }
 
@@ -88,16 +99,23 @@ function Login() {
       }
       window.location.href = data.url
     } catch {
-      handleError({ status: 0, body: { detail: "Could not reach the server." } } as never)
+      handleError({
+        status: 0,
+        body: { detail: "Could not reach the server." },
+      } as never)
     }
   }
 
   const handlePasskeyLogin = async () => {
     try {
-      const beginRes = await fetch(`${OpenAPI.BASE}/api/v1/passkeys/authenticate/begin`, {
-        method: "POST",
-      })
-      if (!beginRes.ok) throw new Error("Failed to begin passkey authentication")
+      const beginRes = await fetch(
+        `${OpenAPI.BASE}/api/v1/passkeys/authenticate/begin`,
+        {
+          method: "POST",
+        },
+      )
+      if (!beginRes.ok)
+        throw new Error("Failed to begin passkey authentication")
       const options = await beginRes.json()
 
       const credential = await startAuthentication({ optionsJSON: options })
@@ -119,7 +137,10 @@ function Login() {
       navigate({ to: "/" })
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "NotAllowedError") return
-      handleError({ status: 0, body: { detail: (err as Error).message } } as never)
+      handleError({
+        status: 0,
+        body: { detail: (err as Error).message },
+      } as never)
     }
   }
 
@@ -133,7 +154,8 @@ function Login() {
     }
   }
 
-  const hasOAuthProviders = providers.google || providers.keycloak || providers.passkey
+  const hasOAuthProviders =
+    providers.google || providers.keycloak || providers.passkey
 
   return (
     <Container
@@ -186,20 +208,35 @@ function Login() {
       {hasOAuthProviders && <Separator />}
 
       {providers.google && (
-        <Button variant="outline" size="md" onClick={handleGoogleLogin} type="button">
+        <Button
+          variant="outline"
+          size="md"
+          onClick={handleGoogleLogin}
+          type="button"
+        >
           <FcGoogle />
           Sign in with Google
         </Button>
       )}
 
       {providers.keycloak && (
-        <Button variant="outline" size="md" onClick={handleKeycloakLogin} type="button">
+        <Button
+          variant="outline"
+          size="md"
+          onClick={handleKeycloakLogin}
+          type="button"
+        >
           Sign in with Keycloak
         </Button>
       )}
 
       {providers.passkey && (
-        <Button variant="outline" size="md" onClick={handlePasskeyLogin} type="button">
+        <Button
+          variant="outline"
+          size="md"
+          onClick={handlePasskeyLogin}
+          type="button"
+        >
           Sign in with a Passkey
         </Button>
       )}
@@ -217,7 +254,9 @@ function Login() {
         rel="noopener noreferrer"
       >
         <Icon as={FiGithub} />
-        <Text fontSize="sm" fontWeight="bold">Version {version}</Text>
+        <Text fontSize="sm" fontWeight="bold">
+          Version {version}
+        </Text>
       </Link>
     </Container>
   )

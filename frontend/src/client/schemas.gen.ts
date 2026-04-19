@@ -367,6 +367,138 @@ export const AccountingStatisticsPublicSchema = {
     title: 'AccountingStatisticsPublic'
 } as const;
 
+export const AuditLogPublicSchema = {
+    properties: {
+        action: {
+            type: 'string',
+            maxLength: 50,
+            title: 'Action'
+        },
+        entity_type: {
+            type: 'string',
+            maxLength: 100,
+            title: 'Entity Type'
+        },
+        entity_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Entity Id'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        user_agent: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 512
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'User Agent'
+        },
+        old_values: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Old Values'
+        },
+        new_values: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'New Values'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        user_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'User Id'
+        },
+        user_email: {
+            type: 'string',
+            title: 'User Email'
+        },
+        ip_address: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ip Address'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        }
+    },
+    type: 'object',
+    required: ['action', 'entity_type', 'id', 'user_id', 'user_email', 'ip_address', 'created_at'],
+    title: 'AuditLogPublic'
+} as const;
+
+export const AuditLogsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/AuditLogPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'AuditLogsPublic'
+} as const;
+
 export const AuthProviderConfigPublicSchema = {
     properties: {
         provider: {
@@ -3534,10 +3666,14 @@ export const UserPublicSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Updated At'
+        },
+        password_login_disabled: {
+            type: 'boolean',
+            title: 'Password Login Disabled'
         }
     },
     type: 'object',
-    required: ['email', 'id', 'created_at', 'updated_at'],
+    required: ['email', 'id', 'created_at', 'updated_at', 'password_login_disabled'],
     title: 'UserPublic'
 } as const;
 
@@ -3654,6 +3790,17 @@ export const UserUpdateMeSchema = {
                 }
             ],
             title: 'Email'
+        },
+        password_login_disabled: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Password Login Disabled'
         }
     },
     type: 'object',

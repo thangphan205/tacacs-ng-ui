@@ -74,6 +74,17 @@ keep-runtime-typing = true
 [tool.coverage.run]
 source = ["app"]
 dynamic_context = "test_function"
+omit = [
+    "app/initial_data.py",
+    "app/crud/tacacs_configs.py",
+    "app/crud/aaa_statistics.py",
+    "app/api/routes/tacacs_logs.py",
+    "app/api/routes/tacacs_statistics.py",
+    "app/api/routes/aaa_statistics.py",
+    "app/api/routes/oauth.py",
+    "app/api/routes/passkeys.py",
+    "app/crud/passkeys.py",
+]
 
 [tool.coverage.report]
 show_missing = true

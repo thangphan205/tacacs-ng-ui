@@ -1,24 +1,26 @@
 import {
   Badge,
+  Box,
   Button,
   ButtonGroup,
-  Box,
+  CodeBlock,
+  createShikiAdapter,
   Spinner,
   Text,
   VStack,
-  createShikiAdapter,
-  CodeBlock
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type React from "react"
 import { useState } from "react"
 import { FaEye } from "react-icons/fa"
-import React from "react"
+import type { HighlighterGeneric } from "shiki"
 import {
   type ApiError,
   type TacacsConfigPublic,
-  type TacacsConfigUpdate,
   TacacsConfigsService,
+  type TacacsConfigUpdate,
 } from "@/client"
+import { useColorMode } from "@/components/ui/color-mode"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -31,10 +33,7 @@ import {
   DialogRoot,
   DialogTitle,
   DialogTrigger,
-} from "../ui/dialog";
-import type { HighlighterGeneric } from "shiki"
-import { useColorMode } from "@/components/ui/color-mode"
-
+} from "../ui/dialog"
 
 interface ShowTacacsConfigProps {
   tacacs_config: TacacsConfigPublic
@@ -69,7 +68,12 @@ const ShowTacacsConfig = ({
   const [isOpen, setIsOpen] = useState(false)
   const { colorMode } = useColorMode()
   const queryClient = useQueryClient()
-  const [checkResult, setCheckResult] = useState<CheckTacacsConfigProps>({ status: "", raw_output: "", line: -1, message: "" })
+  const [checkResult, setCheckResult] = useState<CheckTacacsConfigProps>({
+    status: "",
+    raw_output: "",
+    line: -1,
+    message: "",
+  })
   const { showSuccessToast } = useCustomToast()
 
   const mutation = useMutation({
@@ -92,8 +96,9 @@ const ShowTacacsConfig = ({
 
   const mutation2 = useMutation<CheckTacacsConfigProps, ApiError>({
     mutationFn: () =>
-      TacacsConfigsService.checkTacacsConfigById({ // This service call returns `unknown`
-        id: tacacs_config.id
+      TacacsConfigsService.checkTacacsConfigById({
+        // This service call returns `unknown`
+        id: tacacs_config.id,
       }) as Promise<CheckTacacsConfigProps>, // We cast it to the correct type
     onSuccess: (data) => {
       setCheckResult(data)
@@ -108,7 +113,8 @@ const ShowTacacsConfig = ({
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["tacacs_config", tacacs_config.id],
-    queryFn: () => TacacsConfigsService.readTacacsConfigById({ id: tacacs_config.id }),
+    queryFn: () =>
+      TacacsConfigsService.readTacacsConfigById({ id: tacacs_config.id }),
     enabled: isOpen, // Only fetch when the dialog is open
   })
 
@@ -121,7 +127,6 @@ const ShowTacacsConfig = ({
   const onCheck = () => {
     mutation2.mutate()
   }
-
 
   return (
     <DialogRoot
@@ -140,9 +145,7 @@ const ShowTacacsConfig = ({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            Configuration for: {tacacs_config.filename}
-          </DialogTitle>
+          <DialogTitle>Configuration for: {tacacs_config.filename}</DialogTitle>
         </DialogHeader>
         <DialogBody>
           {isLoading ? (
@@ -158,7 +161,6 @@ const ShowTacacsConfig = ({
                 meta={{ showLineNumbers: true, colorScheme: colorMode }}
                 maxH="400px"
                 overflowY="auto"
-
               >
                 <CodeBlock.Content>
                   <CodeBlock.Code>
@@ -172,7 +174,13 @@ const ShowTacacsConfig = ({
           )}
           {checkResult.line > -1 && (
             <Box p={2}>
-              <Badge colorPalette={checkResult.line === 0 ? "green" : "red"} variant="solid" w="full" p={2} borderRadius="md">
+              <Badge
+                colorPalette={checkResult.line === 0 ? "green" : "red"}
+                variant="solid"
+                w="full"
+                p={2}
+                borderRadius="md"
+              >
                 <VStack align="start">
                   <Text textStyle="md">Error Line: {checkResult.line}</Text>
                   <Text textStyle="md">Message: {checkResult.message}</Text>
@@ -210,8 +218,6 @@ const ShowTacacsConfig = ({
           </ButtonGroup>
         </DialogFooter>
         <DialogCloseTrigger />
-
-
       </DialogContent>
     </DialogRoot>
   )

@@ -9,7 +9,9 @@ interface ProfileScriptSetActionsMenuProps {
   profilescriptset: ProfileScriptSetPublic
 }
 
-export const ProfileScriptSetActionsMenu = ({ profilescriptset }: ProfileScriptSetActionsMenuProps) => {
+export const ProfileScriptSetActionsMenu = ({
+  profilescriptset,
+}: ProfileScriptSetActionsMenuProps) => {
   return (
     <MenuRoot>
       <MenuTrigger asChild>

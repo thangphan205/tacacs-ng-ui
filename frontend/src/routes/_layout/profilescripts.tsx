@@ -13,9 +13,9 @@ import { z } from "zod"
 
 import { ProfilescriptsService } from "@/client"
 import { ProfileScriptActionsMenu } from "@/components/Common/ProfileScriptActionsMenu"
-import PreviewProfile from "@/components/Profiles/PreviewProfile"
-import AddProfileScript from "@/components/ProfileScripts/AddProfileScript"
 import PendingProfileScripts from "@/components/Pending/PendingProfileScripts"
+import AddProfileScript from "@/components/ProfileScripts/AddProfileScript"
+import PreviewProfile from "@/components/Profiles/PreviewProfile"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -32,7 +32,10 @@ const PER_PAGE = 5
 function getProfileScriptsQueryOptions({ page }: { page: number }) {
   return {
     queryFn: () =>
-      ProfilescriptsService.readProfilescripts({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
+      ProfilescriptsService.readProfilescripts({
+        skip: (page - 1) * PER_PAGE,
+        limit: PER_PAGE,
+      }),
     queryKey: ["profilescripts", { page }],
   }
 }
@@ -73,7 +76,9 @@ function ProfileScriptsTable() {
             <FiSearch />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>You don't have any profilescripts yet</EmptyState.Title>
+            <EmptyState.Title>
+              You don't have any profilescripts yet
+            </EmptyState.Title>
             <EmptyState.Description>
               Add a new profilescript to get started
             </EmptyState.Description>
@@ -100,7 +105,10 @@ function ProfileScriptsTable() {
         </Table.Header>
         <Table.Body>
           {profilescripts?.map((profilescript) => (
-            <Table.Row key={profilescript.id} opacity={isPlaceholderData ? 0.5 : 1}>
+            <Table.Row
+              key={profilescript.id}
+              opacity={isPlaceholderData ? 0.5 : 1}
+            >
               <Table.Cell truncate maxW="sm">
                 {profilescript.id}
               </Table.Cell>

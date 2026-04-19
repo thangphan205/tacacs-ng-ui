@@ -13,8 +13,8 @@ import { z } from "zod"
 
 import { TacacsGroupsService } from "@/client"
 import { TacacsGroupActionsMenu } from "@/components/Common/TacacsGroupActionsMenu"
-import AddTacacsGroup from "@/components/TacacsGroups/AddTacacsGroup"
 import PendingTacacsGroups from "@/components/Pending/PendingTacacsGroups"
+import AddTacacsGroup from "@/components/TacacsGroups/AddTacacsGroup"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -31,7 +31,10 @@ const PER_PAGE = 5
 function getTacacsGroupsQueryOptions({ page }: { page: number }) {
   return {
     queryFn: () =>
-      TacacsGroupsService.readTacacsGroups({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
+      TacacsGroupsService.readTacacsGroups({
+        skip: (page - 1) * PER_PAGE,
+        limit: PER_PAGE,
+      }),
     queryKey: ["tacacs_groups", { page }],
   }
 }
@@ -72,7 +75,9 @@ function TacacsGroupsTable() {
             <FiSearch />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>You don't have any tacacs_groups yet</EmptyState.Title>
+            <EmptyState.Title>
+              You don't have any tacacs_groups yet
+            </EmptyState.Title>
             <EmptyState.Description>
               Add a new tacacs_group to get started
             </EmptyState.Description>
@@ -95,7 +100,10 @@ function TacacsGroupsTable() {
         </Table.Header>
         <Table.Body>
           {tacacs_groups?.map((tacacs_group) => (
-            <Table.Row key={tacacs_group.id} opacity={isPlaceholderData ? 0.5 : 1}>
+            <Table.Row
+              key={tacacs_group.id}
+              opacity={isPlaceholderData ? 0.5 : 1}
+            >
               <Table.Cell truncate maxW="sm">
                 {tacacs_group.id}
               </Table.Cell>

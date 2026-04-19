@@ -1,24 +1,28 @@
 import uuid
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import func, select
 
-from app.crud import configuration_options
 from app.api.deps import (
     SessionDep,
-    get_current_active_superuser,
+    SuperUser,
     get_current_user,
 )
+from app.crud import audit_logs as audit_logs_crud
+from app.crud import configuration_options
 from app.models import (
-    Message,
     ConfigurationOption,
     ConfigurationOptionCreate,
     ConfigurationOptionPublic,
     ConfigurationOptionsPublic,
     ConfigurationOptionUpdate,
+    Message,
 )
 
 router = APIRouter(prefix="/configuration_options", tags=["configuration_options"])
+
+_SENSITIVE = audit_logs_crud._SENSITIVE
 
 
 @router.get(
@@ -44,11 +48,14 @@ def read_configuration_options(
 
 @router.post(
     "/",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=ConfigurationOptionPublic,
 )
 def create_configuration_option(
-    *, session: SessionDep, configuration_option_in: ConfigurationOptionCreate
+    *,
+    session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
+    configuration_option_in: ConfigurationOptionCreate,
 ) -> Any:
     """
     Create new configuration_option.
@@ -64,6 +71,14 @@ def create_configuration_option(
 
     configuration_option = configuration_options.create_configuration_option(
         session=session, configuration_option_create=configuration_option_in
+    )
+    audit_logs_crud.log_entity_action(
+        session=session, action="CREATE", entity_type="ConfigurationOption",
+        entity_id=str(configuration_option.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        new_values=configuration_option.model_dump_json(exclude=_SENSITIVE),
     )
     return configuration_option
 
@@ -88,12 +103,13 @@ def read_configuration_option_by_id(
 
 @router.put(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
     response_model=ConfigurationOptionPublic,
 )
 def update_configuration_option(
     *,
     session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
     id: uuid.UUID,
     configuration_option_in: ConfigurationOptionUpdate,
 ) -> Any:
@@ -108,19 +124,30 @@ def update_configuration_option(
             detail="The configuration_option with this id does not exist in the system",
         )
 
+    old_values = db_configuration_option.model_dump_json(exclude=_SENSITIVE)
     db_configuration_option = configuration_options.update_configuration_option(
         session=session,
         db_configuration_option=db_configuration_option,
         configuration_option_in=configuration_option_in,
+    )
+    audit_logs_crud.log_entity_action(
+        session=session, action="UPDATE", entity_type="ConfigurationOption",
+        entity_id=str(db_configuration_option.id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=db_configuration_option.model_dump_json(exclude=_SENSITIVE),
     )
     return db_configuration_option
 
 
 @router.delete(
     "/{id}",
-    dependencies=[Depends(get_current_active_superuser)],
 )
-def delete_configuration_option(session: SessionDep, id: uuid.UUID) -> Message:
+def delete_configuration_option(
+    session: SessionDep, current_user: SuperUser, request: Request, id: uuid.UUID
+) -> Message:
     """
     Delete a configuration option.
     """
@@ -129,6 +156,15 @@ def delete_configuration_option(session: SessionDep, id: uuid.UUID) -> Message:
     if not configuration_option:
         raise HTTPException(status_code=404, detail="ConfigurationOption not found")
 
+    old_values = configuration_option.model_dump_json(exclude=_SENSITIVE)
     session.delete(configuration_option)
     session.commit()
+    audit_logs_crud.log_entity_action(
+        session=session, action="DELETE", entity_type="ConfigurationOption",
+        entity_id=str(id),
+        user_id=current_user.id, user_email=current_user.email,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+    )
     return Message(message="ConfigurationOption deleted successfully")

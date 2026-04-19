@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     admin_auth,
+    audit_logs,
     items,
     login,
     oauth,
@@ -54,6 +55,7 @@ api_router.include_router(hosts.router)
 api_router.include_router(rulesets.router)
 api_router.include_router(rulesetscripts.router)
 api_router.include_router(rulesetscriptsets.router)
+api_router.include_router(audit_logs.router)
 api_router.include_router(tacacs_logs.router)
 api_router.include_router(tacacs_statistics.router)
 api_router.include_router(configuration_options.router)
