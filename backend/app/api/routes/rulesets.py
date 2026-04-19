@@ -8,6 +8,7 @@ from app.api.deps import (
     CurrentUser,
     SessionDep,
     SuperUser,
+    get_client_ip,
     get_current_user,
 )
 from app.crud import audit_logs as audit_logs_crud
@@ -97,7 +98,7 @@ def create_ruleset(
         session=session, action="CREATE", entity_type="Ruleset",
         entity_id=str(ruleset.id),
         user_id=current_user.id, user_email=current_user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=ruleset.model_dump_json(exclude=_SENSITIVE),
     )
@@ -149,7 +150,7 @@ def update_ruleset(
         session=session, action="UPDATE", entity_type="Ruleset",
         entity_id=str(db_ruleset.id),
         user_id=current_user.id, user_email=current_user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
         new_values=db_ruleset.model_dump_json(exclude=_SENSITIVE),
@@ -177,7 +178,7 @@ def delete_ruleset(
         session=session, action="DELETE", entity_type="Ruleset",
         entity_id=str(id),
         user_id=current_user.id, user_email=current_user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
     )

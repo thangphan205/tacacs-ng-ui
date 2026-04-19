@@ -1,18 +1,14 @@
-import uuid
 from datetime import datetime, time, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import func, select
-
 
 from app.api.deps import SessionDep, get_current_user
-from app.models import (
-    AaaStatisticsTodayPublic,
-    AaaStatisticsDateRangePublic,
-)
 from app.crud import aaa_statistics
-
+from app.models import (
+    AaaStatisticsDateRangePublic,
+    AaaStatisticsTodayPublic,
+)
 
 router = APIRouter(prefix="/aaa_statistics", tags=["aaa_statistics"])
 

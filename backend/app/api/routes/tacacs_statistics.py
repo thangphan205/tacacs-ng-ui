@@ -1,13 +1,14 @@
-import os
-from datetime import datetime
-from typing import Any, List, Dict
 import logging
+import os
 import re
 from collections import Counter, defaultdict
+from datetime import datetime
+from typing import Any
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from app.api.deps import SessionDep, get_current_user
+from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/tacacs_statistics", tags=["tacacs_statistics"])
 
@@ -46,11 +47,11 @@ class UserLoginBreakdown(BaseModel):
 class TacacsFileLogStatistics(BaseModel):
     parsed_line_count: int
     log_summary: LogSummary
-    top_successful_login_users: List[TopEntry]
-    top_nas_ips: List[TopEntry]
-    top_access_ips: List[TopEntry]
-    ip_access_by_users: Dict[str, List[str]]
-    user_login_breakdown: List[UserLoginBreakdown]
+    top_successful_login_users: list[TopEntry]
+    top_nas_ips: list[TopEntry]
+    top_access_ips: list[TopEntry]
+    ip_access_by_users: dict[str, list[str]]
+    user_login_breakdown: list[UserLoginBreakdown]
 
 
 @router.get(
@@ -112,7 +113,7 @@ def get_tacacs_logs_statistics(date_str: str | None = None) -> Any:
 
     logging.info(f"Processing file: {target_filename}")
 
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         for line in f:
             match = LOG_PATTERN.match(line.strip())
             if not match:

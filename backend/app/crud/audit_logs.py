@@ -39,9 +39,13 @@ def get_audit_logs(
     skip: int = 0,
     limit: int = 100,
     search: str | None = None,
+    user_id: uuid.UUID | None = None,
 ) -> tuple[list[AuditLog], int]:
     stmt = select(AuditLog)
     count_stmt = select(func.count()).select_from(AuditLog)
+    if user_id is not None:
+        stmt = stmt.where(AuditLog.user_id == user_id)
+        count_stmt = count_stmt.where(AuditLog.user_id == user_id)
     if search:
         f = (
             AuditLog.user_email.contains(search)

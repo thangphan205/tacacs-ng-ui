@@ -1,10 +1,10 @@
 import os
-from datetime import datetime
-from typing import Any, List
 import uuid
+from datetime import datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select, func
+from sqlmodel import func, select
 
 from app.api.deps import SessionDep, get_current_user
 from app.models import TacacsLog, TacacsLogPublic, TacacsLogsPublic
@@ -104,7 +104,7 @@ def read_log_file(
         raise HTTPException(status_code=404, detail="Log file not found.")
 
     try:
-        with open(log_path, "r", errors="ignore") as f:
+        with open(log_path, errors="ignore") as f:
             file_content_lines = f.readlines()
 
         if search:

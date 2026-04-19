@@ -87,24 +87,26 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const queryClient = useQueryClient()
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
 
-  const finalItems: Item[] = currentUser?.is_superuser
-    ? [
-        ...items,
-        {
-          icon: FiActivity,
-          title: "Audit Logs",
-          path: "/audit_logs",
-          level: 1,
-        },
-        { icon: FiUsers, title: "Admin", path: "/admin", level: 1 },
-        {
-          icon: FiShield,
-          title: "Auth Providers",
-          path: "/admin/auth-providers",
-          level: 1,
-        },
-      ]
-    : items
+  const finalItems: Item[] = [
+    ...items,
+    {
+      icon: FiActivity,
+      title: "Audit Logs",
+      path: "/audit_logs",
+      level: 1,
+    },
+    ...(currentUser?.is_superuser
+      ? [
+          { icon: FiUsers, title: "Admin", path: "/admin", level: 1 },
+          {
+            icon: FiShield,
+            title: "Auth Providers",
+            path: "/admin/auth-providers",
+            level: 1,
+          },
+        ]
+      : []),
+  ]
 
   const listItems = finalItems.map(({ icon, title, path, level }) => (
     <RouterLink key={title} to={path as never} onClick={onClose}>

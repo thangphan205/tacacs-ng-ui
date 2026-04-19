@@ -8,7 +8,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
-from app.api.deps import SessionDep
+from app.api.deps import SessionDep, get_client_ip
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.crud import audit_logs as audit_logs_crud
@@ -130,7 +130,7 @@ def google_callback(
         ),
         user_id=user.id,
         user_email=user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
     )
     jwt = create_access_token(
         subject=str(user.id),
@@ -217,7 +217,7 @@ def keycloak_callback(
         ),
         user_id=user.id,
         user_email=user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
     )
     jwt = create_access_token(
         subject=str(user.id),

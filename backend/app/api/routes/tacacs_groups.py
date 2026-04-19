@@ -7,6 +7,7 @@ from sqlmodel import func, select
 from app.api.deps import (
     SessionDep,
     SuperUser,
+    get_client_ip,
     get_current_user,
 )
 from app.crud import audit_logs as audit_logs_crud
@@ -69,7 +70,7 @@ def create_tacacs_group(
         session=session, action="CREATE", entity_type="TacacsGroup",
         entity_id=str(group.id),
         user_id=current_user.id, user_email=current_user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=group.model_dump_json(exclude=_SENSITIVE),
     )
@@ -124,7 +125,7 @@ def update_tacacs_group(
         session=session, action="UPDATE", entity_type="TacacsGroup",
         entity_id=str(db_tacacs_group.id),
         user_id=current_user.id, user_email=current_user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
         new_values=db_tacacs_group.model_dump_json(exclude=_SENSITIVE),
@@ -152,7 +153,7 @@ def delete_tacacs_group(
         session=session, action="DELETE", entity_type="TacacsGroup",
         entity_id=str(id),
         user_id=current_user.id, user_email=current_user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
     )

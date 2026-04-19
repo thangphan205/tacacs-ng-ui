@@ -6,13 +6,18 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.crud import users
-from app.crud import audit_logs as audit_logs_crud
-from app.crud import auth_providers as auth_providers_crud
-from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
+from app.api.deps import (
+    CurrentUser,
+    SessionDep,
+    get_client_ip,
+    get_current_active_superuser,
+)
 from app.core import security
 from app.core.config import settings
 from app.core.security import get_password_hash
+from app.crud import audit_logs as audit_logs_crud
+from app.crud import auth_providers as auth_providers_crud
+from app.crud import users
 from app.models import AuditLogCreate, Message, NewPassword, Token, UserPublic
 from app.utils import (
     generate_password_reset_token,
@@ -30,7 +35,7 @@ def login_access_token(
     session: SessionDep,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
-    ip = request.client.host if request.client else None
+    ip = get_client_ip(request)
 
     user = users.authenticate(
         session=session, email=form_data.username, password=form_data.password

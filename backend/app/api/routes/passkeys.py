@@ -21,7 +21,7 @@ from webauthn.helpers.structs import (
     UserVerificationRequirement,
 )
 
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import CurrentUser, SessionDep, get_client_ip
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.crud import audit_logs as audit_logs_crud
@@ -244,7 +244,7 @@ def authenticate_complete(
         ),
         user_id=user.id,
         user_email=user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
     )
     return Token(
         access_token=create_access_token(

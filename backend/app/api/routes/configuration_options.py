@@ -7,6 +7,7 @@ from sqlmodel import func, select
 from app.api.deps import (
     SessionDep,
     SuperUser,
+    get_client_ip,
     get_current_user,
 )
 from app.crud import audit_logs as audit_logs_crud
@@ -76,7 +77,7 @@ def create_configuration_option(
         session=session, action="CREATE", entity_type="ConfigurationOption",
         entity_id=str(configuration_option.id),
         user_id=current_user.id, user_email=current_user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=configuration_option.model_dump_json(exclude=_SENSITIVE),
     )
@@ -134,7 +135,7 @@ def update_configuration_option(
         session=session, action="UPDATE", entity_type="ConfigurationOption",
         entity_id=str(db_configuration_option.id),
         user_id=current_user.id, user_email=current_user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
         new_values=db_configuration_option.model_dump_json(exclude=_SENSITIVE),
@@ -163,7 +164,7 @@ def delete_configuration_option(
         session=session, action="DELETE", entity_type="ConfigurationOption",
         entity_id=str(id),
         user_id=current_user.id, user_email=current_user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
     )

@@ -1,13 +1,10 @@
-import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlmodel import func, select
-
 
 from app.api.deps import (
     SessionDep,
-    get_current_active_superuser,
     get_current_user,
 )
 from app.models import (

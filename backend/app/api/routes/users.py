@@ -9,6 +9,7 @@ from app.api.deps import (
     CurrentUser,
     SessionDep,
     SuperUser,
+    get_client_ip,
     get_current_active_superuser,
 )
 from app.core.config import settings
@@ -113,7 +114,7 @@ def create_user(
         session=session, action="CREATE", entity_type="User",
         entity_id=str(user.id),
         user_id=current_user.id, user_email=current_user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=user.model_dump_json(exclude=_SENSITIVE),
     )
@@ -144,7 +145,7 @@ def update_user_me(
         session=session, action="UPDATE", entity_type="User",
         entity_id=str(current_user.id),
         user_id=current_user.id, user_email=current_user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
         new_values=current_user.model_dump_json(exclude=_SENSITIVE),
@@ -175,7 +176,7 @@ def update_password_me(
         session=session, action="UPDATE", entity_type="User",
         entity_id=str(current_user.id),
         user_id=current_user.id, user_email=current_user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         description="Password updated",
     )
@@ -204,7 +205,7 @@ def delete_user_me(
     old_values = current_user.model_dump_json(exclude=_SENSITIVE)
     user_id = current_user.id
     user_email = current_user.email
-    ip = request.client.host if request.client else None
+    ip = get_client_ip(request)
     ua = request.headers.get("user-agent")
     session.delete(current_user)
     session.commit()
@@ -297,7 +298,7 @@ def update_user(
         session=session, action="UPDATE", entity_type="User",
         entity_id=str(db_user.id),
         user_id=current_user.id, user_email=current_user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
         new_values=db_user.model_dump_json(exclude=_SENSITIVE),
@@ -328,7 +329,7 @@ def delete_user(
         session=session, action="DELETE", entity_type="User",
         entity_id=str(user_id),
         user_id=current_user.id, user_email=current_user.email,
-        ip_address=request.client.host if request.client else None,
+        ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
     )
