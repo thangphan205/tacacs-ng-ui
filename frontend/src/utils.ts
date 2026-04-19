@@ -26,6 +26,32 @@ export const passwordRules = (isRequired = true) => {
   return rules
 }
 
+export const newPasswordRules = (isRequired = true) => {
+  const rules: any = {
+    minLength: {
+      value: 12,
+      message: "Password must be at least 12 characters long.",
+    },
+    validate: {
+      hasLower: (value: string) =>
+        /[a-z]/.test(value) || "Must contain one lowercase letter.",
+      hasUpper: (value: string) =>
+        /[A-Z]/.test(value) || "Must contain one uppercase letter.",
+      hasNumber: (value: string) =>
+        /[0-9]/.test(value) || "Must contain one number.",
+      hasSpecial: (value: string) =>
+        /[!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]/.test(value) ||
+        "Must contain one special character.",
+    },
+  }
+
+  if (isRequired) {
+    rules.required = "Password is required"
+  }
+
+  return rules
+}
+
 export const confirmPasswordRules = (
   getValues: () => any,
   isRequired = true,

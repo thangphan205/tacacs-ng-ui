@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { PasswordInput } from "@/components/ui/password-input"
 import { isLoggedIn } from "@/hooks/useAuth"
 import useCustomToast from "@/hooks/useCustomToast"
-import { confirmPasswordRules, handleError, passwordRules } from "@/utils"
+import { confirmPasswordRules, handleError, newPasswordRules } from "@/utils"
 
 interface NewPasswordForm extends NewPassword {
   confirm_password: string
@@ -88,7 +88,7 @@ function ResetPassword() {
         startElement={<FiLock />}
         type="new_password"
         errors={errors}
-        {...register("new_password", passwordRules())}
+        {...register("new_password", newPasswordRules())}
         placeholder="New Password"
       />
       <PasswordInput
