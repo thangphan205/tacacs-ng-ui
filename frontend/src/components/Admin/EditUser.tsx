@@ -237,6 +237,20 @@ const EditUser = ({ user }: EditUserProps) => {
                   </Field>
                 )}
               />
+              <Controller
+                control={control}
+                name="password_login_disabled"
+                render={({ field }) => (
+                  <Field disabled={field.disabled} colorPalette="teal">
+                    <Checkbox
+                      checked={field.value ?? false}
+                      onCheckedChange={({ checked }) => field.onChange(checked)}
+                    >
+                      Disable password login?
+                    </Checkbox>
+                  </Field>
+                )}
+              />
             </Flex>
           </DialogBody>
 

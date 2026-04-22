@@ -752,6 +752,7 @@ export type UserCreate = {
     is_superuser?: boolean;
     full_name?: (string | null);
     password: string;
+    password_login_disabled?: boolean;
 };
 
 export type UserLoginBreakdown = {
@@ -769,6 +770,7 @@ export type UserPublic = {
     created_at: string;
     updated_at: string;
     password_login_disabled: boolean;
+    login_methods?: Array<(string)>;
 };
 
 export type UserRegister = {
@@ -788,6 +790,7 @@ export type UserUpdate = {
     is_superuser?: boolean;
     full_name?: (string | null);
     password?: (string | null);
+    password_login_disabled?: (boolean | null);
 };
 
 export type UserUpdateMe = {

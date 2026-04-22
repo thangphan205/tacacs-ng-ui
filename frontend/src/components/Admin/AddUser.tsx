@@ -56,6 +56,7 @@ const AddUser = () => {
       confirm_password: "",
       is_superuser: false,
       is_active: false,
+      password_login_disabled: false,
     },
   })
 
@@ -245,6 +246,20 @@ const AddUser = () => {
                       onCheckedChange={({ checked }) => field.onChange(checked)}
                     >
                       Is active?
+                    </Checkbox>
+                  </Field>
+                )}
+              />
+              <Controller
+                control={control}
+                name="password_login_disabled"
+                render={({ field }) => (
+                  <Field disabled={field.disabled} colorPalette="teal">
+                    <Checkbox
+                      checked={field.value ?? false}
+                      onCheckedChange={({ checked }) => field.onChange(checked)}
+                    >
+                      Disable password login?
                     </Checkbox>
                   </Field>
                 )}

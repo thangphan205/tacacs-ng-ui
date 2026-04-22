@@ -28,7 +28,7 @@ function getUsersQueryOptions({ page }: { page: number }) {
   }
 }
 
-export const Route = createFileRoute("/_layout/admin/")({
+export const Route = createFileRoute("/_layout/admin/users_management")({
   component: Admin,
   validateSearch: (search) => usersSearchSchema.parse(search),
 })
@@ -46,7 +46,7 @@ function UsersTable() {
 
   const setPage = (page: number) => {
     navigate({
-      to: "/admin",
+      to: "/admin/users_management",
       search: (prev) => ({ ...prev, page }),
     })
   }
@@ -67,6 +67,7 @@ function UsersTable() {
             <Table.ColumnHeader w="sm">Email</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Role</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Status</Table.ColumnHeader>
+            <Table.ColumnHeader w="sm">Login Method</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
           </Table.Row>
         </Table.Header>
@@ -87,7 +88,29 @@ function UsersTable() {
               <Table.Cell>
                 {user.is_superuser ? "Superuser" : "User"}
               </Table.Cell>
-              <Table.Cell>{user.is_active ? "Active" : "Inactive"}</Table.Cell>
+              <Table.Cell>
+                <Flex align="center" gap={2}>
+                  {user.is_active ? "Active" : "Inactive"}
+                  {user.password_login_disabled && (
+                    <Badge colorPalette="yellow" size="sm">
+                      Password Login Disabled
+                    </Badge>
+                  )}
+                </Flex>
+              </Table.Cell>
+              <Table.Cell>
+                <Flex wrap="wrap" gap={1}>
+                  {user.login_methods?.length ? (
+                    user.login_methods.map((method) => (
+                      <Badge key={method} size="sm" variant="subtle" colorPalette="blue">
+                        {method}
+                      </Badge>
+                    ))
+                  ) : (
+                    "None"
+                  )}
+                </Flex>
+              </Table.Cell>
               <Table.Cell>
                 <UserActionsMenu
                   user={user}

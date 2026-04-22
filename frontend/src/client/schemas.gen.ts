@@ -3595,6 +3595,11 @@ export const UserCreateSchema = {
             maxLength: 40,
             minLength: 8,
             title: 'Password'
+        },
+        password_login_disabled: {
+            type: 'boolean',
+            title: 'Password Login Disabled',
+            default: false
         }
     },
     type: 'object',
@@ -3670,6 +3675,13 @@ export const UserPublicSchema = {
         password_login_disabled: {
             type: 'boolean',
             title: 'Password Login Disabled'
+        },
+        login_methods: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Login Methods'
         }
     },
     type: 'object',
@@ -3758,6 +3770,17 @@ export const UserUpdateSchema = {
                 }
             ],
             title: 'Password'
+        },
+        password_login_disabled: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Password Login Disabled'
         }
     },
     type: 'object',

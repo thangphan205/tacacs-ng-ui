@@ -38,7 +38,7 @@ import { Route as LayoutAudit_logsRouteImport } from './routes/_layout/audit_log
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutAaa_statistics_rangeRouteImport } from './routes/_layout/aaa_statistics_range'
 import { Route as LayoutAaa_statisticsRouteImport } from './routes/_layout/aaa_statistics'
-import { Route as LayoutAdminIndexRouteImport } from './routes/_layout/admin/index'
+import { Route as LayoutAdminUsers_managementRouteImport } from './routes/_layout/admin/users_management'
 import { Route as LayoutAdminAuthProvidersRouteImport } from './routes/_layout/admin/auth-providers'
 
 const SignupRoute = SignupRouteImport.update({
@@ -188,11 +188,12 @@ const LayoutAaa_statisticsRoute = LayoutAaa_statisticsRouteImport.update({
   path: '/aaa_statistics',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutAdminIndexRoute = LayoutAdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => LayoutAdminRoute,
-} as any)
+const LayoutAdminUsers_managementRoute =
+  LayoutAdminUsers_managementRouteImport.update({
+    id: '/users_management',
+    path: '/users_management',
+    getParentRoute: () => LayoutAdminRoute,
+  } as any)
 const LayoutAdminAuthProvidersRoute =
   LayoutAdminAuthProvidersRouteImport.update({
     id: '/auth-providers',
@@ -201,7 +202,6 @@ const LayoutAdminAuthProvidersRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof LayoutIndexRoute
   '/login': typeof LoginRoute
   '/oauth-callback': typeof OauthCallbackRoute
   '/recover-password': typeof RecoverPasswordRoute
@@ -229,8 +229,9 @@ export interface FileRoutesByFullPath {
   '/tacacs_services': typeof LayoutTacacs_servicesRoute
   '/tacacs_statistics': typeof LayoutTacacs_statisticsRoute
   '/tacacs_users': typeof LayoutTacacs_usersRoute
+  '/': typeof LayoutIndexRoute
   '/admin/auth-providers': typeof LayoutAdminAuthProvidersRoute
-  '/admin/': typeof LayoutAdminIndexRoute
+  '/admin/users_management': typeof LayoutAdminUsers_managementRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -240,6 +241,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/aaa_statistics': typeof LayoutAaa_statisticsRoute
   '/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
+  '/admin': typeof LayoutAdminRouteWithChildren
   '/audit_logs': typeof LayoutAudit_logsRoute
   '/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/hosts': typeof LayoutHostsRoute
@@ -261,7 +263,7 @@ export interface FileRoutesByTo {
   '/tacacs_users': typeof LayoutTacacs_usersRoute
   '/': typeof LayoutIndexRoute
   '/admin/auth-providers': typeof LayoutAdminAuthProvidersRoute
-  '/admin': typeof LayoutAdminIndexRoute
+  '/admin/users_management': typeof LayoutAdminUsers_managementRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -295,12 +297,11 @@ export interface FileRoutesById {
   '/_layout/tacacs_users': typeof LayoutTacacs_usersRoute
   '/_layout/': typeof LayoutIndexRoute
   '/_layout/admin/auth-providers': typeof LayoutAdminAuthProvidersRoute
-  '/_layout/admin/': typeof LayoutAdminIndexRoute
+  '/_layout/admin/users_management': typeof LayoutAdminUsers_managementRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/login'
     | '/oauth-callback'
     | '/recover-password'
@@ -328,8 +329,9 @@ export interface FileRouteTypes {
     | '/tacacs_services'
     | '/tacacs_statistics'
     | '/tacacs_users'
+    | '/'
     | '/admin/auth-providers'
-    | '/admin/'
+    | '/admin/users_management'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -339,6 +341,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/aaa_statistics'
     | '/aaa_statistics_range'
+    | '/admin'
     | '/audit_logs'
     | '/configuration_options'
     | '/hosts'
@@ -360,7 +363,7 @@ export interface FileRouteTypes {
     | '/tacacs_users'
     | '/'
     | '/admin/auth-providers'
-    | '/admin'
+    | '/admin/users_management'
   id:
     | '__root__'
     | '/_layout'
@@ -393,7 +396,7 @@ export interface FileRouteTypes {
     | '/_layout/tacacs_users'
     | '/_layout/'
     | '/_layout/admin/auth-providers'
-    | '/_layout/admin/'
+    | '/_layout/admin/users_management'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -445,7 +448,7 @@ declare module '@tanstack/react-router' {
     '/_layout': {
       id: '/_layout'
       path: ''
-      fullPath: '/'
+      fullPath: ''
       preLoaderRoute: typeof LayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -610,11 +613,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAaa_statisticsRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/admin/': {
-      id: '/_layout/admin/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof LayoutAdminIndexRouteImport
+    '/_layout/admin/users_management': {
+      id: '/_layout/admin/users_management'
+      path: '/users_management'
+      fullPath: '/admin/users_management'
+      preLoaderRoute: typeof LayoutAdminUsers_managementRouteImport
       parentRoute: typeof LayoutAdminRoute
     }
     '/_layout/admin/auth-providers': {
@@ -629,12 +632,12 @@ declare module '@tanstack/react-router' {
 
 interface LayoutAdminRouteChildren {
   LayoutAdminAuthProvidersRoute: typeof LayoutAdminAuthProvidersRoute
-  LayoutAdminIndexRoute: typeof LayoutAdminIndexRoute
+  LayoutAdminUsers_managementRoute: typeof LayoutAdminUsers_managementRoute
 }
 
 const LayoutAdminRouteChildren: LayoutAdminRouteChildren = {
   LayoutAdminAuthProvidersRoute: LayoutAdminAuthProvidersRoute,
-  LayoutAdminIndexRoute: LayoutAdminIndexRoute,
+  LayoutAdminUsers_managementRoute: LayoutAdminUsers_managementRoute,
 }
 
 const LayoutAdminRouteWithChildren = LayoutAdminRoute._addFileChildren(

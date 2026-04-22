@@ -11,7 +11,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
-import { LuFolder, LuSquareCheck, LuUser } from "react-icons/lu"
+import { LuFolder, LuSquareCheck, LuUser, LuKey } from "react-icons/lu"
 
 import { OpenAPI } from "@/client"
 import AuthProviderCard from "@/components/Admin/AuthProviderCard"
@@ -180,6 +180,11 @@ function AuthProvidersPage() {
             Passkeys (WebAuthn)
             <StatusBadge enabled={passkeyData?.enabled} />
           </Tabs.Trigger>
+          <Tabs.Trigger value="password">
+            <LuKey />
+            Local Password
+            <StatusBadge enabled={!passwordLoginDisabled} />
+          </Tabs.Trigger>
         </Tabs.List>
 
         <Tabs.Content value="google">
@@ -203,7 +208,9 @@ function AuthProvidersPage() {
             fields={[]}
             onEnabled={() => setPasskeyDialogOpen(true)}
           />
-          {passwordLoginDisabled && (
+        </Tabs.Content>
+        <Tabs.Content value="password">
+          {passwordLoginDisabled ? (
             <Alert.Root status="warning" mt={4} borderRadius="md">
               <Alert.Indicator />
               <Alert.Content>
@@ -221,6 +228,27 @@ function AuthProvidersPage() {
                 onClick={() => enablePasswordMutation.mutate()}
               >
                 Re-enable Password Login
+              </Button>
+            </Alert.Root>
+          ) : (
+            <Alert.Root status="info" mt={4} borderRadius="md">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>Password login is enabled</Alert.Title>
+                <Alert.Description>
+                  Users can sign in with a password. You can disable this to enforce
+                  passkey or SSO authentication.
+                </Alert.Description>
+              </Alert.Content>
+              <Button
+                size="sm"
+                colorPalette="red"
+                variant="outline"
+                ml="auto"
+                loading={disablePasswordMutation.isPending}
+                onClick={() => disablePasswordMutation.mutate()}
+              >
+                Disable Password Login
               </Button>
             </Alert.Root>
           )}

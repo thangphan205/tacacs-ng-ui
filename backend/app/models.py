@@ -30,6 +30,7 @@ class UserBase(SQLModel):
 # Properties to receive via API on creation
 class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=40)
+    password_login_disabled: bool = False
 
 
 class UserRegister(SQLModel):
@@ -42,6 +43,7 @@ class UserRegister(SQLModel):
 class UserUpdate(UserBase):
     email: EmailStr | None = Field(default=None, max_length=255)  # type: ignore
     password: str | None = Field(default=None, min_length=8, max_length=40)
+    password_login_disabled: bool | None = Field(default=None)
 
 
 class UserUpdateMe(SQLModel):
@@ -64,8 +66,21 @@ class User(UserBase, TimestampModel, table=True):
     password_login_disabled: bool = Field(default=False)
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
     webauthn_credentials: list["WebAuthnCredential"] = Relationship(
-        back_populates="user", cascade_delete=True
+        back_populates="user", cascade_delete=True, sa_relationship_kwargs={"lazy": "selectin"}
     )
+
+    @property
+    def login_methods(self) -> list[str]:
+        methods = []
+        if not self.password_login_disabled:
+            methods.append("Password")
+        if self.google_id:
+            methods.append("Google")
+        if self.keycloak_id:
+            methods.append("Keycloak")
+        if self.webauthn_credentials:
+            methods.append("Passkeys")
+        return methods
 
 
 # Properties to return via API, id is always required
@@ -74,6 +89,7 @@ class UserPublic(UserBase):
     created_at: datetime
     updated_at: datetime
     password_login_disabled: bool
+    login_methods: list[str] = Field(default_factory=list)
 
 
 class UsersPublic(SQLModel):
