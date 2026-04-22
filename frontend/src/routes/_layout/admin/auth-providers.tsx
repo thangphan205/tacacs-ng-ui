@@ -1,4 +1,5 @@
 import {
+  Alert,
   Badge,
   Button,
   Container,
@@ -137,6 +138,21 @@ function AuthProvidersPage() {
     onError: (err: Error) => handleError(err as never),
   })
 
+  const enablePasswordMutation = useMutation({
+    mutationFn: () =>
+      saveProvider("passkey", {
+        config: { ...passkeyData?.config, allow_password_login: "true" },
+      }),
+    onSuccess: () => {
+      showSuccessToast("Password login re-enabled.")
+      queryClient.invalidateQueries({ queryKey: ["auth-provider", "passkey"] })
+    },
+    onError: (err: Error) => handleError(err as never),
+  })
+
+  const passwordLoginDisabled =
+    passkeyData?.config?.allow_password_login === "false"
+
   if (!currentUser?.is_superuser) {
     return <Text p={8}>Access denied.</Text>
   }
@@ -187,6 +203,27 @@ function AuthProvidersPage() {
             fields={[]}
             onEnabled={() => setPasskeyDialogOpen(true)}
           />
+          {passwordLoginDisabled && (
+            <Alert.Root status="warning" mt={4} borderRadius="md">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>Password login is disabled</Alert.Title>
+                <Alert.Description>
+                  Users can only sign in with a passkey. Re-enable to allow
+                  password-based login again.
+                </Alert.Description>
+              </Alert.Content>
+              <Button
+                size="sm"
+                colorPalette="yellow"
+                ml="auto"
+                loading={enablePasswordMutation.isPending}
+                onClick={() => enablePasswordMutation.mutate()}
+              >
+                Re-enable Password Login
+              </Button>
+            </Alert.Root>
+          )}
         </Tabs.Content>
       </Tabs.Root>
 
