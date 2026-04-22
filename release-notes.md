@@ -2,6 +2,15 @@
 
 ## Latest Changes
 
+## v0.2.2
+
+### Features
+
+* ✨ Add granular user authentication controls — selectively enable or disable password-based login on a per-user basis via the UI.
+* ✨ Add Local Password tab in Auth Providers page to independently configure system-wide password login.
+* ✨ Add Login Method column to the Users Management table with dynamic badge rendering (Password, Passkeys, Google, Keycloak).
+* ✨ Rename Admin section to Users Management for clarity.
+
 ## v0.2.1
 
 ### Features
