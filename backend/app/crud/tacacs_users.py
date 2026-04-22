@@ -39,8 +39,11 @@ def update_tacacs_user(
 ) -> Any:
     user_data = user_in.model_dump(exclude_unset=True)
     # Hash the password if type is crypt and a new password is provided
-    if user_data.get("password_type") == "crypt" and user_data.get("password"):
-        user_data["password"] = hash_tacacs_password(user_data["password"])
+    password_type = user_data.get("password_type", db_user.password_type)
+    if password_type == "crypt" and user_data.get("password"):
+        # Prevent double-hashing if the frontend sends back the existing hashed password
+        if not (db_user.password_type == "crypt" and user_data["password"] == db_user.password):
+            user_data["password"] = hash_tacacs_password(user_data["password"])
     db_user.sqlmodel_update(user_data)
     session.add(db_user)
     session.commit()
