@@ -10,6 +10,12 @@
 * ✨ Add Local Password tab in Auth Providers page to independently configure system-wide password login.
 * ✨ Add Login Method column to the Users Management table with dynamic badge rendering (Password, Passkeys, Google, Keycloak).
 * ✨ Rename Admin section to Users Management for clarity.
+* ✨ Add Re-enable Password Login button on Auth Providers page — allows admin to restore password auth after it has been disabled.
+* ✨ Auto-hash TACACS user passwords with SHA-512 when password type is set to `crypt`. PR [#126](https://github.com/thangphan205/tacacs-ng-ui/pull/126) by [@thangphan205](https://github.com/thangphan205).
+
+### Fixes
+
+* 🐛 Resolve real client IP in audit logs (respects `X-Forwarded-For` behind proxies) and allow normal users to view their own audit log entries.
 
 ## v0.2.1
 

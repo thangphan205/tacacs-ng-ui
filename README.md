@@ -319,6 +319,14 @@ This includes using Docker Compose, custom local domains, `.env` configurations,
 
 [![API docs](img/adminer.png)](https://github.com/thangphan205/tacacs-ng-ui)
 
+### Audit Logs
+
+[![Audit Logs](img/audit-logs.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+### Auth Providers
+
+[![Auth Providers](img/auth-providers.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
 ## Future Works & Research Roadmap
 
 To further enhance the security and utility of tacacs-ng-ui, the following roadmap has been established:
