@@ -2,6 +2,23 @@
 
 ## Latest Changes
 
+## v0.2.3
+
+### Fixes
+
+* 🐛 Fix double-hashing of TACACS user passwords when editing an existing user whose password type is `crypt` — editing a user would re-hash an already-hashed SHA-512 value.
+
+### Dependencies
+
+* ⬆ Bump `anyio` 4.11.0 → 4.13.0 in backend. PR [#118](https://github.com/thangphan205/tacacs-ng-ui/pull/118) by [@dependabot](https://github.com/dependabot).
+* ⬆ Bump `lxml` 6.0.2 → 6.1.0 in backend. PR [#119](https://github.com/thangphan205/tacacs-ng-ui/pull/119) by [@dependabot](https://github.com/dependabot).
+* ⬆ Bump `types-passlib` stub to 1.7.7.20260211 in backend. PR [#121](https://github.com/thangphan205/tacacs-ng-ui/pull/121) by [@dependabot](https://github.com/dependabot).
+* ⬆ Bump `cachetools` 6.2.4 → 7.0.5 in backend. PR [#123](https://github.com/thangphan205/tacacs-ng-ui/pull/123) by [@dependabot](https://github.com/dependabot).
+* ⬆ Bump `react-icons` 5.5.0 → 5.6.0 in frontend. PR [#122](https://github.com/thangphan205/tacacs-ng-ui/pull/122) by [@dependabot](https://github.com/dependabot).
+* ⬆ Bump `@tanstack/react-query` 5.96.2 → 5.99.2 in frontend. PR [#124](https://github.com/thangphan205/tacacs-ng-ui/pull/124) by [@dependabot](https://github.com/dependabot).
+* ⬆ Bump `@biomejs/biome` 2.3.11 → 2.4.12 in frontend. PR [#120](https://github.com/thangphan205/tacacs-ng-ui/pull/120) by [@dependabot](https://github.com/dependabot).
+* ⬆ Bump `@vitejs/plugin-react-swc` 4.2.2 → 4.3.0 in frontend. PR [#112](https://github.com/thangphan205/tacacs-ng-ui/pull/112) by [@dependabot](https://github.com/dependabot).
+
 ## v0.2.2
 
 ### Features
