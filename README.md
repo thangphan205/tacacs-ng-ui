@@ -158,6 +158,8 @@ ip tacacs source-interface Management0
 
 ## How To Use It
 
+For a full walkthrough of all features, see the **[User Guide](./user-guide.md)** (bilingual English / Tiếng Việt).
+
 ## Deploy on a localhost
 
 ```bash
@@ -280,6 +282,10 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
 Copy the content and use that as password / secret key. And run that again to generate another secure key.
+
+## User Guide
+
+Full usage guide (managing users, hosts, profiles, rulesets, generating configs, monitoring): [user-guide.md](./user-guide.md).
 
 ## Backend Development
 
