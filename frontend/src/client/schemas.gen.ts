@@ -2977,6 +2977,27 @@ export const TacacsGroupsPublicSchema = {
     title: 'TacacsGroupsPublic'
 } as const;
 
+export const TacacsLogDailySummarySchema = {
+    properties: {
+        date: {
+            type: 'string',
+            title: 'Date'
+        },
+        authentication: {
+            '$ref': '#/components/schemas/TacacsLogTypeSummary'
+        },
+        authorization: {
+            '$ref': '#/components/schemas/TacacsLogTypeSummary'
+        },
+        accounting: {
+            '$ref': '#/components/schemas/TacacsLogTypeSummary'
+        }
+    },
+    type: 'object',
+    required: ['date', 'authentication', 'authorization', 'accounting'],
+    title: 'TacacsLogDailySummary'
+} as const;
+
 export const TacacsLogEventSchema = {
     properties: {
         timestamp: {
@@ -3074,6 +3095,48 @@ export const TacacsLogPublicSchema = {
     type: 'object',
     required: ['filename', 'filepath', 'id', 'updated_at'],
     title: 'TacacsLogPublic'
+} as const;
+
+export const TacacsLogTypeSummarySchema = {
+    properties: {
+        success: {
+            type: 'integer',
+            title: 'Success',
+            default: 0
+        },
+        failed: {
+            type: 'integer',
+            title: 'Failed',
+            default: 0
+        },
+        permit: {
+            type: 'integer',
+            title: 'Permit',
+            default: 0
+        },
+        deny: {
+            type: 'integer',
+            title: 'Deny',
+            default: 0
+        },
+        start: {
+            type: 'integer',
+            title: 'Start',
+            default: 0
+        },
+        stop: {
+            type: 'integer',
+            title: 'Stop',
+            default: 0
+        },
+        total: {
+            type: 'integer',
+            title: 'Total',
+            default: 0
+        }
+    },
+    type: 'object',
+    title: 'TacacsLogTypeSummary'
 } as const;
 
 export const TacacsLogsPublicSchema = {

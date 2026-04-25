@@ -738,6 +738,23 @@ class TacacsLogEventsPublic(SQLModel):
     count: int
 
 
+class TacacsLogTypeSummary(SQLModel):
+    success: int = 0
+    failed: int = 0
+    permit: int = 0
+    deny: int = 0
+    start: int = 0
+    stop: int = 0
+    total: int = 0
+
+
+class TacacsLogDailySummary(SQLModel):
+    date: str
+    authentication: TacacsLogTypeSummary
+    authorization: TacacsLogTypeSummary
+    accounting: TacacsLogTypeSummary
+
+
 # -- Tacacs Custom Section Table ---
 class ConfigurationOptionBase(SQLModel):
     name: str = Field(index=True, unique=True, max_length=255)

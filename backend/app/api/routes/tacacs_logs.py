@@ -11,9 +11,11 @@ from app.api.deps import SessionDep, get_current_user
 from app.core.config import settings
 from app.models import (
     TacacsLog,
+    TacacsLogDailySummary,
     TacacsLogEvent,
     TacacsLogEventsPublic,
     TacacsLogPublic,
+    TacacsLogTypeSummary,
     TacacsLogsPublic,
 )
 
@@ -102,6 +104,57 @@ def _parse_log_file(log_type: str, path: str) -> list[TacacsLogEvent]:
     except OSError:
         pass
     return events
+
+
+@router.get(
+    "/events/summary",
+    dependencies=[Depends(get_current_user)],
+    response_model=TacacsLogDailySummary,
+)
+def get_log_events_summary(
+    date: str | None = None,
+) -> Any:
+    """
+    Return count totals for auth/authz/acct log events for a given date (default: today).
+    """
+    try:
+        target_date = (
+            datetime.strptime(date, "%Y-%m-%d") if date else datetime.now(timezone.utc)
+        )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
+
+    date_str = target_date.strftime("%Y-%m-%d")
+    summary: dict[str, TacacsLogTypeSummary] = {
+        lt: TacacsLogTypeSummary()
+        for lt in ("authentication", "authorization", "accounting")
+    }
+
+    for lt in ("authentication", "authorization", "accounting"):
+        path = _log_file_path(lt, target_date)
+        events = _parse_log_file(lt, path)
+        s = summary[lt]
+        for ev in events:
+            s.total += 1
+            if ev.result == "success":
+                s.success += 1
+            elif ev.result == "failed":
+                s.failed += 1
+            elif ev.result == "permit":
+                s.permit += 1
+            elif ev.result == "deny":
+                s.deny += 1
+            elif ev.result == "start":
+                s.start += 1
+            elif ev.result == "stop":
+                s.stop += 1
+
+    return TacacsLogDailySummary(
+        date=date_str,
+        authentication=summary["authentication"],
+        authorization=summary["authorization"],
+        accounting=summary["accounting"],
+    )
 
 
 @router.get(

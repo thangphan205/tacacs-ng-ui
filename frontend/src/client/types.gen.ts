@@ -621,6 +621,13 @@ export type TacacsGroupUpdate = {
     description?: (string | null);
 };
 
+export type TacacsLogDailySummary = {
+    date: string;
+    authentication: TacacsLogTypeSummary;
+    authorization: TacacsLogTypeSummary;
+    accounting: TacacsLogTypeSummary;
+};
+
 export type TacacsLogEvent = {
     timestamp: string;
     log_type: string;
@@ -648,6 +655,16 @@ export type TacacsLogPublic = {
 export type TacacsLogsPublic = {
     data: Array<TacacsLogPublic>;
     count: number;
+};
+
+export type TacacsLogTypeSummary = {
+    success?: number;
+    failed?: number;
+    permit?: number;
+    deny?: number;
+    start?: number;
+    stop?: number;
+    total?: number;
 };
 
 export type TacacsNgSettingPublic = {
@@ -1385,6 +1402,12 @@ export type TacacsGroupsDeleteTacacsGroupData = {
 };
 
 export type TacacsGroupsDeleteTacacsGroupResponse = (Message);
+
+export type TacacsLogsGetLogEventsSummaryData = {
+    date?: (string | null);
+};
+
+export type TacacsLogsGetLogEventsSummaryResponse = (TacacsLogDailySummary);
 
 export type TacacsLogsListLogEventsData = {
     date?: (string | null);
