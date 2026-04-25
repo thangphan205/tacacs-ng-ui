@@ -329,7 +329,7 @@ def process_today_authentication_statistics(
     )
     logger.info(f"Using log file format: {log_file_format}")
 
-    log_file_path = datetime.now().strftime(log_file_format)
+    log_file_path = log_file_format
     list_authentication_details = {
         "today_total_authentication_events": 0,
         "today": datetime.now().date().isoformat(),
@@ -351,27 +351,21 @@ def process_today_authentication_statistics(
     try:
         with open(log_file_path, "r", errors="ignore") as f:
             for line in f:
-                # Quick check to ensure the line is for the correct day
                 if not line.startswith(TARGET_DATE_STR):
                     continue
-
                 match = LOG_REGEX.search(line)
                 if not match:
                     continue
-
                 log_data = match.groupdict()
-                message = log_data["message"]
-
-                # We only care about authentication events for this script
-                if "login" in message:
-                    username = log_data["username"]
-                    nas_ip = log_data["nas_ip"]
-                    client_ip = log_data["client_ip"]
-                    key = (username, nas_ip, client_ip)
-                    if "succeeded" in message:
-                        successful_logins[key] += 1
-                    else:  # Covers "failed" and "denied"
-                        failed_logins[key] += 1
+                msg = log_data["message"].lower()
+                username = log_data["username"]
+                nas_ip = log_data["nas_ip"]
+                client_ip = log_data["client_ip"]
+                key = (username, nas_ip, client_ip)
+                if "succeeded" in msg:
+                    successful_logins[key] += 1
+                elif "failed" in msg or "denied" in msg:
+                    failed_logins[key] += 1
     except IOError as e:
         logger.error(f"Error reading file {log_file_path}: {e}")
         return list_authentication_details

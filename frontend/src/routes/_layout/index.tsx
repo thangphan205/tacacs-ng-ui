@@ -2,11 +2,13 @@ import { Chart, useChart } from "@chakra-ui/charts"
 import {
   Badge,
   Box,
+  Button,
   Container,
   Flex,
   Grid,
   GridItem,
   Heading,
+  Input,
   Skeleton,
   Spinner,
   Stat,
@@ -15,13 +17,13 @@ import {
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { Link, createFileRoute } from "@tanstack/react-router"
+import { useState } from "react"
 import {
-  Area,
-  AreaChart,
   CartesianGrid,
   Cell,
-  LabelList,
   Legend,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -69,6 +71,44 @@ const AREA_SERIES = [
   { key: "Acct Stop", color: "gray" },
 ]
 
+// ─── types & filter helpers ───────────────────────────────────────────────────
+
+type FilterMode = "7d" | "30d" | "custom"
+
+const FILTER_LABELS: Record<FilterMode, string> = {
+  "7d": "Last 7 Days",
+  "30d": "Last 30 Days",
+  custom: "Date Range",
+}
+
+const TREND_LABEL: Record<FilterMode, string> = {
+  "7d": "Last 7 Days AAA Trend",
+  "30d": "Last 30 Days AAA Trend",
+  custom: "AAA Trend — Custom Range",
+}
+
+function getRangeDate(
+  mode: FilterMode,
+  customStart: string,
+  customEnd: string,
+): string | undefined {
+  const fmt = (d: Date) => d.toISOString().split("T")[0]
+  const today = new Date()
+  const end = fmt(today)
+  if (mode === "7d") {
+    const s = new Date(today)
+    s.setDate(today.getDate() - 7)
+    return `${fmt(s)},${end}`
+  }
+  if (mode === "30d") {
+    const s = new Date(today)
+    s.setDate(today.getDate() - 30)
+    return `${fmt(s)},${end}`
+  }
+  if (customStart && customEnd) return `${customStart},${customEnd}`
+  return undefined
+}
+
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 interface PieData {
@@ -77,18 +117,20 @@ interface PieData {
   color: string
 }
 
-function build7DayData(stats: any) {
-  if (!stats?.last_7_days_authentication_success) return []
+
+
+function buildRangeTrendData(stats: any) {
+  if (!stats?.last_range_days_authentication_success) return []
   const toMap = (arr: any[]) =>
-    Object.fromEntries(arr.map((d) => [d.date, d.count]))
-  const authSuccess = toMap(stats.last_7_days_authentication_success)
-  const authFail = toMap(stats.last_7_days_authentication_fail ?? [])
-  const authzPermit = toMap(stats.last_7_days_authorization_permit ?? [])
-  const authzDeny = toMap(stats.last_7_days_authorization_deny ?? [])
-  const acctStart = toMap(stats.last_7_days_accounting_start ?? [])
-  const acctStop = toMap(stats.last_7_days_accounting_stop ?? [])
-  return (stats.last_7_days_authentication_success as any[]).map((d) => ({
-    date: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    Object.fromEntries(arr.map((d: any) => [d.date, d.count]))
+  const authSuccess = toMap(stats.last_range_days_authentication_success)
+  const authFail = toMap(stats.last_range_days_authentication_fail ?? [])
+  const authzPermit = toMap(stats.last_range_days_authorization_permit ?? [])
+  const authzDeny = toMap(stats.last_range_days_authorization_deny ?? [])
+  const acctStart = toMap(stats.last_range_days_accounting_start ?? [])
+  const acctStop = toMap(stats.last_range_days_accounting_stop ?? [])
+  return (stats.last_range_days_authentication_success as any[]).map((d: any) => ({
+    date: new Date(d.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     "Auth Success": authSuccess[d.date] ?? 0,
     "Auth Fail": authFail[d.date] ?? 0,
     "Authz Permit": authzPermit[d.date] ?? 0,
@@ -97,6 +139,7 @@ function build7DayData(stats: any) {
     "Acct Stop": acctStop[d.date] ?? 0,
   }))
 }
+
 
 // ─── sub-components ───────────────────────────────────────────────────────────
 
@@ -135,18 +178,23 @@ function StatPie({ title, data }: { title: string; data: PieData[] }) {
         {title}
       </Heading>
       {data.length === 0 ? (
-        <Flex align="center" justify="center" h="160px">
-          <Text color="fg.muted" fontSize="sm">
-            No data
-          </Text>
+        <Flex direction="column" align="center" justify="center" h="160px" gap={1}>
+          <Text fontSize="2xl">📭</Text>
+          <Text color="fg.muted" fontSize="sm" fontWeight="medium">No activity</Text>
+          <Text color="fg.subtle" fontSize="xs" textAlign="center">No records for selected period</Text>
         </Flex>
       ) : (
-        <Chart.Root mx="auto" chart={chart}>
+        <Chart.Root mx="auto" maxH="220px" chart={chart}>
           <PieChart>
             <Tooltip cursor={false} animationDuration={100} content={<Chart.Tooltip hideLabel />} />
             <Legend content={<Chart.Legend />} />
-            <Pie isAnimationActive={false} data={chart.data} dataKey={chart.key("value")}>
-              <LabelList position="inside" fill="white" stroke="none" />
+            <Pie
+              isAnimationActive={false}
+              data={chart.data}
+              dataKey={chart.key("value")}
+              label={({ value }) => `${value}`}
+              labelLine={false}
+            >
               {chart.data.map((item, i) => (
                 <Cell key={item.name ?? i} fill={chart.color(item.color)} />
               ))}
@@ -163,6 +211,57 @@ function SectionHeading({ children, action }: { children: React.ReactNode; actio
     <Flex align="center" justify="space-between" mb={3}>
       <Heading size="md">{children}</Heading>
       {action}
+    </Flex>
+  )
+}
+
+function FilterBar({
+  mode,
+  onMode,
+  customStart,
+  customEnd,
+  onCustomStart,
+  onCustomEnd,
+}: {
+  mode: FilterMode
+  onMode: (m: FilterMode) => void
+  customStart: string
+  customEnd: string
+  onCustomStart: (s: string) => void
+  onCustomEnd: (s: string) => void
+}) {
+  return (
+    <Flex gap={2} flexWrap="wrap" align="center">
+      {(["7d", "30d", "custom"] as FilterMode[]).map((m) => (
+        <Button
+          key={m}
+          size="sm"
+          variant={mode === m ? "solid" : "outline"}
+          colorPalette={mode === m ? "blue" : "gray"}
+          onClick={() => onMode(m)}
+        >
+          {FILTER_LABELS[m]}
+        </Button>
+      ))}
+      {mode === "custom" && (
+        <>
+          <Input
+            size="sm"
+            type="date"
+            value={customStart}
+            onChange={(e) => onCustomStart(e.target.value)}
+            maxW="160px"
+          />
+          <Text fontSize="sm" color="fg.muted">to</Text>
+          <Input
+            size="sm"
+            type="date"
+            value={customEnd}
+            onChange={(e) => onCustomEnd(e.target.value)}
+            maxW="160px"
+          />
+        </>
+      )}
     </Flex>
   )
 }
@@ -381,40 +480,47 @@ function RecentActivity() {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 function Dashboard() {
+  const [filterMode, setFilterMode] = useState<FilterMode>("7d")
+  const [customStart, setCustomStart] = useState("")
+  const [customEnd, setCustomEnd] = useState("")
+
+  const rangeDate = getRangeDate(filterMode, customStart, customEnd)
+
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ["aaa_statistics"],
     queryFn: () => AaaStatisticsService.readAaaStatistics(),
   })
 
+  const { data: rangeStats, isLoading: rangeLoading } = useQuery({
+    queryKey: ["aaa_statistics_range", rangeDate],
+    queryFn: () => AaaStatisticsService.readAaaStatisticsRange({ rangeDate }),
+    enabled: !!rangeDate,
+  })
+
+  const chartsLoading = rangeLoading
+
   const pieSuccessByUser: PieData[] =
-    stats?.today_authentication_success_count_by_user?.map((u, i) => ({
-      name: String(u.username ?? ""),
-      value: Number(u.success_count ?? 0),
-      color: CHART_COLORS[i % CHART_COLORS.length],
-    })) ?? []
+    (rangeStats?.authentication_success_count_by_user ?? []).map((u: any, i: number) => ({
+      name: String(u.username ?? ""), value: Number(u.success_count ?? 0), color: CHART_COLORS[i % CHART_COLORS.length],
+    }))
 
   const pieSuccessByIp: PieData[] =
-    stats?.today_authentication_success_count_by_user_source_ip?.map((u, i) => ({
-      name: String(u.user_source_ip ?? ""),
-      value: Number(u.success_count ?? 0),
-      color: CHART_COLORS[i % CHART_COLORS.length],
-    })) ?? []
+    (rangeStats?.authentication_success_count_by_user_source_ip ?? []).map((u: any, i: number) => ({
+      name: String(u.user_source_ip ?? ""), value: Number(u.success_count ?? 0), color: CHART_COLORS[i % CHART_COLORS.length],
+    }))
 
   const pieSuccessByNas: PieData[] =
-    stats?.today_authentication_success_count_by_nas_ip?.map((u, i) => ({
-      name: String(u.nas_ip ?? ""),
-      value: Number(u.success_count ?? 0),
-      color: CHART_COLORS[i % CHART_COLORS.length],
-    })) ?? []
+    (rangeStats?.authentication_success_count_by_nas_ip ?? []).map((u: any, i: number) => ({
+      name: String(u.nas_ip ?? ""), value: Number(u.success_count ?? 0), color: CHART_COLORS[i % CHART_COLORS.length],
+    }))
 
   const pieFailedByUser: PieData[] =
-    stats?.today_authentication_failed_count_by_user?.map((u, i) => ({
-      name: String(u.username ?? ""),
-      value: Number(u.fail_count ?? 0),
-      color: FAIL_COLORS[i % FAIL_COLORS.length],
-    })) ?? []
+    (rangeStats?.authentication_failed_count_by_user ?? []).map((u: any, i: number) => ({
+      name: String(u.username ?? ""), value: Number(u.fail_count ?? 0), color: FAIL_COLORS[i % FAIL_COLORS.length],
+    }))
 
-  const trendData = build7DayData(stats)
+  const trendData = buildRangeTrendData(rangeStats)
+  const trendEmpty = trendData.length === 0
 
   return (
     <Container maxW="full" py={8}>
@@ -438,7 +544,7 @@ function Dashboard() {
           templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }}
           gap={6}
         >
-          {/* AAA today stat cards */}
+          {/* AAA today stat cards — always today */}
           <GridItem>
             <StatCard label="Today Auth Success" value={stats?.today_successful_logins} highlight="success" />
           </GridItem>
@@ -458,43 +564,89 @@ function Dashboard() {
           {/* TACACS config entity counts */}
           <ConfigOverview />
 
-          {/* Pie charts */}
-          <GridItem>
-            <StatPie title="Top 5 Users — Success" data={pieSuccessByUser} />
-          </GridItem>
-          <GridItem>
-            <StatPie title="Top 5 Source IPs" data={pieSuccessByIp} />
-          </GridItem>
-          <GridItem>
-            <StatPie title="Top 5 NAS IPs" data={pieSuccessByNas} />
-          </GridItem>
-          <GridItem>
-            <StatPie title="Top 5 Users — Failed" data={pieFailedByUser} />
+          {/* Top 5 & Trend section header with filter */}
+          <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
+            <Box p={4} borderWidth="1px" borderRadius="lg" bg="bg.subtle">
+              <Flex align="center" justify="space-between" flexWrap="wrap" gap={3}>
+                <Box>
+                  <Heading size="sm">Top 5 & AAA Trend</Heading>
+                  <Text fontSize="xs" color="fg.muted" mt={0.5}>
+                    {filterMode === "custom" && customStart && customEnd
+                      ? `${customStart} → ${customEnd}`
+                      : filterMode === "custom"
+                        ? "Select start and end date"
+                        : FILTER_LABELS[filterMode]}
+                  </Text>
+                </Box>
+                <FilterBar
+                  mode={filterMode}
+                  onMode={setFilterMode}
+                  customStart={customStart}
+                  customEnd={customEnd}
+                  onCustomStart={setCustomStart}
+                  onCustomEnd={setCustomEnd}
+                />
+              </Flex>
+            </Box>
           </GridItem>
 
-          {/* 7-day trend */}
+          {/* Top 5 pie charts */}
+          {chartsLoading ? (
+            <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
+              <Flex justify="center" py={8}><Spinner size="md" /></Flex>
+            </GridItem>
+          ) : (
+            <>
+              <GridItem>
+                <StatPie title="Top 5 Users — Success" data={pieSuccessByUser} />
+              </GridItem>
+              <GridItem>
+                <StatPie title="Top 5 Source IPs" data={pieSuccessByIp} />
+              </GridItem>
+              <GridItem>
+                <StatPie title="Top 5 NAS IPs" data={pieSuccessByNas} />
+              </GridItem>
+              <GridItem>
+                <StatPie title="Top 5 Users — Failed" data={pieFailedByUser} />
+              </GridItem>
+            </>
+          )}
+
+          {/* Trend chart */}
           <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
             <Box p={4} borderWidth="1px" borderRadius="lg">
-              <Heading size="sm" mb={4}>Last 7 Days AAA Trend</Heading>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={trendData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend />
-                  {AREA_SERIES.map(({ key, color }) => (
-                    <Area
-                      key={key}
-                      dataKey={key}
-                      type="monotone"
-                      fill={`var(--chakra-colors-${color}-500)`}
-                      stroke={`var(--chakra-colors-${color}-600)`}
-                      fillOpacity={0.6}
-                    />
-                  ))}
-                </AreaChart>
-              </ResponsiveContainer>
+              <Flex align="center" justify="space-between" mb={4}>
+                <Heading size="sm">{TREND_LABEL[filterMode]}</Heading>
+              </Flex>
+              {chartsLoading ? (
+                <Flex justify="center" py={8}><Spinner size="md" /></Flex>
+              ) : trendEmpty ? (
+                <Flex direction="column" align="center" justify="center" h="200px" gap={2}>
+                  <Text fontSize="2xl">📈</Text>
+                  <Text color="fg.muted" fontSize="sm" fontWeight="medium">No trend data</Text>
+                  <Text color="fg.subtle" fontSize="xs">Statistics aggregate periodically — try a wider range</Text>
+                </Flex>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={trendData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Legend />
+                    {AREA_SERIES.map(({ key, color }) => (
+                      <Line
+                        key={key}
+                        dataKey={key}
+                        type="monotone"
+                        stroke={`var(--chakra-colors-${color}-500)`}
+                        dot={false}
+                        activeDot={{ r: 4 }}
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </Box>
           </GridItem>
 
