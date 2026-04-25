@@ -162,6 +162,10 @@ class Settings(BaseSettings):
     AUDIT_LOG_MAX_ROWS: int = 0          # keep only the N most recent rows; 0 = no limit
     SIEM_WEBHOOK_URL: str | None = None  # Splunk HEC or Logstash HTTP input URL
     SIEM_WEBHOOK_TOKEN: str | None = None  # Splunk HEC token or other bearer token
+    SIEM_FORWARD_TACACS_EVENTS: bool = False  # forward auth/authz/acct events to SIEM
+    SIEM_SYSLOG_HOST: str | None = None  # syslog target host
+    SIEM_SYSLOG_PORT: int = 514
+    SIEM_SYSLOG_PROTOCOL: str = "udp"  # "udp" or "tcp"
 
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""

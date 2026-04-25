@@ -1,17 +1,219 @@
 import os
+import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import func, select
 
 from app.api.deps import SessionDep, get_current_user
-from app.models import TacacsLog, TacacsLogPublic, TacacsLogsPublic
+from app.core.config import settings
+from app.models import (
+    TacacsLog,
+    TacacsLogDailySummary,
+    TacacsLogEvent,
+    TacacsLogEventsPublic,
+    TacacsLogPublic,
+    TacacsLogTypeSummary,
+    TacacsLogsPublic,
+)
 
 router = APIRouter(prefix="/tacacs_logs", tags=["tacacs_logs"])
 
 LOG_DIRECTORY = "/var/log/tacacs"
+
+IP_REGEX = r"([a-fA-F0-9:.]+|[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})"
+_LOG_REGEX = re.compile(
+    r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
+    rf"(?P<nas_ip>{IP_REGEX})\s+"
+    r"(?P<username>[\w.-]+)\s+"
+    r"(?:[\w.-]+\s+)?"
+    rf"(?P<client_ip>{IP_REGEX})\s+"
+    r"(?P<message>.*)$"
+)
+
+_AUTH_RESULT_MAP = {
+    "succeeded": "success",
+    "failed": "failed",
+    "denied": "failed",
+}
+_AUTHZ_RESULT_MAP = {
+    "permit": "permit",
+    "deny": "deny",
+}
+_ACCT_RESULT_MAP = {
+    "start": "start",
+    "stop": "stop",
+}
+
+
+def _classify_result(log_type: str, message: str) -> str:
+    msg = message.lower()
+    if log_type == "authentication":
+        for kw, result in _AUTH_RESULT_MAP.items():
+            if kw in msg:
+                return result
+        return "unknown"
+    if log_type == "authorization":
+        for kw, result in _AUTHZ_RESULT_MAP.items():
+            if kw in msg:
+                return result
+        return "unknown"
+    if log_type == "accounting":
+        for kw, result in _ACCT_RESULT_MAP.items():
+            if kw in msg:
+                return result
+        return "unknown"
+    return "unknown"
+
+
+def _log_file_path(log_type: str, date: datetime) -> str:
+    """Return the absolute path for a log file of the given type and date."""
+    year = date.strftime("%Y")
+    month = date.strftime("%m")
+    day = date.strftime("%d")
+    filename = f"{log_type}-{year}-{month}-{day}.log"
+    return os.path.join(settings.TACACS_LOG_DIRECTORY, year, month, filename)
+
+
+def _parse_log_file(log_type: str, path: str) -> list[TacacsLogEvent]:
+    """Parse a single log file, returning structured events."""
+    events: list[TacacsLogEvent] = []
+    if not os.path.exists(path):
+        return events
+    try:
+        with open(path, errors="ignore") as f:
+            for line in f:
+                m = _LOG_REGEX.match(line.rstrip())
+                if not m:
+                    continue
+                d = m.groupdict()
+                result = _classify_result(log_type, d["message"])
+                events.append(
+                    TacacsLogEvent(
+                        timestamp=d["timestamp"],
+                        log_type=log_type,
+                        username=d["username"],
+                        nas_ip=d["nas_ip"],
+                        client_ip=d["client_ip"],
+                        result=result,
+                        message=d["message"],
+                    )
+                )
+    except OSError:
+        pass
+    return events
+
+
+@router.get(
+    "/events/summary",
+    dependencies=[Depends(get_current_user)],
+    response_model=TacacsLogDailySummary,
+)
+def get_log_events_summary(
+    date: str | None = None,
+) -> Any:
+    """
+    Return count totals for auth/authz/acct log events for a given date (default: today).
+    """
+    try:
+        target_date = (
+            datetime.strptime(date, "%Y-%m-%d") if date else datetime.now(timezone.utc)
+        )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
+
+    date_str = target_date.strftime("%Y-%m-%d")
+    summary: dict[str, TacacsLogTypeSummary] = {
+        lt: TacacsLogTypeSummary()
+        for lt in ("authentication", "authorization", "accounting")
+    }
+
+    for lt in ("authentication", "authorization", "accounting"):
+        path = _log_file_path(lt, target_date)
+        events = _parse_log_file(lt, path)
+        s = summary[lt]
+        for ev in events:
+            s.total += 1
+            if ev.result == "success":
+                s.success += 1
+            elif ev.result == "failed":
+                s.failed += 1
+            elif ev.result == "permit":
+                s.permit += 1
+            elif ev.result == "deny":
+                s.deny += 1
+            elif ev.result == "start":
+                s.start += 1
+            elif ev.result == "stop":
+                s.stop += 1
+
+    return TacacsLogDailySummary(
+        date=date_str,
+        authentication=summary["authentication"],
+        authorization=summary["authorization"],
+        accounting=summary["accounting"],
+    )
+
+
+@router.get(
+    "/events",
+    dependencies=[Depends(get_current_user)],
+    response_model=TacacsLogEventsPublic,
+)
+def list_log_events(
+    date: str | None = None,
+    log_type: str = "all",
+    result: str | None = None,
+    username: str | None = None,
+    nas_ip: str | None = None,
+    skip: int = 0,
+    limit: int = 20,
+) -> Any:
+    """
+    Return structured TACACS+ log events parsed from log files.
+    date: YYYY-MM-DD (default: today). log_type: authentication|authorization|accounting|all.
+    """
+    try:
+        target_date = (
+            datetime.strptime(date, "%Y-%m-%d") if date else datetime.now(timezone.utc)
+        )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
+
+    log_types = (
+        ["authentication", "authorization", "accounting"]
+        if log_type == "all"
+        else [log_type]
+    )
+    valid_types = {"authentication", "authorization", "accounting", "all"}
+    if log_type not in valid_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"log_type must be one of: {', '.join(sorted(valid_types))}",
+        )
+
+    all_events: list[TacacsLogEvent] = []
+    for lt in log_types:
+        path = _log_file_path(lt, target_date)
+        all_events.extend(_parse_log_file(lt, path))
+
+    # Sort newest-first by timestamp string (ISO-ish format sorts lexicographically)
+    all_events.sort(key=lambda e: e.timestamp, reverse=True)
+
+    # Apply filters
+    if result:
+        all_events = [e for e in all_events if e.result == result]
+    if username:
+        lower = username.lower()
+        all_events = [e for e in all_events if lower in e.username.lower()]
+    if nas_ip:
+        all_events = [e for e in all_events if nas_ip in e.nas_ip]
+
+    count = len(all_events)
+    page = all_events[skip : skip + limit]
+    return TacacsLogEventsPublic(data=page, count=count)
 
 
 @router.get(
@@ -37,16 +239,13 @@ def list_log_files(
     new_logs = []
     for root, _, files in os.walk(LOG_DIRECTORY):
         for file in files:
-            # We'll return the path relative to the log directory
             relative_path = os.path.relpath(os.path.join(root, file), LOG_DIRECTORY)
 
-            # persist to DB if not exists
             existing = session.exec(
                 select(TacacsLog).where(TacacsLog.filepath == relative_path)
             ).first()
             if not existing:
                 try:
-                    # Assuming filename format is like 'access-YYYY-mm-dd.log'
                     date_str = "-".join(file.split("-")[1:4]).split(".")[0]
                     log_date = datetime.strptime(date_str, "%Y-%m-%d")
                 except (IndexError, ValueError):
