@@ -2,6 +2,14 @@
 
 ## Latest Changes
 
+## v0.3.1
+
+### Improvements
+
+* 🎨 Hosts page UX overhaul — new page title and subtitle, removed UUID ID column, added IPv6 Address column with purple badge, IP address cells rendered as color-coded badges, empty parent/description show `—` with muted color, empty state uses server icon with clearer copy ("No hosts configured").
+* 🎨 Add Host dialog — removed placeholder default values (`demo`, `192.168.1.0/24`), human-readable field labels (IPv4 Address / CIDR, Secret Key, Parent Host), added IPv6 Address field, secret key masked as password input, descriptive placeholders, human-readable banner labels, submit button renamed to "Add Host", removed dead commented code.
+* 🎨 Edit Host dialog — same label and placeholder improvements, dialog subtitle shows the host name being edited, fixed "Title is required" copy-paste error message, added IPv6 Address field, secret key masked as password input, self excluded from Parent Host dropdown, submit button renamed to "Update Host".
+
 ## v0.3.0
 
 ### Features

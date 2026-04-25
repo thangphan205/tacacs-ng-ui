@@ -44,8 +44,8 @@ const AddHost = () => {
     mode: "onBlur",
     criteriaMode: "all",
     defaultValues: {
-      name: "demo",
-      ipv4_address: "192.168.1.0/24",
+      name: "",
+      ipv4_address: "",
       ipv6_address: "",
       secret_key: "",
       description: "",
@@ -93,6 +93,7 @@ const AddHost = () => {
       })
     })
   }
+
   return (
     <DialogRoot
       size={{ base: "md", md: "md" }}
@@ -112,7 +113,9 @@ const AddHost = () => {
             <DialogTitle>Add Host</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Fill in the details to add a new item.</Text>
+            <Text mb={4} color="fg.muted" fontSize="sm">
+              Add a network device that will authenticate against the TACACS+ server.
+            </Text>
             <VStack gap={4} as="section">
               <Field
                 required
@@ -124,7 +127,7 @@ const AddHost = () => {
                   {...register("name", {
                     required: "Name is required.",
                   })}
-                  placeholder="Name"
+                  placeholder="core-switch-01"
                   type="text"
                 />
               </Field>
@@ -133,13 +136,24 @@ const AddHost = () => {
                   required
                   invalid={!!errors.ipv4_address}
                   errorText={errors.ipv4_address?.message}
-                  label="ipv4_address"
+                  label="IPv4 Address / CIDR"
                 >
                   <Input
                     {...register("ipv4_address", {
-                      required: "ipv4_address is required.",
+                      required: "IPv4 address is required.",
                     })}
-                    placeholder="ipv4_address"
+                    placeholder="192.168.1.1 or 192.168.1.0/24"
+                    type="text"
+                  />
+                </Field>
+                <Field
+                  invalid={!!errors.ipv6_address}
+                  errorText={errors.ipv6_address?.message}
+                  label="IPv6 Address"
+                >
+                  <Input
+                    {...register("ipv6_address")}
+                    placeholder="2001:db8::1 (optional)"
                     type="text"
                   />
                 </Field>
@@ -147,41 +161,21 @@ const AddHost = () => {
                   required
                   invalid={!!errors.secret_key}
                   errorText={errors.secret_key?.message}
-                  label="secret_key"
+                  label="Secret Key"
                 >
                   <Input
                     {...register("secret_key", {
-                      required: "secret_key is required.",
+                      required: "Secret key is required.",
                     })}
-                    placeholder="secret_key"
-                    type="text"
-                  />
-                </Field>
-                <Field
-                  invalid={!!errors.description}
-                  errorText={errors.description?.message}
-                  label="Description"
-                >
-                  <Input
-                    {...register("description")}
-                    placeholder="Description"
-                    type="text"
+                    placeholder="Shared secret key"
+                    type="password"
                   />
                 </Field>
                 <Field
                   invalid={!!errors.parent}
                   errorText={errors.parent?.message}
-                  label="parent"
+                  label="Parent Host"
                 >
-                  {/* <Select {...register("parent")} placeholder="Select parent">
-                    <option value="">None</option>
-                    {hostsData?.data.map((host) => (
-                      <option key={host.id} value={host.name}>
-                        {host.name}
-                      </option>
-                    ))}
-                  </Select> */}
-
                   <Select.Root
                     collection={items_hosts}
                     size="sm"
@@ -190,7 +184,7 @@ const AddHost = () => {
                     }}
                   >
                     <Select.Trigger>
-                      <Select.ValueText placeholder="Select Host Parent" />
+                      <Select.ValueText placeholder="None" />
                     </Select.Trigger>
                     <Select.Positioner>
                       <Select.Content>
@@ -207,53 +201,66 @@ const AddHost = () => {
                   </Select.Root>
                 </Field>
               </SimpleGrid>
+              <Field
+                invalid={!!errors.description}
+                errorText={errors.description?.message}
+                label="Description"
+              >
+                <Input
+                  {...register("description")}
+                  placeholder="Optional description"
+                  type="text"
+                />
+              </Field>
               <Collapsible.Root style={{ width: "100%" }}>
                 <Collapsible.Trigger asChild>
-                  <Button w="full" variant="outline">
+                  <Button w="full" variant="outline" size="sm">
                     Configure Banner Messages
                   </Button>
                 </Collapsible.Trigger>
                 <Collapsible.Content>
-                  <Field
-                    invalid={!!errors.welcome_banner}
-                    errorText={errors.welcome_banner?.message}
-                    label="welcome_banner"
-                  >
-                    <Textarea
-                      {...register("welcome_banner")}
-                      placeholder="welcome_banner"
-                    />
-                  </Field>
-                  <Field
-                    invalid={!!errors.reject_banner}
-                    errorText={errors.reject_banner?.message}
-                    label="reject_banner"
-                  >
-                    <Textarea
-                      {...register("reject_banner")}
-                      placeholder="reject_banner"
-                    />
-                  </Field>
-                  <Field
-                    invalid={!!errors.motd_banner}
-                    errorText={errors.motd_banner?.message}
-                    label="motd_banner"
-                  >
-                    <Textarea
-                      {...register("motd_banner")}
-                      placeholder="motd_banner"
-                    />
-                  </Field>
-                  <Field
-                    invalid={!!errors.failed_authentication_banner}
-                    errorText={errors.failed_authentication_banner?.message}
-                    label="failed_authentication_banner"
-                  >
-                    <Textarea
-                      {...register("failed_authentication_banner")}
-                      placeholder="failed_authentication_banner"
-                    />
-                  </Field>
+                  <VStack gap={4} pt={4}>
+                    <Field
+                      invalid={!!errors.welcome_banner}
+                      errorText={errors.welcome_banner?.message}
+                      label="Welcome Banner"
+                    >
+                      <Textarea
+                        {...register("welcome_banner")}
+                        placeholder="Message shown on successful login"
+                      />
+                    </Field>
+                    <Field
+                      invalid={!!errors.reject_banner}
+                      errorText={errors.reject_banner?.message}
+                      label="Reject Banner"
+                    >
+                      <Textarea
+                        {...register("reject_banner")}
+                        placeholder="Message shown when access is denied"
+                      />
+                    </Field>
+                    <Field
+                      invalid={!!errors.motd_banner}
+                      errorText={errors.motd_banner?.message}
+                      label="MOTD Banner"
+                    >
+                      <Textarea
+                        {...register("motd_banner")}
+                        placeholder="Message of the day shown after login"
+                      />
+                    </Field>
+                    <Field
+                      invalid={!!errors.failed_authentication_banner}
+                      errorText={errors.failed_authentication_banner?.message}
+                      label="Failed Authentication Banner"
+                    >
+                      <Textarea
+                        {...register("failed_authentication_banner")}
+                        placeholder="Message shown on failed authentication"
+                      />
+                    </Field>
+                  </VStack>
                 </Collapsible.Content>
               </Collapsible.Root>
             </VStack>
@@ -275,7 +282,7 @@ const AddHost = () => {
               disabled={!isValid}
               loading={isSubmitting}
             >
-              Save
+              Add Host
             </Button>
           </DialogFooter>
         </form>

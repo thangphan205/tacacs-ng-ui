@@ -100,17 +100,21 @@ const EditHost = ({ host }: EditHostProps) => {
   const onSubmit: SubmitHandler<HostUpdateForm> = async (data) => {
     mutation.mutate(data)
   }
+
   const items_hosts = createListCollection<{ value: string; label: string }>({
     items: [],
   })
   if (hostsData && hostsData.data.length > 0) {
     hostsData.data.forEach((hostData) => {
-      items_hosts.items.push({
-        value: hostData.name,
-        label: hostData.name,
-      })
+      if (hostData.id !== host.id) {
+        items_hosts.items.push({
+          value: hostData.name,
+          label: hostData.name,
+        })
+      }
     })
   }
+
   return (
     <DialogRoot
       size={{ base: "xs", md: "md" }}
@@ -130,19 +134,21 @@ const EditHost = ({ host }: EditHostProps) => {
             <DialogTitle>Edit Host</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Update the item details below.</Text>
+            <Text mb={4} color="fg.muted" fontSize="sm">
+              Update the details for <strong>{host.name}</strong>.
+            </Text>
             <VStack gap={4} as="section">
               <Field
                 required
                 invalid={!!errors.name}
                 errorText={errors.name?.message}
-                label="name"
+                label="Name"
               >
                 <Input
                   {...register("name", {
-                    required: "Title is required",
+                    required: "Name is required.",
                   })}
-                  placeholder="name"
+                  placeholder="core-switch-01"
                   type="text"
                 />
               </Field>
@@ -151,13 +157,24 @@ const EditHost = ({ host }: EditHostProps) => {
                   required
                   invalid={!!errors.ipv4_address}
                   errorText={errors.ipv4_address?.message}
-                  label="ipv4_address"
+                  label="IPv4 Address / CIDR"
                 >
                   <Input
                     {...register("ipv4_address", {
-                      required: "ipv4_address is required.",
+                      required: "IPv4 address is required.",
                     })}
-                    placeholder="ipv4_address"
+                    placeholder="192.168.1.1 or 192.168.1.0/24"
+                    type="text"
+                  />
+                </Field>
+                <Field
+                  invalid={!!errors.ipv6_address}
+                  errorText={errors.ipv6_address?.message}
+                  label="IPv6 Address"
+                >
+                  <Input
+                    {...register("ipv6_address")}
+                    placeholder="2001:db8::1 (optional)"
                     type="text"
                   />
                 </Field>
@@ -165,31 +182,20 @@ const EditHost = ({ host }: EditHostProps) => {
                   required
                   invalid={!!errors.secret_key}
                   errorText={errors.secret_key?.message}
-                  label="secret_key"
+                  label="Secret Key"
                 >
                   <Input
                     {...register("secret_key", {
-                      required: "secret_key is required.",
+                      required: "Secret key is required.",
                     })}
-                    placeholder="secret_key"
-                    type="text"
-                  />
-                </Field>
-                <Field
-                  invalid={!!errors.description}
-                  errorText={errors.description?.message}
-                  label="Description"
-                >
-                  <Input
-                    {...register("description")}
-                    placeholder="Description"
-                    type="text"
+                    placeholder="Shared secret key"
+                    type="password"
                   />
                 </Field>
                 <Field
                   invalid={!!errors.parent}
                   errorText={errors.parent?.message}
-                  label="parent"
+                  label="Parent Host"
                 >
                   <Select.Root
                     collection={items_hosts}
@@ -199,7 +205,7 @@ const EditHost = ({ host }: EditHostProps) => {
                     }}
                   >
                     <Select.Trigger>
-                      <Select.ValueText placeholder="Select Host Parent" />
+                      <Select.ValueText placeholder="None" />
                     </Select.Trigger>
                     <Select.Positioner>
                       <Select.Content>
@@ -216,9 +222,20 @@ const EditHost = ({ host }: EditHostProps) => {
                   </Select.Root>
                 </Field>
               </SimpleGrid>
+              <Field
+                invalid={!!errors.description}
+                errorText={errors.description?.message}
+                label="Description"
+              >
+                <Input
+                  {...register("description")}
+                  placeholder="Optional description"
+                  type="text"
+                />
+              </Field>
               <Collapsible.Root style={{ width: "100%" }}>
                 <Collapsible.Trigger asChild>
-                  <Button w="full" variant="outline">
+                  <Button w="full" variant="outline" size="sm">
                     Configure Banner Messages
                   </Button>
                 </Collapsible.Trigger>
@@ -227,41 +244,41 @@ const EditHost = ({ host }: EditHostProps) => {
                     <Field
                       invalid={!!errors.welcome_banner}
                       errorText={errors.welcome_banner?.message}
-                      label="welcome_banner"
+                      label="Welcome Banner"
                     >
                       <Textarea
                         {...register("welcome_banner")}
-                        placeholder="welcome_banner"
+                        placeholder="Message shown on successful login"
                       />
                     </Field>
                     <Field
                       invalid={!!errors.reject_banner}
                       errorText={errors.reject_banner?.message}
-                      label="reject_banner"
+                      label="Reject Banner"
                     >
                       <Textarea
                         {...register("reject_banner")}
-                        placeholder="reject_banner"
+                        placeholder="Message shown when access is denied"
                       />
                     </Field>
                     <Field
                       invalid={!!errors.motd_banner}
                       errorText={errors.motd_banner?.message}
-                      label="motd_banner"
+                      label="MOTD Banner"
                     >
                       <Textarea
                         {...register("motd_banner")}
-                        placeholder="motd_banner"
+                        placeholder="Message of the day shown after login"
                       />
                     </Field>
                     <Field
                       invalid={!!errors.failed_authentication_banner}
                       errorText={errors.failed_authentication_banner?.message}
-                      label="failed_authentication_banner"
+                      label="Failed Authentication Banner"
                     >
                       <Textarea
                         {...register("failed_authentication_banner")}
-                        placeholder="failed_authentication_banner"
+                        placeholder="Message shown on failed authentication"
                       />
                     </Field>
                   </VStack>
@@ -282,7 +299,7 @@ const EditHost = ({ host }: EditHostProps) => {
                 </Button>
               </DialogActionTrigger>
               <Button variant="solid" type="submit" loading={isSubmitting}>
-                Save
+                Update Host
               </Button>
             </ButtonGroup>
           </DialogFooter>

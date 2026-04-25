@@ -1,14 +1,17 @@
 import {
+  Badge,
+  Box,
   Container,
   EmptyState,
   Flex,
   Heading,
   Table,
+  Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { FiSearch } from "react-icons/fi"
+import { FiServer } from "react-icons/fi"
 import { z } from "zod"
 
 import { HostsService } from "@/client"
@@ -69,12 +72,12 @@ function HostsTable() {
       <EmptyState.Root>
         <EmptyState.Content>
           <EmptyState.Indicator>
-            <FiSearch />
+            <FiServer />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>You don't have any hosts yet</EmptyState.Title>
+            <EmptyState.Title>No hosts configured</EmptyState.Title>
             <EmptyState.Description>
-              Add a new host to get started
+              Add your first network device to get started
             </EmptyState.Description>
           </VStack>
         </EmptyState.Content>
@@ -87,35 +90,45 @@ function HostsTable() {
       <Table.Root size={{ base: "sm", md: "md" }}>
         <Table.Header>
           <Table.Row>
-            <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Name</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Address</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Parent</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Description</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
+            <Table.ColumnHeader>Name</Table.ColumnHeader>
+            <Table.ColumnHeader>IPv4 Address</Table.ColumnHeader>
+            <Table.ColumnHeader>IPv6 Address</Table.ColumnHeader>
+            <Table.ColumnHeader>Parent</Table.ColumnHeader>
+            <Table.ColumnHeader>Description</Table.ColumnHeader>
+            <Table.ColumnHeader w="16">Actions</Table.ColumnHeader>
           </Table.Row>
         </Table.Header>
         <Table.Body>
-          {hosts?.map((host) => (
+          {hosts.map((host) => (
             <Table.Row key={host.id} opacity={isPlaceholderData ? 0.5 : 1}>
-              <Table.Cell truncate maxW="sm">
-                {host.id}
+              <Table.Cell fontWeight="medium">{host.name}</Table.Cell>
+              <Table.Cell>
+                {host.ipv4_address ? (
+                  <Badge colorPalette="blue" variant="outline" size="sm">
+                    {host.ipv4_address}
+                  </Badge>
+                ) : (
+                  <Text color="fg.muted">—</Text>
+                )}
               </Table.Cell>
-              <Table.Cell truncate maxW="sm">
-                {host.name}
+              <Table.Cell>
+                {host.ipv6_address ? (
+                  <Badge colorPalette="purple" variant="outline" size="sm">
+                    {host.ipv6_address}
+                  </Badge>
+                ) : (
+                  <Text color="fg.muted">—</Text>
+                )}
               </Table.Cell>
-              <Table.Cell truncate maxW="sm">
-                {host.ipv4_address}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm">
-                {host.parent || "None"}
+              <Table.Cell color={!host.parent ? "fg.muted" : "inherit"}>
+                {host.parent || "—"}
               </Table.Cell>
               <Table.Cell
-                color={!host.description ? "gray" : "inherit"}
+                color={!host.description ? "fg.muted" : "inherit"}
                 truncate
-                maxW="30%"
+                maxW="xs"
               >
-                {host.description || "N/A"}
+                {host.description || "—"}
               </Table.Cell>
               <Table.Cell>
                 <HostActionsMenu host={host} />
@@ -144,9 +157,14 @@ function HostsTable() {
 function Hosts() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12}>
-        Hosts Management
-      </Heading>
+      <Flex justify="space-between" align="flex-start" pt={12} mb={4}>
+        <Box>
+          <Heading size="lg">Hosts</Heading>
+          <Text color="fg.muted" fontSize="sm" mt={1}>
+            Network devices that authenticate against the TACACS+ server.
+          </Text>
+        </Box>
+      </Flex>
       <AddHost />
       <HostsTable />
     </Container>
