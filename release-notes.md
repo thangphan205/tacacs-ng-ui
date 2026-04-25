@@ -2,6 +2,24 @@
 
 ## Latest Changes
 
+## v0.3.0
+
+### Features
+
+* ✨ Add structured TACACS Log Events viewer — paginated table with date picker, type filter (Authentication / Authorization / Accounting), result filter, and username search. Each event shows timestamp, type badge, result badge, username, NAS IP, and raw message. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ Add SIEM integration for TACACS+ log events — forward events in real-time via HTTP webhook (Splunk HEC format with bearer token auth) and/or UDP/TCP syslog. Configurable via env vars: `SIEM_FORWARD_TACACS_EVENTS`, `SIEM_WEBHOOK_URL`, `SIEM_WEBHOOK_TOKEN`, `SIEM_SYSLOG_HOST`, `SIEM_SYSLOG_PORT`, `SIEM_SYSLOG_PROTOCOL`. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ Add `GET /api/v1/tacacs_logs/events/summary` endpoint — returns today's (or any date's) authentication success/fail, authorization permit/deny, and accounting start/stop counts from live log files. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ Dashboard — Today's Log Summary section: three stat cards showing today's Authentication (✓/✗), Authorization (✓/✗), and Accounting (▶/■) counts from live log files, with direct link to TACACS Logs. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ Dashboard — Config Overview section: five clickable count cards (Hosts, TACACS Users, TACACS Groups, Profiles, Rulesets) that navigate to their respective management pages. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ Dashboard — Recent User Activity section: compact table showing the last 10 audit log entries (Time, User, Action badge, Entity, Description) with a "View all" link to the Audit Logs page. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ Dashboard — Top 5 & AAA Trend date filter: replaced fixed 7-day view with a filter bar offering **Last 7 Days**, **Last 30 Days**, and **Date Range** (custom start/end date inputs). All modes query the `/range/` DB endpoint for consistent data. Default is Last 7 Days. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ Dashboard trend chart — replaced AreaChart with LineChart for cleaner rendering of 6 overlapping series. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ TACACS+ Config page UX overhaul — new subtitle "Generate → Preview → Activate. Each snapshot is versioned.", workflow `Alert` banner replacing inline `Code` block, removed UUID column, active config row highlighted in green, active/inactive status badges, timestamps show full date+time, clearer button labels (Generate Config / Preview Config / Active Config). PR by [@thangphan205](https://github.com/thangphan205).
+
+### Fixes
+
+* 🐛 Fix `process_today_authentication_statistics()` — removed `"login" in message` gate that undercounted events; switched to `"succeeded"` / `"failed"` / `"denied"` substring check consistent with the main log classifier. PR by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.2.3
 
 ### Fixes

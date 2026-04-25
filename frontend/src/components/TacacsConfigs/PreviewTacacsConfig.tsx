@@ -67,7 +67,7 @@ const PreviewTacacsConfig = () => {
       <DialogTrigger asChild>
         <Button my={4} onClick={handlePreview} loading={isLoading && isOpen}>
           <FiEye fontSize="16px" />
-          Preview Candidate Add TacacsConfig
+          Preview Config
         </Button>
       </DialogTrigger>
       <DialogContent>

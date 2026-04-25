@@ -23,12 +23,15 @@
 6. [Access Control: Profiles & Rulesets](#access-control-profiles--rulesets)
 7. [Server Settings](#server-settings)
 8. [Generating and Applying Config Files](#generating-and-applying-config-files)
-9. [Monitoring & Statistics](#monitoring--statistics)
-10. [Audit Logs](#audit-logs)
-11. [Application User Management](#application-user-management)
-12. [Advanced: MAVIS Backends](#advanced-mavis-backends)
-13. [Advanced: Custom Configuration Options](#advanced-custom-configuration-options)
-14. [Troubleshooting](#troubleshooting)
+9. [Dashboard Overview](#dashboard-overview)
+10. [TACACS Log Events Viewer](#tacacs-log-events-viewer)
+11. [SIEM Integration](#siem-integration)
+12. [Monitoring & Statistics](#monitoring--statistics)
+13. [Audit Logs](#audit-logs)
+14. [Application User Management](#application-user-management)
+15. [Advanced: MAVIS Backends](#advanced-mavis-backends)
+16. [Advanced: Custom Configuration Options](#advanced-custom-configuration-options)
+17. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -387,13 +390,37 @@ Log path patterns support `strftime` format — `%Y/%m/%d` creates daily log rot
 
 ![TACACS Config](img/tacacs_config.png)
 
-### Generate a Config
+### Workflow: Generate → Preview → Activate
 
-1. Click **Generate Config** — builds a complete `tac_plus-ng` config from all current settings.
-2. Review the generated config file content.
-3. Set `active: true` to mark it as the live config.
+The page follows a three-step workflow. Each config snapshot is versioned and can be inspected before being promoted.
 
-![Config Generator Dashboard](img/dashboard-tacacs-config.png)
+**Step 1 — Generate Config**
+
+Click **Generate Config** to build a complete `tac_plus-ng` config from all current settings. A dialog asks for a filename and optional description; defaults are pre-filled with the current timestamp.
+
+**Step 2 — Preview Config**
+
+Click **Preview Config** to see what the next generated config would look like without saving it. Useful for reviewing changes before committing.
+
+**Step 3 — Activate**
+
+In the config table, open the Actions menu for any snapshot and select **Activate** to mark it as the live config. The active row is highlighted in green with an **Active** badge.
+
+**Active Config button**
+
+Click **Active Config** to view the currently running configuration file in a syntax-highlighted modal.
+
+![TACACS Config](img/tacacs_config.png)
+
+### Config Table
+
+| Column | Description |
+|--------|-------------|
+| Filename | Config snapshot name — click to view file contents |
+| Status | Active (green) or Inactive (gray) |
+| Description | Optional description set at generation time |
+| Created At | Date and time the snapshot was generated |
+| Actions | Activate / Delete |
 
 ### Config Reload
 
@@ -403,9 +430,136 @@ After activating, the `tac_plus-ng` daemon picks up the changes. In Docker deplo
 
 **Path:** Sidebar → TACACS Logs
 
-![TACACS Logs](img/tacacs-logs.png)
+View TACACS+ log events. Use the **Events** tab for a structured, filterable view (see [TACACS Log Events Viewer](#tacacs-log-events-viewer)).
 
-View raw TACACS+ server log files. Logs are stored per the paths configured in Server Settings.
+---
+
+## Dashboard Overview
+
+**Path:** Sidebar → Dashboard
+
+The dashboard provides a real-time summary of your TACACS+ environment across four sections.
+
+### Today's Log Summary
+
+Three stat cards pulled directly from live TACACS+ log files:
+
+| Card | Metrics |
+|------|---------|
+| **Authentication** | ✓ Successful logins / ✗ Failed logins today |
+| **Authorization** | ✓ Permit decisions / ✗ Deny decisions today |
+| **Accounting** | ▶ Session starts / ■ Session stops today |
+
+Click any card to jump to the TACACS Log Events viewer for detailed records.
+
+### Config Overview
+
+Five clickable count cards showing current entity totals:
+
+| Card | Navigates to |
+|------|-------------|
+| Hosts | `/hosts` |
+| TACACS Users | `/tacacs_users` |
+| TACACS Groups | `/tacacs_groups` |
+| Profiles | `/profiles` |
+| Rulesets | `/rulesets` |
+
+### Recent User Activity
+
+Compact table of the last 10 audit log entries — shows Time, Dashboard User, Action (color-coded badge), Entity type, and Description. Click **View all →** to open the full Audit Logs page.
+
+### Top 5 & AAA Trend
+
+Four pie charts (Top 5 Source IPs, Top 5 NAS IPs, Top 5 Auth Users, Top 5 Authz Users) and a six-series trend line chart (auth success/fail, authz permit/deny, acct start/stop).
+
+**Filter bar** (above the charts):
+
+| Option | Period |
+|--------|--------|
+| Last 7 Days | Rolling 7-day window ending today |
+| Last 30 Days | Rolling 30-day window ending today |
+| Date Range | Custom start and end date inputs |
+
+Default is **Last 7 Days**. All options query the database statistics endpoint; data is updated nightly by the statistics batch job.
+
+---
+
+## TACACS Log Events Viewer
+
+**Path:** Sidebar → TACACS Logs → Events tab
+
+Browse and search structured TACACS+ log events parsed from raw log files.
+
+### Filters
+
+| Filter | Options |
+|--------|---------|
+| Date | Date picker (defaults to today) |
+| Type | All / Authentication / Authorization / Accounting |
+| Result | All / Success / Failed / Permit / Deny / Start / Stop |
+| Username | Free-text search |
+
+### Event Table Columns
+
+| Column | Description |
+|--------|-------------|
+| Timestamp | Date and time of the event |
+| Type | Authentication / Authorization / Accounting (color badge) |
+| Result | Success / Failed / Permit / Deny / Start / Stop (color badge) |
+| Username | TACACS username |
+| NAS IP | Network device IP address |
+| Message | Raw log message |
+
+Results are paginated. Use the date picker and filters to narrow down to specific events.
+
+---
+
+## SIEM Integration
+
+tacacs-ng-ui can forward TACACS+ log events in real-time to external security platforms.
+
+### Configuration (`.env`)
+
+```bash
+# Enable SIEM forwarding
+SIEM_FORWARD_TACACS_EVENTS=true
+
+# HTTP Webhook (Splunk HEC format)
+SIEM_WEBHOOK_URL=https://splunk.example.com:8088/services/collector/event
+SIEM_WEBHOOK_TOKEN=your-hec-token
+
+# Syslog (UDP or TCP)
+SIEM_SYSLOG_HOST=syslog.example.com
+SIEM_SYSLOG_PORT=514
+SIEM_SYSLOG_PROTOCOL=udp   # or tcp
+```
+
+### Webhook Payload (Splunk HEC format)
+
+```json
+{
+  "time": 1714012800,
+  "event": {
+    "timestamp": "2026-04-25T10:30:00Z",
+    "type": "authentication",
+    "result": "success",
+    "username": "admin",
+    "nas_ip": "192.168.1.1",
+    "message": "..."
+  }
+}
+```
+
+Events are forwarded asynchronously — TACACS+ authentication is not blocked if the SIEM endpoint is unavailable.
+
+### Supported Integrations
+
+| Platform | Method |
+|----------|--------|
+| Splunk | HTTP Event Collector (HEC) webhook |
+| Elastic / Logstash | HTTP webhook or syslog input |
+| Graylog | GELF HTTP or syslog UDP/TCP |
+| Any syslog receiver | UDP or TCP syslog |
 
 ---
 
@@ -640,12 +794,15 @@ Use this for advanced directives like custom ACLs, time-based access controls, o
 6. [Kiểm Soát Truy Cập: Profiles & Rulesets](#kiểm-soát-truy-cập-profiles--rulesets)
 7. [Cài Đặt Server](#cài-đặt-server)
 8. [Tạo và Kích Hoạt File Config](#tạo-và-kích-hoạt-file-config)
-9. [Giám Sát & Thống Kê](#giám-sát--thống-kê)
-10. [Nhật Ký Kiểm Tra (Audit Logs)](#nhật-ký-kiểm-tra-audit-logs)
-11. [Quản Lý Người Dùng Ứng Dụng](#quản-lý-người-dùng-ứng-dụng)
-12. [Nâng Cao: MAVIS Backend](#nâng-cao-mavis-backend)
-13. [Nâng Cao: Tùy Chọn Cấu Hình Tùy Chỉnh](#nâng-cao-tùy-chọn-cấu-hình-tùy-chỉnh)
-14. [Xử Lý Sự Cố](#xử-lý-sự-cố)
+9. [Tổng Quan Dashboard](#tổng-quan-dashboard)
+10. [Xem Sự Kiện Log TACACS](#xem-sự-kiện-log-tacacs)
+11. [Tích Hợp SIEM](#tích-hợp-siem)
+12. [Giám Sát & Thống Kê](#giám-sát--thống-kê)
+13. [Nhật Ký Kiểm Tra (Audit Logs)](#nhật-ký-kiểm-tra-audit-logs)
+14. [Quản Lý Người Dùng Ứng Dụng](#quản-lý-người-dùng-ứng-dụng)
+15. [Nâng Cao: MAVIS Backend](#nâng-cao-mavis-backend)
+16. [Nâng Cao: Tùy Chọn Cấu Hình Tùy Chỉnh](#nâng-cao-tùy-chọn-cấu-hình-tùy-chỉnh)
+17. [Xử Lý Sự Cố](#xử-lý-sự-cố)
 
 ---
 
@@ -976,17 +1133,75 @@ default action: deny
 >
 > Các thay đổi đối với users, groups, hosts, profiles, rulesets, MAVIS, hoặc cài đặt server sẽ **không có hiệu lực** trên TACACS+ server cho đến khi bạn tạo lại và kích hoạt config.
 
+### Quy trình: Generate → Preview → Activate
+
+**Bước 1 — Generate Config**: Nhấn **Generate Config** để tạo config `tac_plus-ng` đầy đủ từ tất cả cài đặt hiện tại. Hộp thoại sẽ hỏi tên file và mô tả; mặc định điền sẵn theo thời gian hiện tại.
+
+**Bước 2 — Preview Config**: Nhấn **Preview Config** để xem trước nội dung config mà không lưu lại. Hữu ích để kiểm tra thay đổi trước khi xác nhận.
+
+**Bước 3 — Activate**: Trong bảng danh sách config, mở menu Actions của snapshot cần dùng và chọn **Activate**. Hàng đang active được tô nền xanh với badge **Active**.
+
+**Nút Active Config**: Nhấn để xem file config đang chạy với syntax highlighting.
+
 ![TACACS Config](img/tacacs_config.png)
 
-### Các Bước Tạo Config
-
-1. Nhấn **Generate Config** — hệ thống tạo config `tac_plus-ng` đầy đủ từ tất cả cài đặt hiện tại.
-2. Xem lại nội dung file config được tạo.
-3. Đặt `active: true` để đánh dấu là config đang hoạt động.
-
-![Config Generator Dashboard](img/dashboard-tacacs-config.png)
-
 Sau khi kích hoạt, daemon `tac_plus-ng` nhận cấu hình mới. Trong triển khai Docker, file config được ghi vào volume `/app/tacacs_config/` dùng chung với container TACACS+ server.
+
+---
+
+## Tổng Quan Dashboard
+
+**Đường dẫn:** Sidebar → Dashboard
+
+Dashboard cung cấp thông tin tổng hợp về môi trường TACACS+ qua bốn phần.
+
+**Tóm Tắt Log Hôm Nay**: Ba thẻ thống kê lấy trực tiếp từ file log TACACS+: Authentication (thành công/thất bại), Authorization (cho phép/từ chối), Accounting (bắt đầu/kết thúc). Nhấn vào thẻ để chuyển đến trang Log Events.
+
+**Tổng Quan Config**: Năm thẻ hiển thị số lượng thực thể hiện tại — Hosts, TACACS Users, TACACS Groups, Profiles, Rulesets. Nhấn để điều hướng đến trang tương ứng.
+
+**Hoạt Động Người Dùng Gần Đây**: Bảng 10 bản ghi audit log gần nhất. Nhấn **Xem tất cả →** để mở trang Audit Logs.
+
+**Top 5 & Xu Hướng AAA**: Bốn biểu đồ tròn (Top 5 Source IPs, NAS IPs, Auth Users, Authz Users) và biểu đồ xu hướng đường thẳng 6 series. Bộ lọc: **7 Ngày Qua** / **30 Ngày Qua** / **Khoảng Thời Gian** (nhập ngày tùy chỉnh). Mặc định là 7 Ngày Qua.
+
+---
+
+## Xem Sự Kiện Log TACACS
+
+**Đường dẫn:** Sidebar → TACACS Logs → tab Events
+
+Duyệt và tìm kiếm các sự kiện TACACS+ được phân tích từ file log thô.
+
+| Bộ lọc | Tùy chọn |
+|--------|----------|
+| Ngày | Chọn ngày cụ thể (mặc định: hôm nay) |
+| Loại | All / Authentication / Authorization / Accounting |
+| Kết quả | All / Success / Failed / Permit / Deny / Start / Stop |
+| Tên người dùng | Tìm kiếm văn bản tự do |
+
+Kết quả phân trang. Mỗi sự kiện hiển thị: Thời gian, Loại (badge màu), Kết quả (badge màu), Tên người dùng, NAS IP, Thông điệp.
+
+---
+
+## Tích Hợp SIEM
+
+tacacs-ng-ui có thể chuyển tiếp sự kiện log TACACS+ theo thời gian thực đến các nền tảng bảo mật bên ngoài.
+
+**Cấu hình trong `.env`:**
+
+```bash
+SIEM_FORWARD_TACACS_EVENTS=true
+
+# HTTP Webhook (định dạng Splunk HEC)
+SIEM_WEBHOOK_URL=https://splunk.example.com:8088/services/collector/event
+SIEM_WEBHOOK_TOKEN=your-hec-token
+
+# Syslog (UDP hoặc TCP)
+SIEM_SYSLOG_HOST=syslog.example.com
+SIEM_SYSLOG_PORT=514
+SIEM_SYSLOG_PROTOCOL=udp
+```
+
+Sự kiện được gửi bất đồng bộ — xác thực TACACS+ không bị ảnh hưởng nếu endpoint SIEM không khả dụng.
 
 ---
 

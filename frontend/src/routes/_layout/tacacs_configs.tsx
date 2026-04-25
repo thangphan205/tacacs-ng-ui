@@ -1,17 +1,19 @@
 import {
+  Alert,
   Badge,
+  Box,
   Button,
-  Code,
   Container,
   EmptyState,
   Flex,
   Heading,
   Table,
+  Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { FiEye, FiSearch } from "react-icons/fi"
+import { FiFileText, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { TacacsConfigsService } from "@/client"
@@ -81,11 +83,9 @@ function TacacsConfigsTable() {
             <FiSearch />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>
-              You don't have any tacacs_configs yet
-            </EmptyState.Title>
+            <EmptyState.Title>No configurations yet</EmptyState.Title>
             <EmptyState.Description>
-              Add a new tacacs_config to get started
+              Generate a new configuration to get started
             </EmptyState.Description>
           </VStack>
         </EmptyState.Content>
@@ -98,56 +98,53 @@ function TacacsConfigsTable() {
       <Table.Root size={{ base: "sm", md: "md" }}>
         <Table.Header>
           <Table.Row>
-            <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Filename</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Active</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Description</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Created At</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
+            <Table.ColumnHeader>Filename</Table.ColumnHeader>
+            <Table.ColumnHeader w="28">Status</Table.ColumnHeader>
+            <Table.ColumnHeader>Description</Table.ColumnHeader>
+            <Table.ColumnHeader w="40">Created At</Table.ColumnHeader>
+            <Table.ColumnHeader w="16">Actions</Table.ColumnHeader>
           </Table.Row>
         </Table.Header>
         <Table.Body>
-          {tacacs_configs?.map((tacacs_config) => (
+          {tacacs_configs.map((tacacs_config) => (
             <Table.Row
               key={tacacs_config.id}
               opacity={isPlaceholderData ? 0.5 : 1}
+              bg={tacacs_config.active ? "green.subtle" : undefined}
             >
-              <Table.Cell truncate maxW="sm">
-                {tacacs_config.id}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm" cursor="pointer">
+              <Table.Cell>
                 <ShowTacacsConfig tacacs_config={tacacs_config}>
-                  {tacacs_config.active ? (
-                    <Button colorPalette="green">
-                      <FiEye />
-                      {tacacs_config.filename}
-                    </Button>
-                  ) : (
-                    <Button variant="ghost" colorPalette="gray">
-                      <FiEye />
-                      {tacacs_config.filename}
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    colorPalette={tacacs_config.active ? "green" : "gray"}
+                    fontWeight={tacacs_config.active ? "semibold" : "normal"}
+                  >
+                    <FiFileText />
+                    {tacacs_config.filename}
+                  </Button>
                 </ShowTacacsConfig>
               </Table.Cell>
-              <Table.Cell truncate maxW="sm">
+              <Table.Cell>
                 {tacacs_config.active ? (
-                  <Badge variant="solid" colorPalette="green">
-                    Yes
+                  <Badge colorPalette="green" variant="solid" size="sm">
+                    Active
                   </Badge>
                 ) : (
-                  <Badge>No</Badge>
+                  <Badge colorPalette="gray" variant="outline" size="sm">
+                    Inactive
+                  </Badge>
                 )}
               </Table.Cell>
               <Table.Cell
-                color={!tacacs_config.description ? "gray" : "inherit"}
+                color={!tacacs_config.description ? "fg.muted" : "inherit"}
                 truncate
-                maxW="30%"
+                maxW="xs"
               >
-                {tacacs_config.description || "N/A"}
+                {tacacs_config.description || "—"}
               </Table.Cell>
-              <Table.Cell truncate maxW="sm">
-                {new Date(tacacs_config.created_at).toLocaleDateString()}
+              <Table.Cell fontSize="sm" color="fg.muted">
+                {new Date(tacacs_config.created_at).toLocaleString()}
               </Table.Cell>
               <Table.Cell>
                 <TacacsConfigActionsMenu tacacs_config={tacacs_config} />
@@ -176,18 +173,31 @@ function TacacsConfigsTable() {
 function TacacsConfigs() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12}>
-        TacacsConfigs Management
-      </Heading>
-      <Code size="md" colorPalette="red" variant="subtle">
-        Whenever you change the TACACS configuration, you must generate and
-        activate the new configuration.
-      </Code>
-      <Flex gap={2}>
+      <Flex justify="space-between" align="flex-start" pt={12} mb={4}>
+        <Box>
+          <Heading size="lg">TACACS+ Configuration</Heading>
+          <Text color="fg.muted" fontSize="sm" mt={1}>
+            Generate → Preview → Activate. Each snapshot is versioned.
+          </Text>
+        </Box>
+      </Flex>
+
+      <Alert.Root status="warning" mb={4} borderRadius="md">
+        <Alert.Indicator />
+        <Alert.Content>
+          <Alert.Title>Action required after changes</Alert.Title>
+          <Alert.Description>
+            After modifying any TACACS+ settings (users, groups, hosts, policies), generate and activate a new configuration for changes to take effect.
+          </Alert.Description>
+        </Alert.Content>
+      </Alert.Root>
+
+      <Flex gap={2} mb={4} flexWrap="wrap">
         <AddTacacsConfig />
         <PreviewTacacsConfig />
         <ShowActiveTacacsConfig />
       </Flex>
+
       <TacacsConfigsTable />
     </Container>
   )

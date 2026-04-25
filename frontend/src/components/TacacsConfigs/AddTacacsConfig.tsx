@@ -94,16 +94,16 @@ const AddTacacsConfig = () => {
       <DialogTrigger asChild>
         <Button value="add-item" my={4}>
           <FaPlus fontSize="16px" />
-          Add TacacsConfig
+          Generate Config
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Add TacacsConfig</DialogTitle>
+            <DialogTitle>Generate TACACS+ Config</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Fill in the details to add a new item.</Text>
+            <Text mb={4}>Create a new configuration snapshot from current settings.</Text>
             <VStack gap={4}>
               <Field
                 required
@@ -163,7 +163,7 @@ const AddTacacsConfig = () => {
               disabled={!isValid}
               loading={isSubmitting}
             >
-              Generate Tacacs Config
+              Generate
             </Button>
           </DialogFooter>
         </form>

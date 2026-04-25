@@ -60,7 +60,7 @@ const ShowActiveTacacsConfig = () => {
       <DialogTrigger asChild>
         <Button my={4} loading={isLoading && isOpen}>
           <FiShield fontSize="16px" />
-          Show Active Config
+          Active Config
         </Button>
       </DialogTrigger>
       <DialogContent>
