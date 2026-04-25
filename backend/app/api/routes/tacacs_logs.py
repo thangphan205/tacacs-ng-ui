@@ -28,9 +28,25 @@ _LOG_REGEX = re.compile(
     r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
     rf"(?P<nas_ip>{IP_REGEX})\s+"
     r"(?P<username>[\w.-]+)\s+"
-    r"(?:[\w.-]+\s+)?"
+    r"(?P<port>[\w/.-]+)\s+"  # tty / port field (e.g. vty14, tty0, ssh)
     rf"(?P<client_ip>{IP_REGEX})\s+"
     r"(?P<message>.*)$"
+)
+
+# Regex to strip the leading profile name from authorization messages:
+# e.g. "tacacs_super_user_profile permit shell show ip route" → group(permit/deny/...) + command
+_AUTHZ_CMD_REGEX = re.compile(
+    r"^(?:[\w.-]+\s+)?"
+    r"(?:permit|deny)\s+"
+    r"(?:[\w.-]+\s+)?"  # optional service token (shell, junos-exec, …)
+    r"(?P<command>.+?)\s*$",
+    re.IGNORECASE,
+)
+_ACCT_CMD_REGEX = re.compile(
+    r"(?:start|stop)\s+"
+    r"(?:[\w.-]+\s+)?"  # optional service token
+    r"(?P<command>.+?)\s*$",
+    re.IGNORECASE,
 )
 
 _AUTH_RESULT_MAP = {
@@ -77,6 +93,22 @@ def _log_file_path(log_type: str, date: datetime) -> str:
     return os.path.join(settings.TACACS_LOG_DIRECTORY, year, month, filename)
 
 
+def _extract_command(log_type: str, message: str) -> str | None:
+    """Best-effort extraction of a human-readable command from the raw log message."""
+    if log_type == "authorization":
+        m = _AUTHZ_CMD_REGEX.match(message.strip())
+        if m:
+            cmd = m.group("command").strip()
+            # Strip trailing <cr> artifact common in TACACS+ authz messages
+            return cmd.removesuffix("<cr>").strip() or None
+    if log_type == "accounting":
+        m = _ACCT_CMD_REGEX.search(message.strip())
+        if m:
+            cmd = m.group("command").strip()
+            return cmd.removesuffix("<cr>").strip() or None
+    return None
+
+
 def _parse_log_file(log_type: str, path: str) -> list[TacacsLogEvent]:
     """Parse a single log file, returning structured events."""
     events: list[TacacsLogEvent] = []
@@ -89,7 +121,18 @@ def _parse_log_file(log_type: str, path: str) -> list[TacacsLogEvent]:
                 if not m:
                     continue
                 d = m.groupdict()
-                result = _classify_result(log_type, d["message"])
+                message = d["message"]
+                result = _classify_result(log_type, message)
+                port = d.get("port") or None
+                command = _extract_command(log_type, message)
+                # Session ID: deterministic grouping key (no DB needed)
+                session_key_parts = [
+                    d["username"],
+                    d["nas_ip"],
+                    d["client_ip"],
+                    port or "",
+                ]
+                session_id = "|".join(session_key_parts)
                 events.append(
                     TacacsLogEvent(
                         timestamp=d["timestamp"],
@@ -98,7 +141,10 @@ def _parse_log_file(log_type: str, path: str) -> list[TacacsLogEvent]:
                         nas_ip=d["nas_ip"],
                         client_ip=d["client_ip"],
                         result=result,
-                        message=d["message"],
+                        message=message,
+                        command=command,
+                        port=port,
+                        session_id=session_id,
                     )
                 )
     except OSError:
