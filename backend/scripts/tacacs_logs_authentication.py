@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sqlmodel import Session, select
 from app.core.config import settings
 from app.core.db import engine
+from app.crud.tacacs_siem import forward_tacacs_event_to_siem
 from app.models import AuthenticationStatistics
 
 # --- Configuration ---
@@ -165,6 +166,20 @@ def save_statistics_to_db(summary_date, all_keys, successful_logins, failed_logi
 
         session.commit()
         print("\nStatistics saved successfully.")
+
+    if settings.SIEM_FORWARD_TACACS_EVENTS:
+        from datetime import timezone
+        ts = datetime.combine(summary_date, datetime.min.time()).replace(tzinfo=timezone.utc).timestamp()
+        for username, nas_ip, user_source_ip in sorted(all_keys):
+            key = (username, nas_ip, user_source_ip)
+            if successful_logins.get(key, 0) > 0:
+                forward_tacacs_event_to_siem(
+                    "authentication", username, nas_ip, user_source_ip, "success", ts, background=False
+                )
+            if failed_logins.get(key, 0) > 0:
+                forward_tacacs_event_to_siem(
+                    "authentication", username, nas_ip, user_source_ip, "failed", ts, background=False
+                )
 
 
 if __name__ == "__main__":

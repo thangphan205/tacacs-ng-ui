@@ -621,6 +621,21 @@ export type TacacsGroupUpdate = {
     description?: (string | null);
 };
 
+export type TacacsLogEvent = {
+    timestamp: string;
+    log_type: string;
+    username: string;
+    nas_ip: string;
+    client_ip: string;
+    result: string;
+    message: string;
+};
+
+export type TacacsLogEventsPublic = {
+    data: Array<TacacsLogEvent>;
+    count: number;
+};
+
 export type TacacsLogPublic = {
     filename: string;
     filepath: string;
@@ -1370,6 +1385,18 @@ export type TacacsGroupsDeleteTacacsGroupData = {
 };
 
 export type TacacsGroupsDeleteTacacsGroupResponse = (Message);
+
+export type TacacsLogsListLogEventsData = {
+    date?: (string | null);
+    limit?: number;
+    logType?: string;
+    nasIp?: (string | null);
+    result?: (string | null);
+    skip?: number;
+    username?: (string | null);
+};
+
+export type TacacsLogsListLogEventsResponse = (TacacsLogEventsPublic);
 
 export type TacacsLogsListLogFilesData = {
     limit?: number;

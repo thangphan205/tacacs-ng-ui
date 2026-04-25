@@ -2977,6 +2977,61 @@ export const TacacsGroupsPublicSchema = {
     title: 'TacacsGroupsPublic'
 } as const;
 
+export const TacacsLogEventSchema = {
+    properties: {
+        timestamp: {
+            type: 'string',
+            title: 'Timestamp'
+        },
+        log_type: {
+            type: 'string',
+            title: 'Log Type'
+        },
+        username: {
+            type: 'string',
+            title: 'Username'
+        },
+        nas_ip: {
+            type: 'string',
+            title: 'Nas Ip'
+        },
+        client_ip: {
+            type: 'string',
+            title: 'Client Ip'
+        },
+        result: {
+            type: 'string',
+            title: 'Result'
+        },
+        message: {
+            type: 'string',
+            title: 'Message'
+        }
+    },
+    type: 'object',
+    required: ['timestamp', 'log_type', 'username', 'nas_ip', 'client_ip', 'result', 'message'],
+    title: 'TacacsLogEvent'
+} as const;
+
+export const TacacsLogEventsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/TacacsLogEvent'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'TacacsLogEventsPublic'
+} as const;
+
 export const TacacsLogPublicSchema = {
     properties: {
         filename: {

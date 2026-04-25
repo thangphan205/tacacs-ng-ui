@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sqlmodel import Session, select
 from app.core.config import settings
 from app.core.db import engine
+from app.crud.tacacs_siem import forward_tacacs_event_to_siem
 from app.models import AccountingStatistics
 
 # --- Configuration ---
@@ -146,6 +147,20 @@ def save_statistics_to_db(summary_date, all_keys, start_events, stop_events):
 
         session.commit()
         print("\nAccounting statistics saved successfully.")
+
+    if settings.SIEM_FORWARD_TACACS_EVENTS:
+        from datetime import timezone
+        ts = datetime.combine(summary_date, datetime.min.time()).replace(tzinfo=timezone.utc).timestamp()
+        for username, nas_ip, user_source_ip in sorted(all_keys):
+            key = (username, nas_ip, user_source_ip)
+            if start_events.get(key, 0) > 0:
+                forward_tacacs_event_to_siem(
+                    "accounting", username, nas_ip, user_source_ip, "start", ts, background=False
+                )
+            if stop_events.get(key, 0) > 0:
+                forward_tacacs_event_to_siem(
+                    "accounting", username, nas_ip, user_source_ip, "stop", ts, background=False
+                )
 
 
 if __name__ == "__main__":

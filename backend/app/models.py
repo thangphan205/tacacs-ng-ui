@@ -723,6 +723,21 @@ class TacacsLogsPublic(SQLModel):
     count: int
 
 
+class TacacsLogEvent(SQLModel):
+    timestamp: str
+    log_type: str  # "authentication" | "authorization" | "accounting"
+    username: str
+    nas_ip: str
+    client_ip: str
+    result: str  # "success" | "failed" | "permit" | "deny" | "start" | "stop"
+    message: str
+
+
+class TacacsLogEventsPublic(SQLModel):
+    data: list[TacacsLogEvent]
+    count: int
+
+
 # -- Tacacs Custom Section Table ---
 class ConfigurationOptionBase(SQLModel):
     name: str = Field(index=True, unique=True, max_length=255)
