@@ -159,7 +159,7 @@ function Hosts() {
     <Container maxW="full">
       <Flex justify="space-between" align="flex-start" pt={12} mb={4}>
         <Box>
-          <Heading size="lg">Hosts</Heading>
+          <Heading size="md">Hosts</Heading>
           <Text color="fg.muted" fontSize="sm" mt={1}>
             Network devices that authenticate against the TACACS+ server.
           </Text>

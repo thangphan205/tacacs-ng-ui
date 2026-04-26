@@ -171,7 +171,7 @@ export function AaaStatisticsRange() {
         <Grid templateColumns="repeat(4, 1fr)" gap={6}>
           <GridItem colSpan={4}>
             <Flex justify="space-between" align="center" mb={6}>
-              <Heading size="lg">
+              <Heading size="md">
                 TACACS+ Authencation Statistics From {startDate} to {endDate}
               </Heading>
               <Flex gap={4}>

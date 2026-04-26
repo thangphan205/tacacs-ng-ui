@@ -144,7 +144,7 @@ function ProfilesTable() {
 function Profiles() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12}>
+      <Heading size="md" pt={6}>
         Profiles Management
       </Heading>
       <Flex gap={2}>

@@ -127,7 +127,7 @@ export function AaaStatistics() {
   return (
     <Container maxW="full" py={8}>
       <Flex justify="space-between" align="center" mb={6}>
-        <Heading size="lg">
+        <Heading size="md">
           TACACS+ Today Authentication Statistics:{" "}
           {new Date().toISOString().split("T")[0]}
         </Heading>

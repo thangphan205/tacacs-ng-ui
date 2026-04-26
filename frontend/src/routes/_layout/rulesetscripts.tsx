@@ -161,7 +161,7 @@ function RulesetScriptsTable() {
 function RulesetScripts() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12}>
+      <Heading size="md" pt={6}>
         RulesetScripts Management
       </Heading>
       <Flex gap={2}>

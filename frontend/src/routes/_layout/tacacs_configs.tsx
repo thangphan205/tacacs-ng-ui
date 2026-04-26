@@ -175,7 +175,7 @@ function TacacsConfigs() {
     <Container maxW="full">
       <Flex justify="space-between" align="flex-start" pt={12} mb={4}>
         <Box>
-          <Heading size="lg">TACACS+ Configuration</Heading>
+          <Heading size="md">TACACS+ Configuration</Heading>
           <Text color="fg.muted" fontSize="sm" mt={1}>
             Generate → Preview → Activate. Each snapshot is versioned.
           </Text>

@@ -223,7 +223,7 @@ function FilesTab() {
 function TacacsLogs() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12}>
+      <Heading size="md" pt={6}>
         TACACS+ Logs
       </Heading>
       <Tabs.Root defaultValue="events" mt={6}>

@@ -144,7 +144,7 @@ function RulesetsTable() {
 function Rulesets() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12}>
+      <Heading size="md" pt={6}>
         Rulesets Management
       </Heading>
       <Flex gap={2}>

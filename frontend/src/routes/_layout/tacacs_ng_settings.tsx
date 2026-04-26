@@ -179,7 +179,7 @@ function TacacsNgSettingsForm() {
 function TacacsNgSettings() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12} mb={4}>
+      <Heading size="md" pt={6} mb={4}>
         TACACS+ NG Settings
       </Heading>
       <TacacsNgSettingsForm />

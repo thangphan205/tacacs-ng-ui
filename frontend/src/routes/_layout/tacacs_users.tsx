@@ -150,7 +150,7 @@ function TacacsUsersTable() {
 function TacacsUsers() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12}>
+      <Heading size="md" pt={6}>
         TACACS Users
       </Heading>
       <AddTacacsUser />

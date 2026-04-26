@@ -97,7 +97,7 @@ export function TacacsStatistics() {
   return (
     <Container maxW="full" py={8}>
       <Flex justify="space-between" align="center" mb={6}>
-        <Heading size="lg">TACACS+ Authentication Statistics</Heading>
+        <Heading size="md">TACACS+ Authentication Statistics</Heading>
         <Box>
           <Input
             placeholder="Select Date"

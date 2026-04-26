@@ -142,7 +142,7 @@ function TacacsGroupsTable() {
 function TacacsGroups() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12}>
+      <Heading size="md" pt={6}>
         TACACS Groups
       </Heading>
       <AddTacacsGroup />

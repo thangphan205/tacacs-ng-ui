@@ -153,7 +153,7 @@ function ConfigurationOptionsTable() {
 function ConfigurationOptions() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12}>
+      <Heading size="md" pt={6}>
         Configuration Options Management
       </Heading>
       For advanced use cases not covered by the UI, you can directly use{" "}

@@ -536,7 +536,7 @@ function Dashboard() {
   return (
     <Container maxW="full" py={8}>
       <Flex justify="space-between" align="center" mb={6}>
-        <Heading size="lg">Dashboard</Heading>
+        <Heading size="md">Dashboard</Heading>
         <Text color="fg.muted" fontSize="sm">
           {new Date().toISOString().split("T")[0]}
         </Text>

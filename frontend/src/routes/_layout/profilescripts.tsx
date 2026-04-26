@@ -161,7 +161,7 @@ function ProfileScriptsTable() {
 function ProfileScripts() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12}>
+      <Heading size="md" pt={6}>
         ProfileScripts Management
       </Heading>
       <Flex gap={2}>

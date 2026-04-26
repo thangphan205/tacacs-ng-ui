@@ -159,7 +159,7 @@ function AuthProvidersPage() {
 
   return (
     <Container maxW="full">
-      <Heading size="lg" py={8}>
+      <Heading size="md" py={4}>
         Authentication Providers
       </Heading>
 

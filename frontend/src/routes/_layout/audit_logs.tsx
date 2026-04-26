@@ -294,7 +294,7 @@ function AuditLogsTable() {
 function AuditLogsPage() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12}>
+      <Heading size="md" pt={6}>
         Audit Logs
       </Heading>
       <AuditLogsTable />

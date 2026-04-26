@@ -161,7 +161,7 @@ function ProfileScriptSetsTable() {
 function ProfileScriptSets() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12}>
+      <Heading size="md" pt={6}>
         ProfileScriptSets Management
       </Heading>
       <Flex gap={2}>
