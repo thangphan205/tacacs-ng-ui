@@ -87,7 +87,7 @@ function TacacsUsersTable() {
 
   return (
     <>
-      <Table.Root size={{ base: "sm", md: "md" }}>
+      <Table.Root size="sm">
         <Table.Header>
           <Table.Row>
             <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>
