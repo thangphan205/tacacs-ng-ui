@@ -33,16 +33,20 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=RulesetsPublic,
 )
-def read_rulesets(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+def read_rulesets(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
     """
     Retrieve rulesets.
     """
 
     count_statement = select(func.count()).select_from(Ruleset)
+    statement = select(Ruleset)
+    if search:
+        f = Ruleset.name.contains(search) | Ruleset.action.contains(search) | Ruleset.description.contains(search)
+        count_statement = count_statement.where(f)
+        statement = statement.where(f)
     count = session.exec(count_statement).one()
 
-    statement = select(Ruleset).offset(skip).limit(limit)
-    rulesets = session.exec(statement).all()
+    rulesets = session.exec(statement.offset(skip).limit(limit)).all()
 
     return RulesetsPublic(data=rulesets, count=count)
 

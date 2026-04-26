@@ -33,15 +33,13 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=RulesetScriptSetsPublic,
 )
-def read_rulesetscriptsets(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+def read_rulesetscriptsets(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
     """
     Retrieve rulesetscriptsets.
     """
 
     count_statement = select(func.count()).select_from(RulesetScriptSet)
-    count = session.exec(count_statement).one()
-
-    statement = (
+    base_statement = (
         select(
             RulesetScriptSet,
             RulesetScript,
@@ -55,9 +53,14 @@ def read_rulesetscriptsets(session: SessionDep, skip: int = 0, limit: int = 100)
             Ruleset,
             RulesetScript.ruleset_id == Ruleset.id,
         )
-        .offset(skip)
-        .limit(limit)
     )
+    if search:
+        f = RulesetScriptSet.key.contains(search) | RulesetScriptSet.value.contains(search) | RulesetScriptSet.description.contains(search)
+        count_statement = count_statement.where(f)
+        base_statement = base_statement.where(f)
+    count = session.exec(count_statement).one()
+
+    statement = base_statement.offset(skip).limit(limit)
     rulesetscriptsets = session.exec(statement).all()
     data_rulesetscriptsets = []
     for (

@@ -32,16 +32,19 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=MavisesPublic,
 )
-def read_mavises(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+def read_mavises(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
     """
     Retrieve mavises.
     """
 
     count_statement = select(func.count()).select_from(Mavis)
+    statement = select(Mavis)
+    if search:
+        f = Mavis.mavis_key.contains(search) | Mavis.mavis_value.contains(search)
+        count_statement = count_statement.where(f)
+        statement = statement.where(f)
     count = session.exec(count_statement).one()
-
-    statement = select(Mavis).offset(skip).limit(limit)
-    mavises = session.exec(statement).all()
+    mavises = session.exec(statement.offset(skip).limit(limit)).all()
 
     return MavisesPublic(data=mavises, count=count)
 

@@ -1,6 +1,15 @@
-import { Badge, Container, Flex, Heading, Table } from "@chakra-ui/react"
+import {
+  Badge,
+  Container,
+  Flex,
+  Heading,
+  Input,
+  InputGroup,
+  Table,
+} from "@chakra-ui/react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useEffect, useRef, useState } from "react"
 import { z } from "zod"
 
 import { type UserPublic, UsersService } from "@/client"
@@ -16,15 +25,26 @@ import {
 
 const usersSearchSchema = z.object({
   page: z.number().catch(1),
+  search: z.string().optional(),
 })
 
 const PER_PAGE = 5
 
-function getUsersQueryOptions({ page }: { page: number }) {
+function getUsersQueryOptions({
+  page,
+  search,
+}: {
+  page: number
+  search?: string
+}) {
   return {
     queryFn: () =>
-      UsersService.readUsers({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
-    queryKey: ["users", { page }],
+      UsersService.readUsers({
+        skip: (page - 1) * PER_PAGE,
+        limit: PER_PAGE,
+        search,
+      }),
+    queryKey: ["users", { page, search }],
   }
 }
 
@@ -37,12 +57,18 @@ function UsersTable() {
   const queryClient = useQueryClient()
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
   const navigate = useNavigate({ from: Route.fullPath })
-  const { page } = Route.useSearch()
+  const { page, search } = Route.useSearch()
+  const [localSearch, setLocalSearch] = useState(search ?? "")
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getUsersQueryOptions({ page }),
+    ...getUsersQueryOptions({ page, search }),
     placeholderData: (prevData) => prevData,
   })
+
+  useEffect(() => {
+    setLocalSearch(search ?? "")
+  }, [search])
 
   const setPage = (page: number) => {
     navigate({
@@ -51,7 +77,19 @@ function UsersTable() {
     })
   }
 
-  const users = data?.data.slice(0, PER_PAGE) ?? []
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setLocalSearch(val)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      navigate({
+        to: "/admin/users_management",
+        search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
+      })
+    }, 500)
+  }
+
+  const users = data?.data ?? []
   const count = data?.count ?? 0
 
   if (isLoading) {
@@ -60,7 +98,18 @@ function UsersTable() {
 
   return (
     <>
-      <Table.Root size={{ base: "sm", md: "md" }}>
+      <Flex mt={4} justifyContent="flex-end">
+        <InputGroup maxW="sm">
+          <Input
+            type="text"
+            placeholder="Search by name, email..."
+            value={localSearch}
+            onChange={handleSearchChange}
+            size="sm"
+          />
+        </InputGroup>
+      </Flex>
+      <Table.Root size={{ base: "sm", md: "md" }} mt={2}>
         <Table.Header>
           <Table.Row>
             <Table.ColumnHeader w="sm">Full name</Table.ColumnHeader>
@@ -102,7 +151,12 @@ function UsersTable() {
                 <Flex wrap="wrap" gap={1}>
                   {user.login_methods?.length ? (
                     user.login_methods.map((method) => (
-                      <Badge key={method} size="sm" variant="subtle" colorPalette="blue">
+                      <Badge
+                        key={method}
+                        size="sm"
+                        variant="subtle"
+                        colorPalette="blue"
+                      >
                         {method}
                       </Badge>
                     ))

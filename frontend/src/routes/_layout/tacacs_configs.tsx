@@ -7,12 +7,15 @@ import {
   EmptyState,
   Flex,
   Heading,
+  Input,
+  InputGroup,
   Table,
   Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useEffect, useRef, useState } from "react"
 import { FiFileText, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
@@ -32,18 +35,26 @@ import {
 
 const tacacs_configsSearchSchema = z.object({
   page: z.number().catch(1),
+  search: z.string().optional(),
 })
 
 const PER_PAGE = 5
 
-function getTacacsConfigsQueryOptions({ page }: { page: number }) {
+function getTacacsConfigsQueryOptions({
+  page,
+  search,
+}: {
+  page: number
+  search?: string
+}) {
   return {
     queryFn: () =>
       TacacsConfigsService.readTacacsConfigs({
         skip: (page - 1) * PER_PAGE,
         limit: PER_PAGE,
+        search,
       }),
-    queryKey: ["tacacs_configs", { page }],
+    queryKey: ["tacacs_configs", { page, search }],
   }
 }
 
@@ -54,12 +65,18 @@ export const Route = createFileRoute("/_layout/tacacs_configs")({
 
 function TacacsConfigsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
-  const { page } = Route.useSearch()
+  const { page, search } = Route.useSearch()
+  const [localSearch, setLocalSearch] = useState(search ?? "")
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getTacacsConfigsQueryOptions({ page }),
+    ...getTacacsConfigsQueryOptions({ page, search }),
     placeholderData: (prevData) => prevData,
   })
+
+  useEffect(() => {
+    setLocalSearch(search ?? "")
+  }, [search])
 
   const setPage = (page: number) => {
     navigate({
@@ -68,104 +85,125 @@ function TacacsConfigsTable() {
     })
   }
 
-  const tacacs_configs = data?.data.slice(0, PER_PAGE) ?? []
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setLocalSearch(val)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      navigate({
+        to: "/tacacs_configs",
+        search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
+      })
+    }, 500)
+  }
+
+  const tacacs_configs = data?.data ?? []
   const count = data?.count ?? 0
-
-  if (isLoading) {
-    return <PendingTacacsConfigs />
-  }
-
-  if (tacacs_configs.length === 0) {
-    return (
-      <EmptyState.Root>
-        <EmptyState.Content>
-          <EmptyState.Indicator>
-            <FiSearch />
-          </EmptyState.Indicator>
-          <VStack textAlign="center">
-            <EmptyState.Title>No configurations yet</EmptyState.Title>
-            <EmptyState.Description>
-              Generate a new configuration to get started
-            </EmptyState.Description>
-          </VStack>
-        </EmptyState.Content>
-      </EmptyState.Root>
-    )
-  }
 
   return (
     <>
-      <Table.Root size={{ base: "sm", md: "md" }}>
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader>Filename</Table.ColumnHeader>
-            <Table.ColumnHeader w="28">Status</Table.ColumnHeader>
-            <Table.ColumnHeader>Description</Table.ColumnHeader>
-            <Table.ColumnHeader w="40">Created At</Table.ColumnHeader>
-            <Table.ColumnHeader w="16">Actions</Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {tacacs_configs.map((tacacs_config) => (
-            <Table.Row
-              key={tacacs_config.id}
-              opacity={isPlaceholderData ? 0.5 : 1}
-              bg={tacacs_config.active ? "green.subtle" : undefined}
-            >
-              <Table.Cell>
-                <ShowTacacsConfig tacacs_config={tacacs_config}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    colorPalette={tacacs_config.active ? "green" : "gray"}
-                    fontWeight={tacacs_config.active ? "semibold" : "normal"}
-                  >
-                    <FiFileText />
-                    {tacacs_config.filename}
-                  </Button>
-                </ShowTacacsConfig>
-              </Table.Cell>
-              <Table.Cell>
-                {tacacs_config.active ? (
-                  <Badge colorPalette="green" variant="solid" size="sm">
-                    Active
-                  </Badge>
-                ) : (
-                  <Badge colorPalette="gray" variant="outline" size="sm">
-                    Inactive
-                  </Badge>
-                )}
-              </Table.Cell>
-              <Table.Cell
-                color={!tacacs_config.description ? "fg.muted" : "inherit"}
-                truncate
-                maxW="xs"
-              >
-                {tacacs_config.description || "—"}
-              </Table.Cell>
-              <Table.Cell fontSize="sm" color="fg.muted">
-                {new Date(tacacs_config.created_at).toLocaleString()}
-              </Table.Cell>
-              <Table.Cell>
-                <TacacsConfigActionsMenu tacacs_config={tacacs_config} />
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
-      <Flex justifyContent="flex-end" mt={4}>
-        <PaginationRoot
-          count={count}
-          pageSize={PER_PAGE}
-          onPageChange={({ page }) => setPage(page)}
-        >
-          <Flex>
-            <PaginationPrevTrigger />
-            <PaginationItems />
-            <PaginationNextTrigger />
-          </Flex>
-        </PaginationRoot>
+      <Flex mt={4} justifyContent="flex-end">
+        <InputGroup maxW="sm">
+          <Input
+            type="text"
+            placeholder="Search by filename, description..."
+            value={localSearch}
+            onChange={handleSearchChange}
+            size="sm"
+          />
+        </InputGroup>
       </Flex>
+      {isLoading ? (
+        <PendingTacacsConfigs />
+      ) : tacacs_configs.length === 0 ? (
+        <EmptyState.Root>
+          <EmptyState.Content>
+            <EmptyState.Indicator>
+              <FiSearch />
+            </EmptyState.Indicator>
+            <VStack textAlign="center">
+              <EmptyState.Title>No configurations yet</EmptyState.Title>
+              <EmptyState.Description>
+                Generate a new configuration to get started
+              </EmptyState.Description>
+            </VStack>
+          </EmptyState.Content>
+        </EmptyState.Root>
+      ) : (
+        <>
+          <Table.Root size={{ base: "sm", md: "md" }} mt={2}>
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Filename</Table.ColumnHeader>
+                <Table.ColumnHeader w="28">Status</Table.ColumnHeader>
+                <Table.ColumnHeader>Description</Table.ColumnHeader>
+                <Table.ColumnHeader w="40">Created At</Table.ColumnHeader>
+                <Table.ColumnHeader w="16">Actions</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {tacacs_configs.map((tacacs_config) => (
+                <Table.Row
+                  key={tacacs_config.id}
+                  opacity={isPlaceholderData ? 0.5 : 1}
+                  bg={tacacs_config.active ? "green.subtle" : undefined}
+                >
+                  <Table.Cell>
+                    <ShowTacacsConfig tacacs_config={tacacs_config}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        colorPalette={tacacs_config.active ? "green" : "gray"}
+                        fontWeight={tacacs_config.active ? "semibold" : "normal"}
+                      >
+                        <FiFileText />
+                        {tacacs_config.filename}
+                      </Button>
+                    </ShowTacacsConfig>
+                  </Table.Cell>
+                  <Table.Cell>
+                    {tacacs_config.active ? (
+                      <Badge colorPalette="green" variant="solid" size="sm">
+                        Active
+                      </Badge>
+                    ) : (
+                      <Badge colorPalette="gray" variant="outline" size="sm">
+                        Inactive
+                      </Badge>
+                    )}
+                  </Table.Cell>
+                  <Table.Cell
+                    color={!tacacs_config.description ? "fg.muted" : "inherit"}
+                    truncate
+                    maxW="xs"
+                  >
+                    {tacacs_config.description || "—"}
+                  </Table.Cell>
+                  <Table.Cell fontSize="sm" color="fg.muted">
+                    {new Date(tacacs_config.created_at).toLocaleString()}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <TacacsConfigActionsMenu tacacs_config={tacacs_config} />
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+          <Flex justifyContent="flex-end" mt={4}>
+            <PaginationRoot
+              count={count}
+              pageSize={PER_PAGE}
+              onPageChange={({ page }) => setPage(page)}
+            >
+              <Flex>
+                <PaginationPrevTrigger />
+                <PaginationItems />
+                <PaginationNextTrigger />
+              </Flex>
+            </PaginationRoot>
+          </Flex>
+        </>
+      )}
     </>
   )
 }

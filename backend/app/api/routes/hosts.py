@@ -31,16 +31,19 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=HostsPublic,
 )
-def read_hosts(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+def read_hosts(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
     """
     Retrieve hosts.
     """
 
     count_statement = select(func.count()).select_from(Host)
+    statement = select(Host)
+    if search:
+        f = Host.name.contains(search) | Host.ipv4_address.contains(search) | Host.ipv6_address.contains(search) | Host.description.contains(search)
+        count_statement = count_statement.where(f)
+        statement = statement.where(f)
     count = session.exec(count_statement).one()
-
-    statement = select(Host).offset(skip).limit(limit)
-    hosts = session.exec(statement).all()
+    hosts = session.exec(statement.offset(skip).limit(limit)).all()
 
     return HostsPublic(data=hosts, count=count)
 

@@ -32,16 +32,20 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=ProfilesPublic,
 )
-def read_profiles(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+def read_profiles(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
     """
     Retrieve profiles.
     """
 
     count_statement = select(func.count()).select_from(Profile)
+    statement = select(Profile)
+    if search:
+        f = Profile.name.contains(search) | Profile.action.contains(search) | Profile.description.contains(search)
+        count_statement = count_statement.where(f)
+        statement = statement.where(f)
     count = session.exec(count_statement).one()
 
-    statement = select(Profile).offset(skip).limit(limit)
-    profiles = session.exec(statement).all()
+    profiles = session.exec(statement.offset(skip).limit(limit)).all()
 
     return ProfilesPublic(data=profiles, count=count)
 

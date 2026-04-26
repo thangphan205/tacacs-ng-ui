@@ -5,12 +5,15 @@ import {
   EmptyState,
   Flex,
   Heading,
+  Input,
+  InputGroup,
   Table,
   Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useEffect, useRef, useState } from "react"
 import { FiServer } from "react-icons/fi"
 import { z } from "zod"
 
@@ -27,15 +30,26 @@ import {
 
 const hostsSearchSchema = z.object({
   page: z.number().catch(1),
+  search: z.string().optional(),
 })
 
 const PER_PAGE = 5
 
-function getHostsQueryOptions({ page }: { page: number }) {
+function getHostsQueryOptions({
+  page,
+  search,
+}: {
+  page: number
+  search?: string
+}) {
   return {
     queryFn: () =>
-      HostsService.readHosts({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
-    queryKey: ["hosts", { page }],
+      HostsService.readHosts({
+        skip: (page - 1) * PER_PAGE,
+        limit: PER_PAGE,
+        search,
+      }),
+    queryKey: ["hosts", { page, search }],
   }
 }
 
@@ -46,12 +60,18 @@ export const Route = createFileRoute("/_layout/hosts")({
 
 function HostsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
-  const { page } = Route.useSearch()
+  const { page, search } = Route.useSearch()
+  const [localSearch, setLocalSearch] = useState(search ?? "")
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getHostsQueryOptions({ page }),
+    ...getHostsQueryOptions({ page, search }),
     placeholderData: (prevData) => prevData,
   })
+
+  useEffect(() => {
+    setLocalSearch(search ?? "")
+  }, [search])
 
   const setPage = (page: number) => {
     navigate({
@@ -60,96 +80,117 @@ function HostsTable() {
     })
   }
 
-  const hosts = data?.data.slice(0, PER_PAGE) ?? []
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setLocalSearch(val)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      navigate({
+        to: "/hosts",
+        search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
+      })
+    }, 500)
+  }
+
+  const hosts = data?.data ?? []
   const count = data?.count ?? 0
-
-  if (isLoading) {
-    return <PendingHosts />
-  }
-
-  if (hosts.length === 0) {
-    return (
-      <EmptyState.Root>
-        <EmptyState.Content>
-          <EmptyState.Indicator>
-            <FiServer />
-          </EmptyState.Indicator>
-          <VStack textAlign="center">
-            <EmptyState.Title>No hosts configured</EmptyState.Title>
-            <EmptyState.Description>
-              Add your first network device to get started
-            </EmptyState.Description>
-          </VStack>
-        </EmptyState.Content>
-      </EmptyState.Root>
-    )
-  }
 
   return (
     <>
-      <Table.Root size={{ base: "sm", md: "md" }}>
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader>Name</Table.ColumnHeader>
-            <Table.ColumnHeader>IPv4 Address</Table.ColumnHeader>
-            <Table.ColumnHeader>IPv6 Address</Table.ColumnHeader>
-            <Table.ColumnHeader>Parent</Table.ColumnHeader>
-            <Table.ColumnHeader>Description</Table.ColumnHeader>
-            <Table.ColumnHeader w="16">Actions</Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {hosts.map((host) => (
-            <Table.Row key={host.id} opacity={isPlaceholderData ? 0.5 : 1}>
-              <Table.Cell fontWeight="medium">{host.name}</Table.Cell>
-              <Table.Cell>
-                {host.ipv4_address ? (
-                  <Badge colorPalette="blue" variant="outline" size="sm">
-                    {host.ipv4_address}
-                  </Badge>
-                ) : (
-                  <Text color="fg.muted">—</Text>
-                )}
-              </Table.Cell>
-              <Table.Cell>
-                {host.ipv6_address ? (
-                  <Badge colorPalette="purple" variant="outline" size="sm">
-                    {host.ipv6_address}
-                  </Badge>
-                ) : (
-                  <Text color="fg.muted">—</Text>
-                )}
-              </Table.Cell>
-              <Table.Cell color={!host.parent ? "fg.muted" : "inherit"}>
-                {host.parent || "—"}
-              </Table.Cell>
-              <Table.Cell
-                color={!host.description ? "fg.muted" : "inherit"}
-                truncate
-                maxW="xs"
-              >
-                {host.description || "—"}
-              </Table.Cell>
-              <Table.Cell>
-                <HostActionsMenu host={host} />
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
-      <Flex justifyContent="flex-end" mt={4}>
-        <PaginationRoot
-          count={count}
-          pageSize={PER_PAGE}
-          onPageChange={({ page }) => setPage(page)}
-        >
-          <Flex>
-            <PaginationPrevTrigger />
-            <PaginationItems />
-            <PaginationNextTrigger />
-          </Flex>
-        </PaginationRoot>
+      <Flex mt={4} justifyContent="flex-end">
+        <InputGroup maxW="sm">
+          <Input
+            type="text"
+            placeholder="Search by name, IP address, description..."
+            value={localSearch}
+            onChange={handleSearchChange}
+            size="sm"
+          />
+        </InputGroup>
       </Flex>
+      {isLoading ? (
+        <PendingHosts />
+      ) : hosts.length === 0 ? (
+        <EmptyState.Root>
+          <EmptyState.Content>
+            <EmptyState.Indicator>
+              <FiServer />
+            </EmptyState.Indicator>
+            <VStack textAlign="center">
+              <EmptyState.Title>No hosts configured</EmptyState.Title>
+              <EmptyState.Description>
+                Add your first network device to get started
+              </EmptyState.Description>
+            </VStack>
+          </EmptyState.Content>
+        </EmptyState.Root>
+      ) : (
+        <>
+          <Table.Root size={{ base: "sm", md: "md" }} mt={2}>
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Name</Table.ColumnHeader>
+                <Table.ColumnHeader>IPv4 Address</Table.ColumnHeader>
+                <Table.ColumnHeader>IPv6 Address</Table.ColumnHeader>
+                <Table.ColumnHeader>Parent</Table.ColumnHeader>
+                <Table.ColumnHeader>Description</Table.ColumnHeader>
+                <Table.ColumnHeader w="16">Actions</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {hosts.map((host) => (
+                <Table.Row key={host.id} opacity={isPlaceholderData ? 0.5 : 1}>
+                  <Table.Cell fontWeight="medium">{host.name}</Table.Cell>
+                  <Table.Cell>
+                    {host.ipv4_address ? (
+                      <Badge colorPalette="blue" variant="outline" size="sm">
+                        {host.ipv4_address}
+                      </Badge>
+                    ) : (
+                      <Text color="fg.muted">—</Text>
+                    )}
+                  </Table.Cell>
+                  <Table.Cell>
+                    {host.ipv6_address ? (
+                      <Badge colorPalette="purple" variant="outline" size="sm">
+                        {host.ipv6_address}
+                      </Badge>
+                    ) : (
+                      <Text color="fg.muted">—</Text>
+                    )}
+                  </Table.Cell>
+                  <Table.Cell color={!host.parent ? "fg.muted" : "inherit"}>
+                    {host.parent || "—"}
+                  </Table.Cell>
+                  <Table.Cell
+                    color={!host.description ? "fg.muted" : "inherit"}
+                    truncate
+                    maxW="xs"
+                  >
+                    {host.description || "—"}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <HostActionsMenu host={host} />
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+          <Flex justifyContent="flex-end" mt={4}>
+            <PaginationRoot
+              count={count}
+              pageSize={PER_PAGE}
+              onPageChange={({ page }) => setPage(page)}
+            >
+              <Flex>
+                <PaginationPrevTrigger />
+                <PaginationItems />
+                <PaginationNextTrigger />
+              </Flex>
+            </PaginationRoot>
+          </Flex>
+        </>
+      )}
     </>
   )
 }

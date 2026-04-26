@@ -4,12 +4,15 @@ import {
   EmptyState,
   Flex,
   Heading,
+  Input,
+  InputGroup,
   Link,
   Table,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useEffect, useRef, useState } from "react"
 import { FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
@@ -27,18 +30,26 @@ import {
 
 const configuration_optionsSearchSchema = z.object({
   page: z.number().catch(1),
+  search: z.string().optional(),
 })
 
 const PER_PAGE = 5
 
-function getConfigurationOptionsQueryOptions({ page }: { page: number }) {
+function getConfigurationOptionsQueryOptions({
+  page,
+  search,
+}: {
+  page: number
+  search?: string
+}) {
   return {
     queryFn: () =>
       ConfigurationOptionsService.readConfigurationOptions({
         skip: (page - 1) * PER_PAGE,
         limit: PER_PAGE,
+        search,
       }),
-    queryKey: ["configuration_options", { page }],
+    queryKey: ["configuration_options", { page, search }],
   }
 }
 
@@ -49,12 +60,18 @@ export const Route = createFileRoute("/_layout/configuration_options")({
 
 function ConfigurationOptionsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
-  const { page } = Route.useSearch()
+  const { page, search } = Route.useSearch()
+  const [localSearch, setLocalSearch] = useState(search ?? "")
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getConfigurationOptionsQueryOptions({ page }),
+    ...getConfigurationOptionsQueryOptions({ page, search }),
     placeholderData: (prevData) => prevData,
   })
+
+  useEffect(() => {
+    setLocalSearch(search ?? "")
+  }, [search])
 
   const setPage = (page: number) => {
     navigate({
@@ -63,89 +80,110 @@ function ConfigurationOptionsTable() {
     })
   }
 
-  const configuration_options = data?.data.slice(0, PER_PAGE) ?? []
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setLocalSearch(val)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      navigate({
+        to: "/configuration_options",
+        search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
+      })
+    }, 500)
+  }
+
+  const configuration_options = data?.data ?? []
   const count = data?.count ?? 0
-
-  if (isLoading) {
-    return <PendingConfigurationOptions />
-  }
-
-  if (configuration_options.length === 0) {
-    return (
-      <EmptyState.Root>
-        <EmptyState.Content>
-          <EmptyState.Indicator>
-            <FiSearch />
-          </EmptyState.Indicator>
-          <VStack textAlign="center">
-            <EmptyState.Title>
-              You don't have any configuration_options yet
-            </EmptyState.Title>
-            <EmptyState.Description>
-              Add a new configuration_option to get started
-            </EmptyState.Description>
-          </VStack>
-        </EmptyState.Content>
-      </EmptyState.Root>
-    )
-  }
 
   return (
     <>
-      <Table.Root size={{ base: "sm", md: "md" }}>
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Name</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Config Option</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Description</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {configuration_options?.map((configuration_option) => (
-            <Table.Row
-              key={configuration_option.id}
-              opacity={isPlaceholderData ? 0.5 : 1}
-            >
-              <Table.Cell truncate maxW="sm">
-                {configuration_option.id}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm">
-                {configuration_option.name}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm">
-                {configuration_option.config_option}
-              </Table.Cell>
-              <Table.Cell
-                color={!configuration_option.description ? "gray" : "inherit"}
-                truncate
-                maxW="30%"
-              >
-                {configuration_option.description || "N/A"}
-              </Table.Cell>
-              <Table.Cell>
-                <ConfigurationOptionActionsMenu
-                  configuration_option={configuration_option}
-                />
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
-      <Flex justifyContent="flex-end" mt={4}>
-        <PaginationRoot
-          count={count}
-          pageSize={PER_PAGE}
-          onPageChange={({ page }) => setPage(page)}
-        >
-          <Flex>
-            <PaginationPrevTrigger />
-            <PaginationItems />
-            <PaginationNextTrigger />
-          </Flex>
-        </PaginationRoot>
+      <Flex mt={4} justifyContent="flex-end">
+        <InputGroup maxW="sm">
+          <Input
+            type="text"
+            placeholder="Search by name, config option, description..."
+            value={localSearch}
+            onChange={handleSearchChange}
+            size="sm"
+          />
+        </InputGroup>
       </Flex>
+      {isLoading ? (
+        <PendingConfigurationOptions />
+      ) : configuration_options.length === 0 ? (
+        <EmptyState.Root>
+          <EmptyState.Content>
+            <EmptyState.Indicator>
+              <FiSearch />
+            </EmptyState.Indicator>
+            <VStack textAlign="center">
+              <EmptyState.Title>
+                You don't have any configuration_options yet
+              </EmptyState.Title>
+              <EmptyState.Description>
+                Add a new configuration_option to get started
+              </EmptyState.Description>
+            </VStack>
+          </EmptyState.Content>
+        </EmptyState.Root>
+      ) : (
+        <>
+          <Table.Root size={{ base: "sm", md: "md" }} mt={2}>
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>
+                <Table.ColumnHeader w="sm">Name</Table.ColumnHeader>
+                <Table.ColumnHeader w="sm">Config Option</Table.ColumnHeader>
+                <Table.ColumnHeader w="sm">Description</Table.ColumnHeader>
+                <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {configuration_options?.map((configuration_option) => (
+                <Table.Row
+                  key={configuration_option.id}
+                  opacity={isPlaceholderData ? 0.5 : 1}
+                >
+                  <Table.Cell truncate maxW="sm">
+                    {configuration_option.id}
+                  </Table.Cell>
+                  <Table.Cell truncate maxW="sm">
+                    {configuration_option.name}
+                  </Table.Cell>
+                  <Table.Cell truncate maxW="sm">
+                    {configuration_option.config_option}
+                  </Table.Cell>
+                  <Table.Cell
+                    color={!configuration_option.description ? "gray" : "inherit"}
+                    truncate
+                    maxW="30%"
+                  >
+                    {configuration_option.description || "N/A"}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <ConfigurationOptionActionsMenu
+                      configuration_option={configuration_option}
+                    />
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+          <Flex justifyContent="flex-end" mt={4}>
+            <PaginationRoot
+              count={count}
+              pageSize={PER_PAGE}
+              onPageChange={({ page }) => setPage(page)}
+            >
+              <Flex>
+                <PaginationPrevTrigger />
+                <PaginationItems />
+                <PaginationNextTrigger />
+              </Flex>
+            </PaginationRoot>
+          </Flex>
+        </>
+      )}
     </>
   )
 }

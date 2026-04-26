@@ -3027,6 +3027,39 @@ export const TacacsLogEventSchema = {
         message: {
             type: 'string',
             title: 'Message'
+        },
+        command: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Command'
+        },
+        port: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Port'
+        },
+        session_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Session Id'
         }
     },
     type: 'object',
@@ -3502,19 +3535,21 @@ export const TacacsUserCreateSchema = {
 
 export const TacacsUserPublicSchema = {
     properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
         username: {
             type: 'string',
-            maxLength: 255,
             title: 'Username'
         },
         password_type: {
             type: 'string',
-            maxLength: 255,
             title: 'Password Type'
         },
         member: {
             type: 'string',
-            maxLength: 255,
             title: 'Member'
         },
         description: {
@@ -3528,22 +3563,6 @@ export const TacacsUserPublicSchema = {
             ],
             title: 'Description'
         },
-        password: {
-            anyOf: [
-                {
-                    type: 'string'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Password'
-        },
-        id: {
-            type: 'string',
-            format: 'uuid',
-            title: 'Id'
-        },
         created_at: {
             type: 'string',
             format: 'date-time',
@@ -3556,25 +3575,46 @@ export const TacacsUserPublicSchema = {
         }
     },
     type: 'object',
-    required: ['username', 'password_type', 'member', 'id', 'created_at', 'updated_at'],
+    required: ['id', 'username', 'password_type', 'member', 'created_at', 'updated_at'],
     title: 'TacacsUserPublic'
 } as const;
 
 export const TacacsUserUpdateSchema = {
     properties: {
         username: {
-            type: 'string',
-            maxLength: 255,
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
             title: 'Username'
         },
         password_type: {
-            type: 'string',
-            maxLength: 255,
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
             title: 'Password Type'
         },
         member: {
-            type: 'string',
-            maxLength: 255,
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
             title: 'Member'
         },
         description: {
@@ -3602,7 +3642,6 @@ export const TacacsUserUpdateSchema = {
         }
     },
     type: 'object',
-    required: ['username', 'password_type', 'member'],
     title: 'TacacsUserUpdate'
 } as const;
 

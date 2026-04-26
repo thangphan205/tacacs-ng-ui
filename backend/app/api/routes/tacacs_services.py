@@ -31,16 +31,19 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=TacacsServicesPublic,
 )
-def read_tacacs_services(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+def read_tacacs_services(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
     """
     Retrieve tacacs_services.
     """
 
     count_statement = select(func.count()).select_from(TacacsService)
+    statement = select(TacacsService)
+    if search:
+        f = TacacsService.name.contains(search) | TacacsService.description.contains(search)
+        count_statement = count_statement.where(f)
+        statement = statement.where(f)
     count = session.exec(count_statement).one()
-
-    statement = select(TacacsService).offset(skip).limit(limit)
-    tacacs_services = session.exec(statement).all()
+    tacacs_services = session.exec(statement.offset(skip).limit(limit)).all()
 
     return TacacsServicesPublic(data=tacacs_services, count=count)
 

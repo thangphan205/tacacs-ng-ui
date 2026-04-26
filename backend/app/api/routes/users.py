@@ -70,16 +70,20 @@ def validate_password_pci_dss(password: str) -> None:
     dependencies=[Depends(get_current_active_superuser)],
     response_model=UsersPublic,
 )
-def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+def read_users(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
     """
     Retrieve users.
     """
 
     count_statement = select(func.count()).select_from(User)
+    statement = select(User)
+    if search:
+        f = User.full_name.contains(search) | User.email.contains(search)
+        count_statement = count_statement.where(f)
+        statement = statement.where(f)
     count = session.exec(count_statement).one()
 
-    statement = select(User).offset(skip).limit(limit)
-    users = session.exec(statement).all()
+    users = session.exec(statement.offset(skip).limit(limit)).all()
 
     return UsersPublic(data=users, count=count)
 

@@ -743,12 +743,11 @@ export type TacacsUserCreate = {
 };
 
 export type TacacsUserPublic = {
+    id: string;
     username: string;
     password_type: string;
     member: string;
     description?: (string | null);
-    password?: (string | null);
-    id: string;
     created_at: string;
     updated_at: string;
 };
@@ -759,9 +758,9 @@ export type TacacsUsersPublic = {
 };
 
 export type TacacsUserUpdate = {
-    username: string;
-    password_type: string;
-    member: string;
+    username?: (string | null);
+    password_type?: (string | null);
+    member?: (string | null);
     description?: (string | null);
     password?: (string | null);
 };
@@ -928,6 +927,7 @@ export type AuthProvidersAuthProvidersStatusResponse = ({
 
 export type ConfigurationOptionsReadConfigurationOptionsData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
 };
 
@@ -960,6 +960,7 @@ export type ConfigurationOptionsDeleteConfigurationOptionResponse = (Message);
 
 export type HostsReadHostsData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
 };
 
@@ -992,6 +993,7 @@ export type HostsDeleteHostResponse = (Message);
 
 export type ItemsReadItemsData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
 };
 
@@ -1050,6 +1052,7 @@ export type LoginRecoverPasswordHtmlContentResponse = (string);
 
 export type MavisesReadMavisesData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
 };
 
@@ -1136,6 +1139,7 @@ export type PrivateCreateUserResponse = (UserPublic);
 
 export type ProfilesReadProfilesData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
 };
 
@@ -1170,6 +1174,7 @@ export type ProfilesDeleteProfileResponse = (Message);
 
 export type ProfilescriptsReadProfilescriptsData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
 };
 
@@ -1202,6 +1207,7 @@ export type ProfilescriptsDeleteProfilescriptResponse = (Message);
 
 export type ProfilescriptsetsReadProfilescriptsetsData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
 };
 
@@ -1234,6 +1240,7 @@ export type ProfilescriptsetsDeleteProfilescriptsetResponse = (Message);
 
 export type RulesetsReadRulesetsData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
 };
 
@@ -1268,6 +1275,7 @@ export type RulesetsDeleteRulesetResponse = (Message);
 
 export type RulesetscriptsReadRulesetscriptsData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
 };
 
@@ -1300,6 +1308,7 @@ export type RulesetscriptsDeleteRulesetscriptResponse = (Message);
 
 export type RulesetscriptsetsReadRulesetscriptsetsData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
 };
 
@@ -1332,6 +1341,7 @@ export type RulesetscriptsetsDeleteRulesetscriptsetResponse = (Message);
 
 export type TacacsConfigsReadTacacsConfigsData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
     sortBy?: string;
     sortOrder?: string;
@@ -1376,6 +1386,7 @@ export type TacacsConfigsCheckTacacsConfigByIdResponse = (unknown);
 
 export type TacacsGroupsReadTacacsGroupsData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
 };
 
@@ -1451,6 +1462,7 @@ export type TacacsNgSettingsUpdateTacacsNgSettingsResponse = (TacacsNgSettingPub
 
 export type TacacsServicesReadTacacsServicesData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
 };
 
@@ -1489,6 +1501,7 @@ export type TacacsStatisticsGetTacacsLogsStatisticsResponse = (TacacsFileLogStat
 
 export type TacacsUsersReadTacacsUsersData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
 };
 
@@ -1521,6 +1534,7 @@ export type TacacsUsersDeleteTacacsUserResponse = (Message);
 
 export type UsersReadUsersData = {
     limit?: number;
+    search?: (string | null);
     skip?: number;
 };
 

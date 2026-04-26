@@ -31,16 +31,19 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=TacacsGroupsPublic,
 )
-def read_tacacs_groups(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+def read_tacacs_groups(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
     """
     Retrieve groups.
     """
 
     count_statement = select(func.count()).select_from(TacacsGroup)
+    statement = select(TacacsGroup)
+    if search:
+        f = TacacsGroup.group_name.contains(search) | TacacsGroup.description.contains(search)
+        count_statement = count_statement.where(f)
+        statement = statement.where(f)
     count = session.exec(count_statement).one()
-
-    statement = select(TacacsGroup).offset(skip).limit(limit)
-    groups = session.exec(statement).all()
+    groups = session.exec(statement.offset(skip).limit(limit)).all()
 
     return TacacsGroupsPublic(data=groups, count=count)
 

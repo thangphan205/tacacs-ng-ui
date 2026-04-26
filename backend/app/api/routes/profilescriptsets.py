@@ -33,20 +33,20 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=ProfileScriptSetsPublic,
 )
-def read_profilescriptsets(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+def read_profilescriptsets(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
     """
     Retrieve profilescriptsets.
     """
 
     count_statement = select(func.count()).select_from(ProfileScriptSet)
+    base_statement = select(ProfileScriptSet, ProfileScript).join(ProfileScript)
+    if search:
+        f = ProfileScriptSet.key.contains(search) | ProfileScriptSet.value.contains(search) | ProfileScriptSet.description.contains(search)
+        count_statement = count_statement.where(f)
+        base_statement = base_statement.where(f)
     count = session.exec(count_statement).one()
 
-    statement = (
-        select(ProfileScriptSet, ProfileScript)
-        .join(ProfileScript)
-        .offset(skip)
-        .limit(limit)
-    )
+    statement = base_statement.offset(skip).limit(limit)
     profilescriptsets = session.exec(statement).all()
     data_profilescriptsets = []
     for profilescriptset, profilescript in profilescriptsets:

@@ -32,17 +32,21 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     response_model=ConfigurationOptionsPublic,
 )
 def read_configuration_options(
-    session: SessionDep, skip: int = 0, limit: int = 100
+    session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None
 ) -> Any:
     """
     Retrieve configuration_options.
     """
 
     count_statement = select(func.count()).select_from(ConfigurationOption)
+    statement = select(ConfigurationOption)
+    if search:
+        f = ConfigurationOption.name.contains(search) | ConfigurationOption.config_option.contains(search) | ConfigurationOption.description.contains(search)
+        count_statement = count_statement.where(f)
+        statement = statement.where(f)
     count = session.exec(count_statement).one()
 
-    statement = select(ConfigurationOption).offset(skip).limit(limit)
-    configuration_options = session.exec(statement).all()
+    configuration_options = session.exec(statement.offset(skip).limit(limit)).all()
 
     return ConfigurationOptionsPublic(data=configuration_options, count=count)
 

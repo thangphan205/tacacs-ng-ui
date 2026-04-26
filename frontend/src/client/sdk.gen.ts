@@ -266,6 +266,7 @@ export class ConfigurationOptionsService {
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
+     * @param data.search
      * @returns ConfigurationOptionsPublic Successful Response
      * @throws ApiError
      */
@@ -275,7 +276,8 @@ export class ConfigurationOptionsService {
             url: '/api/v1/configuration_options/',
             query: {
                 skip: data.skip,
-                limit: data.limit
+                limit: data.limit,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'
@@ -377,6 +379,7 @@ export class HostsService {
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
+     * @param data.search
      * @returns HostsPublic Successful Response
      * @throws ApiError
      */
@@ -386,7 +389,8 @@ export class HostsService {
             url: '/api/v1/hosts/',
             query: {
                 skip: data.skip,
-                limit: data.limit
+                limit: data.limit,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'
@@ -488,6 +492,7 @@ export class ItemsService {
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
+     * @param data.search
      * @returns ItemsPublic Successful Response
      * @throws ApiError
      */
@@ -497,7 +502,8 @@ export class ItemsService {
             url: '/api/v1/items/',
             query: {
                 skip: data.skip,
-                limit: data.limit
+                limit: data.limit,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'
@@ -695,6 +701,7 @@ export class MavisesService {
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
+     * @param data.search
      * @returns MavisesPublic Successful Response
      * @throws ApiError
      */
@@ -704,7 +711,8 @@ export class MavisesService {
             url: '/api/v1/mavises/',
             query: {
                 skip: data.skip,
-                limit: data.limit
+                limit: data.limit,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'
@@ -1007,6 +1015,7 @@ export class ProfilesService {
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
+     * @param data.search
      * @returns ProfilesPublic Successful Response
      * @throws ApiError
      */
@@ -1016,7 +1025,8 @@ export class ProfilesService {
             url: '/api/v1/profiles/',
             query: {
                 skip: data.skip,
-                limit: data.limit
+                limit: data.limit,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'
@@ -1132,6 +1142,7 @@ export class ProfilescriptsService {
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
+     * @param data.search
      * @returns ProfileScriptsPublic Successful Response
      * @throws ApiError
      */
@@ -1141,7 +1152,8 @@ export class ProfilescriptsService {
             url: '/api/v1/profilescripts/',
             query: {
                 skip: data.skip,
-                limit: data.limit
+                limit: data.limit,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'
@@ -1243,6 +1255,7 @@ export class ProfilescriptsetsService {
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
+     * @param data.search
      * @returns ProfileScriptSetsPublic Successful Response
      * @throws ApiError
      */
@@ -1252,7 +1265,8 @@ export class ProfilescriptsetsService {
             url: '/api/v1/profilescriptsets/',
             query: {
                 skip: data.skip,
-                limit: data.limit
+                limit: data.limit,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'
@@ -1354,6 +1368,7 @@ export class RulesetsService {
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
+     * @param data.search
      * @returns RulesetsPublic Successful Response
      * @throws ApiError
      */
@@ -1363,7 +1378,8 @@ export class RulesetsService {
             url: '/api/v1/rulesets/',
             query: {
                 skip: data.skip,
-                limit: data.limit
+                limit: data.limit,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'
@@ -1479,6 +1495,7 @@ export class RulesetscriptsService {
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
+     * @param data.search
      * @returns RulesetScriptsPublic Successful Response
      * @throws ApiError
      */
@@ -1488,7 +1505,8 @@ export class RulesetscriptsService {
             url: '/api/v1/rulesetscripts/',
             query: {
                 skip: data.skip,
-                limit: data.limit
+                limit: data.limit,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'
@@ -1590,6 +1608,7 @@ export class RulesetscriptsetsService {
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
+     * @param data.search
      * @returns RulesetScriptSetsPublic Successful Response
      * @throws ApiError
      */
@@ -1599,7 +1618,8 @@ export class RulesetscriptsetsService {
             url: '/api/v1/rulesetscriptsets/',
             query: {
                 skip: data.skip,
-                limit: data.limit
+                limit: data.limit,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'
@@ -1703,6 +1723,7 @@ export class TacacsConfigsService {
      * @param data.limit
      * @param data.sortBy
      * @param data.sortOrder
+     * @param data.search
      * @returns TacacsConfigsPublic Successful Response
      * @throws ApiError
      */
@@ -1714,7 +1735,8 @@ export class TacacsConfigsService {
                 skip: data.skip,
                 limit: data.limit,
                 sort_by: data.sortBy,
-                sort_order: data.sortOrder
+                sort_order: data.sortOrder,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'
@@ -1863,6 +1885,7 @@ export class TacacsGroupsService {
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
+     * @param data.search
      * @returns TacacsGroupsPublic Successful Response
      * @throws ApiError
      */
@@ -1872,7 +1895,8 @@ export class TacacsGroupsService {
             url: '/api/v1/tacacs_groups/',
             query: {
                 skip: data.skip,
-                limit: data.limit
+                limit: data.limit,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'
@@ -2121,6 +2145,7 @@ export class TacacsServicesService {
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
+     * @param data.search
      * @returns TacacsServicesPublic Successful Response
      * @throws ApiError
      */
@@ -2130,7 +2155,8 @@ export class TacacsServicesService {
             url: '/api/v1/tacacs_services/',
             query: {
                 skip: data.skip,
-                limit: data.limit
+                limit: data.limit,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'
@@ -2257,6 +2283,7 @@ export class TacacsUsersService {
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
+     * @param data.search
      * @returns TacacsUsersPublic Successful Response
      * @throws ApiError
      */
@@ -2266,7 +2293,8 @@ export class TacacsUsersService {
             url: '/api/v1/tacacs_users/',
             query: {
                 skip: data.skip,
-                limit: data.limit
+                limit: data.limit,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'
@@ -2368,6 +2396,7 @@ export class UsersService {
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
+     * @param data.search
      * @returns UsersPublic Successful Response
      * @throws ApiError
      */
@@ -2377,7 +2406,8 @@ export class UsersService {
             url: '/api/v1/users/',
             query: {
                 skip: data.skip,
-                limit: data.limit
+                limit: data.limit,
+                search: data.search
             },
             errors: {
                 422: 'Validation Error'

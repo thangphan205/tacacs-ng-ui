@@ -65,7 +65,7 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
       ...tacacs_user,
       description: tacacs_user.description ?? undefined,
       password_type: tacacs_user.password_type ?? undefined,
-      password: tacacs_user.password ?? undefined,
+      password: "",
       member: tacacs_user.member ?? undefined,
     },
   })

@@ -3,11 +3,14 @@ import {
   EmptyState,
   Flex,
   Heading,
+  Input,
+  InputGroup,
   Table,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useEffect, useRef, useState } from "react"
 import { FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
@@ -25,18 +28,26 @@ import {
 
 const profilesSearchSchema = z.object({
   page: z.number().catch(1),
+  search: z.string().optional(),
 })
 
 const PER_PAGE = 5
 
-function getProfilesQueryOptions({ page }: { page: number }) {
+function getProfilesQueryOptions({
+  page,
+  search,
+}: {
+  page: number
+  search?: string
+}) {
   return {
     queryFn: () =>
       ProfilesService.readProfiles({
         skip: (page - 1) * PER_PAGE,
         limit: PER_PAGE,
+        search,
       }),
-    queryKey: ["profiles", { page }],
+    queryKey: ["profiles", { page, search }],
   }
 }
 
@@ -47,12 +58,18 @@ export const Route = createFileRoute("/_layout/profiles")({
 
 function ProfilesTable() {
   const navigate = useNavigate({ from: Route.fullPath })
-  const { page } = Route.useSearch()
+  const { page, search } = Route.useSearch()
+  const [localSearch, setLocalSearch] = useState(search ?? "")
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getProfilesQueryOptions({ page }),
+    ...getProfilesQueryOptions({ page, search }),
     placeholderData: (prevData) => prevData,
   })
+
+  useEffect(() => {
+    setLocalSearch(search ?? "")
+  }, [search])
 
   const setPage = (page: number) => {
     navigate({
@@ -61,82 +78,106 @@ function ProfilesTable() {
     })
   }
 
-  const profiles = data?.data.slice(0, PER_PAGE) ?? []
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setLocalSearch(val)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      navigate({
+        to: "/profiles",
+        search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
+      })
+    }, 500)
+  }
+
+  const profiles = data?.data ?? []
   const count = data?.count ?? 0
-
-  if (isLoading) {
-    return <PendingProfiles />
-  }
-
-  if (profiles.length === 0) {
-    return (
-      <EmptyState.Root>
-        <EmptyState.Content>
-          <EmptyState.Indicator>
-            <FiSearch />
-          </EmptyState.Indicator>
-          <VStack textAlign="center">
-            <EmptyState.Title>You don't have any profiles yet</EmptyState.Title>
-            <EmptyState.Description>
-              Add a new profile to get started
-            </EmptyState.Description>
-          </VStack>
-        </EmptyState.Content>
-      </EmptyState.Root>
-    )
-  }
 
   return (
     <>
-      <Table.Root size={{ base: "sm", md: "md" }}>
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Name</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Action</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Description</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {profiles?.map((profile) => (
-            <Table.Row key={profile.id} opacity={isPlaceholderData ? 0.5 : 1}>
-              <Table.Cell truncate maxW="sm">
-                {profile.id}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm">
-                {profile.name}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm">
-                {profile.action}
-              </Table.Cell>
-              <Table.Cell
-                color={!profile.description ? "gray" : "inherit"}
-                truncate
-                maxW="30%"
-              >
-                {profile.description || "N/A"}
-              </Table.Cell>
-              <Table.Cell>
-                <ProfileActionsMenu profile={profile} />
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
-      <Flex justifyContent="flex-end" mt={4}>
-        <PaginationRoot
-          count={count}
-          pageSize={PER_PAGE}
-          onPageChange={({ page }) => setPage(page)}
-        >
-          <Flex>
-            <PaginationPrevTrigger />
-            <PaginationItems />
-            <PaginationNextTrigger />
-          </Flex>
-        </PaginationRoot>
+      <Flex mt={4} justifyContent="flex-end">
+        <InputGroup maxW="sm">
+          <Input
+            type="text"
+            placeholder="Search by name, action, description..."
+            value={localSearch}
+            onChange={handleSearchChange}
+            size="sm"
+          />
+        </InputGroup>
       </Flex>
+      {isLoading ? (
+        <PendingProfiles />
+      ) : profiles.length === 0 ? (
+        <EmptyState.Root>
+          <EmptyState.Content>
+            <EmptyState.Indicator>
+              <FiSearch />
+            </EmptyState.Indicator>
+            <VStack textAlign="center">
+              <EmptyState.Title>You don't have any profiles yet</EmptyState.Title>
+              <EmptyState.Description>
+                Add a new profile to get started
+              </EmptyState.Description>
+            </VStack>
+          </EmptyState.Content>
+        </EmptyState.Root>
+      ) : (
+        <>
+          <Table.Root size={{ base: "sm", md: "md" }} mt={2}>
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>
+                <Table.ColumnHeader w="sm">Name</Table.ColumnHeader>
+                <Table.ColumnHeader w="sm">Action</Table.ColumnHeader>
+                <Table.ColumnHeader w="sm">Description</Table.ColumnHeader>
+                <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {profiles?.map((profile) => (
+                <Table.Row
+                  key={profile.id}
+                  opacity={isPlaceholderData ? 0.5 : 1}
+                >
+                  <Table.Cell truncate maxW="sm">
+                    {profile.id}
+                  </Table.Cell>
+                  <Table.Cell truncate maxW="sm">
+                    {profile.name}
+                  </Table.Cell>
+                  <Table.Cell truncate maxW="sm">
+                    {profile.action}
+                  </Table.Cell>
+                  <Table.Cell
+                    color={!profile.description ? "gray" : "inherit"}
+                    truncate
+                    maxW="30%"
+                  >
+                    {profile.description || "N/A"}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <ProfileActionsMenu profile={profile} />
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+          <Flex justifyContent="flex-end" mt={4}>
+            <PaginationRoot
+              count={count}
+              pageSize={PER_PAGE}
+              onPageChange={({ page }) => setPage(page)}
+            >
+              <Flex>
+                <PaginationPrevTrigger />
+                <PaginationItems />
+                <PaginationNextTrigger />
+              </Flex>
+            </PaginationRoot>
+          </Flex>
+        </>
+      )}
     </>
   )
 }

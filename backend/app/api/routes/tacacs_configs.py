@@ -40,19 +40,24 @@ def read_tacacs_configs(
     limit: int = 100,
     sort_by: str = "created_at",
     sort_order: str = "desc",
+    search: str | None = None,
 ) -> Any:
     """
     Retrieve tacacs_configs.
     """
 
     count_statement = select(func.count()).select_from(TacacsConfig)
+    statement = select(TacacsConfig)
+    if search:
+        f = TacacsConfig.filename.contains(search) | TacacsConfig.description.contains(search)
+        count_statement = count_statement.where(f)
+        statement = statement.where(f)
     count = session.exec(count_statement).one()
     sort_column = getattr(TacacsConfig, sort_by, None)
     if sort_column is None:
         raise HTTPException(status_code=400, detail=f"Invalid sort column: {sort_by}")
     order = sort_column.desc() if sort_order == "desc" else sort_column.asc()
-    statement = select(TacacsConfig).order_by(order).offset(skip).limit(limit)
-    tacacs_configs = session.exec(statement).all()
+    tacacs_configs = session.exec(statement.order_by(order).offset(skip).limit(limit)).all()
 
     return TacacsConfigsPublic(data=tacacs_configs, count=count)
 
