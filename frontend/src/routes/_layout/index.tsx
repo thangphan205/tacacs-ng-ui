@@ -235,36 +235,43 @@ function FilterBar({
   onCustomEnd: (s: string) => void
 }) {
   return (
-    <Flex gap={2} flexWrap="wrap" align="center">
-      {(["7d", "30d", "custom"] as FilterMode[]).map((m) => (
-        <Button
-          key={m}
-          size="sm"
-          variant={mode === m ? "solid" : "outline"}
-          colorPalette={mode === m ? "blue" : "gray"}
-          onClick={() => onMode(m)}
-        >
-          {FILTER_LABELS[m]}
-        </Button>
-      ))}
+    <Flex gap={3} flexWrap="wrap" align="center">
+      {/* Mode buttons — always visible */}
+      <Flex gap={2} align="center" flexShrink={0}>
+        {(["7d", "30d", "custom"] as FilterMode[]).map((m) => (
+          <Button
+            key={m}
+            size="sm"
+            variant={mode === m ? "solid" : "outline"}
+            colorPalette={mode === m ? "blue" : "gray"}
+            onClick={() => onMode(m)}
+          >
+            {FILTER_LABELS[m]}
+          </Button>
+        ))}
+      </Flex>
+
+      {/* Date pickers — shown only in custom mode, always on one line */}
       {mode === "custom" && (
-        <>
+        <Flex gap={2} align="center" flexShrink={0}>
           <Input
             size="sm"
             type="date"
             value={customStart}
             onChange={(e) => onCustomStart(e.target.value)}
             maxW="160px"
+            minW="130px"
           />
-          <Text fontSize="sm" color="fg.muted">to</Text>
+          <Text fontSize="sm" color="fg.muted" whiteSpace="nowrap">to</Text>
           <Input
             size="sm"
             type="date"
             value={customEnd}
             onChange={(e) => onCustomEnd(e.target.value)}
             maxW="160px"
+            minW="130px"
           />
-        </>
+        </Flex>
       )}
     </Flex>
   )
