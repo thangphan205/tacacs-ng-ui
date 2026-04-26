@@ -94,15 +94,19 @@ function getRangeDate(
 ): string | undefined {
   const fmt = (d: Date) => d.toISOString().split("T")[0]
   const today = new Date()
-  const end = fmt(today)
+  // Statistics are aggregated from completed log files — today is never in the DB.
+  // Always cap the end date at yesterday to avoid a trailing zero on the chart.
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  const end = fmt(yesterday)
   if (mode === "7d") {
-    const s = new Date(today)
-    s.setDate(today.getDate() - 7)
+    const s = new Date(yesterday)
+    s.setDate(yesterday.getDate() - 6)
     return `${fmt(s)},${end}`
   }
   if (mode === "30d") {
-    const s = new Date(today)
-    s.setDate(today.getDate() - 30)
+    const s = new Date(yesterday)
+    s.setDate(yesterday.getDate() - 29)
     return `${fmt(s)},${end}`
   }
   if (customStart && customEnd) return `${customStart},${customEnd}`
