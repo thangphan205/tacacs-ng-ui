@@ -2,6 +2,7 @@ import { IconButton } from "@chakra-ui/react"
 import { BsThreeDotsVertical } from "react-icons/bs"
 import type { TacacsConfigPublic } from "@/client"
 import DeleteTacacsConfig from "../TacacsConfigs/DeleteTacacsConfig"
+import DiffTacacsConfig from "../TacacsConfigs/DiffTacacsConfig"
 import EditTacacsConfig from "../TacacsConfigs/EditTacacsConfig"
 import ShowTacacsConfig from "../TacacsConfigs/ShowTacacsConfig"
 import { MenuContent, MenuRoot, MenuTrigger } from "../ui/menu"
@@ -22,6 +23,7 @@ export const TacacsConfigActionsMenu = ({
       </MenuTrigger>
       <MenuContent>
         <ShowTacacsConfig tacacs_config={tacacs_config} />
+        <DiffTacacsConfig tacacs_config={tacacs_config} />
         <EditTacacsConfig tacacs_config={tacacs_config} />
         <DeleteTacacsConfig tacacs_config={tacacs_config} />
       </MenuContent>
