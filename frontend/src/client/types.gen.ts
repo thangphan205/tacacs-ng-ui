@@ -636,6 +636,9 @@ export type TacacsLogEvent = {
     client_ip: string;
     result: string;
     message: string;
+    command?: (string | null);
+    port?: (string | null);
+    session_id?: (string | null);
 };
 
 export type TacacsLogEventsPublic = {

@@ -10,3 +10,6 @@ node_modules/
 .env.local
 .env.*.local
 scripts/capture-screenshots.js
+
+# Generated TACACS+ runtime config — regenerated on every config-apply
+backend/tacacs_config/etc/tac_plus-ng.cfg

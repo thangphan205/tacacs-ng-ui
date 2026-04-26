@@ -10,7 +10,7 @@ Built with a powerful and modern technology stack, the application features a Fa
 - **TACACS+ Server**: Utilizes [tac_plus-ng](https://github.com/MarcJHuber/event-driven-servers) as the backend TACACS+ server, a modern and actively maintained implementation.
 - **Versioned Config Management**: Generate, preview, and activate TACACS+ configuration snapshots — each version is stored and can be rolled back.
 - **Observability Dashboard**: Today's log summary (auth/authz/acct counts), config entity overview cards, recent user activity, and Top 5 & trend charts with Last 7 Days / Last 30 Days / Date Range filter.
-- **Structured Log Events Viewer**: Browse TACACS+ log events with date picker, type/result/username filters, and paginated table with color-coded badges.
+- **Structured Log Events Viewer**: Browse TACACS+ log events with date picker, type/result/username filters, clickable username drill-down, command column, port/TTY column, and a detail drawer with session timeline for auditing command sequences.
 - **SIEM Integration**: Forward TACACS+ log events in real-time via HTTP webhook (Splunk HEC format) and/or syslog (UDP/TCP).
 - **Comprehensive Audit Logging**: Every UI action is recorded with actor, IP, entity snapshot (before/after), and timestamp. Superuser-only table with search, date-range filter, and CSV export.
 - **Multi-Factor Auth**: Google OAuth, Keycloak OIDC, and Passkeys (WebAuthn) in addition to email/password.
@@ -344,7 +344,7 @@ To further enhance the security and utility of tacacs-ng-ui, the following roadm
 
 1. **Modernized Authentication Framework**: ✅ Google OAuth (Authorization Code flow), ✅ Keycloak OIDC, and ✅ Passkeys (WebAuthn) for passwordless login are all supported as of v0.2.0.
 2. **Comprehensive Frontend Audit Logging**: ✅ Every UI action (create/update/delete/login/config-apply) is recorded with actor, IP, entity snapshot, and timestamp as of v0.2.1. Includes CSV export, search, and date-range filter.
-3. **Advanced Observability Dashboard**: ✅ Today's log summary, config overview cards, recent user activity, Top 5 pie charts (users/IPs) with Last 7 Days / Last 30 Days / Date Range filter, and AAA trend line chart — all shipped in v0.3.0. Structured TACACS log events viewer with date/type/result/username filters also added in v0.3.0.
+3. **Advanced Observability Dashboard**: ✅ Today's log summary, config overview cards, recent user activity, Top 5 pie charts (users/IPs) with Last 7 Days / Last 30 Days / Date Range filter, and AAA trend line chart — all shipped in v0.3.0. Structured TACACS log events viewer with date/type/result/username filters added in v0.3.0. Enhanced in v0.3.2 with clickable username drill-down, command/port columns, row-click detail drawer, and session timeline for auditing full command sequences.
 4. **SIEM Integration**: ✅ Real-time forwarding of TACACS+ log events via HTTP webhook (Splunk HEC format) and syslog (UDP/TCP) shipped in v0.3.0.
 5. **Proactive Abnormal Access Detection & Alerting**: Integrate an automated Anomaly Detection engine that triggers Webhook alerts (e.g., to Telegram, Discord, Slack, Microsoft Teams). This feature will immediately notify administrators of suspicious patterns, such as repeated failed logins or unauthorized privilege escalation attempts.
 

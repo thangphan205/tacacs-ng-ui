@@ -2,6 +2,17 @@
 
 ## Latest Changes
 
+## v0.3.2
+
+### Improvements
+
+* 🎨 Log Events viewer — **Default date to today**: the Events tab now loads today's events immediately on open instead of waiting for a manual date selection. PR by [@thangphan205](https://github.com/thangphan205).
+* 🎨 Log Events viewer — **Clickable username drill-down**: each username in the table is rendered as a clickable badge; clicking it instantly applies a username filter and shows an active-filter chip with a clear button. PR by [@thangphan205](https://github.com/thangphan205).
+* 🎨 Log Events viewer — **Command / Message column**: a new column shows the extracted command for authorization and accounting events (e.g. `show ip route`), or a truncated preview of the raw message for authentication events. The full command is shown on hover via `title`. PR by [@thangphan205](https://github.com/thangphan205).
+* 🎨 Log Events viewer — **Port / TTY column**: the tty/port field (e.g. `vty14`, `ssh`) is now extracted and shown in the table, completing the context for each event. PR by [@thangphan205](https://github.com/thangphan205).
+* 🎨 Log Events viewer — **Row click → Event Detail Drawer**: clicking any row opens a side-panel (Drawer) showing the full event info (timestamp, type, result, username, NAS IP, client IP, port), the extracted command in a formatted code block, the raw message, and a **Session Timeline** that groups and sorts all events from the same logical session (same user + NAS + client + port) so auditors can trace a full session sequence. PR by [@thangphan205](https://github.com/thangphan205).
+* 🔧 Backend — Log parser updated to capture `port` (tty/port field) from log lines, extract human-readable `command` from authorization and accounting messages (stripping profile/result/service tokens and `<cr>` artifacts), and compute a deterministic `session_id` key for grouping. No DB schema changes required. PR by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.3.1
 
 ### Improvements

@@ -731,6 +731,9 @@ class TacacsLogEvent(SQLModel):
     client_ip: str
     result: str  # "success" | "failed" | "permit" | "deny" | "start" | "stop"
     message: str
+    command: str | None = None  # extracted command/service from authorization/accounting messages
+    port: str | None = None  # tty/port (e.g. vty14, tty0)
+    session_id: str | None = None  # logical session grouping key (username+nas_ip+client_ip+port)
 
 
 class TacacsLogEventsPublic(SQLModel):
