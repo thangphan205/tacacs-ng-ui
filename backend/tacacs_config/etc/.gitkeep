@@ -1,0 +1,3 @@
+# This file keeps the tacacs_config/etc/ directory tracked in git.
+# The Dockerfile COPYs this directory into the container image.
+# Generated config snapshots (*.cfg) and tac_plus-ng.cfg are gitignored.
