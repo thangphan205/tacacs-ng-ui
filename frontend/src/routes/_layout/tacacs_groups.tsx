@@ -26,7 +26,7 @@ const tacacs_groupsSearchSchema = z.object({
   page: z.number().catch(1),
 })
 
-const PER_PAGE = 5
+const PER_PAGE = 10
 
 function getTacacsGroupsQueryOptions({ page }: { page: number }) {
   return {
@@ -60,7 +60,7 @@ function TacacsGroupsTable() {
     })
   }
 
-  const tacacs_groups = data?.data.slice(0, PER_PAGE) ?? []
+  const tacacs_groups = data?.data ?? []
   const count = data?.count ?? 0
 
   if (isLoading) {
@@ -75,11 +75,9 @@ function TacacsGroupsTable() {
             <FiSearch />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>
-              You don't have any tacacs_groups yet
-            </EmptyState.Title>
+            <EmptyState.Title>No TACACS groups yet</EmptyState.Title>
             <EmptyState.Description>
-              Add a new tacacs_group to get started
+              Add a new TACACS group to get started
             </EmptyState.Description>
           </VStack>
         </EmptyState.Content>
@@ -145,7 +143,7 @@ function TacacsGroups() {
   return (
     <Container maxW="full">
       <Heading size="lg" pt={12}>
-        TacacsGroups Management
+        TACACS Groups
       </Heading>
       <AddTacacsGroup />
       <TacacsGroupsTable />

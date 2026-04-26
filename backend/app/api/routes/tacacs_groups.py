@@ -65,7 +65,7 @@ def create_tacacs_group(
             detail="The group with this group name already exists in the system.",
         )
 
-    group = tacacs_groups.create_tacacs_group(session=session, user_create=group_in)
+    group = tacacs_groups.create_tacacs_group(session=session, group_create=group_in)
     audit_logs_crud.log_entity_action(
         session=session, action="CREATE", entity_type="TacacsGroup",
         entity_id=str(group.id),

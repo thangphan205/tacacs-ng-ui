@@ -60,7 +60,7 @@ function TacacsUsersTable() {
     })
   }
 
-  const tacacs_users = data?.data.slice(0, PER_PAGE) ?? []
+  const tacacs_users = data?.data ?? []
   const count = data?.count ?? 0
 
   if (isLoading) {
@@ -75,11 +75,9 @@ function TacacsUsersTable() {
             <FiSearch />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>
-              You don't have any tacacs_users yet
-            </EmptyState.Title>
+            <EmptyState.Title>No TACACS users yet</EmptyState.Title>
             <EmptyState.Description>
-              Add a new tacacs_user to get started
+              Add a new TACACS user to get started
             </EmptyState.Description>
           </VStack>
         </EmptyState.Content>
@@ -96,6 +94,7 @@ function TacacsUsersTable() {
             <Table.ColumnHeader w="sm">Username</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Password Type</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Member</Table.ColumnHeader>
+            <Table.ColumnHeader>Description</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
           </Table.Row>
         </Table.Header>
@@ -152,7 +151,7 @@ function TacacsUsers() {
   return (
     <Container maxW="full">
       <Heading size="lg" pt={12}>
-        TacacsUsers Management
+        TACACS Users
       </Heading>
       <AddTacacsUser />
       <TacacsUsersTable />

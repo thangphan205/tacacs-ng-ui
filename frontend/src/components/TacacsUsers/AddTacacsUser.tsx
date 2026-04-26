@@ -9,7 +9,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
 
@@ -49,6 +49,8 @@ const AddTacacsUser = () => {
     defaultValues: {
       username: "",
       description: "",
+      member: "",
+      password_type: "",
     },
   })
 
@@ -62,22 +64,18 @@ const AddTacacsUser = () => {
     ...getTacacsGroupsQueryOptions(),
   })
 
-  const items_tacacs_groups = createListCollection<{
-    value: string
-    label: string
-  }>({ items: [] })
-  if (data_groups && data_groups.data.length > 0) {
-    data_groups.data.forEach((group) => {
-      items_tacacs_groups.items.push({
-        value: group.group_name,
-        label: group.group_name,
-      })
-    })
-  }
-  const items_password_type = createListCollection<{
-    value: string
-    label: string
-  }>({
+  const items_tacacs_groups = useMemo(
+    () =>
+      createListCollection({
+        items: (data_groups?.data ?? []).map((g) => ({
+          value: g.group_name,
+          label: g.group_name,
+        })),
+      }),
+    [data_groups],
+  )
+
+  const items_password_type = createListCollection({
     items: [
       { value: "clear", label: "clear" },
       { value: "crypt", label: "crypt" },
@@ -116,13 +114,13 @@ const AddTacacsUser = () => {
       <DialogTrigger asChild>
         <Button value="add-item" my={4}>
           <FaPlus fontSize="16px" />
-          Add TacacsUser
+          Add TACACS User
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Add TacacsUser</DialogTitle>
+            <DialogTitle>Add TACACS User</DialogTitle>
           </DialogHeader>
           <DialogBody>
             <Text mb={4}>Fill in the details to add a new item.</Text>
@@ -145,13 +143,20 @@ const AddTacacsUser = () => {
                 required
                 invalid={!!errors.password_type}
                 errorText={errors.password_type?.message}
-                label="password_type"
+                label="Password Type"
               >
+                <input
+                  type="hidden"
+                  {...register("password_type", {
+                    required: "Password type is required.",
+                  })}
+                />
                 <Select.Root
                   collection={items_password_type}
-                  onSelect={(selection) => {
-                    setValue("password_type", selection.value)
-                    setIsSelectMavis(selection.value === "mavis")
+                  onValueChange={(selection) => {
+                    const val = selection.value[0] ?? ""
+                    setValue("password_type", val, { shouldValidate: true })
+                    setIsSelectMavis(val === "mavis")
                   }}
                   size="sm"
                 >
@@ -161,9 +166,9 @@ const AddTacacsUser = () => {
                   <Select.Positioner>
                     <Select.Content>
                       <Select.ItemGroup>
-                        {["clear", "mavis", "crypt", "pbkdf2"].map((type) => (
-                          <Select.Item key={type} item={type}>
-                            {type}
+                        {items_password_type.items.map((item) => (
+                          <Select.Item key={item.value} item={item.value}>
+                            {item.label}
                             <Select.ItemIndicator />
                           </Select.Item>
                         ))}
@@ -177,13 +182,13 @@ const AddTacacsUser = () => {
                   required
                   invalid={!!errors.password}
                   errorText={errors.password?.message}
-                  label="password"
+                  label="Password"
                 >
                   <Input
                     {...register("password", {
-                      required: isSelectMavis ? false : "password is required.",
+                      required: isSelectMavis ? false : "Password is required.",
                     })}
-                    placeholder="password"
+                    placeholder="Password"
                     type="password"
                   />
                 </Field>
@@ -192,18 +197,26 @@ const AddTacacsUser = () => {
                 required
                 invalid={!!errors.member}
                 errorText={errors.member?.message}
-                label="member"
+                label="Group Membership"
               >
+                <input
+                  type="hidden"
+                  {...register("member", {
+                    required: "Group membership is required.",
+                  })}
+                />
                 <Select.Root
                   collection={items_tacacs_groups}
                   size="sm"
                   multiple
                   onValueChange={(selection) => {
-                    setValue("member", selection.value.join(","))
+                    setValue("member", selection.value.join(","), {
+                      shouldValidate: true,
+                    })
                   }}
                 >
                   <Select.Trigger>
-                    <Select.ValueText placeholder="Select Tacacs Groups" />
+                    <Select.ValueText placeholder="Select TACACS groups" />
                   </Select.Trigger>
                   <Select.Positioner>
                     <Select.Content>

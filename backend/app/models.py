@@ -328,7 +328,11 @@ class TacacsUserCreate(TacacsUserBase):
     password: str | None = Field(default=None, max_length=255)
 
 
-class TacacsUserUpdate(TacacsUserBase):
+class TacacsUserUpdate(SQLModel):
+    username: str | None = Field(default=None, max_length=255)
+    password_type: str | None = Field(default=None, max_length=255)
+    member: str | None = Field(default=None, max_length=255)
+    description: str | None = None
     password: str | None = Field(default=None, max_length=255)
 
 
@@ -338,9 +342,13 @@ class TacacsUser(TacacsUserBase, TimestampModel, table=True):
     password: str | None = Field(default=None, max_length=255)
 
 
-# Properties to return via API, id is always required
-class TacacsUserPublic(TacacsUserBase):
+# Properties to return via API — password is explicitly excluded
+class TacacsUserPublic(SQLModel):
     id: uuid.UUID
+    username: str
+    password_type: str
+    member: str
+    description: str | None = None
     created_at: datetime
     updated_at: datetime
 

@@ -13,9 +13,9 @@ def get_tacacs_group_by_group_name(
 
 
 def create_tacacs_group(
-    *, session: Session, user_create: TacacsGroupCreate
+    *, session: Session, group_create: TacacsGroupCreate
 ) -> TacacsGroup:
-    db_obj = TacacsGroup.model_validate(user_create)
+    db_obj = TacacsGroup.model_validate(group_create)
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
@@ -25,8 +25,8 @@ def create_tacacs_group(
 def update_tacacs_group(
     *, session: Session, db_tacacs_group: TacacsGroup, group_in: TacacsGroupUpdate
 ) -> Any:
-    user_data = group_in.model_dump(exclude_unset=True)
-    db_tacacs_group.sqlmodel_update(user_data)
+    group_data = group_in.model_dump(exclude_unset=True)
+    db_tacacs_group.sqlmodel_update(group_data)
     session.add(db_tacacs_group)
     session.commit()
     session.refresh(db_tacacs_group)
