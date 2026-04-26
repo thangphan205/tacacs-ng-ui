@@ -3,19 +3,17 @@ import {
   EmptyState,
   Flex,
   Heading,
-  Input,
-  InputGroup,
   Table,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useEffect, useRef, useState } from "react"
 import { FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { ItemsService } from "@/client"
 import { ItemActionsMenu } from "@/components/Common/ItemActionsMenu"
+import { SearchBox } from "@/components/Common/SearchBox"
 import AddItem from "@/components/Items/AddItem"
 import PendingItems from "@/components/Pending/PendingItems"
 import {
@@ -58,17 +56,11 @@ export const Route = createFileRoute("/_layout/items")({
 function ItemsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, search } = Route.useSearch()
-  const [localSearch, setLocalSearch] = useState(search ?? "")
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const { data, isLoading, isPlaceholderData } = useQuery({
     ...getItemsQueryOptions({ page, search }),
     placeholderData: (prevData) => prevData,
   })
-
-  useEffect(() => {
-    setLocalSearch(search ?? "")
-  }, [search])
 
   const setPage = (page: number) => {
     navigate({
@@ -77,34 +69,11 @@ function ItemsTable() {
     })
   }
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setLocalSearch(val)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      navigate({
-        to: "/items",
-        search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
-      })
-    }, 500)
-  }
-
   const items = data?.data ?? []
   const count = data?.count ?? 0
 
   return (
     <>
-      <Flex mt={4} justifyContent="flex-end">
-        <InputGroup maxW="sm">
-          <Input
-            type="text"
-            placeholder="Search by title, description..."
-            value={localSearch}
-            onChange={handleSearchChange}
-            size="sm"
-          />
-        </InputGroup>
-      </Flex>
       {isLoading ? (
         <PendingItems />
       ) : items.length === 0 ? (
@@ -175,12 +144,29 @@ function ItemsTable() {
 }
 
 function Items() {
+  const navigate = useNavigate({ from: Route.fullPath })
+  const { search } = Route.useSearch()
+
+  const handleSearch = (val: string) => {
+    navigate({
+      to: "/items",
+      search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
+    })
+  }
+
   return (
     <Container maxW="full">
       <Heading size="md" pt={6}>
         Items Management
       </Heading>
-      <AddItem />
+      <Flex mt={4} align="center" justify="space-between">
+        <AddItem />
+        <SearchBox
+          initialValue={search}
+          onSearch={handleSearch}
+          placeholder="Search by title, description..."
+        />
+      </Flex>
       <ItemsTable />
     </Container>
   )

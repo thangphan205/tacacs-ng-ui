@@ -7,19 +7,17 @@ import {
   EmptyState,
   Flex,
   Heading,
-  Input,
-  InputGroup,
   Table,
   Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useEffect, useRef, useState } from "react"
 import { FiFileText, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { TacacsConfigsService } from "@/client"
+import { SearchBox } from "@/components/Common/SearchBox"
 import { TacacsConfigActionsMenu } from "@/components/Common/TacacsConfigActionsMenu"
 import PendingTacacsConfigs from "@/components/Pending/PendingTacacsConfigs"
 import AddTacacsConfig from "@/components/TacacsConfigs/AddTacacsConfig"
@@ -66,17 +64,11 @@ export const Route = createFileRoute("/_layout/tacacs_configs")({
 function TacacsConfigsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, search } = Route.useSearch()
-  const [localSearch, setLocalSearch] = useState(search ?? "")
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const { data, isLoading, isPlaceholderData } = useQuery({
     ...getTacacsConfigsQueryOptions({ page, search }),
     placeholderData: (prevData) => prevData,
   })
-
-  useEffect(() => {
-    setLocalSearch(search ?? "")
-  }, [search])
 
   const setPage = (page: number) => {
     navigate({
@@ -85,34 +77,11 @@ function TacacsConfigsTable() {
     })
   }
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setLocalSearch(val)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      navigate({
-        to: "/tacacs_configs",
-        search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
-      })
-    }, 500)
-  }
-
   const tacacs_configs = data?.data ?? []
   const count = data?.count ?? 0
 
   return (
     <>
-      <Flex mt={4} justifyContent="flex-end">
-        <InputGroup maxW="sm">
-          <Input
-            type="text"
-            placeholder="Search by filename, description..."
-            value={localSearch}
-            onChange={handleSearchChange}
-            size="sm"
-          />
-        </InputGroup>
-      </Flex>
       {isLoading ? (
         <PendingTacacsConfigs />
       ) : tacacs_configs.length === 0 ? (
@@ -209,6 +178,16 @@ function TacacsConfigsTable() {
 }
 
 function TacacsConfigs() {
+  const navigate = useNavigate({ from: Route.fullPath })
+  const { search } = Route.useSearch()
+
+  const handleSearch = (val: string) => {
+    navigate({
+      to: "/tacacs_configs",
+      search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
+    })
+  }
+
   return (
     <Container maxW="full">
       <Flex justify="space-between" align="flex-start" pt={12} mb={4}>
@@ -230,10 +209,17 @@ function TacacsConfigs() {
         </Alert.Content>
       </Alert.Root>
 
-      <Flex gap={2} mb={4} flexWrap="wrap">
-        <AddTacacsConfig />
-        <PreviewTacacsConfig />
-        <ShowActiveTacacsConfig />
+      <Flex mt={4} align="center" justify="space-between">
+        <Flex gap={2} flexWrap="wrap">
+          <AddTacacsConfig />
+          <PreviewTacacsConfig />
+          <ShowActiveTacacsConfig />
+        </Flex>
+        <SearchBox
+          initialValue={search}
+          onSearch={handleSearch}
+          placeholder="Search by filename, description..."
+        />
       </Flex>
 
       <TacacsConfigsTable />

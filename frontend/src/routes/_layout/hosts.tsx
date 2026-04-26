@@ -5,20 +5,18 @@ import {
   EmptyState,
   Flex,
   Heading,
-  Input,
-  InputGroup,
   Table,
   Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useEffect, useRef, useState } from "react"
 import { FiServer } from "react-icons/fi"
 import { z } from "zod"
 
 import { HostsService } from "@/client"
 import { HostActionsMenu } from "@/components/Common/HostActionsMenu"
+import { SearchBox } from "@/components/Common/SearchBox"
 import AddHost from "@/components/Hosts/AddHost"
 import PendingHosts from "@/components/Pending/PendingHosts"
 import {
@@ -61,17 +59,11 @@ export const Route = createFileRoute("/_layout/hosts")({
 function HostsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, search } = Route.useSearch()
-  const [localSearch, setLocalSearch] = useState(search ?? "")
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const { data, isLoading, isPlaceholderData } = useQuery({
     ...getHostsQueryOptions({ page, search }),
     placeholderData: (prevData) => prevData,
   })
-
-  useEffect(() => {
-    setLocalSearch(search ?? "")
-  }, [search])
 
   const setPage = (page: number) => {
     navigate({
@@ -80,34 +72,11 @@ function HostsTable() {
     })
   }
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setLocalSearch(val)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      navigate({
-        to: "/hosts",
-        search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
-      })
-    }, 500)
-  }
-
   const hosts = data?.data ?? []
   const count = data?.count ?? 0
 
   return (
     <>
-      <Flex mt={4} justifyContent="flex-end">
-        <InputGroup maxW="sm">
-          <Input
-            type="text"
-            placeholder="Search by name, IP address, description..."
-            value={localSearch}
-            onChange={handleSearchChange}
-            size="sm"
-          />
-        </InputGroup>
-      </Flex>
       {isLoading ? (
         <PendingHosts />
       ) : hosts.length === 0 ? (
@@ -196,6 +165,16 @@ function HostsTable() {
 }
 
 function Hosts() {
+  const navigate = useNavigate({ from: Route.fullPath })
+  const { search } = Route.useSearch()
+
+  const handleSearch = (val: string) => {
+    navigate({
+      to: "/hosts",
+      search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
+    })
+  }
+
   return (
     <Container maxW="full">
       <Flex justify="space-between" align="flex-start" pt={12} mb={4}>
@@ -206,7 +185,14 @@ function Hosts() {
           </Text>
         </Box>
       </Flex>
-      <AddHost />
+      <Flex mt={4} align="center" justify="space-between">
+        <AddHost />
+        <SearchBox
+          initialValue={search}
+          onSearch={handleSearch}
+          placeholder="Search by name, IP address, description..."
+        />
+      </Flex>
       <HostsTable />
     </Container>
   )

@@ -3,18 +3,16 @@ import {
   EmptyState,
   Flex,
   Heading,
-  Input,
-  InputGroup,
   Table,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useEffect, useRef, useState } from "react"
 import { FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { TacacsServicesService } from "@/client"
+import { SearchBox } from "@/components/Common/SearchBox"
 import { TacacsServiceActionsMenu } from "@/components/Common/TacacsServiceActionsMenu"
 import PendingTacacsServices from "@/components/Pending/PendingTacacsServices"
 import AddTacacsService from "@/components/TacacsServices/AddTacacsService"
@@ -58,17 +56,11 @@ export const Route = createFileRoute("/_layout/tacacs_services")({
 function TacacsServicesTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, search } = Route.useSearch()
-  const [localSearch, setLocalSearch] = useState(search ?? "")
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const { data, isLoading, isPlaceholderData } = useQuery({
     ...getTacacsServicesQueryOptions({ page, search }),
     placeholderData: (prevData) => prevData,
   })
-
-  useEffect(() => {
-    setLocalSearch(search ?? "")
-  }, [search])
 
   const setPage = (page: number) => {
     navigate({
@@ -77,34 +69,11 @@ function TacacsServicesTable() {
     })
   }
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setLocalSearch(val)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      navigate({
-        to: "/tacacs_services",
-        search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
-      })
-    }, 500)
-  }
-
   const tacacs_service = data?.data ?? []
   const count = data?.count ?? 0
 
   return (
     <>
-      <Flex mt={4} justifyContent="flex-end">
-        <InputGroup maxW="sm">
-          <Input
-            type="text"
-            placeholder="Search by service name, description..."
-            value={localSearch}
-            onChange={handleSearchChange}
-            size="sm"
-          />
-        </InputGroup>
-      </Flex>
       {isLoading ? (
         <PendingTacacsServices />
       ) : tacacs_service.length === 0 ? (
@@ -180,12 +149,29 @@ function TacacsServicesTable() {
 }
 
 function TacacsServices() {
+  const navigate = useNavigate({ from: Route.fullPath })
+  const { search } = Route.useSearch()
+
+  const handleSearch = (val: string) => {
+    navigate({
+      to: "/tacacs_services",
+      search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
+    })
+  }
+
   return (
     <Container maxW="full">
       <Heading size="md" pt={6}>
         TacacsServices Management
       </Heading>
-      <AddTacacsService />
+      <Flex mt={4} align="center" justify="space-between">
+        <AddTacacsService />
+        <SearchBox
+          initialValue={search}
+          onSearch={handleSearch}
+          placeholder="Search by service name, description..."
+        />
+      </Flex>
       <TacacsServicesTable />
     </Container>
   )

@@ -7,19 +7,17 @@ import {
   EmptyState,
   Flex,
   Heading,
-  Input,
-  InputGroup,
   Table,
   Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useEffect, useRef, useState } from "react"
 import { FiEye, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 import type { AuditLogPublic } from "@/client"
 import { AuditLogsService } from "@/client"
+import { SearchBox } from "@/components/Common/SearchBox"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -156,35 +154,17 @@ function ValuesDialog({ log }: { log: AuditLogPublic }) {
 function AuditLogsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, search } = Route.useSearch()
-  const [localSearch, setLocalSearch] = useState(search ?? "")
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const { data, isLoading } = useQuery({
     ...getAuditLogsQueryOptions({ page, search }),
     placeholderData: (prev) => prev,
   })
 
-  useEffect(() => {
-    setLocalSearch(search ?? "")
-  }, [search])
-
   const setPage = (p: number) => {
     navigate({
       to: "/audit_logs",
       search: (prev) => ({ ...prev, page: p, search }),
     })
-  }
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setLocalSearch(val)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      navigate({
-        to: "/audit_logs",
-        search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
-      })
-    }, 500)
   }
 
   const logs = data?.data ?? []
@@ -194,18 +174,6 @@ function AuditLogsTable() {
 
   return (
     <>
-      <Flex mt={4} justifyContent="flex-end">
-        <InputGroup maxW="sm">
-          <Input
-            type="text"
-            placeholder="Search by user, entity, action..."
-            value={localSearch}
-            onChange={handleSearchChange}
-            size="sm"
-          />
-        </InputGroup>
-      </Flex>
-
       {logs.length === 0 ? (
         <EmptyState.Root>
           <EmptyState.Content>
@@ -292,11 +260,28 @@ function AuditLogsTable() {
 }
 
 function AuditLogsPage() {
+  const navigate = useNavigate({ from: Route.fullPath })
+  const { search } = Route.useSearch()
+
+  const handleSearch = (val: string) => {
+    navigate({
+      to: "/audit_logs",
+      search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
+    })
+  }
+
   return (
     <Container maxW="full">
       <Heading size="md" pt={6}>
         Audit Logs
       </Heading>
+      <Flex mt={4} justify="flex-end">
+        <SearchBox
+          initialValue={search}
+          onSearch={handleSearch}
+          placeholder="Search by user, entity, action..."
+        />
+      </Flex>
       <AuditLogsTable />
     </Container>
   )
