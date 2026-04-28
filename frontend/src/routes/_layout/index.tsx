@@ -186,8 +186,6 @@ function StatCard({ label, value, highlight = "none" }: StatCardProps) {
 }
 
 function StatPie({ title, data }: { title: string; data: PieData[] }) {
-  console.log(data)
-
   const chart = useChart({ data: data })
 
   return (
