@@ -16,11 +16,11 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  Cell,
   LabelList,
   Legend,
   Pie,
   PieChart,
+  Sector,
   Tooltip,
   XAxis,
   YAxis,
@@ -204,10 +204,11 @@ export function AaaStatistics() {
                 Top 5 Users Login Success
               </Heading>
               <Chart.Root
+                boxSize="200px"
                 mx="auto"
                 chart={chart_authentication_success_count_by_user}
               >
-                <PieChart>
+                <PieChart responsive>
                   <Tooltip
                     cursor={false}
                     animationDuration={100}
@@ -220,18 +221,16 @@ export function AaaStatistics() {
                     dataKey={chart_authentication_success_count_by_user.key(
                       "value",
                     )}
+                    shape={(props) => (
+                      <Sector
+                        {...props}
+                        fill={chart_authentication_success_count_by_user.color(
+                          props.payload!.color,
+                        )}
+                      />
+                    )}
                   >
                     <LabelList position="inside" fill="white" stroke="none" />
-                    {chart_authentication_success_count_by_user.data.map(
-                      (item, index) => (
-                        <Cell
-                          key={index}
-                          fill={chart_authentication_success_count_by_user.color(
-                            item.color,
-                          )}
-                        />
-                      ),
-                    )}
                   </Pie>
                 </PieChart>
               </Chart.Root>
@@ -243,10 +242,11 @@ export function AaaStatistics() {
                 Top 5 Source IPs
               </Heading>
               <Chart.Root
+                boxSize="200px"
                 mx="auto"
                 chart={chart_authentication_success_count_by_user_source_ip}
               >
-                <PieChart>
+                <PieChart responsive>
                   <Tooltip
                     cursor={false}
                     animationDuration={100}
@@ -261,18 +261,16 @@ export function AaaStatistics() {
                     dataKey={chart_authentication_success_count_by_user_source_ip.key(
                       "value",
                     )}
+                    shape={(props) => (
+                      <Sector
+                        {...props}
+                        fill={chart_authentication_success_count_by_user_source_ip.color(
+                          props.payload!.color,
+                        )}
+                      />
+                    )}
                   >
                     <LabelList position="inside" fill="white" stroke="none" />
-                    {chart_authentication_success_count_by_user_source_ip.data.map(
-                      (item, index) => (
-                        <Cell
-                          key={index}
-                          fill={chart_authentication_success_count_by_user_source_ip.color(
-                            item.color,
-                          )}
-                        />
-                      ),
-                    )}
                   </Pie>
                 </PieChart>
               </Chart.Root>
@@ -284,10 +282,11 @@ export function AaaStatistics() {
                 Top 5 NAS IPs
               </Heading>
               <Chart.Root
+                boxSize="200px"
                 mx="auto"
                 chart={chart_authentication_success_count_by_nas_ip}
               >
-                <PieChart>
+                <PieChart responsive>
                   <Tooltip
                     cursor={false}
                     animationDuration={100}
@@ -300,18 +299,16 @@ export function AaaStatistics() {
                     dataKey={chart_authentication_success_count_by_nas_ip.key(
                       "value",
                     )}
+                    shape={(props) => (
+                      <Sector
+                        {...props}
+                        fill={chart_authentication_success_count_by_nas_ip.color(
+                          props.payload!.color,
+                        )}
+                      />
+                    )}
                   >
                     <LabelList position="inside" fill="white" stroke="none" />
-                    {chart_authentication_success_count_by_nas_ip.data.map(
-                      (item, index) => (
-                        <Cell
-                          key={index}
-                          fill={chart_authentication_success_count_by_nas_ip.color(
-                            item.color,
-                          )}
-                        />
-                      ),
-                    )}
                   </Pie>
                 </PieChart>
               </Chart.Root>
@@ -323,10 +320,11 @@ export function AaaStatistics() {
                 Top 5 Users Login Failed
               </Heading>
               <Chart.Root
+                boxSize="200px"
                 mx="auto"
                 chart={chart_authentication_failed_count_by_user}
               >
-                <PieChart>
+                <PieChart responsive>
                   <Tooltip
                     cursor={false}
                     animationDuration={100}
@@ -339,18 +337,16 @@ export function AaaStatistics() {
                     dataKey={chart_authentication_failed_count_by_user.key(
                       "value",
                     )}
+                    shape={(props) => (
+                      <Sector
+                        {...props}
+                        fill={chart_authentication_failed_count_by_user.color(
+                          props.payload!.color,
+                        )}
+                      />
+                    )}
                   >
                     <LabelList position="inside" fill="white" stroke="none" />
-                    {chart_authentication_failed_count_by_user.data.map(
-                      (item, index) => (
-                        <Cell
-                          key={index}
-                          fill={chart_authentication_failed_count_by_user.color(
-                            item.color,
-                          )}
-                        />
-                      ),
-                    )}
                   </Pie>
                 </PieChart>
               </Chart.Root>

@@ -8,6 +8,7 @@ import {
   Grid,
   GridItem,
   Heading,
+  IconButton,
   Input,
   Skeleton,
   Spinner,
@@ -15,24 +16,25 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
-import { Link, createFileRoute } from "@tanstack/react-router"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
+import { LuRefreshCw } from "react-icons/lu"
 import {
   CartesianGrid,
-  Cell,
+  LabelList,
   Legend,
   Line,
   LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
+  Sector,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts"
-
-import type { CancelablePromise } from "@/client"
+import type { AuditLogPublic, CancelablePromise } from "@/client"
 import {
   AaaStatisticsService,
   AuditLogsService,
@@ -43,7 +45,6 @@ import {
   TacacsLogsService,
   TacacsUsersService,
 } from "@/client"
-import type { AuditLogPublic } from "@/client"
 
 export const Route = createFileRoute("/_layout/")({
   component: Dashboard,
@@ -51,8 +52,20 @@ export const Route = createFileRoute("/_layout/")({
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
-const CHART_COLORS = ["blue.500", "green.500", "pink.500", "orange.500", "red.500"]
-const FAIL_COLORS = ["red.500", "orange.500", "pink.500", "yellow.500", "purple.500"]
+const CHART_COLORS = [
+  "blue.500",
+  "green.500",
+  "pink.500",
+  "orange.500",
+  "red.500",
+]
+const FAIL_COLORS = [
+  "red.500",
+  "orange.500",
+  "pink.500",
+  "yellow.500",
+  "purple.500",
+]
 
 const ACTION_COLOR: Record<string, string> = {
   CREATE: "green",
@@ -94,19 +107,15 @@ function getRangeDate(
 ): string | undefined {
   const fmt = (d: Date) => d.toISOString().split("T")[0]
   const today = new Date()
-  // Statistics are aggregated from completed log files — today is never in the DB.
-  // Always cap the end date at yesterday to avoid a trailing zero on the chart.
-  const yesterday = new Date(today)
-  yesterday.setDate(today.getDate() - 1)
-  const end = fmt(yesterday)
+  const end = fmt(today)
   if (mode === "7d") {
-    const s = new Date(yesterday)
-    s.setDate(yesterday.getDate() - 6)
+    const s = new Date(today)
+    s.setDate(today.getDate() - 6)
     return `${fmt(s)},${end}`
   }
   if (mode === "30d") {
-    const s = new Date(yesterday)
-    s.setDate(yesterday.getDate() - 29)
+    const s = new Date(today)
+    s.setDate(today.getDate() - 29)
     return `${fmt(s)},${end}`
   }
   if (customStart && customEnd) return `${customStart},${customEnd}`
@@ -121,8 +130,6 @@ interface PieData {
   color: string
 }
 
-
-
 function buildRangeTrendData(stats: any) {
   if (!stats?.last_range_days_authentication_success) return []
   const toMap = (arr: any[]) =>
@@ -133,17 +140,21 @@ function buildRangeTrendData(stats: any) {
   const authzDeny = toMap(stats.last_range_days_authorization_deny ?? [])
   const acctStart = toMap(stats.last_range_days_accounting_start ?? [])
   const acctStop = toMap(stats.last_range_days_accounting_stop ?? [])
-  return (stats.last_range_days_authentication_success as any[]).map((d: any) => ({
-    date: new Date(d.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    "Auth Success": authSuccess[d.date] ?? 0,
-    "Auth Fail": authFail[d.date] ?? 0,
-    "Authz Permit": authzPermit[d.date] ?? 0,
-    "Authz Deny": authzDeny[d.date] ?? 0,
-    "Acct Start": acctStart[d.date] ?? 0,
-    "Acct Stop": acctStop[d.date] ?? 0,
-  }))
+  return (stats.last_range_days_authentication_success as any[]).map(
+    (d: any) => ({
+      date: new Date(`${d.date}T12:00:00`).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      }),
+      "Auth Success": authSuccess[d.date] ?? 0,
+      "Auth Fail": authFail[d.date] ?? 0,
+      "Authz Permit": authzPermit[d.date] ?? 0,
+      "Authz Deny": authzDeny[d.date] ?? 0,
+      "Acct Start": acctStart[d.date] ?? 0,
+      "Acct Stop": acctStop[d.date] ?? 0,
+    }),
+  )
 }
-
 
 // ─── sub-components ───────────────────────────────────────────────────────────
 
@@ -175,33 +186,49 @@ function StatCard({ label, value, highlight = "none" }: StatCardProps) {
 }
 
 function StatPie({ title, data }: { title: string; data: PieData[] }) {
-  const chart = useChart({ data })
+  console.log(data)
+
+  const chart = useChart({ data: data })
+
   return (
     <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
       <Heading size="sm" mb={3}>
         {title}
       </Heading>
       {data.length === 0 ? (
-        <Flex direction="column" align="center" justify="center" h="160px" gap={1}>
+        <Flex
+          direction="column"
+          align="center"
+          justify="center"
+          h="160px"
+          gap={1}
+        >
           <Text fontSize="2xl">📭</Text>
-          <Text color="fg.muted" fontSize="sm" fontWeight="medium">No activity</Text>
-          <Text color="fg.subtle" fontSize="xs" textAlign="center">No records for selected period</Text>
+          <Text color="fg.muted" fontSize="sm" fontWeight="medium">
+            No activity
+          </Text>
+          <Text color="fg.subtle" fontSize="xs" textAlign="center">
+            No records for selected period
+          </Text>
         </Flex>
       ) : (
-        <Chart.Root mx="auto" maxH="220px" chart={chart}>
-          <PieChart>
-            <Tooltip cursor={false} animationDuration={100} content={<Chart.Tooltip hideLabel />} />
+        <Chart.Root boxSize="200px" mx="auto" chart={chart}>
+          <PieChart responsive>
+            <Tooltip
+              cursor={false}
+              animationDuration={100}
+              content={<Chart.Tooltip hideLabel />}
+            />
             <Legend content={<Chart.Legend />} />
             <Pie
               isAnimationActive={false}
               data={chart.data}
               dataKey={chart.key("value")}
-              label={({ value }) => `${value}`}
-              labelLine={false}
+              shape={(props) => (
+                <Sector {...props} fill={chart.color(props.payload!.color)} />
+              )}
             >
-              {chart.data.map((item, i) => (
-                <Cell key={item.name ?? i} fill={chart.color(item.color)} />
-              ))}
+              <LabelList position="inside" fill="white" stroke="none" />
             </Pie>
           </PieChart>
         </Chart.Root>
@@ -210,7 +237,13 @@ function StatPie({ title, data }: { title: string; data: PieData[] }) {
   )
 }
 
-function SectionHeading({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+function SectionHeading({
+  children,
+  action,
+}: {
+  children: React.ReactNode
+  action?: React.ReactNode
+}) {
   return (
     <Flex align="center" justify="space-between" mb={3}>
       <Heading size="md">{children}</Heading>
@@ -262,7 +295,9 @@ function FilterBar({
             maxW="160px"
             minW="130px"
           />
-          <Text fontSize="sm" color="fg.muted" whiteSpace="nowrap">to</Text>
+          <Text fontSize="sm" color="fg.muted" whiteSpace="nowrap">
+            to
+          </Text>
           <Input
             size="sm"
             type="date"
@@ -283,13 +318,17 @@ function TodayLogSummary() {
   const { data, isLoading } = useQuery({
     queryKey: ["tacacs_log_summary_today"],
     queryFn: () => TacacsLogsService.getLogEventsSummary(),
+    refetchInterval: 60_000,
   })
 
   const cards = [
     {
       label: "Authentication",
       badges: [
-        { label: `✓ ${data?.authentication.success ?? 0} success`, color: "green" },
+        {
+          label: `✓ ${data?.authentication.success ?? 0} success`,
+          color: "green",
+        },
         { label: `✗ ${data?.authentication.failed ?? 0} failed`, color: "red" },
       ],
     },
@@ -315,7 +354,9 @@ function TodayLogSummary() {
         action={
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           <Link to={"/tacacs_logs" as any}>
-            <Text fontSize="sm" color="blue.500">View logs →</Text>
+            <Text fontSize="sm" color="blue.500">
+              View logs →
+            </Text>
           </Link>
         }
       >
@@ -356,11 +397,36 @@ interface ConfigItem {
 }
 
 const CONFIG_ITEMS: ConfigItem[] = [
-  { label: "Hosts", to: "/hosts", queryKey: "config_count_hosts", fn: () => HostsService.readHosts({ limit: 1 }) },
-  { label: "Users", to: "/tacacs_users", queryKey: "config_count_users", fn: () => TacacsUsersService.readTacacsUsers({ limit: 1 }) },
-  { label: "Groups", to: "/tacacs_groups", queryKey: "config_count_groups", fn: () => TacacsGroupsService.readTacacsGroups({ limit: 1 }) },
-  { label: "Profiles", to: "/profiles", queryKey: "config_count_profiles", fn: () => ProfilesService.readProfiles({ limit: 1 }) },
-  { label: "Rulesets", to: "/rulesets", queryKey: "config_count_rulesets", fn: () => RulesetsService.readRulesets({ limit: 1 }) },
+  {
+    label: "Hosts",
+    to: "/hosts",
+    queryKey: "config_count_hosts",
+    fn: () => HostsService.readHosts({ limit: 1 }),
+  },
+  {
+    label: "Users",
+    to: "/tacacs_users",
+    queryKey: "config_count_users",
+    fn: () => TacacsUsersService.readTacacsUsers({ limit: 1 }),
+  },
+  {
+    label: "Groups",
+    to: "/tacacs_groups",
+    queryKey: "config_count_groups",
+    fn: () => TacacsGroupsService.readTacacsGroups({ limit: 1 }),
+  },
+  {
+    label: "Profiles",
+    to: "/profiles",
+    queryKey: "config_count_profiles",
+    fn: () => ProfilesService.readProfiles({ limit: 1 }),
+  },
+  {
+    label: "Rulesets",
+    to: "/rulesets",
+    queryKey: "config_count_rulesets",
+    fn: () => RulesetsService.readRulesets({ limit: 1 }),
+  },
 ]
 
 function ConfigCountCard({ label, to, queryKey, fn }: ConfigItem) {
@@ -430,7 +496,9 @@ function RecentActivity() {
         action={
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           <Link to={"/audit_logs" as any}>
-            <Text fontSize="sm" color="blue.500">View all →</Text>
+            <Text fontSize="sm" color="blue.500">
+              View all →
+            </Text>
           </Link>
         }
       >
@@ -457,7 +525,11 @@ function RecentActivity() {
             <Table.Body>
               {logs.map((log: AuditLogPublic) => (
                 <Table.Row key={log.id}>
-                  <Table.Cell whiteSpace="nowrap" fontSize="xs" color="fg.muted">
+                  <Table.Cell
+                    whiteSpace="nowrap"
+                    fontSize="xs"
+                    color="fg.muted"
+                  >
                     {new Date(log.created_at).toLocaleString()}
                   </Table.Cell>
                   <Table.Cell fontSize="xs" maxW="32" truncate>
@@ -494,41 +566,68 @@ function Dashboard() {
   const [filterMode, setFilterMode] = useState<FilterMode>("7d")
   const [customStart, setCustomStart] = useState("")
   const [customEnd, setCustomEnd] = useState("")
+  const queryClient = useQueryClient()
 
   const rangeDate = getRangeDate(filterMode, customStart, customEnd)
 
-  const { data: stats, isLoading, error } = useQuery({
+  const {
+    data: stats,
+    isLoading,
+    error,
+    isFetching,
+    dataUpdatedAt,
+  } = useQuery({
     queryKey: ["aaa_statistics"],
     queryFn: () => AaaStatisticsService.readAaaStatistics(),
+    refetchInterval: 60_000,
   })
 
   const { data: rangeStats, isLoading: rangeLoading } = useQuery({
     queryKey: ["aaa_statistics_range", rangeDate],
     queryFn: () => AaaStatisticsService.readAaaStatisticsRange({ rangeDate }),
     enabled: !!rangeDate,
+    refetchInterval: 300_000,
   })
 
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["aaa_statistics"] })
+    queryClient.invalidateQueries({ queryKey: ["tacacs_log_summary_today"] })
+    queryClient.invalidateQueries({ queryKey: ["recent_audit_logs"] })
+    queryClient.invalidateQueries({ queryKey: ["aaa_statistics_range"] })
+  }
   const chartsLoading = rangeLoading
 
-  const pieSuccessByUser: PieData[] =
-    (rangeStats?.authentication_success_count_by_user ?? []).map((u: any, i: number) => ({
-      name: String(u.username ?? ""), value: Number(u.success_count ?? 0), color: CHART_COLORS[i % CHART_COLORS.length],
-    }))
+  const pieSuccessByUser: PieData[] = (
+    rangeStats?.authentication_success_count_by_user ?? []
+  ).map((u: any, i: number) => ({
+    name: String(u.username ?? ""),
+    value: Number(u.success_count ?? 0),
+    color: CHART_COLORS[i % CHART_COLORS.length],
+  }))
 
-  const pieSuccessByIp: PieData[] =
-    (rangeStats?.authentication_success_count_by_user_source_ip ?? []).map((u: any, i: number) => ({
-      name: String(u.user_source_ip ?? ""), value: Number(u.success_count ?? 0), color: CHART_COLORS[i % CHART_COLORS.length],
-    }))
+  const pieSuccessByIp: PieData[] = (
+    rangeStats?.authentication_success_count_by_user_source_ip ?? []
+  ).map((u: any, i: number) => ({
+    name: String(u.user_source_ip ?? ""),
+    value: Number(u.success_count ?? 0),
+    color: CHART_COLORS[i % CHART_COLORS.length],
+  }))
 
-  const pieSuccessByNas: PieData[] =
-    (rangeStats?.authentication_success_count_by_nas_ip ?? []).map((u: any, i: number) => ({
-      name: String(u.nas_ip ?? ""), value: Number(u.success_count ?? 0), color: CHART_COLORS[i % CHART_COLORS.length],
-    }))
+  const pieSuccessByNas: PieData[] = (
+    rangeStats?.authentication_success_count_by_nas_ip ?? []
+  ).map((u: any, i: number) => ({
+    name: String(u.nas_ip ?? ""),
+    value: Number(u.success_count ?? 0),
+    color: CHART_COLORS[i % CHART_COLORS.length],
+  }))
 
-  const pieFailedByUser: PieData[] =
-    (rangeStats?.authentication_failed_count_by_user ?? []).map((u: any, i: number) => ({
-      name: String(u.username ?? ""), value: Number(u.fail_count ?? 0), color: FAIL_COLORS[i % FAIL_COLORS.length],
-    }))
+  const pieFailedByUser: PieData[] = (
+    rangeStats?.authentication_failed_count_by_user ?? []
+  ).map((u: any, i: number) => ({
+    name: String(u.username ?? ""),
+    value: Number(u.fail_count ?? 0),
+    color: FAIL_COLORS[i % FAIL_COLORS.length],
+  }))
 
   const trendData = buildRangeTrendData(rangeStats)
   const trendEmpty = trendData.length === 0
@@ -537,9 +636,22 @@ function Dashboard() {
     <Container maxW="full" py={8}>
       <Flex justify="space-between" align="center" mb={6}>
         <Heading size="md">Dashboard</Heading>
-        <Text color="fg.muted" fontSize="sm">
-          {new Date().toISOString().split("T")[0]}
-        </Text>
+        <Flex align="center" gap={2}>
+          {dataUpdatedAt > 0 && (
+            <Text color="fg.muted" fontSize="sm">
+              Updated {new Date(dataUpdatedAt).toLocaleTimeString()}
+            </Text>
+          )}
+          <IconButton
+            variant="ghost"
+            size="sm"
+            aria-label="Refresh"
+            onClick={handleRefresh}
+            loading={isFetching}
+          >
+            <LuRefreshCw />
+          </IconButton>
+        </Flex>
       </Flex>
 
       {isLoading ? (
@@ -548,25 +660,45 @@ function Dashboard() {
         </Flex>
       ) : error ? (
         <Box p={4} borderWidth="1px" borderRadius="lg" borderColor="red.200">
-          <Text color="red.500">Error fetching statistics: {error.message}</Text>
+          <Text color="red.500">
+            Error fetching statistics: {error.message}
+          </Text>
         </Box>
       ) : (
         <Grid
-          templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }}
+          templateColumns={{
+            base: "1fr",
+            sm: "repeat(2, 1fr)",
+            md: "repeat(4, 1fr)",
+          }}
           gap={6}
         >
           {/* AAA today stat cards — always today */}
           <GridItem>
-            <StatCard label="Today Auth Success" value={stats?.today_successful_logins} highlight="success" />
+            <StatCard
+              label="Today Auth Success"
+              value={stats?.today_successful_logins}
+              highlight="success"
+            />
           </GridItem>
           <GridItem>
-            <StatCard label="Today Auth Failed" value={stats?.today_failed_logins} highlight="danger" />
+            <StatCard
+              label="Today Auth Failed"
+              value={stats?.today_failed_logins}
+              highlight="danger"
+            />
           </GridItem>
           <GridItem>
-            <StatCard label="Unique Source IPs" value={stats?.today_unique_user_source_ip_count} />
+            <StatCard
+              label="Unique Source IPs"
+              value={stats?.today_unique_user_source_ip_count}
+            />
           </GridItem>
           <GridItem>
-            <StatCard label="Unique NAS IPs" value={stats?.today_unique_nas_ip_count} />
+            <StatCard
+              label="Unique NAS IPs"
+              value={stats?.today_unique_nas_ip_count}
+            />
           </GridItem>
 
           {/* Today's log summary (auth + authz + acct) */}
@@ -578,7 +710,12 @@ function Dashboard() {
           {/* Top 5 & Trend section header with filter */}
           <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
             <Box p={4} borderWidth="1px" borderRadius="lg" bg="bg.subtle">
-              <Flex align="center" justify="space-between" flexWrap="wrap" gap={3}>
+              <Flex
+                align="center"
+                justify="space-between"
+                flexWrap="wrap"
+                gap={3}
+              >
                 <Box>
                   <Heading size="sm">Top 5 & AAA Trend</Heading>
                   <Text fontSize="xs" color="fg.muted" mt={0.5}>
@@ -604,12 +741,17 @@ function Dashboard() {
           {/* Top 5 pie charts */}
           {chartsLoading ? (
             <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
-              <Flex justify="center" py={8}><Spinner size="md" /></Flex>
+              <Flex justify="center" py={8}>
+                <Spinner size="md" />
+              </Flex>
             </GridItem>
           ) : (
             <>
               <GridItem>
-                <StatPie title="Top 5 Users — Success" data={pieSuccessByUser} />
+                <StatPie
+                  title="Top 5 Users — Success"
+                  data={pieSuccessByUser}
+                />
               </GridItem>
               <GridItem>
                 <StatPie title="Top 5 Source IPs" data={pieSuccessByIp} />
@@ -630,16 +772,31 @@ function Dashboard() {
                 <Heading size="sm">{TREND_LABEL[filterMode]}</Heading>
               </Flex>
               {chartsLoading ? (
-                <Flex justify="center" py={8}><Spinner size="md" /></Flex>
+                <Flex justify="center" py={8}>
+                  <Spinner size="md" />
+                </Flex>
               ) : trendEmpty ? (
-                <Flex direction="column" align="center" justify="center" h="200px" gap={2}>
+                <Flex
+                  direction="column"
+                  align="center"
+                  justify="center"
+                  h="200px"
+                  gap={2}
+                >
                   <Text fontSize="2xl">📈</Text>
-                  <Text color="fg.muted" fontSize="sm" fontWeight="medium">No trend data</Text>
-                  <Text color="fg.subtle" fontSize="xs">Statistics aggregate periodically — try a wider range</Text>
+                  <Text color="fg.muted" fontSize="sm" fontWeight="medium">
+                    No trend data
+                  </Text>
+                  <Text color="fg.subtle" fontSize="xs">
+                    Statistics aggregate periodically — try a wider range
+                  </Text>
                 </Flex>
               ) : (
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={trendData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <LineChart
+                    data={trendData}
+                    margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                     <YAxis tick={{ fontSize: 12 }} />

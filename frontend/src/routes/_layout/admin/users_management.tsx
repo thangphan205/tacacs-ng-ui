@@ -112,20 +112,18 @@ function UsersTable() {
               </Table.Cell>
               <Table.Cell>
                 <Flex wrap="wrap" gap={1}>
-                  {user.login_methods?.length ? (
-                    user.login_methods.map((method) => (
-                      <Badge
-                        key={method}
-                        size="sm"
-                        variant="subtle"
-                        colorPalette="blue"
-                      >
-                        {method}
-                      </Badge>
-                    ))
-                  ) : (
-                    "None"
-                  )}
+                  {user.login_methods?.length
+                    ? user.login_methods.map((method) => (
+                        <Badge
+                          key={method}
+                          size="sm"
+                          variant="subtle"
+                          colorPalette="blue"
+                        >
+                          {method}
+                        </Badge>
+                      ))
+                    : "None"}
                 </Flex>
               </Table.Cell>
               <Table.Cell>

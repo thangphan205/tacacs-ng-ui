@@ -103,7 +103,9 @@ const AddTacacsConfig = () => {
             <DialogTitle>Generate TACACS+ Config</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Create a new configuration snapshot from current settings.</Text>
+            <Text mb={4}>
+              Create a new configuration snapshot from current settings.
+            </Text>
             <VStack gap={4}>
               <Field
                 required

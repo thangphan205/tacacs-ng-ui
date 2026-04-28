@@ -123,7 +123,9 @@ function ConfigurationOptionsTable() {
                     {configuration_option.config_option}
                   </Table.Cell>
                   <Table.Cell
-                    color={!configuration_option.description ? "gray" : "inherit"}
+                    color={
+                      !configuration_option.description ? "gray" : "inherit"
+                    }
                     truncate
                     maxW="30%"
                   >

@@ -4,7 +4,7 @@ import { diffLines } from "diff"
 import { useEffect, useMemo, useState } from "react"
 import { FiGitBranch } from "react-icons/fi"
 
-import { TacacsConfigsService, type TacacsConfigPublic } from "@/client"
+import { type TacacsConfigPublic, TacacsConfigsService } from "@/client"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -26,7 +26,8 @@ const DiffTacacsConfig = ({ tacacs_config }: DiffTacacsConfigProps) => {
 
   const { data: listData } = useQuery({
     queryKey: ["tacacs_configs", "list-all"],
-    queryFn: () => TacacsConfigsService.readTacacsConfigs({ skip: 0, limit: 1000 }),
+    queryFn: () =>
+      TacacsConfigsService.readTacacsConfigs({ skip: 0, limit: 1000 }),
     enabled: isOpen,
   })
 
@@ -39,17 +40,19 @@ const DiffTacacsConfig = ({ tacacs_config }: DiffTacacsConfigProps) => {
     if (!otherConfigs.length || compareId) return
     const active = otherConfigs.find((c) => c.active)
     setCompareId((active ?? otherConfigs[0]).id)
-  }, [otherConfigs]) // intentionally omit compareId — only auto-select on first load
+  }, [otherConfigs, compareId]) // intentionally omit compareId — only auto-select on first load
 
   const { data: sourceData, isLoading: sourceLoading } = useQuery({
     queryKey: ["tacacs_config", tacacs_config.id],
-    queryFn: () => TacacsConfigsService.readTacacsConfigById({ id: tacacs_config.id }),
+    queryFn: () =>
+      TacacsConfigsService.readTacacsConfigById({ id: tacacs_config.id }),
     enabled: isOpen,
   })
 
   const { data: compareData, isLoading: compareLoading } = useQuery({
     queryKey: ["tacacs_config", compareId],
-    queryFn: () => TacacsConfigsService.readTacacsConfigById({ id: compareId! }),
+    queryFn: () =>
+      TacacsConfigsService.readTacacsConfigById({ id: compareId! }),
     enabled: isOpen && !!compareId,
   })
 
@@ -90,8 +93,16 @@ const DiffTacacsConfig = ({ tacacs_config }: DiffTacacsConfigProps) => {
         .map((line, j) => (
           <Box
             key={`${i}-${j}`}
-            bg={change.added ? "green.subtle" : change.removed ? "red.subtle" : "transparent"}
-            color={change.added ? "green.fg" : change.removed ? "red.fg" : "inherit"}
+            bg={
+              change.added
+                ? "green.subtle"
+                : change.removed
+                  ? "red.subtle"
+                  : "transparent"
+            }
+            color={
+              change.added ? "green.fg" : change.removed ? "red.fg" : "inherit"
+            }
             fontFamily="mono"
             fontSize="xs"
             px={4}
@@ -160,7 +171,12 @@ const DiffTacacsConfig = ({ tacacs_config }: DiffTacacsConfigProps) => {
               </Flex>
             </>
           )}
-          <Box maxH="500px" overflowY="auto" borderWidth="1px" borderRadius="md">
+          <Box
+            maxH="500px"
+            overflowY="auto"
+            borderWidth="1px"
+            borderRadius="md"
+          >
             {renderDiff()}
           </Box>
         </DialogBody>

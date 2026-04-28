@@ -97,7 +97,12 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     },
     ...(currentUser?.is_superuser
       ? [
-          { icon: FiUsers, title: "Users Management", path: "/admin/users_management", level: 1 },
+          {
+            icon: FiUsers,
+            title: "Users Management",
+            path: "/admin/users_management",
+            level: 1,
+          },
           {
             icon: FiShield,
             title: "Auth Providers",

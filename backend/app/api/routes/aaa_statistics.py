@@ -65,8 +65,8 @@ def read_aaa_statistics_range(
                 detail="Invalid range_date format. Expected 'YYYY-MM-DD,YYYY-MM-DD'.",
             )
     else:
-        # Default to today if no range is provided
-        end_date = datetime.now(timezone.utc) - timedelta(days=1)
+        # Default to last 7 days ending today
+        end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=7)
 
     return_statistics = {}

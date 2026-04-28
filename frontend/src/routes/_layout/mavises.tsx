@@ -84,7 +84,9 @@ function MavisesTable() {
               <FiSearch />
             </EmptyState.Indicator>
             <VStack textAlign="center">
-              <EmptyState.Title>You don't have any mavises yet</EmptyState.Title>
+              <EmptyState.Title>
+                You don't have any mavises yet
+              </EmptyState.Title>
               <EmptyState.Description>
                 Add a new mavis to get started
               </EmptyState.Description>

@@ -12,8 +12,8 @@ import { FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { RulesetscriptsetsService } from "@/client"
-import { SearchBox } from "@/components/Common/SearchBox"
 import { RulesetScriptSetActionsMenu } from "@/components/Common/RulesetScriptSetActionsMenu"
+import { SearchBox } from "@/components/Common/SearchBox"
 import PendingRulesetScriptSets from "@/components/Pending/PendingRulesetScriptSets"
 import AddRulesetScriptSet from "@/components/RulesetScriptSets/AddRulesetScriptSet"
 import PreviewRuleset from "@/components/Rulesets/PreviewRuleset"
@@ -100,7 +100,9 @@ function RulesetScriptSetsTable() {
               <Table.Row>
                 <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>
                 <Table.ColumnHeader w="sm">Ruleset</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Ruleset Script Block</Table.ColumnHeader>
+                <Table.ColumnHeader w="sm">
+                  Ruleset Script Block
+                </Table.ColumnHeader>
                 <Table.ColumnHeader w="sm">Set Key</Table.ColumnHeader>
                 <Table.ColumnHeader w="sm">Set Value</Table.ColumnHeader>
                 <Table.ColumnHeader w="sm">Description</Table.ColumnHeader>

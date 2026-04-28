@@ -1,7 +1,6 @@
 import re
 import sys
 import os
-from datetime import datetime, timedelta
 from collections import Counter
 
 # Add the project root to the Python path
@@ -12,12 +11,7 @@ from app.core.config import settings
 from app.core.db import engine
 from app.crud.tacacs_siem import forward_tacacs_event_to_siem
 from app.models import AccountingStatistics
-
-# --- Configuration ---
-# The script will process all accounting-*.log files for the previous day.
-# It will filter for log entries on the specific date below.
-yesterday = datetime.now() - timedelta(days=1)
-TARGET_DATE_STR = yesterday.strftime("%Y-%m-%d")
+from scripts._log_stats_base import get_target_date, to_log_datetime, build_log_file_path
 
 # --- REGEX CONFIGURATION ---
 # Regex for the provided log format.
@@ -34,7 +28,6 @@ LOG_REGEX = re.compile(
     r"(?P<username>[\w.-]+)\s+"
     r"(?P<tty>[\w/.-]+)\s+"  # Capture the tty/port field
     rf"(?P<client_ip>{IP_REGEX})\s+"
-    # Capture the action (start/stop) and the rest of the message separately
     r"(?P<action>start|stop)\s*(?P<message>.*)$"
 )
 
@@ -44,16 +37,15 @@ def process_accounting_logs():
     Parses accounting logs for a specific date, aggregates start/stop events
     per user/IP, and stores the results in the AccountingStatistics table.
     """
-    # Construct the log file path from settings for the target date
-    # This uses the default format from the TacacsNgSetting model
-    log_file_format = settings.TACACS_LOG_DIRECTORY + "%Y/%m/accounting-%Y-%m-%d.log"
-    log_file_path = yesterday.strftime(log_file_format)
+    summary_date = get_target_date()
+    target_date_str = summary_date.strftime("%Y-%m-%d")
+    log_file_path = build_log_file_path(summary_date, "accounting", settings.TACACS_LOG_DIRECTORY)
 
     if not os.path.exists(log_file_path):
-        print(f"Log file not found for date {TARGET_DATE_STR}: {log_file_path}")
+        print(f"Log file not found for date {target_date_str}: {log_file_path}")
         return
 
-    print(f"Processing log file for date {TARGET_DATE_STR}: {log_file_path}")
+    print(f"Processing log file for date {target_date_str}: {log_file_path}")
 
     start_events = Counter()
     stop_events = Counter()
@@ -61,8 +53,7 @@ def process_accounting_logs():
     try:
         with open(log_file_path, "r", errors="ignore") as f:
             for line in f:
-                # Quick check to ensure the line is for the correct day
-                if not line.startswith(TARGET_DATE_STR):
+                if not line.startswith(target_date_str):
                     continue
 
                 match = LOG_REGEX.search(line)
@@ -89,11 +80,10 @@ def process_accounting_logs():
     total_events = total_starts + total_stops
 
     if total_events == 0:
-        print(f"\nNo accounting log entries found for date {TARGET_DATE_STR}.")
+        print(f"\nNo accounting log entries found for date {target_date_str}.")
         return
 
     all_keys = set(start_events.keys()) | set(stop_events.keys())
-    summary_date = yesterday.date()
 
     # --- Print Statistics ---
     print(f"\n--- Accounting Summary for {summary_date} ---")
@@ -103,7 +93,6 @@ def process_accounting_logs():
     print(f"Unique User/NAS/Client combinations: {len(all_keys)}")
     print("--------------------------------------------------")
 
-    # Save the summary to the database
     save_statistics_to_db(summary_date, all_keys, start_events, stop_events)
 
 
@@ -111,6 +100,7 @@ def save_statistics_to_db(summary_date, all_keys, start_events, stop_events):
     """
     Inserts or updates accounting statistics in the database for a given date.
     """
+    log_dt = to_log_datetime(summary_date)
     print("\nSaving accounting statistics to the database...")
     with Session(engine) as session:
         for username, nas_ip, user_source_ip in sorted(all_keys):
@@ -118,22 +108,19 @@ def save_statistics_to_db(summary_date, all_keys, start_events, stop_events):
             start_count = start_events.get(key, 0)
             stop_count = stop_events.get(key, 0)
 
-            # Check if a record already exists for this combination on this date
             statement = select(AccountingStatistics).where(
                 AccountingStatistics.username == username,
                 AccountingStatistics.nas_ip == nas_ip,
                 AccountingStatistics.user_source_ip == user_source_ip,
-                AccountingStatistics.log_date == summary_date,
+                AccountingStatistics.log_date == log_dt,
             )
             db_stat = session.exec(statement).first()
 
             if db_stat:
-                # Update existing record
                 print(f"Updating accounting stats for {username} on {nas_ip}")
                 db_stat.start_count = start_count
                 db_stat.stop_count = stop_count
             else:
-                # Create new record
                 print(f"Creating new accounting stats for {username} on {nas_ip}")
                 db_stat = AccountingStatistics(
                     username=username,
@@ -141,7 +128,7 @@ def save_statistics_to_db(summary_date, all_keys, start_events, stop_events):
                     user_source_ip=user_source_ip,
                     start_count=start_count,
                     stop_count=stop_count,
-                    log_date=summary_date,
+                    log_date=log_dt,
                 )
             session.add(db_stat)
 
@@ -149,8 +136,7 @@ def save_statistics_to_db(summary_date, all_keys, start_events, stop_events):
         print("\nAccounting statistics saved successfully.")
 
     if settings.SIEM_FORWARD_TACACS_EVENTS:
-        from datetime import timezone
-        ts = datetime.combine(summary_date, datetime.min.time()).replace(tzinfo=timezone.utc).timestamp()
+        ts = log_dt.timestamp()
         for username, nas_ip, user_source_ip in sorted(all_keys):
             key = (username, nas_ip, user_source_ip)
             if start_events.get(key, 0) > 0:

@@ -123,7 +123,9 @@ function TacacsConfigsTable() {
                         variant="ghost"
                         size="sm"
                         colorPalette={tacacs_config.active ? "green" : "gray"}
-                        fontWeight={tacacs_config.active ? "semibold" : "normal"}
+                        fontWeight={
+                          tacacs_config.active ? "semibold" : "normal"
+                        }
                       >
                         <FiFileText />
                         {tacacs_config.filename}
@@ -204,7 +206,9 @@ function TacacsConfigs() {
         <Alert.Content>
           <Alert.Title>Action required after changes</Alert.Title>
           <Alert.Description>
-            After modifying any TACACS+ settings (users, groups, hosts, policies), generate and activate a new configuration for changes to take effect.
+            After modifying any TACACS+ settings (users, groups, hosts,
+            policies), generate and activate a new configuration for changes to
+            take effect.
           </Alert.Description>
         </Alert.Content>
       </Alert.Root>

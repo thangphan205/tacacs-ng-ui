@@ -84,7 +84,9 @@ function ProfilesTable() {
               <FiSearch />
             </EmptyState.Indicator>
             <VStack textAlign="center">
-              <EmptyState.Title>You don't have any profiles yet</EmptyState.Title>
+              <EmptyState.Title>
+                You don't have any profiles yet
+              </EmptyState.Title>
               <EmptyState.Description>
                 Add a new profile to get started
               </EmptyState.Description>

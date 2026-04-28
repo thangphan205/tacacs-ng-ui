@@ -11,7 +11,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
-import { LuFolder, LuSquareCheck, LuUser, LuKey } from "react-icons/lu"
+import { LuFolder, LuKey, LuSquareCheck, LuUser } from "react-icons/lu"
 
 import { OpenAPI } from "@/client"
 import AuthProviderCard from "@/components/Admin/AuthProviderCard"
@@ -236,8 +236,8 @@ function AuthProvidersPage() {
               <Alert.Content>
                 <Alert.Title>Password login is enabled</Alert.Title>
                 <Alert.Description>
-                  Users can sign in with a password. You can disable this to enforce
-                  passkey or SSO authentication.
+                  Users can sign in with a password. You can disable this to
+                  enforce passkey or SSO authentication.
                 </Alert.Description>
               </Alert.Content>
               <Button

@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Code,
+  createListCollection,
   EmptyState,
   Flex,
   Input,
@@ -12,7 +13,6 @@ import {
   Table,
   Text,
   VStack,
-  createListCollection,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
@@ -20,12 +20,6 @@ import { FiSearch, FiUser } from "react-icons/fi"
 import { MdLayers } from "react-icons/md"
 import type { TacacsLogEvent } from "@/client"
 import { TacacsLogsService } from "@/client"
-import {
-  PaginationItems,
-  PaginationNextTrigger,
-  PaginationPrevTrigger,
-  PaginationRoot,
-} from "@/components/ui/pagination"
 import {
   DrawerBackdrop,
   DrawerBody,
@@ -35,6 +29,12 @@ import {
   DrawerRoot,
   DrawerTitle,
 } from "@/components/ui/drawer"
+import {
+  PaginationItems,
+  PaginationNextTrigger,
+  PaginationPrevTrigger,
+  PaginationRoot,
+} from "@/components/ui/pagination"
 
 const PER_PAGE = 20
 
@@ -146,7 +146,8 @@ function EventDetailDrawer({
                     colorPalette={TYPE_COLORS[event.log_type] ?? "gray"}
                     size="sm"
                   >
-                    {LOG_TYPE_LABEL[event.log_type] ?? event.log_type.toUpperCase()}
+                    {LOG_TYPE_LABEL[event.log_type] ??
+                      event.log_type.toUpperCase()}
                   </Badge>
                 </Flex>
                 <Flex justify="space-between">
@@ -259,8 +260,7 @@ function EventDetailDrawer({
                       }
                       bg={ev === event ? "colorPalette.50" : "transparent"}
                       _dark={{
-                        bg:
-                          ev === event ? "colorPalette.900" : "transparent",
+                        bg: ev === event ? "colorPalette.900" : "transparent",
                       }}
                       align="flex-start"
                     >
@@ -552,7 +552,11 @@ export default function TacacsLogEventsTable() {
                         {event.username}
                       </Badge>
                     </Table.Cell>
-                    <Table.Cell fontFamily="mono" fontSize="xs" color="fg.muted">
+                    <Table.Cell
+                      fontFamily="mono"
+                      fontSize="xs"
+                      color="fg.muted"
+                    >
                       {event.port ?? "—"}
                     </Table.Cell>
                     <Table.Cell fontFamily="mono" fontSize="xs">

@@ -1,6 +1,7 @@
 import {
   Button,
   Container,
+  createListCollection,
   EmptyState,
   Flex,
   Heading,
@@ -10,7 +11,6 @@ import {
   Table,
   Tabs,
   VStack,
-  createListCollection,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -18,8 +18,8 @@ import { useEffect, useRef, useState } from "react"
 import { FiEye, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 import { TacacsLogsService } from "@/client"
-import TacacsLogEventsTable from "@/components/TacacsLogs/TacacsLogEventsTable"
 import ShowTacacsLog from "@/components/TacacsLogs/ShowTacacsLog"
+import TacacsLogEventsTable from "@/components/TacacsLogs/TacacsLogEventsTable"
 import {
   PaginationItems,
   PaginationNextTrigger,

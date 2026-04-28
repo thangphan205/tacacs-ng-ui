@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 import sqlalchemy as sa
 from pydantic import EmailStr
+from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
 from app.core.config import settings
 
@@ -822,6 +823,7 @@ class AuthenticationStatisticsUpdate(AuthenticationStatisticsBase):
 class AuthenticationStatistics(
     AuthenticationStatisticsBase, TimestampModel, table=True
 ):
+    __table_args__ = (UniqueConstraint("username", "nas_ip", "user_source_ip", "log_date"),)
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
 
@@ -829,7 +831,6 @@ class AuthenticationStatistics(
 class AuthenticationStatisticPublic(AuthenticationStatisticsBase):
     id: uuid.UUID
     updated_at: datetime
-    data: str | None = None
 
 
 class AuthenticationStatisticsPublic(SQLModel):
@@ -857,6 +858,7 @@ class AuthorizationStatisticsUpdate(AuthorizationStatisticsBase):
 
 # Database model, database table inferred from class name
 class AuthorizationStatistics(AuthorizationStatisticsBase, TimestampModel, table=True):
+    __table_args__ = (UniqueConstraint("username", "nas_ip", "user_source_ip", "log_date"),)
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
 
@@ -864,7 +866,6 @@ class AuthorizationStatistics(AuthorizationStatisticsBase, TimestampModel, table
 class AuthorizationStatisticPublic(AuthorizationStatisticsBase):
     id: uuid.UUID
     updated_at: datetime
-    data: str | None = None
 
 
 class AuthorizationStatisticsPublic(SQLModel):
@@ -892,6 +893,7 @@ class AccountingStatisticsUpdate(AccountingStatisticsBase):
 
 # Database model, database table inferred from class name
 class AccountingStatistics(AccountingStatisticsBase, TimestampModel, table=True):
+    __table_args__ = (UniqueConstraint("username", "nas_ip", "user_source_ip", "log_date"),)
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
 
@@ -899,7 +901,6 @@ class AccountingStatistics(AccountingStatisticsBase, TimestampModel, table=True)
 class AccountingStatisticPublic(AccountingStatisticsBase):
     id: uuid.UUID
     updated_at: datetime
-    data: str | None = None
 
 
 class AccountingStatisticsPublic(SQLModel):

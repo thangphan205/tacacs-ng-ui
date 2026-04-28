@@ -114,7 +114,8 @@ const AddHost = () => {
           </DialogHeader>
           <DialogBody>
             <Text mb={4} color="fg.muted" fontSize="sm">
-              Add a network device that will authenticate against the TACACS+ server.
+              Add a network device that will authenticate against the TACACS+
+              server.
             </Text>
             <VStack gap={4} as="section">
               <Field
