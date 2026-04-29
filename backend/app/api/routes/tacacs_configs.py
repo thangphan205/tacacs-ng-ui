@@ -49,7 +49,7 @@ def read_tacacs_configs(
     count_statement = select(func.count()).select_from(TacacsConfig)
     statement = select(TacacsConfig)
     if search:
-        f = TacacsConfig.filename.contains(search) | TacacsConfig.description.contains(search)
+        f = TacacsConfig.filename.ilike(f"%{search}%") | TacacsConfig.description.ilike(f"%{search}%")
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()

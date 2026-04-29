@@ -22,7 +22,7 @@ def read_items(
         count_statement = select(func.count()).select_from(Item)
         statement = select(Item)
         if search:
-            f = Item.title.contains(search) | Item.description.contains(search)
+            f = Item.title.ilike(f"%{search}%") | Item.description.ilike(f"%{search}%")
             count_statement = count_statement.where(f)
             statement = statement.where(f)
         count = session.exec(count_statement).one()
@@ -35,7 +35,7 @@ def read_items(
         )
         statement = select(Item).where(Item.owner_id == current_user.id)
         if search:
-            f = Item.title.contains(search) | Item.description.contains(search)
+            f = Item.title.ilike(f"%{search}%") | Item.description.ilike(f"%{search}%")
             count_statement = count_statement.where(f)
             statement = statement.where(f)
         count = session.exec(count_statement).one()

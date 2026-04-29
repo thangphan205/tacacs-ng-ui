@@ -40,7 +40,7 @@ def read_profiles(session: SessionDep, skip: int = 0, limit: int = 100, search: 
     count_statement = select(func.count()).select_from(Profile)
     statement = select(Profile)
     if search:
-        f = Profile.name.contains(search) | Profile.action.contains(search) | Profile.description.contains(search)
+        f = Profile.name.ilike(f"%{search}%") | Profile.action.ilike(f"%{search}%") | Profile.description.ilike(f"%{search}%")
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()

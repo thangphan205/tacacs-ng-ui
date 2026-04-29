@@ -40,7 +40,7 @@ def read_profilescripts(session: SessionDep, skip: int = 0, limit: int = 100, se
     count_statement = select(func.count()).select_from(ProfileScript)
     base_statement = select(ProfileScript, Profile).join(Profile)
     if search:
-        f = ProfileScript.condition.contains(search) | ProfileScript.key.contains(search) | ProfileScript.value.contains(search) | ProfileScript.description.contains(search)
+        f = ProfileScript.condition.ilike(f"%{search}%") | ProfileScript.key.ilike(f"%{search}%") | ProfileScript.value.ilike(f"%{search}%") | ProfileScript.description.ilike(f"%{search}%")
         count_statement = count_statement.where(f)
         base_statement = base_statement.where(f)
     count = session.exec(count_statement).one()

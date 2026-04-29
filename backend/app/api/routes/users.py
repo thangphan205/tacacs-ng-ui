@@ -78,7 +78,7 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100, search: str
     count_statement = select(func.count()).select_from(User)
     statement = select(User)
     if search:
-        f = User.full_name.contains(search) | User.email.contains(search)
+        f = User.full_name.ilike(f"%{search}%") | User.email.ilike(f"%{search}%")
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()

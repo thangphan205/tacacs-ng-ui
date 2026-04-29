@@ -41,7 +41,7 @@ def read_profilescriptsets(session: SessionDep, skip: int = 0, limit: int = 100,
     count_statement = select(func.count()).select_from(ProfileScriptSet)
     base_statement = select(ProfileScriptSet, ProfileScript).join(ProfileScript)
     if search:
-        f = ProfileScriptSet.key.contains(search) | ProfileScriptSet.value.contains(search) | ProfileScriptSet.description.contains(search)
+        f = ProfileScriptSet.key.ilike(f"%{search}%") | ProfileScriptSet.value.ilike(f"%{search}%") | ProfileScriptSet.description.ilike(f"%{search}%")
         count_statement = count_statement.where(f)
         base_statement = base_statement.where(f)
     count = session.exec(count_statement).one()

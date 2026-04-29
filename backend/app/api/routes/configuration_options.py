@@ -41,7 +41,7 @@ def read_configuration_options(
     count_statement = select(func.count()).select_from(ConfigurationOption)
     statement = select(ConfigurationOption)
     if search:
-        f = ConfigurationOption.name.contains(search) | ConfigurationOption.config_option.contains(search) | ConfigurationOption.description.contains(search)
+        f = ConfigurationOption.name.ilike(f"%{search}%") | ConfigurationOption.config_option.ilike(f"%{search}%") | ConfigurationOption.description.ilike(f"%{search}%")
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()

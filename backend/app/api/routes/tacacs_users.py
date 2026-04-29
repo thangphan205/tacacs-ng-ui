@@ -39,7 +39,7 @@ def read_tacacs_users(session: SessionDep, skip: int = 0, limit: int = 100, sear
     count_statement = select(func.count()).select_from(TacacsUser)
     statement = select(TacacsUser)
     if search:
-        f = TacacsUser.username.contains(search) | TacacsUser.member.contains(search) | TacacsUser.description.contains(search)
+        f = TacacsUser.username.ilike(f"%{search}%") | TacacsUser.member.ilike(f"%{search}%") | TacacsUser.description.ilike(f"%{search}%")
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()

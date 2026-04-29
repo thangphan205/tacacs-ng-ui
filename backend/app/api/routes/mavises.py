@@ -40,7 +40,7 @@ def read_mavises(session: SessionDep, skip: int = 0, limit: int = 100, search: s
     count_statement = select(func.count()).select_from(Mavis)
     statement = select(Mavis)
     if search:
-        f = Mavis.mavis_key.contains(search) | Mavis.mavis_value.contains(search)
+        f = Mavis.mavis_key.ilike(f"%{search}%") | Mavis.mavis_value.ilike(f"%{search}%")
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()

@@ -39,7 +39,7 @@ def read_hosts(session: SessionDep, skip: int = 0, limit: int = 100, search: str
     count_statement = select(func.count()).select_from(Host)
     statement = select(Host)
     if search:
-        f = Host.name.contains(search) | Host.ipv4_address.contains(search) | Host.ipv6_address.contains(search) | Host.description.contains(search)
+        f = Host.name.ilike(f"%{search}%") | Host.ipv4_address.ilike(f"%{search}%") | Host.ipv6_address.ilike(f"%{search}%") | Host.description.ilike(f"%{search}%")
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()

@@ -48,11 +48,11 @@ def get_audit_logs(
         count_stmt = count_stmt.where(AuditLog.user_id == user_id)
     if search:
         f = (
-            AuditLog.user_email.contains(search)
-            | AuditLog.entity_type.contains(search)
-            | AuditLog.action.contains(search)
-            | AuditLog.entity_id.contains(search)
-            | AuditLog.description.contains(search)
+            AuditLog.user_email.ilike(f"%{search}%")
+            | AuditLog.entity_type.ilike(f"%{search}%")
+            | AuditLog.action.ilike(f"%{search}%")
+            | AuditLog.entity_id.ilike(f"%{search}%")
+            | AuditLog.description.ilike(f"%{search}%")
         )
         stmt = stmt.where(f)
         count_stmt = count_stmt.where(f)

@@ -41,7 +41,7 @@ def read_rulesets(session: SessionDep, skip: int = 0, limit: int = 100, search: 
     count_statement = select(func.count()).select_from(Ruleset)
     statement = select(Ruleset)
     if search:
-        f = Ruleset.name.contains(search) | Ruleset.action.contains(search) | Ruleset.description.contains(search)
+        f = Ruleset.name.ilike(f"%{search}%") | Ruleset.action.ilike(f"%{search}%") | Ruleset.description.ilike(f"%{search}%")
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()

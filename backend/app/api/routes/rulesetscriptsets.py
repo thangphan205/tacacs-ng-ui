@@ -55,7 +55,7 @@ def read_rulesetscriptsets(session: SessionDep, skip: int = 0, limit: int = 100,
         )
     )
     if search:
-        f = RulesetScriptSet.key.contains(search) | RulesetScriptSet.value.contains(search) | RulesetScriptSet.description.contains(search)
+        f = RulesetScriptSet.key.ilike(f"%{search}%") | RulesetScriptSet.value.ilike(f"%{search}%") | RulesetScriptSet.description.ilike(f"%{search}%")
         count_statement = count_statement.where(f)
         base_statement = base_statement.where(f)
     count = session.exec(count_statement).one()
