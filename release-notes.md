@@ -2,6 +2,25 @@
 
 ## Latest Changes
 
+## v0.3.3
+
+### Features
+
+* ✨ **Global search on all management pages** — search box added to all 15 paginated tables (Hosts, TACACS Users, TACACS Groups, TACACS Services, Profiles, Rulesets, Configuration Options, TACACS Configs, Mavises, Profile Scripts, Profile Script Sets, Ruleset Scripts, Ruleset Script Sets, Audit Logs, Items). Debounced, server-side filtering. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Config diff viewer** — compare any two TACACS+ config snapshots side-by-side with a unified diff view. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Enhanced AAA statistics API** — improved log caching, richer backend metrics, and updated frontend charts for the dashboard. PR by [@thangphan205](https://github.com/thangphan205).
+* 🎨 **Search box UX** — search inputs now show a search icon on the left and a one-click clear (×) button on the right when text is present. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Fixes
+
+* 🐛 **Case-insensitive search** — all list endpoint searches now use `ILIKE` instead of `LIKE`; searching "admin" matches "Admin", "ADMIN", etc. Applies to all 16 searchable routes. PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 Fix TACACS group CRUD naming, user DTO security, and form validation inconsistencies. PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 Fix dashboard AAA Trend — end date capped at yesterday to avoid incomplete data for the current day. PR by [@thangphan205](https://github.com/thangphan205).
+* 🎨 Reduce page heading size and top padding across all layout routes for a tighter, more consistent layout. PR by [@thangphan205](https://github.com/thangphan205).
+* 🎨 Reduce table row spacing in TACACS Users and Groups tables. PR by [@thangphan205](https://github.com/thangphan205).
+* 🎨 Keep Date Range inputs on one line in the dashboard FilterBar. PR by [@thangphan205](https://github.com/thangphan205).
+* 🔧 Fix CI Docker build — restore `tacacs_config/etc/` directory in build context. PR by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.3.2
 
 ### Improvements

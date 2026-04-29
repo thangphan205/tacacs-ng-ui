@@ -8,10 +8,11 @@ Built with a powerful and modern technology stack, the application features a Fa
 
 - **Intuitive Web Interface**: Manage TACACS+ users, groups, and policies through a clean and responsive UI built with React and Chakra UI.
 - **TACACS+ Server**: Utilizes [tac_plus-ng](https://github.com/MarcJHuber/event-driven-servers) as the backend TACACS+ server, a modern and actively maintained implementation.
-- **Versioned Config Management**: Generate, preview, and activate TACACS+ configuration snapshots — each version is stored and can be rolled back.
+- **Versioned Config Management**: Generate, preview, and activate TACACS+ configuration snapshots — each version is stored, can be rolled back, and compared with a built-in diff viewer.
 - **Observability Dashboard**: Today's log summary (auth/authz/acct counts), config entity overview cards, recent user activity, and Top 5 & trend charts with Last 7 Days / Last 30 Days / Date Range filter.
 - **Structured Log Events Viewer**: Browse TACACS+ log events with date picker, type/result/username filters, clickable username drill-down, command column, port/TTY column, and a detail drawer with session timeline for auditing command sequences.
 - **SIEM Integration**: Forward TACACS+ log events in real-time via HTTP webhook (Splunk HEC format) and/or syslog (UDP/TCP).
+- **Global Search**: Every management table (Hosts, Users, Groups, Profiles, Rulesets, and more) has a live search box with debounced, case-insensitive, server-side filtering.
 - **Comprehensive Audit Logging**: Every UI action is recorded with actor, IP, entity snapshot (before/after), and timestamp. Superuser-only table with search, date-range filter, and CSV export.
 - **Multi-Factor Auth**: Google OAuth, Keycloak OIDC, and Passkeys (WebAuthn) in addition to email/password.
 - **Secure by Design**: PCI DSS-compliant password policy, JWT authentication, and email-based password recovery.
