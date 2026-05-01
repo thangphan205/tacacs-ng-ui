@@ -1,0 +1,26 @@
+name: Notify Telegram on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram Notification
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            🚀 *New Release Published:* ${{ github.event.release.name || github.event.release.tag_name }}
+            
+            *Version:* ${{ github.event.release.tag_name }}
+            *By:* ${{ github.actor }}
+            
+            📝 *Release Notes:*
+            ${{ github.event.release.body }}
+            
+            🔗 [View Release on GitHub](${{ github.event.release.html_url }})
+          format: markdown

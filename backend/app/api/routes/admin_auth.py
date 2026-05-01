@@ -25,7 +25,10 @@ def list_auth_providers(session: SessionDep) -> Any:
     for provider in _VALID_PROVIDERS - existing:
         result.append(
             AuthProviderConfigPublic(
-                provider=provider, enabled=False, config={}, secret_is_set=False
+                provider=provider,
+                enabled=(provider == "passkey"),
+                config={},
+                secret_is_set=False,
             )
         )
     return sorted(result, key=lambda x: x.provider)
@@ -42,7 +45,10 @@ def get_auth_provider(session: SessionDep, provider: str) -> Any:
     row = auth_providers_crud.get_provider_config(session=session, provider=provider)
     if not row:
         return AuthProviderConfigPublic(
-            provider=provider, enabled=False, config={}, secret_is_set=False
+            provider=provider,
+            enabled=(provider == "passkey"),
+            config={},
+            secret_is_set=False,
         )
     return auth_providers_crud.to_public(row)
 

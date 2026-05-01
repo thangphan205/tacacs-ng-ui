@@ -22,6 +22,7 @@ import { TacacsConfigActionsMenu } from "@/components/Common/TacacsConfigActions
 import PendingTacacsConfigs from "@/components/Pending/PendingTacacsConfigs"
 import AddTacacsConfig from "@/components/TacacsConfigs/AddTacacsConfig"
 import PreviewTacacsConfig from "@/components/TacacsConfigs/PreviewTacacsConfig"
+import CompareConfigs from "@/components/TacacsConfigs/CompareConfigs"
 import ShowActiveTacacsConfig from "@/components/TacacsConfigs/ShowActiveTacacsConfig"
 import ShowTacacsConfig from "@/components/TacacsConfigs/ShowTacacsConfig"
 import {
@@ -218,6 +219,7 @@ function TacacsConfigs() {
           <AddTacacsConfig />
           <PreviewTacacsConfig />
           <ShowActiveTacacsConfig />
+          <CompareConfigs />
         </Flex>
         <SearchBox
           initialValue={search}
