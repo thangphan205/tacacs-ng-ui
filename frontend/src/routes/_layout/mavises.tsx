@@ -15,6 +15,7 @@ import { MavisesService } from "@/client"
 import { MavisActionsMenu } from "@/components/Common/MavisActionsMenu"
 import { SearchBox } from "@/components/Common/SearchBox"
 import AddMavis from "@/components/Mavises/AddMavis"
+import LoadMavisTemplate from "@/components/Mavises/LoadMavisTemplate"
 import PreviewMavis from "@/components/Mavises/PreviewMavis"
 import PendingMavises from "@/components/Pending/PendingMavises"
 import {
@@ -161,6 +162,7 @@ function Mavises() {
       <Flex mt={4} align="center" justify="space-between">
         <Flex gap={2}>
           <AddMavis />
+          <LoadMavisTemplate />
           <PreviewMavis />
         </Flex>
         <SearchBox
