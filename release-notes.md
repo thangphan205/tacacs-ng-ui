@@ -2,6 +2,16 @@
 
 ## Latest Changes
 
+## v0.3.4
+
+### Features
+
+* ✨ **Configurable page size selector** — all paginated tables now expose a rows-per-page dropdown, letting users choose how many records to display at once. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **LDAP configure guide** — MAVIS settings page now includes a step-by-step guide for connecting an LDAP directory. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Config comparison** — compare any two TACACS+ config snapshots side-by-side with a unified diff view. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Default passkey** — set a default passkey for new entries directly from the UI. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Release notification** — in-app notification banner for new releases. PR by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.3.3
 
 ### Features
