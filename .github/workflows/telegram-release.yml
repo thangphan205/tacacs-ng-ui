@@ -15,12 +15,9 @@ jobs:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
             🚀 *New Release Published:* ${{ github.event.release.name || github.event.release.tag_name }}
-            
+
             *Version:* ${{ github.event.release.tag_name }}
             *By:* ${{ github.actor }}
-            
-            📝 *Release Notes:*
-            ${{ github.event.release.body }}
-            
+
             🔗 [View Release on GitHub](${{ github.event.release.html_url }})
           format: markdown
