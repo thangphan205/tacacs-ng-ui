@@ -6,6 +6,7 @@ import {
   Table,
   VStack,
 } from "@chakra-ui/react"
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { FiSearch } from "react-icons/fi"
@@ -13,6 +14,7 @@ import { z } from "zod"
 
 import { ProfilescriptsetsService } from "@/client"
 import { ProfileScriptSetActionsMenu } from "@/components/Common/ProfileScriptSetActionsMenu"
+import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
 import PendingProfileScriptSets from "@/components/Pending/PendingProfileScriptSets"
 import AddProfileScriptSet from "@/components/ProfileScriptSets/AddProfileScriptSet"
@@ -29,23 +31,25 @@ const profilescriptsetsSearchSchema = z.object({
   search: z.string().optional(),
 })
 
-const PER_PAGE = 5
+const DEFAULT_PER_PAGE = 5
 
 function getProfileScriptSetsQueryOptions({
   page,
   search,
+  perPage,
 }: {
   page: number
   search?: string
+  perPage: number
 }) {
   return {
     queryFn: () =>
       ProfilescriptsetsService.readProfilescriptsets({
-        skip: (page - 1) * PER_PAGE,
-        limit: PER_PAGE,
+        skip: (page - 1) * perPage,
+        limit: perPage,
         search,
       }),
-    queryKey: ["profilescriptsets", { page, search }],
+    queryKey: ["profilescriptsets", { page, search, perPage }],
   }
 }
 
@@ -58,8 +62,10 @@ function ProfileScriptSetsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, search } = Route.useSearch()
 
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
+
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getProfileScriptSetsQueryOptions({ page, search }),
+    ...getProfileScriptSetsQueryOptions({ page, search, perPage }),
     placeholderData: (prevData) => prevData,
   })
 
@@ -146,10 +152,17 @@ function ProfileScriptSetsTable() {
               ))}
             </Table.Body>
           </Table.Root>
-          <Flex justifyContent="flex-end" mt={4}>
+          <Flex justifyContent="space-between" align="center" mt={4}>
+            <PageSizeSelect
+              value={perPage}
+              onChange={(n) => {
+                setPerPage(n)
+                setPage(1)
+              }}
+            />
             <PaginationRoot
               count={count}
-              pageSize={PER_PAGE}
+              pageSize={perPage}
               onPageChange={({ page }) => setPage(page)}
             >
               <Flex>

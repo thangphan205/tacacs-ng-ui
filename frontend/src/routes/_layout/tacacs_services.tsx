@@ -6,12 +6,14 @@ import {
   Table,
   VStack,
 } from "@chakra-ui/react"
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { TacacsServicesService } from "@/client"
+import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
 import { TacacsServiceActionsMenu } from "@/components/Common/TacacsServiceActionsMenu"
 import PendingTacacsServices from "@/components/Pending/PendingTacacsServices"
@@ -28,23 +30,25 @@ const tacacs_serviceSearchSchema = z.object({
   search: z.string().optional(),
 })
 
-const PER_PAGE = 5
+const DEFAULT_PER_PAGE = 5
 
 function getTacacsServicesQueryOptions({
   page,
   search,
+  perPage,
 }: {
   page: number
   search?: string
+  perPage: number
 }) {
   return {
     queryFn: () =>
       TacacsServicesService.readTacacsServices({
-        skip: (page - 1) * PER_PAGE,
-        limit: PER_PAGE,
+        skip: (page - 1) * perPage,
+        limit: perPage,
         search,
       }),
-    queryKey: ["tacacs_services", { page, search }],
+    queryKey: ["tacacs_services", { page, search, perPage }],
   }
 }
 
@@ -57,8 +61,10 @@ function TacacsServicesTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, search } = Route.useSearch()
 
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
+
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getTacacsServicesQueryOptions({ page, search }),
+    ...getTacacsServicesQueryOptions({ page, search, perPage }),
     placeholderData: (prevData) => prevData,
   })
 
@@ -129,10 +135,17 @@ function TacacsServicesTable() {
               ))}
             </Table.Body>
           </Table.Root>
-          <Flex justifyContent="flex-end" mt={4}>
+          <Flex justifyContent="space-between" align="center" mt={4}>
+            <PageSizeSelect
+              value={perPage}
+              onChange={(n) => {
+                setPerPage(n)
+                setPage(1)
+              }}
+            />
             <PaginationRoot
               count={count}
-              pageSize={PER_PAGE}
+              pageSize={perPage}
               onPageChange={({ page }) => setPage(page)}
             >
               <Flex>

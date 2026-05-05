@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from "react"
 import { FiEye, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 import { TacacsLogsService } from "@/client"
+import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import ShowTacacsLog from "@/components/TacacsLogs/ShowTacacsLog"
 import TacacsLogEventsTable from "@/components/TacacsLogs/TacacsLogEventsTable"
 import {
@@ -37,7 +38,7 @@ const tacacs_logsSearchSchema = z.object({
   search: z.string().optional(),
 })
 
-const PER_PAGE = 20
+const DEFAULT_PER_PAGE = 10
 
 const fileTypeCollection = createListCollection({
   items: [
@@ -49,15 +50,19 @@ const fileTypeCollection = createListCollection({
   ],
 })
 
-function getFilesQueryOptions({ page, search }: TacacsLogsSearch) {
+function getFilesQueryOptions({
+  page,
+  search,
+  perPage,
+}: TacacsLogsSearch & { perPage: number }) {
   return {
     queryFn: () =>
       TacacsLogsService.listLogFiles({
-        skip: (page - 1) * PER_PAGE,
-        limit: PER_PAGE,
+        skip: (page - 1) * perPage,
+        limit: perPage,
         search: search,
       }),
-    queryKey: ["tacacs_logs_files", { page, search }],
+    queryKey: ["tacacs_logs_files", { page, search, perPage }],
   }
 }
 
@@ -72,8 +77,10 @@ function FilesTab() {
   const [localSearchInput, setLocalSearchInput] = useState(search || "")
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
+
   const { data, isLoading } = useQuery({
-    ...getFilesQueryOptions({ page, search }),
+    ...getFilesQueryOptions({ page, search, perPage }),
     placeholderData: (prevData) => prevData,
   })
 
@@ -200,10 +207,17 @@ function FilesTab() {
             </Table.Body>
           </Table.Root>
 
-          <Flex justifyContent="flex-end" mt={4}>
+          <Flex justifyContent="space-between" align="center" mt={4}>
+            <PageSizeSelect
+              value={perPage}
+              onChange={(n) => {
+                setPerPage(n)
+                setPage(1)
+              }}
+            />
             <PaginationRoot
               count={count}
-              pageSize={PER_PAGE}
+              pageSize={perPage}
               page={page}
               onPageChange={({ page: p }) => setPage(p)}
             >

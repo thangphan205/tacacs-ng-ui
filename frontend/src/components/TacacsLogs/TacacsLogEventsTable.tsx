@@ -4,22 +4,27 @@ import {
   Button,
   Code,
   createListCollection,
+  DatePicker,
   EmptyState,
   Flex,
   Input,
   InputGroup,
+  parseDate,
+  Portal,
   Select,
   Spinner,
   Table,
   Text,
   VStack,
+  type DateValue,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
-import { FiSearch, FiUser } from "react-icons/fi"
+import { FiCalendar, FiSearch, FiUser } from "react-icons/fi"
 import { MdLayers } from "react-icons/md"
 import type { TacacsLogEvent } from "@/client"
 import { TacacsLogsService } from "@/client"
+import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import {
   DrawerBackdrop,
   DrawerBody,
@@ -35,8 +40,6 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
-
-const PER_PAGE = 20
 
 const TYPE_COLORS: Record<string, string> = {
   authentication: "purple",
@@ -101,8 +104,8 @@ function EventDetailDrawer({
   // Session grouping: find all events in the current page with the same session_id
   const sessionEvents = event.session_id
     ? allEvents
-        .filter((e) => e.session_id === event.session_id)
-        .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+      .filter((e) => e.session_id === event.session_id)
+      .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
     : []
 
   return (
@@ -316,34 +319,55 @@ function EventDetailDrawer({
 export default function TacacsLogEventsTable() {
   const today = new Date().toISOString().slice(0, 10)
   const [page, setPage] = useState(1)
-  const [date, setDate] = useState(today)
+  const [perPage, setPerPage] = useState(10)
+  const [dateFrom, setDateFrom] = useState(today)
+  const [dateTo, setDateTo] = useState(today)
+  const [rangeValue, setRangeValue] = useState<DateValue[]>([
+    parseDate(today),
+    parseDate(today),
+  ])
   const [logType, setLogType] = useState("all")
   const [result, setResult] = useState("")
-  const [usernameInput, setUsernameInput] = useState("")
-  const [username, setUsername] = useState("")
+  const [searchInput, setSearchInput] = useState("")
+  const [search, setSearch] = useState("")
   const [selectedEvent, setSelectedEvent] = useState<TacacsLogEvent | null>(
     null,
   )
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
+  const { data: latestDateData } = useQuery({
+    queryKey: ["tacacs_log_latest_date"],
+    queryFn: () => TacacsLogsService.getLatestLogDate(),
+    staleTime: 1000 * 60 * 5,
+  })
+
+  useEffect(() => {
+    if (latestDateData?.date && latestDateData.date !== today) {
+      setDateFrom(latestDateData.date)
+      setDateTo(latestDateData.date)
+      setRangeValue([parseDate(latestDateData.date), parseDate(latestDateData.date)])
+    }
+  }, [latestDateData?.date, today])
+
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      setUsername(usernameInput)
+      setSearch(searchInput)
       setPage(1)
     }, 500)
-  }, [usernameInput])
+  }, [searchInput])
 
   const { data, isLoading } = useQuery({
-    queryKey: ["tacacs_log_events", { page, date, logType, result, username }],
+    queryKey: ["tacacs_log_events", { page, perPage, dateFrom, dateTo, logType, result, search }],
     queryFn: () =>
       TacacsLogsService.listLogEvents({
-        date,
+        dateFrom,
+        dateTo,
         logType: logType === "all" ? undefined : logType,
         result: result || undefined,
-        username: username || undefined,
-        skip: (page - 1) * PER_PAGE,
-        limit: PER_PAGE,
+        search: search || undefined,
+        skip: (page - 1) * perPage,
+        limit: perPage,
       }),
     placeholderData: (prev) => prev,
   })
@@ -351,27 +375,57 @@ export default function TacacsLogEventsTable() {
   const events = data?.data ?? []
   const count = data?.count ?? 0
 
-  // Clicking a username badge sets the username filter
   const handleUsernameClick = (u: string) => {
-    setUsernameInput(u)
-    setUsername(u)
+    setSearchInput(u)
+    setSearch(u)
     setPage(1)
   }
 
   return (
     <>
       <VStack align="stretch" gap={4} mt={4}>
-        <Flex gap={3} flexWrap="wrap" align="center">
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => {
-              setDate(e.target.value)
-              setPage(1)
+        <Flex gap={3} align="center" flexWrap="nowrap" overflowX="auto">
+          <DatePicker.Root
+            selectionMode="range"
+            value={rangeValue}
+            onValueChange={({ value }) => {
+              setRangeValue(value)
+              if (value[0]) setDateFrom(value[0].toString())
+              if (value[1]) {
+                setDateTo(value[1].toString())
+                setPage(1)
+              }
             }}
             size="sm"
-            maxW="160px"
-          />
+          >
+            <DatePicker.Control width="auto">
+              <DatePicker.Input index={0} />
+              <DatePicker.Input index={1} />
+              <DatePicker.IndicatorGroup>
+                <DatePicker.Trigger>
+                  <FiCalendar />
+                </DatePicker.Trigger>
+              </DatePicker.IndicatorGroup>
+            </DatePicker.Control>
+            <Portal>
+              <DatePicker.Positioner>
+                <DatePicker.Content>
+                  <DatePicker.View view="day">
+                    <DatePicker.Header />
+                    <DatePicker.DayTable />
+                  </DatePicker.View>
+                  <DatePicker.View view="month">
+                    <DatePicker.Header />
+                    <DatePicker.MonthTable />
+                  </DatePicker.View>
+                  <DatePicker.View view="year">
+                    <DatePicker.Header />
+                    <DatePicker.YearTable />
+                  </DatePicker.View>
+                </DatePicker.Content>
+              </DatePicker.Positioner>
+            </Portal>
+          </DatePicker.Root>
 
           <Select.Root
             collection={logTypeCollection}
@@ -439,39 +493,25 @@ export default function TacacsLogEventsTable() {
 
           <InputGroup maxW="220px">
             <Input
-              placeholder="Search username..."
-              value={usernameInput}
-              onChange={(e) => setUsernameInput(e.target.value)}
+              placeholder="Search anything..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               size="sm"
             />
           </InputGroup>
 
-          {/* Active username filter chip */}
-          {username && (
-            <Flex align="center" gap={1}>
-              <Badge
-                colorPalette="blue"
-                size="sm"
-                variant="subtle"
-                display="flex"
-                alignItems="center"
-                gap={1}
-              >
-                <FiUser />
-                {username}
-              </Badge>
-              <Button
-                size="xs"
-                variant="ghost"
-                onClick={() => {
-                  setUsernameInput("")
-                  setUsername("")
-                  setPage(1)
-                }}
-              >
-                ✕
-              </Button>
-            </Flex>
+          {search && (
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={() => {
+                setSearchInput("")
+                setSearch("")
+                setPage(1)
+              }}
+            >
+              ✕ Clear
+            </Button>
           )}
         </Flex>
 
@@ -488,7 +528,7 @@ export default function TacacsLogEventsTable() {
               <VStack textAlign="center">
                 <EmptyState.Title>No events found</EmptyState.Title>
                 <EmptyState.Description>
-                  No log events match the current filters for {date}.
+                  No log events match the current filters for {dateFrom === dateTo ? dateFrom : `${dateFrom} – ${dateTo}`}.
                 </EmptyState.Description>
               </VStack>
             </EmptyState.Content>
@@ -599,22 +639,32 @@ export default function TacacsLogEventsTable() {
               </Table.Body>
             </Table.Root>
 
-            <Flex justifyContent="space-between" align="center">
+            <Flex justifyContent="space-between" align="center" mt={2}>
               <Text fontSize="xs" color="fg.muted">
                 Click any row to see details · Click a username badge to filter
               </Text>
-              <PaginationRoot
-                count={count}
-                pageSize={PER_PAGE}
-                page={page}
-                onPageChange={({ page: p }) => setPage(p)}
-              >
-                <Flex>
-                  <PaginationPrevTrigger />
-                  <PaginationItems />
-                  <PaginationNextTrigger />
-                </Flex>
-              </PaginationRoot>
+              <Flex align="center" gap={3}>
+                <PageSizeSelect
+                  value={perPage}
+                  onChange={(n) => {
+                    setPerPage(n)
+                    setPage(1)
+                  }}
+                  options={[10, 20, 50, 100]}
+                />
+                <PaginationRoot
+                  count={count}
+                  pageSize={perPage}
+                  page={page}
+                  onPageChange={({ page: p }) => setPage(p)}
+                >
+                  <Flex>
+                    <PaginationPrevTrigger />
+                    <PaginationItems />
+                    <PaginationNextTrigger />
+                  </Flex>
+                </PaginationRoot>
+              </Flex>
             </Flex>
           </>
         )}

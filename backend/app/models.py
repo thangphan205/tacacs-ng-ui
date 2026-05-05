@@ -767,6 +767,10 @@ class TacacsLogDailySummary(SQLModel):
     accounting: TacacsLogTypeSummary
 
 
+class TacacsLogLatestDate(SQLModel):
+    date: str
+
+
 # -- Tacacs Custom Section Table ---
 class ConfigurationOptionBase(SQLModel):
     name: str = Field(index=True, unique=True, max_length=255)

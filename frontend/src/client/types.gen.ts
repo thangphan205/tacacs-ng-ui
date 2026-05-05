@@ -100,7 +100,6 @@ export type AccountingStatisticPublic = {
     log_date?: string;
     id: string;
     updated_at: string;
-    data?: (string | null);
 };
 
 export type AccountingStatisticsPublic = {
@@ -137,7 +136,6 @@ export type AuthenticationStatisticPublic = {
     log_date?: string;
     id: string;
     updated_at: string;
-    data?: (string | null);
 };
 
 export type AuthenticationStatisticsPublic = {
@@ -154,7 +152,6 @@ export type AuthorizationStatisticPublic = {
     log_date?: string;
     id: string;
     updated_at: string;
-    data?: (string | null);
 };
 
 export type AuthorizationStatisticsPublic = {
@@ -287,11 +284,6 @@ export type ItemsPublic = {
 export type ItemUpdate = {
     title?: (string | null);
     description?: (string | null);
-};
-
-export type LogSummary = {
-    successful: number;
-    failed: number;
 };
 
 export type MavisCreate = {
@@ -586,18 +578,6 @@ export type TacacsConfigUpdate = {
     description?: (string | null);
 };
 
-export type TacacsFileLogStatistics = {
-    parsed_line_count: number;
-    log_summary: LogSummary;
-    top_successful_login_users: Array<TopEntry>;
-    top_nas_ips: Array<TopEntry>;
-    top_access_ips: Array<TopEntry>;
-    ip_access_by_users: {
-        [key: string]: Array<(string)>;
-    };
-    user_login_breakdown: Array<UserLoginBreakdown>;
-};
-
 export type TacacsGroupCreate = {
     group_name: string;
     description?: (string | null);
@@ -644,6 +624,10 @@ export type TacacsLogEvent = {
 export type TacacsLogEventsPublic = {
     data: Array<TacacsLogEvent>;
     count: number;
+};
+
+export type TacacsLogLatestDate = {
+    date: string;
 };
 
 export type TacacsLogPublic = {
@@ -770,11 +754,6 @@ export type Token = {
     token_type?: string;
 };
 
-export type TopEntry = {
-    name: string;
-    count: number;
-};
-
 export type UpdatePassword = {
     current_password: string;
     new_password: string;
@@ -787,12 +766,6 @@ export type UserCreate = {
     full_name?: (string | null);
     password: string;
     password_login_disabled?: boolean;
-};
-
-export type UserLoginBreakdown = {
-    user: string;
-    successful: number;
-    failed: number;
 };
 
 export type UserPublic = {
@@ -868,8 +841,12 @@ export type AaaStatisticsReadAaaStatisticsRangeData = {
 export type AaaStatisticsReadAaaStatisticsRangeResponse = (AaaStatisticsDateRangePublic);
 
 export type AccountingStatisticsReadAccountingStatisticsData = {
+    dateFrom?: (string | null);
+    dateTo?: (string | null);
     limit?: number;
     skip?: number;
+    sortBy?: string;
+    sortOrder?: string;
 };
 
 export type AccountingStatisticsReadAccountingStatisticsResponse = (AccountingStatisticsPublic);
@@ -908,15 +885,23 @@ export type AuditLogsPurgeAuditLogsResponse = ({
 });
 
 export type AuthenticationStatisticsReadAuthenticationStatisticsData = {
+    dateFrom?: (string | null);
+    dateTo?: (string | null);
     limit?: number;
     skip?: number;
+    sortBy?: string;
+    sortOrder?: string;
 };
 
 export type AuthenticationStatisticsReadAuthenticationStatisticsResponse = (AuthenticationStatisticsPublic);
 
 export type AuthorizationStatisticsReadAuthorizationStatisticsData = {
+    dateFrom?: (string | null);
+    dateTo?: (string | null);
     limit?: number;
     skip?: number;
+    sortBy?: string;
+    sortOrder?: string;
 };
 
 export type AuthorizationStatisticsReadAuthorizationStatisticsResponse = (AuthorizationStatisticsPublic);
@@ -1417,6 +1402,8 @@ export type TacacsGroupsDeleteTacacsGroupData = {
 
 export type TacacsGroupsDeleteTacacsGroupResponse = (Message);
 
+export type TacacsLogsGetLatestLogDateResponse = (TacacsLogLatestDate);
+
 export type TacacsLogsGetLogEventsSummaryData = {
     date?: (string | null);
 };
@@ -1425,10 +1412,13 @@ export type TacacsLogsGetLogEventsSummaryResponse = (TacacsLogDailySummary);
 
 export type TacacsLogsListLogEventsData = {
     date?: (string | null);
+    dateFrom?: (string | null);
+    dateTo?: (string | null);
     limit?: number;
     logType?: string;
     nasIp?: (string | null);
     result?: (string | null);
+    search?: (string | null);
     skip?: number;
     username?: (string | null);
 };
@@ -1492,12 +1482,6 @@ export type TacacsServicesDeleteTacacsServiceData = {
 };
 
 export type TacacsServicesDeleteTacacsServiceResponse = (Message);
-
-export type TacacsStatisticsGetTacacsLogsStatisticsData = {
-    dateStr?: (string | null);
-};
-
-export type TacacsStatisticsGetTacacsLogsStatisticsResponse = (TacacsFileLogStatistics);
 
 export type TacacsUsersReadTacacsUsersData = {
     limit?: number;

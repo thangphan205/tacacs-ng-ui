@@ -1,7 +1,7 @@
 import os
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -14,6 +14,7 @@ from app.models import (
     TacacsLogDailySummary,
     TacacsLogEvent,
     TacacsLogEventsPublic,
+    TacacsLogLatestDate,
     TacacsLogPublic,
     TacacsLogTypeSummary,
     TacacsLogsPublic,
@@ -152,6 +153,30 @@ def _parse_log_file(log_type: str, path: str) -> list[TacacsLogEvent]:
     return events
 
 
+def _find_latest_log_date() -> str:
+    log_dir = settings.TACACS_LOG_DIRECTORY
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if not os.path.exists(log_dir):
+        return today
+    dates: list[str] = []
+    for root, _dirs, files in os.walk(log_dir):
+        for filename in files:
+            m = re.match(r"\w+-(\d{4}-\d{2}-\d{2})\.log$", filename)
+            if m:
+                dates.append(m.group(1))
+    return max(dates) if dates else today
+
+
+@router.get(
+    "/events/latest-date",
+    dependencies=[Depends(get_current_user)],
+    response_model=TacacsLogLatestDate,
+)
+def get_latest_log_date() -> Any:
+    """Return the most recent date that has any log files."""
+    return TacacsLogLatestDate(date=_find_latest_log_date())
+
+
 @router.get(
     "/events/summary",
     dependencies=[Depends(get_current_user)],
@@ -210,40 +235,57 @@ def get_log_events_summary(
 )
 def list_log_events(
     date: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     log_type: str = "all",
     result: str | None = None,
     username: str | None = None,
     nas_ip: str | None = None,
+    search: str | None = None,
     skip: int = 0,
     limit: int = 20,
 ) -> Any:
     """
     Return structured TACACS+ log events parsed from log files.
-    date: YYYY-MM-DD (default: today). log_type: authentication|authorization|accounting|all.
+    date_from / date_to: YYYY-MM-DD range (inclusive). date: single-day shorthand (deprecated).
+    log_type: authentication|authorization|accounting|all.
     """
+    today = datetime.now(timezone.utc)
     try:
-        target_date = (
-            datetime.strptime(date, "%Y-%m-%d") if date else datetime.now(timezone.utc)
-        )
+        if date_from or date_to:
+            start_date = datetime.strptime(date_from, "%Y-%m-%d") if date_from else today
+            end_date = datetime.strptime(date_to, "%Y-%m-%d") if date_to else today
+        elif date:
+            start_date = datetime.strptime(date, "%Y-%m-%d")
+            end_date = start_date
+        else:
+            start_date = today
+            end_date = today
     except ValueError:
-        raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
+        raise HTTPException(status_code=400, detail="dates must be YYYY-MM-DD")
 
-    log_types = (
-        ["authentication", "authorization", "accounting"]
-        if log_type == "all"
-        else [log_type]
-    )
+    if start_date > end_date:
+        raise HTTPException(status_code=400, detail="date_from must be <= date_to")
+
     valid_types = {"authentication", "authorization", "accounting", "all"}
     if log_type not in valid_types:
         raise HTTPException(
             status_code=400,
             detail=f"log_type must be one of: {', '.join(sorted(valid_types))}",
         )
+    log_types = (
+        ["authentication", "authorization", "accounting"]
+        if log_type == "all"
+        else [log_type]
+    )
 
     all_events: list[TacacsLogEvent] = []
-    for lt in log_types:
-        path = _log_file_path(lt, target_date)
-        all_events.extend(_parse_log_file(lt, path))
+    current = start_date
+    while current <= end_date:
+        for lt in log_types:
+            path = _log_file_path(lt, current)
+            all_events.extend(_parse_log_file(lt, path))
+        current += timedelta(days=1)
 
     # Sort newest-first by timestamp string (ISO-ish format sorts lexicographically)
     all_events.sort(key=lambda e: e.timestamp, reverse=True)
@@ -256,6 +298,19 @@ def list_log_events(
         all_events = [e for e in all_events if lower in e.username.lower()]
     if nas_ip:
         all_events = [e for e in all_events if nas_ip in e.nas_ip]
+    if search:
+        q = search.lower()
+        all_events = [
+            e for e in all_events
+            if q in e.username.lower()
+            or q in e.nas_ip.lower()
+            or (e.client_ip and q in e.client_ip.lower())
+            or (e.port and q in e.port.lower())
+            or q in e.result.lower()
+            or q in e.log_type.lower()
+            or (e.command and q in e.command.lower())
+            or q in e.message.lower()
+        ]
 
     count = len(all_events)
     page = all_events[skip : skip + limit]

@@ -11,12 +11,14 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { FiEye, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 import type { AuditLogPublic } from "@/client"
 import { AuditLogsService } from "@/client"
+import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
 import {
   DialogBody,
@@ -34,7 +36,7 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination"
 
-const PER_PAGE = 20
+const DEFAULT_PER_PAGE = 10
 
 const auditLogsSearchSchema = z.object({
   page: z.number().catch(1),
@@ -44,17 +46,18 @@ const auditLogsSearchSchema = z.object({
 interface AuditLogsSearch {
   page: number
   search?: string
+  perPage: number
 }
 
-function getAuditLogsQueryOptions({ page, search }: AuditLogsSearch) {
+function getAuditLogsQueryOptions({ page, search, perPage }: AuditLogsSearch) {
   return {
     queryFn: () =>
       AuditLogsService.readAuditLogs({
-        skip: (page - 1) * PER_PAGE,
-        limit: PER_PAGE,
+        skip: (page - 1) * perPage,
+        limit: perPage,
         search,
       }),
-    queryKey: ["audit_logs", { page, search }],
+    queryKey: ["audit_logs", { page, search, perPage }],
   }
 }
 
@@ -155,8 +158,10 @@ function AuditLogsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, search } = Route.useSearch()
 
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
+
   const { data, isLoading } = useQuery({
-    ...getAuditLogsQueryOptions({ page, search }),
+    ...getAuditLogsQueryOptions({ page, search, perPage }),
     placeholderData: (prev) => prev,
   })
 
@@ -240,10 +245,17 @@ function AuditLogsTable() {
               ))}
             </Table.Body>
           </Table.Root>
-          <Flex justifyContent="flex-end" mt={4}>
+          <Flex justifyContent="space-between" align="center" mt={4}>
+            <PageSizeSelect
+              value={perPage}
+              onChange={(n) => {
+                setPerPage(n)
+                setPage(1)
+              }}
+            />
             <PaginationRoot
               count={count}
-              pageSize={PER_PAGE}
+              pageSize={perPage}
               onPageChange={({ page: p }) => setPage(p)}
             >
               <Flex>
