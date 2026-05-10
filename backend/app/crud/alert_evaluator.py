@@ -1,10 +1,14 @@
 """Core alert evaluation engine — called by the background worker every 5 minutes."""
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+import os
+import re
+from datetime import datetime, time as dt_time, timedelta, timezone
+from collections import defaultdict
 
 from sqlmodel import Session, col, func, select
 
+from app.core.config import settings
 from app.crud import alert_events as crud_alert_events
 from app.crud import alert_rules as crud_alert_rules
 from app.crud.notification_dispatcher import dispatch_notification
@@ -12,12 +16,142 @@ from app.models import (
     AlertRule,
     AuditLog,
     AuthenticationStatistics,
-    AuthorizationStatistics,
     NotificationChannel,
 )
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Live log parsing — real-time (no dependency on daily cron)
+# ---------------------------------------------------------------------------
+
+_IP = r"([a-fA-F0-9:.]+|[0-9]{1,3}(?:\.[0-9]{1,3}){3})"
+_AUTH_REGEX = re.compile(
+    r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
+    rf"(?P<nas_ip>{_IP})\s+"
+    r"(?P<username>[\w.-]+)\s+"
+    r"(?:[\w.-]+\s+)?"
+    rf"(?P<client_ip>{_IP})\s+"
+    r"(?P<message>.*)$"
+)
+_AUTHZ_REGEX = re.compile(
+    r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
+    rf"(?P<nas_ip>{_IP})\s+"
+    r"(?P<username>[\w.-]+)\s+"
+    r"(?P<tty>[\w/.-]+)\s+"
+    rf"(?P<client_ip>{_IP})\s+"
+    r"(?:(?P<profile>[\w.-]+)\s+)?(?P<message>.*)$"
+)
+
+
+def _log_paths_for_window(window_start: datetime, now: datetime, log_type: str) -> list[str]:
+    """Return log file paths needed to cover the time window (today + yesterday if spans midnight)."""
+    today_path = now.strftime(
+        f"{settings.TACACS_LOG_DIRECTORY}%Y/%m/{log_type}-%Y-%m-%d.log"
+    )
+    paths = [today_path]
+    today_midnight = datetime.combine(now.date(), dt_time.min, tzinfo=timezone.utc)
+    if window_start < today_midnight:
+        yesterday_path = (now - timedelta(days=1)).strftime(
+            f"{settings.TACACS_LOG_DIRECTORY}%Y/%m/{log_type}-%Y-%m-%d.log"
+        )
+        paths.append(yesterday_path)
+    return [p for p in paths if os.path.exists(p)]
+
+
+def _parse_auth_log(window_start: datetime, now: datetime) -> tuple[dict[str, int], dict[str, int], set[str], set[str]]:
+    """
+    Parse auth log for the time window.
+    Returns: (fail_counts_by_user, fail_counts_by_ip, recent_usernames, recent_ips)
+    Actually returns (fail_by_user, fail_by_ip, recent_set_of_(user,ip))
+    """
+    fail_by_user: dict[str, int] = defaultdict(int)
+    fail_by_ip: dict[str, int] = defaultdict(int)
+    seen_usernames: set[str] = set()
+    seen_ips: set[str] = set()
+
+    for path in _log_paths_for_window(window_start, now, "authentication"):
+        try:
+            with open(path, "r", errors="ignore") as f:
+                for line in f:
+                    m = _AUTH_REGEX.match(line)
+                    if not m:
+                        continue
+                    try:
+                        ts = datetime.strptime(m.group("timestamp"), "%Y-%m-%d %H:%M:%S %z")
+                    except ValueError:
+                        continue
+                    if ts < window_start or ts > now:
+                        continue
+                    msg = m.group("message").lower()
+                    username = m.group("username")
+                    client_ip = m.group("client_ip")
+                    seen_usernames.add(username)
+                    seen_ips.add(client_ip)
+                    if "failed" in msg or "denied" in msg:
+                        fail_by_user[username] += 1
+                        fail_by_ip[client_ip] += 1
+        except IOError:
+            pass
+
+    return dict(fail_by_user), dict(fail_by_ip), seen_usernames, seen_ips
+
+
+def _parse_authz_log(window_start: datetime, now: datetime) -> dict[str, int]:
+    """Parse authz log for the time window. Returns deny_count_by_user."""
+    deny_by_user: dict[str, int] = defaultdict(int)
+
+    for path in _log_paths_for_window(window_start, now, "authorization"):
+        try:
+            with open(path, "r", errors="ignore") as f:
+                for line in f:
+                    m = _AUTHZ_REGEX.match(line)
+                    if not m:
+                        continue
+                    try:
+                        ts = datetime.strptime(m.group("timestamp"), "%Y-%m-%d %H:%M:%S %z")
+                    except ValueError:
+                        continue
+                    if ts < window_start or ts > now:
+                        continue
+                    msg = m.group("message").lower()
+                    if "deny" in msg:
+                        deny_by_user[m.group("username")] += 1
+        except IOError:
+            pass
+
+    return dict(deny_by_user)
+
+
+def _baseline_usernames(window_start: datetime, session: Session) -> set[str]:
+    """Usernames seen in the 30-day baseline period (from DB — historical data is fine for baseline)."""
+    baseline_start = window_start - timedelta(days=30)
+    return set(
+        session.exec(
+            select(AuthenticationStatistics.username)
+            .where(AuthenticationStatistics.log_date >= baseline_start)
+            .where(AuthenticationStatistics.log_date < window_start)
+            .distinct()
+        ).all()
+    )
+
+
+def _baseline_ips(window_start: datetime, session: Session) -> set[str]:
+    """Source IPs seen in the 30-day baseline period."""
+    baseline_start = window_start - timedelta(days=30)
+    return set(
+        session.exec(
+            select(AuthenticationStatistics.user_source_ip)
+            .where(AuthenticationStatistics.log_date >= baseline_start)
+            .where(AuthenticationStatistics.log_date < window_start)
+            .distinct()
+        ).all()
+    )
+
+
+# ---------------------------------------------------------------------------
+# Evaluation engine
+# ---------------------------------------------------------------------------
 
 def evaluate_all_rules(*, session: Session) -> None:
     """Evaluate all alert rules that are due. Fire notifications for triggered rules."""
@@ -73,14 +207,14 @@ def _evaluate_rule(
 
     if rule.log_type in ("auth", "all"):
         triggered, payload = _check_auth_stats(
-            rule=rule, session=session, window_start=window_start
+            rule=rule, session=session, window_start=window_start, now=now
         )
         if triggered:
             return True, payload
 
     if rule.log_type in ("authz", "all"):
         triggered, payload = _check_authz_stats(
-            rule=rule, session=session, window_start=window_start
+            rule=rule, window_start=window_start, now=now
         )
         if triggered:
             return True, payload
@@ -96,63 +230,30 @@ def _evaluate_rule(
 
 
 def _check_auth_stats(
-    *, rule: AlertRule, session: Session, window_start: datetime
+    *, rule: AlertRule, session: Session, window_start: datetime, now: datetime
 ) -> tuple[bool, dict]:
     field = rule.condition_field
     operator = rule.condition_operator
     threshold = rule.threshold or 0
 
+    fail_by_user, fail_by_ip, seen_usernames, seen_ips = _parse_auth_log(window_start, now)
+
     if field == "username" and operator == "new_value":
-        # Detect usernames that appear in last window but not in prior 30 days
-        baseline_start = window_start - timedelta(days=30)
-        recent = set(
-            session.exec(
-                select(AuthenticationStatistics.username)
-                .where(AuthenticationStatistics.log_date >= window_start)
-                .distinct()
-            ).all()
-        )
-        baseline = set(
-            session.exec(
-                select(AuthenticationStatistics.username)
-                .where(AuthenticationStatistics.log_date >= baseline_start)
-                .where(AuthenticationStatistics.log_date < window_start)
-                .distinct()
-            ).all()
-        )
-        new_usernames = recent - baseline
+        baseline = _baseline_usernames(window_start, session)
+        new_usernames = seen_usernames - baseline
         if new_usernames:
             return True, {"new_usernames": list(new_usernames), "rule": rule.name}
         return False, {}
 
     if field == "client_ip" and operator == "new_value":
-        baseline_start = window_start - timedelta(days=30)
-        recent_ips = set(
-            session.exec(
-                select(AuthenticationStatistics.user_source_ip)
-                .where(AuthenticationStatistics.log_date >= window_start)
-                .distinct()
-            ).all()
-        )
-        baseline_ips = set(
-            session.exec(
-                select(AuthenticationStatistics.user_source_ip)
-                .where(AuthenticationStatistics.log_date >= baseline_start)
-                .where(AuthenticationStatistics.log_date < window_start)
-                .distinct()
-            ).all()
-        )
-        new_ips = recent_ips - baseline_ips
+        baseline = _baseline_ips(window_start, session)
+        new_ips = seen_ips - baseline
         if new_ips:
             return True, {"new_source_ips": list(new_ips), "rule": rule.name}
         return False, {}
 
-    # Numeric: sum fail_count or success_count in window
     if field in ("fail_count", "result") and operator in ("gt", "lt", "eq"):
-        total_fail = session.exec(
-            select(func.sum(AuthenticationStatistics.fail_count))
-            .where(AuthenticationStatistics.log_date >= window_start)
-        ).one() or 0
+        total_fail = sum(fail_by_user.values())
         return _compare(value=float(total_fail), operator=operator, threshold=threshold), {
             "fail_count": total_fail,
             "window_minutes": rule.time_window_minutes,
@@ -163,16 +264,14 @@ def _check_auth_stats(
 
 
 def _check_authz_stats(
-    *, rule: AlertRule, session: Session, window_start: datetime
+    *, rule: AlertRule, window_start: datetime, now: datetime
 ) -> tuple[bool, dict]:
     operator = rule.condition_operator
     threshold = rule.threshold or 0
 
     if operator in ("gt", "lt", "eq"):
-        total_deny = session.exec(
-            select(func.sum(AuthorizationStatistics.deny_count))
-            .where(AuthorizationStatistics.log_date >= window_start)
-        ).one() or 0
+        deny_by_user = _parse_authz_log(window_start, now)
+        total_deny = sum(deny_by_user.values())
         return _compare(value=float(total_deny), operator=operator, threshold=threshold), {
             "deny_count": total_deny,
             "window_minutes": rule.time_window_minutes,

@@ -515,9 +515,7 @@ _SYSTEM_ALERT_RULES: list[dict] = [
 
 def _seed_system_alert_rules(session: Session) -> None:
     existing_names = set(
-        session.exec(
-            select(AlertRule.name).where(AlertRule.is_system == True)  # noqa: E712
-        ).all()
+        session.exec(select(AlertRule.name)).all()
     )
     for rule_def in _SYSTEM_ALERT_RULES:
         if rule_def["name"] in existing_names:

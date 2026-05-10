@@ -26,7 +26,7 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination"
 
-const DEFAULT_PER_PAGE = 20
+const DEFAULT_PER_PAGE = 10
 
 const searchSchema = z.object({
   page: z.number().catch(1),

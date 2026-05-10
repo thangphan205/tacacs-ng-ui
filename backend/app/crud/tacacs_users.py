@@ -9,7 +9,6 @@ tacacs_pwd_context = CryptContext(schemes=["sha512_crypt"], deprecated="auto")
 
 
 def hash_tacacs_password(password: str) -> str:
-    """Hash a password using SHA-512 crypt for tac_plus-ng compatibility."""
     return tacacs_pwd_context.hash(password)
 
 
@@ -25,7 +24,6 @@ def create_tacacs_user(
     *, session: Session, user_create: TacacsUserCreate
 ) -> TacacsUser:
     db_obj = TacacsUser.model_validate(user_create)
-    # Hash the password if type is crypt and a password is provided
     if db_obj.password_type == "crypt" and db_obj.password:
         db_obj.password = hash_tacacs_password(db_obj.password)
     session.add(db_obj)
@@ -41,7 +39,6 @@ def update_tacacs_user(
     # Hash the password if type is crypt and a new password is provided
     password_type = user_data.get("password_type", db_user.password_type)
     if password_type == "crypt" and user_data.get("password"):
-        # Prevent double-hashing if the frontend sends back the existing hashed password
         if not (db_user.password_type == "crypt" and user_data["password"] == db_user.password):
             user_data["password"] = hash_tacacs_password(user_data["password"])
     db_user.sqlmodel_update(user_data)

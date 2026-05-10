@@ -2,6 +2,24 @@
 
 ## Latest Changes
 
+## v0.3.5
+
+### Features
+
+* ✨ **Real-time Alert Rules engine** — define rules that fire within minutes based on live TACACS+ log file parsing (no daily cron dependency). Configurable condition field, operator, threshold, time window, cooldown, and severity. Rules evaluated every 5 minutes by a background loop. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Alert rule types** — supports auth failure spike (`fail_count gt/lt/eq`), new username (`username new_value`), new source IP (`client_ip new_value`), authorization deny spike (`deny_count gt/lt/eq`), and TACACS config changes (`config_action any_change / created / updated / deleted / activated`). PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **System alert rules** — six built-in rules seeded at startup and enabled by default (High Auth Failure Rate, New Username Detected, New Source IP Detected, High Authorization Deny Rate, TACACS Config Changed, TACACS Config Activated). System rules cannot be deleted. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Multi-channel notifications** — alert dispatch supports Telegram bot, Slack webhook, Discord webhook, Microsoft Teams webhook, and generic HTTP webhook with optional Bearer token auth. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Alert History page** — `/alert_events` shows every triggered alert with rule name, severity, channel, delivery status, and error detail. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **ML Anomaly Detection** — IsolationForest model trained daily on four per-user behavioral features: average daily auth failures, stddev of failures, unique source IP count, and authorization deny ratio. Results classified into normal / low / medium / high / critical risk and shown in a dedicated UI page. Manual retrain available via API. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **TACACS Config activation audit log** — activating a config now writes a distinct `ACTIVATE` action to the audit log (in addition to the standard `UPDATE`), enabling fine-grained alerting on activation events. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Plaintext password warning** — selecting `clear` as password type in the Add/Edit TACACS User dialog now shows an inline warning that the password will be stored in plaintext. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Fixes
+
+* 🐛 **Alert duplicate fire** — fixed system alert rules being re-seeded on every restart when the `is_system` flag was not yet set on existing rows, causing multiple rules with the same name and duplicate alert events. PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **Default password type** — TACACS User add/edit form now defaults to `crypt` instead of an empty selection. PR by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.3.4
 
 ### Features

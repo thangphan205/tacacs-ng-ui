@@ -7,6 +7,7 @@ import {
   Select,
   Text,
   VStack,
+  Alert,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
@@ -35,6 +36,7 @@ import { Field } from "../ui/field"
 const AddTacacsUser = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [isSelectMavis, setIsSelectMavis] = useState(false)
+  const [isSelectClear, setIsSelectClear] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const {
@@ -50,7 +52,7 @@ const AddTacacsUser = () => {
       username: "",
       description: "",
       member: "",
-      password_type: "",
+      password_type: "crypt",
     },
   })
 
@@ -79,7 +81,6 @@ const AddTacacsUser = () => {
     items: [
       { value: "clear", label: "clear" },
       { value: "crypt", label: "crypt" },
-      { value: "pbkdf2", label: "pbkdf2" },
       { value: "mavis", label: "mavis" },
     ],
   })
@@ -149,14 +150,17 @@ const AddTacacsUser = () => {
                   type="hidden"
                   {...register("password_type", {
                     required: "Password type is required.",
+                    value: "crypt",
                   })}
                 />
                 <Select.Root
                   collection={items_password_type}
+                  defaultValue={["crypt"]}
                   onValueChange={(selection) => {
                     const val = selection.value[0] ?? ""
                     setValue("password_type", val, { shouldValidate: true })
                     setIsSelectMavis(val === "mavis")
+                    setIsSelectClear(val === "clear")
                   }}
                   size="sm"
                 >
@@ -177,6 +181,14 @@ const AddTacacsUser = () => {
                   </Select.Positioner>
                 </Select.Root>
               </Field>
+              {isSelectClear && (
+                <Alert.Root status="warning" borderRadius="md">
+                  <Alert.Indicator />
+                  <Alert.Description>
+                    Password will be stored in plaintext in the TACACS+ config file.
+                  </Alert.Description>
+                </Alert.Root>
+              )}
               {!isSelectMavis && (
                 <Field
                   required

@@ -14,6 +14,8 @@ Built with a powerful and modern technology stack, the application features a Fa
 - **SIEM Integration**: Forward TACACS+ log events in real-time via HTTP webhook (Splunk HEC format) and/or syslog (UDP/TCP).
 - **Global Search**: Every management table (Hosts, Users, Groups, Profiles, Rulesets, and more) has a live search box with debounced, case-insensitive, server-side filtering.
 - **Comprehensive Audit Logging**: Every UI action is recorded with actor, IP, entity snapshot (before/after), and timestamp. Superuser-only table with search, date-range filter, and CSV export.
+- **Real-Time Alert Rules**: Define rules (auth failure spikes, new usernames/IPs, config changes, activations) with configurable windows, thresholds, cooldowns, and severity. Notifications dispatched via Telegram, Slack, Discord, Teams, or generic webhook — evaluated every 5 minutes from live log files, no daily cron dependency.
+- **ML Anomaly Detection**: IsolationForest model scores every user daily across four behavioral features (avg/stddev auth failures, unique IPs, deny ratio). Results classified normal/low/medium/high/critical and displayed in a dedicated UI page.
 - **Multi-Factor Auth**: Google OAuth, Keycloak OIDC, and Passkeys (WebAuthn) in addition to email/password.
 - **Secure by Design**: PCI DSS-compliant password policy, JWT authentication, and email-based password recovery.
 - **Integrated Tooling**: Traefik reverse proxy, automatic API documentation via Swagger UI, and end-to-end testing with Playwright.
@@ -347,7 +349,7 @@ To further enhance the security and utility of tacacs-ng-ui, the following roadm
 2. **Comprehensive Frontend Audit Logging**: ✅ Every UI action (create/update/delete/login/config-apply) is recorded with actor, IP, entity snapshot, and timestamp as of v0.2.1. Includes CSV export, search, and date-range filter.
 3. **Advanced Observability Dashboard**: ✅ Today's log summary, config overview cards, recent user activity, Top 5 pie charts (users/IPs) with Last 7 Days / Last 30 Days / Date Range filter, and AAA trend line chart — all shipped in v0.3.0. Structured TACACS log events viewer with date/type/result/username filters added in v0.3.0. Enhanced in v0.3.2 with clickable username drill-down, command/port columns, row-click detail drawer, and session timeline for auditing full command sequences.
 4. **SIEM Integration**: ✅ Real-time forwarding of TACACS+ log events via HTTP webhook (Splunk HEC format) and syslog (UDP/TCP) shipped in v0.3.0.
-5. **Proactive Abnormal Access Detection & Alerting**: Integrate an automated Anomaly Detection engine that triggers Webhook alerts (e.g., to Telegram, Discord, Slack, Microsoft Teams). This feature will immediately notify administrators of suspicious patterns, such as repeated failed logins or unauthorized privilege escalation attempts.
+5. **Proactive Abnormal Access Detection & Alerting**: ✅ Real-time alert rules engine with multi-channel notifications (Telegram, Slack, Discord, Teams, webhook) and ML-based anomaly detection (IsolationForest) shipped in v0.3.5. Alerts evaluated every 5 minutes from live log files with configurable windows, thresholds, cooldowns, and severity levels.
 
 ## Release Notes
 
