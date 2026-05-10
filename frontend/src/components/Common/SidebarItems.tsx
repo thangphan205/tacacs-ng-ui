@@ -3,14 +3,18 @@ import { useQueryClient } from "@tanstack/react-query"
 import { Link as RouterLink } from "@tanstack/react-router"
 import {
   FiActivity,
+  FiAlertCircle,
   FiArchive,
+  FiBell,
   FiCode,
+  FiCpu,
   FiDatabase,
   FiFileText,
   FiGrid,
   FiHome,
   FiLayers,
   FiList,
+  FiSend,
   FiServer,
   FiSettings,
   FiShield,
@@ -69,6 +73,10 @@ const items = [
     level: 1,
   },
   { icon: FiList, title: "Tacacs logs", path: "/tacacs_logs", level: 1 },
+  { icon: FiBell, title: "Alert Rules", path: "/alert_rules", level: 1 },
+  { icon: FiSend, title: "Notification Channels", path: "/notification_channels", level: 2 },
+  { icon: FiAlertCircle, title: "Alert History", path: "/alert_events", level: 2 },
+  { icon: FiCpu, title: "Anomaly Detection", path: "/anomaly_detection", level: 1 },
   { icon: FiSettings, title: "User Settings", path: "/settings", level: 1 },
 ]
 

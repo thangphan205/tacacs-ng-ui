@@ -1075,3 +1075,161 @@ class AuditLogPublic(AuditLogBase):
 class AuditLogsPublic(SQLModel):
     data: list[AuditLogPublic]
     count: int
+
+
+# ---------------------------------------------------------------------------
+# Alert Rules
+# ---------------------------------------------------------------------------
+
+
+class AlertRuleBase(SQLModel):
+    name: str = Field(index=True, max_length=255)
+    description: str | None = Field(default=None, max_length=1024)
+    enabled: bool = Field(default=True)
+    log_type: str = Field(max_length=50)  # auth/authz/accounting/all
+    condition_field: str = Field(max_length=100)  # username/nas_ip/client_ip/result/command
+    condition_operator: str = Field(max_length=50)  # gt/lt/eq/contains/new_value
+    threshold: float | None = Field(default=None)
+    time_window_minutes: int = Field(default=10)
+    severity: str = Field(default="medium", max_length=20)  # low/medium/high/critical
+    cooldown_minutes: int = Field(default=60)
+
+
+class AlertRuleCreate(AlertRuleBase):
+    pass
+
+
+class AlertRuleUpdate(SQLModel):
+    name: str | None = None
+    description: str | None = None
+    enabled: bool | None = None
+    log_type: str | None = None
+    condition_field: str | None = None
+    condition_operator: str | None = None
+    threshold: float | None = None
+    time_window_minutes: int | None = None
+    severity: str | None = None
+    cooldown_minutes: int | None = None
+
+
+class AlertRule(AlertRuleBase, TimestampModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    last_fired_at: datetime | None = Field(default=None)
+    alert_events: list["AlertEvent"] = Relationship(back_populates="alert_rule", cascade_delete=True)
+
+
+class AlertRulePublic(AlertRuleBase):
+    id: uuid.UUID
+    last_fired_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AlertRulesPublic(SQLModel):
+    data: list[AlertRulePublic]
+    count: int
+
+
+# ---------------------------------------------------------------------------
+# Notification Channels
+# ---------------------------------------------------------------------------
+
+
+class NotificationChannelBase(SQLModel):
+    name: str = Field(index=True, max_length=255)
+    channel_type: str = Field(max_length=50)  # telegram/slack/discord/teams/webhook
+    config_json: str = Field(default="{}")  # JSON: bot_token+chat_id or webhook_url
+    enabled: bool = Field(default=True)
+
+
+class NotificationChannelCreate(NotificationChannelBase):
+    pass
+
+
+class NotificationChannelUpdate(SQLModel):
+    name: str | None = None
+    channel_type: str | None = None
+    config_json: str | None = None
+    enabled: bool | None = None
+
+
+class NotificationChannel(NotificationChannelBase, TimestampModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    alert_events: list["AlertEvent"] = Relationship(back_populates="notification_channel", cascade_delete=True)
+
+
+class NotificationChannelPublic(NotificationChannelBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class NotificationChannelsPublic(SQLModel):
+    data: list[NotificationChannelPublic]
+    count: int
+
+
+# ---------------------------------------------------------------------------
+# Alert Events
+# ---------------------------------------------------------------------------
+
+
+class AlertEventBase(SQLModel):
+    triggered_at: datetime = Field(default_factory=_utc_now)
+    payload_snapshot: str | None = Field(default=None, sa_column=Column(sa.Text, nullable=True))
+    status: str = Field(default="sent", max_length=20)  # sent/failed
+    error_message: str | None = Field(default=None, max_length=1024)
+
+
+class AlertEvent(AlertEventBase, TimestampModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    rule_id: uuid.UUID = Field(foreign_key="alertrule.id", nullable=False, ondelete="CASCADE", index=True)
+    channel_id: uuid.UUID = Field(foreign_key="notificationchannel.id", nullable=False, ondelete="CASCADE", index=True)
+    alert_rule: AlertRule | None = Relationship(back_populates="alert_events")
+    notification_channel: NotificationChannel | None = Relationship(back_populates="alert_events")
+
+
+class AlertEventPublic(AlertEventBase):
+    id: uuid.UUID
+    rule_id: uuid.UUID
+    channel_id: uuid.UUID
+    rule_name: str | None = None
+    channel_name: str | None = None
+    rule_severity: str | None = None
+    created_at: datetime
+
+
+class AlertEventsPublic(SQLModel):
+    data: list[AlertEventPublic]
+    count: int
+
+
+# ---------------------------------------------------------------------------
+# Anomaly Detection Results
+# ---------------------------------------------------------------------------
+
+
+class AnomalyDetectionResultBase(SQLModel):
+    subject_type: str = Field(max_length=20)  # "username" | "nas_ip"
+    subject_value: str = Field(max_length=255, index=True)
+    scored_at: datetime = Field(default_factory=_utc_now)
+    anomaly_score: float
+    is_anomaly: bool = Field(default=False)
+    risk_level: str = Field(default="normal", max_length=20)  # normal/low/medium/high/critical
+    feature_snapshot: str | None = Field(default=None, sa_column=Column(sa.Text, nullable=True))
+
+
+class AnomalyDetectionResult(AnomalyDetectionResultBase, TimestampModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
+
+class AnomalyDetectionResultPublic(AnomalyDetectionResultBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class AnomalyDetectionResultsPublic(SQLModel):
+    data: list[AnomalyDetectionResultPublic]
+    count: int
+    count: int
