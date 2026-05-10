@@ -1,6 +1,7 @@
 import json
 import logging
 
+import emails  # type: ignore
 import httpx
 
 from app.models import NotificationChannel
@@ -30,6 +31,10 @@ def dispatch_notification(
             return _send_teams(config=config, subject=subject, body=body)
         elif channel.channel_type == "webhook":
             return _send_webhook(config=config, subject=subject, body=body)
+        elif channel.channel_type == "gchat":
+            return _send_gchat(config=config, subject=subject, body=body)
+        elif channel.channel_type == "email":
+            return _send_email(config=config, subject=subject, body=body)
         else:
             return False, f"Unknown channel_type: {channel.channel_type}"
     except Exception as e:
@@ -170,3 +175,47 @@ def _send_webhook(*, config: dict, subject: str, body: str) -> tuple[bool, str |
     if resp.is_success:
         return True, None
     return False, f"Webhook error {resp.status_code}: {resp.text[:200]}"
+
+
+def _send_gchat(*, config: dict, subject: str, body: str) -> tuple[bool, str | None]:
+    webhook_url = config.get("webhook_url", "")
+    if not webhook_url:
+        return False, "gchat config missing webhook_url"
+
+    text = f"🔔 *{subject}*\n\n{body}"
+    resp = httpx.post(webhook_url, json={"text": text}, timeout=_TIMEOUT)
+    if resp.is_success:
+        return True, None
+    return False, f"Google Chat webhook error {resp.status_code}: {resp.text[:200]}"
+
+
+def _send_email(*, config: dict, subject: str, body: str) -> tuple[bool, str | None]:
+    smtp_host = config.get("smtp_host", "")
+    smtp_port = int(config.get("smtp_port", 587))
+    smtp_user = config.get("smtp_user", "")
+    smtp_password = config.get("smtp_password", "")
+    from_email = config.get("from_email", smtp_user)
+    to_email = config.get("to_email", "")
+    use_tls = config.get("tls", True)
+
+    if not smtp_host or not to_email:
+        return False, "email config missing smtp_host or to_email"
+
+    html_body = f"<pre style='font-family:monospace'>{body}</pre>"
+    message = emails.Message(
+        subject=f"🔔 {subject}",
+        html=html_body,
+        mail_from=from_email,
+    )
+    smtp_options: dict = {"host": smtp_host, "port": smtp_port}
+    if use_tls:
+        smtp_options["tls"] = True
+    if smtp_user:
+        smtp_options["user"] = smtp_user
+    if smtp_password:
+        smtp_options["password"] = smtp_password
+
+    response = message.send(to=to_email, smtp=smtp_options)
+    if response.status_code in (250, 200):
+        return True, None
+    return False, f"SMTP error {response.status_code}: {response.error}"

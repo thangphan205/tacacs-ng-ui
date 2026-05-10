@@ -52,6 +52,8 @@ const CHANNEL_COLORS: Record<string, string> = {
   discord: "indigo",
   teams: "teal",
   webhook: "gray",
+  gchat: "green",
+  email: "orange",
 }
 
 const CONFIG_PLACEHOLDERS: Record<string, string> = {
@@ -60,6 +62,8 @@ const CONFIG_PLACEHOLDERS: Record<string, string> = {
   discord: `{\n  "webhook_url": "https://discord.com/api/webhooks/..."\n}`,
   teams: `{\n  "webhook_url": "https://outlook.office.com/webhook/..."\n}`,
   webhook: `{\n  "webhook_url": "https://your-endpoint.com/hook",\n  "token": "optional-bearer-token"\n}`,
+  gchat: `{\n  "webhook_url": "https://chat.googleapis.com/v1/spaces/.../messages?key=..."\n}`,
+  email: `{\n  "smtp_host": "smtp.gmail.com",\n  "smtp_port": 587,\n  "smtp_user": "you@gmail.com",\n  "smtp_password": "app-password",\n  "from_email": "you@gmail.com",\n  "to_email": "alerts@example.com",\n  "tls": true\n}`,
 }
 
 interface QueryParams {
@@ -159,6 +163,8 @@ function ChannelDialog({
           <option value="slack">Slack</option>
           <option value="discord">Discord</option>
           <option value="teams">Microsoft Teams</option>
+          <option value="gchat">Google Chat</option>
+          <option value="email">Email (SMTP)</option>
           <option value="webhook">Generic Webhook</option>
         </select>
       </Box>
