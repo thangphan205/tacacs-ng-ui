@@ -153,6 +153,7 @@ parse channel.config_json → dict
 channel_type="telegram":
   POST https://api.telegram.org/bot{token}/sendMessage
   body: { chat_id, text="*{subject}*\n{body}", parse_mode="Markdown" }
+  optional: message_thread_id=topic_id  ← for supergroup forum topics
 
 channel_type="slack":
   POST webhook_url

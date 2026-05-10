@@ -55,7 +55,7 @@ const CHANNEL_COLORS: Record<string, string> = {
 }
 
 const CONFIG_PLACEHOLDERS: Record<string, string> = {
-  telegram: `{\n  "bot_token": "your-bot-token",\n  "chat_id": "-100123456789"\n}`,
+  telegram: `{\n  "bot_token": "your-bot-token",\n  "chat_id": "-100123456789",\n  "topic_id": ""\n}`,
   slack: `{\n  "webhook_url": "https://hooks.slack.com/services/..."\n}`,
   discord: `{\n  "webhook_url": "https://discord.com/api/webhooks/..."\n}`,
   teams: `{\n  "webhook_url": "https://outlook.office.com/webhook/..."\n}`,

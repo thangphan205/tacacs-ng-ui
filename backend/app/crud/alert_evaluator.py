@@ -321,17 +321,47 @@ def _compare(*, value: float, operator: str, threshold: float) -> bool:
     return False
 
 
+_SEVERITY_EMOJI = {
+    "low": "🟡",
+    "medium": "🟠",
+    "high": "🔴",
+    "critical": "🚨",
+}
+_LOG_TYPE_EMOJI = {
+    "auth": "🔐",
+    "authz": "🛡️",
+    "config": "⚙️",
+    "all": "📋",
+}
+_PAYLOAD_LABELS: dict[str, str] = {
+    "fail_count": "Auth failures",
+    "deny_count": "Authz denials",
+    "new_usernames": "New usernames",
+    "new_source_ips": "New source IPs",
+    "config_change_count": "Config changes",
+    "actions_checked": "Actions",
+    "window_minutes": "Window (min)",
+}
+
+
 def _format_body(*, rule: AlertRule, payload: dict) -> str:
+    sev_icon = _SEVERITY_EMOJI.get(rule.severity, "⚠️")
+    type_icon = _LOG_TYPE_EMOJI.get(rule.log_type, "📋")
+    op_map = {"gt": ">", "lt": "<", "eq": "=", "new_value": "new", "any_change": "any change",
+              "created": "created", "updated": "updated", "deleted": "deleted", "activated": "activated"}
+    op = op_map.get(rule.condition_operator, rule.condition_operator)
+    condition = f"{rule.condition_field} {op} {rule.threshold}" if rule.threshold else f"{rule.condition_field} {op}"
     lines = [
-        f"Rule: {rule.name}",
-        f"Severity: {rule.severity}",
-        f"Log type: {rule.log_type}",
-        f"Condition: {rule.condition_field} {rule.condition_operator} {rule.threshold}",
-        f"Window: {rule.time_window_minutes} min",
+        f"{sev_icon} Severity: {rule.severity.upper()}",
+        f"{type_icon} Log type: {rule.log_type}",
+        f"⏱ Window: {rule.time_window_minutes} min",
+        f"🎯 Condition: {condition}",
         "",
-        "Details:",
+        "📊 Details:",
     ]
     for k, v in payload.items():
-        if k != "rule":
-            lines.append(f"  {k}: {v}")
+        if k in ("rule", "window_minutes"):
+            continue
+        label = _PAYLOAD_LABELS.get(k, k.replace("_", " ").title())
+        lines.append(f"  • {label}: {v}")
     return "\n".join(lines)

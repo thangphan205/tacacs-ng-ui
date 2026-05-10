@@ -43,13 +43,14 @@ def _send_telegram(*, config: dict, subject: str, body: str) -> tuple[bool, str 
     if not bot_token or not chat_id:
         return False, "telegram config missing bot_token or chat_id"
 
-    text = f"*{subject}*\n\n{body}"
+    divider = "─" * 28
+    text = f"🔔 *{subject}*\n`{divider}`\n{body}\n`{divider}`"
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    resp = httpx.post(
-        url,
-        json={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"},
-        timeout=_TIMEOUT,
-    )
+    payload: dict = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
+    topic_id = config.get("topic_id")
+    if topic_id:
+        payload["message_thread_id"] = int(topic_id)
+    resp = httpx.post(url, json=payload, timeout=_TIMEOUT)
     if resp.is_success:
         return True, None
     return False, f"Telegram API error {resp.status_code}: {resp.text[:200]}"
@@ -60,14 +61,32 @@ def _send_slack(*, config: dict, subject: str, body: str) -> tuple[bool, str | N
     if not webhook_url:
         return False, "slack config missing webhook_url"
 
-    resp = httpx.post(
-        webhook_url,
-        json={"text": f"*{subject}*\n{body}"},
-        timeout=_TIMEOUT,
-    )
+    payload = {
+        "blocks": [
+            {
+                "type": "header",
+                "text": {"type": "plain_text", "text": f"🔔 {subject}", "emoji": True},
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": body},
+            },
+            {"type": "divider"},
+        ]
+    }
+    resp = httpx.post(webhook_url, json=payload, timeout=_TIMEOUT)
     if resp.is_success:
         return True, None
     return False, f"Slack webhook error {resp.status_code}: {resp.text[:200]}"
+
+
+_DISCORD_SEVERITY_COLOR = {
+    "low": 0xF1C40F,
+    "medium": 0xE67E22,
+    "high": 0xE74C3C,
+    "critical": 0x992D22,
+}
 
 
 def _send_discord(*, config: dict, subject: str, body: str) -> tuple[bool, str | None]:
@@ -75,11 +94,24 @@ def _send_discord(*, config: dict, subject: str, body: str) -> tuple[bool, str |
     if not webhook_url:
         return False, "discord config missing webhook_url"
 
-    resp = httpx.post(
-        webhook_url,
-        json={"content": f"**{subject}**\n{body}"},
-        timeout=_TIMEOUT,
-    )
+    # extract severity from subject like "[HIGH] TACACS Alert: ..."
+    severity_key = "high"
+    for sev in ("critical", "high", "medium", "low"):
+        if f"[{sev.upper()}]" in subject:
+            severity_key = sev
+            break
+    color = _DISCORD_SEVERITY_COLOR.get(severity_key, 0xE74C3C)
+
+    payload = {
+        "embeds": [
+            {
+                "title": f"🔔 {subject}",
+                "description": body,
+                "color": color,
+            }
+        ]
+    }
+    resp = httpx.post(webhook_url, json=payload, timeout=_TIMEOUT)
     if resp.is_success:
         return True, None
     return False, f"Discord webhook error {resp.status_code}: {resp.text[:200]}"
@@ -100,8 +132,14 @@ def _send_teams(*, config: dict, subject: str, body: str) -> tuple[bool, str | N
                     "type": "AdaptiveCard",
                     "version": "1.4",
                     "body": [
-                        {"type": "TextBlock", "text": subject, "weight": "Bolder", "size": "Medium"},
-                        {"type": "TextBlock", "text": body, "wrap": True},
+                        {
+                            "type": "TextBlock",
+                            "text": f"🔔 {subject}",
+                            "weight": "Bolder",
+                            "size": "Large",
+                            "wrap": True,
+                        },
+                        {"type": "TextBlock", "text": body, "wrap": True, "spacing": "Medium"},
                     ],
                 },
             }
