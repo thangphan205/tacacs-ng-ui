@@ -110,8 +110,8 @@ function ChannelDialog({
       ? {
           name: channel.name,
           channel_type: channel.channel_type,
-          config_json: channel.config_json,
-          enabled: channel.enabled,
+          config_json: channel.config_json ?? "{}",
+          enabled: channel.enabled ?? true,
         }
       : defaultForm,
   )

@@ -153,12 +153,12 @@ function AnomalyTable() {
                   </Table.Cell>
                   <Table.Cell fontWeight="medium">{r.subject_value}</Table.Cell>
                   <Table.Cell>
-                    <Badge colorPalette={RISK_COLORS[r.risk_level] ?? "gray"}>
+                    <Badge colorPalette={RISK_COLORS[r.risk_level ?? ""] ?? "gray"}>
                       {r.risk_level}
                     </Badge>
                   </Table.Cell>
                   <Table.Cell fontFamily="mono" fontSize="xs">
-                    {r.anomaly_score.toFixed(4)}
+                    {r.anomaly_score?.toFixed(4) ?? "—"}
                   </Table.Cell>
                   <Table.Cell>
                     {r.is_anomaly ? (
@@ -168,7 +168,7 @@ function AnomalyTable() {
                     )}
                   </Table.Cell>
                   <Table.Cell fontSize="xs" color="fg.muted" whiteSpace="nowrap">
-                    {new Date(r.scored_at).toLocaleString()}
+                    {r.scored_at ? new Date(r.scored_at).toLocaleString() : "—"}
                   </Table.Cell>
                 </Table.Row>
               ))}

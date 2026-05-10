@@ -29,11 +29,15 @@ import { Route as LayoutRulesetsRouteImport } from './routes/_layout/rulesets'
 import { Route as LayoutProfilescriptsetsRouteImport } from './routes/_layout/profilescriptsets'
 import { Route as LayoutProfilescriptsRouteImport } from './routes/_layout/profilescripts'
 import { Route as LayoutProfilesRouteImport } from './routes/_layout/profiles'
+import { Route as LayoutNotification_channelsRouteImport } from './routes/_layout/notification_channels'
 import { Route as LayoutMavisesRouteImport } from './routes/_layout/mavises'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutHostsRouteImport } from './routes/_layout/hosts'
 import { Route as LayoutConfiguration_optionsRouteImport } from './routes/_layout/configuration_options'
 import { Route as LayoutAudit_logsRouteImport } from './routes/_layout/audit_logs'
+import { Route as LayoutAnomaly_detectionRouteImport } from './routes/_layout/anomaly_detection'
+import { Route as LayoutAlert_rulesRouteImport } from './routes/_layout/alert_rules'
+import { Route as LayoutAlert_eventsRouteImport } from './routes/_layout/alert_events'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutAaa_statistics_rangeRouteImport } from './routes/_layout/aaa_statistics_range'
 import { Route as LayoutAaa_statisticsRouteImport } from './routes/_layout/aaa_statistics'
@@ -140,6 +144,12 @@ const LayoutProfilesRoute = LayoutProfilesRouteImport.update({
   path: '/profiles',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutNotification_channelsRoute =
+  LayoutNotification_channelsRouteImport.update({
+    id: '/notification_channels',
+    path: '/notification_channels',
+    getParentRoute: () => LayoutRoute,
+  } as any)
 const LayoutMavisesRoute = LayoutMavisesRouteImport.update({
   id: '/mavises',
   path: '/mavises',
@@ -164,6 +174,21 @@ const LayoutConfiguration_optionsRoute =
 const LayoutAudit_logsRoute = LayoutAudit_logsRouteImport.update({
   id: '/audit_logs',
   path: '/audit_logs',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutAnomaly_detectionRoute = LayoutAnomaly_detectionRouteImport.update({
+  id: '/anomaly_detection',
+  path: '/anomaly_detection',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutAlert_rulesRoute = LayoutAlert_rulesRouteImport.update({
+  id: '/alert_rules',
+  path: '/alert_rules',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutAlert_eventsRoute = LayoutAlert_eventsRouteImport.update({
+  id: '/alert_events',
+  path: '/alert_events',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutAdminRoute = LayoutAdminRouteImport.update({
@@ -204,11 +229,15 @@ export interface FileRoutesByFullPath {
   '/aaa_statistics': typeof LayoutAaa_statisticsRoute
   '/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
   '/admin': typeof LayoutAdminRouteWithChildren
+  '/alert_events': typeof LayoutAlert_eventsRoute
+  '/alert_rules': typeof LayoutAlert_rulesRoute
+  '/anomaly_detection': typeof LayoutAnomaly_detectionRoute
   '/audit_logs': typeof LayoutAudit_logsRoute
   '/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/hosts': typeof LayoutHostsRoute
   '/items': typeof LayoutItemsRoute
   '/mavises': typeof LayoutMavisesRoute
+  '/notification_channels': typeof LayoutNotification_channelsRoute
   '/profiles': typeof LayoutProfilesRoute
   '/profilescripts': typeof LayoutProfilescriptsRoute
   '/profilescriptsets': typeof LayoutProfilescriptsetsRoute
@@ -235,11 +264,15 @@ export interface FileRoutesByTo {
   '/aaa_statistics': typeof LayoutAaa_statisticsRoute
   '/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
   '/admin': typeof LayoutAdminRouteWithChildren
+  '/alert_events': typeof LayoutAlert_eventsRoute
+  '/alert_rules': typeof LayoutAlert_rulesRoute
+  '/anomaly_detection': typeof LayoutAnomaly_detectionRoute
   '/audit_logs': typeof LayoutAudit_logsRoute
   '/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/hosts': typeof LayoutHostsRoute
   '/items': typeof LayoutItemsRoute
   '/mavises': typeof LayoutMavisesRoute
+  '/notification_channels': typeof LayoutNotification_channelsRoute
   '/profiles': typeof LayoutProfilesRoute
   '/profilescripts': typeof LayoutProfilescriptsRoute
   '/profilescriptsets': typeof LayoutProfilescriptsetsRoute
@@ -268,11 +301,15 @@ export interface FileRoutesById {
   '/_layout/aaa_statistics': typeof LayoutAaa_statisticsRoute
   '/_layout/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
   '/_layout/admin': typeof LayoutAdminRouteWithChildren
+  '/_layout/alert_events': typeof LayoutAlert_eventsRoute
+  '/_layout/alert_rules': typeof LayoutAlert_rulesRoute
+  '/_layout/anomaly_detection': typeof LayoutAnomaly_detectionRoute
   '/_layout/audit_logs': typeof LayoutAudit_logsRoute
   '/_layout/configuration_options': typeof LayoutConfiguration_optionsRoute
   '/_layout/hosts': typeof LayoutHostsRoute
   '/_layout/items': typeof LayoutItemsRoute
   '/_layout/mavises': typeof LayoutMavisesRoute
+  '/_layout/notification_channels': typeof LayoutNotification_channelsRoute
   '/_layout/profiles': typeof LayoutProfilesRoute
   '/_layout/profilescripts': typeof LayoutProfilescriptsRoute
   '/_layout/profilescriptsets': typeof LayoutProfilescriptsetsRoute
@@ -301,11 +338,15 @@ export interface FileRouteTypes {
     | '/aaa_statistics'
     | '/aaa_statistics_range'
     | '/admin'
+    | '/alert_events'
+    | '/alert_rules'
+    | '/anomaly_detection'
     | '/audit_logs'
     | '/configuration_options'
     | '/hosts'
     | '/items'
     | '/mavises'
+    | '/notification_channels'
     | '/profiles'
     | '/profilescripts'
     | '/profilescriptsets'
@@ -332,11 +373,15 @@ export interface FileRouteTypes {
     | '/aaa_statistics'
     | '/aaa_statistics_range'
     | '/admin'
+    | '/alert_events'
+    | '/alert_rules'
+    | '/anomaly_detection'
     | '/audit_logs'
     | '/configuration_options'
     | '/hosts'
     | '/items'
     | '/mavises'
+    | '/notification_channels'
     | '/profiles'
     | '/profilescripts'
     | '/profilescriptsets'
@@ -364,11 +409,15 @@ export interface FileRouteTypes {
     | '/_layout/aaa_statistics'
     | '/_layout/aaa_statistics_range'
     | '/_layout/admin'
+    | '/_layout/alert_events'
+    | '/_layout/alert_rules'
+    | '/_layout/anomaly_detection'
     | '/_layout/audit_logs'
     | '/_layout/configuration_options'
     | '/_layout/hosts'
     | '/_layout/items'
     | '/_layout/mavises'
+    | '/_layout/notification_channels'
     | '/_layout/profiles'
     | '/_layout/profilescripts'
     | '/_layout/profilescriptsets'
@@ -538,6 +587,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutProfilesRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/notification_channels': {
+      id: '/_layout/notification_channels'
+      path: '/notification_channels'
+      fullPath: '/notification_channels'
+      preLoaderRoute: typeof LayoutNotification_channelsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/mavises': {
       id: '/_layout/mavises'
       path: '/mavises'
@@ -571,6 +627,27 @@ declare module '@tanstack/react-router' {
       path: '/audit_logs'
       fullPath: '/audit_logs'
       preLoaderRoute: typeof LayoutAudit_logsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/anomaly_detection': {
+      id: '/_layout/anomaly_detection'
+      path: '/anomaly_detection'
+      fullPath: '/anomaly_detection'
+      preLoaderRoute: typeof LayoutAnomaly_detectionRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/alert_rules': {
+      id: '/_layout/alert_rules'
+      path: '/alert_rules'
+      fullPath: '/alert_rules'
+      preLoaderRoute: typeof LayoutAlert_rulesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/alert_events': {
+      id: '/_layout/alert_events'
+      path: '/alert_events'
+      fullPath: '/alert_events'
+      preLoaderRoute: typeof LayoutAlert_eventsRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/admin': {
@@ -629,11 +706,15 @@ interface LayoutRouteChildren {
   LayoutAaa_statisticsRoute: typeof LayoutAaa_statisticsRoute
   LayoutAaa_statistics_rangeRoute: typeof LayoutAaa_statistics_rangeRoute
   LayoutAdminRoute: typeof LayoutAdminRouteWithChildren
+  LayoutAlert_eventsRoute: typeof LayoutAlert_eventsRoute
+  LayoutAlert_rulesRoute: typeof LayoutAlert_rulesRoute
+  LayoutAnomaly_detectionRoute: typeof LayoutAnomaly_detectionRoute
   LayoutAudit_logsRoute: typeof LayoutAudit_logsRoute
   LayoutConfiguration_optionsRoute: typeof LayoutConfiguration_optionsRoute
   LayoutHostsRoute: typeof LayoutHostsRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
   LayoutMavisesRoute: typeof LayoutMavisesRoute
+  LayoutNotification_channelsRoute: typeof LayoutNotification_channelsRoute
   LayoutProfilesRoute: typeof LayoutProfilesRoute
   LayoutProfilescriptsRoute: typeof LayoutProfilescriptsRoute
   LayoutProfilescriptsetsRoute: typeof LayoutProfilescriptsetsRoute
@@ -654,11 +735,15 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAaa_statisticsRoute: LayoutAaa_statisticsRoute,
   LayoutAaa_statistics_rangeRoute: LayoutAaa_statistics_rangeRoute,
   LayoutAdminRoute: LayoutAdminRouteWithChildren,
+  LayoutAlert_eventsRoute: LayoutAlert_eventsRoute,
+  LayoutAlert_rulesRoute: LayoutAlert_rulesRoute,
+  LayoutAnomaly_detectionRoute: LayoutAnomaly_detectionRoute,
   LayoutAudit_logsRoute: LayoutAudit_logsRoute,
   LayoutConfiguration_optionsRoute: LayoutConfiguration_optionsRoute,
   LayoutHostsRoute: LayoutHostsRoute,
   LayoutItemsRoute: LayoutItemsRoute,
   LayoutMavisesRoute: LayoutMavisesRoute,
+  LayoutNotification_channelsRoute: LayoutNotification_channelsRoute,
   LayoutProfilesRoute: LayoutProfilesRoute,
   LayoutProfilescriptsRoute: LayoutProfilescriptsRoute,
   LayoutProfilescriptsetsRoute: LayoutProfilescriptsetsRoute,

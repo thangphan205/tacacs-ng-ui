@@ -107,6 +107,91 @@ export type AccountingStatisticsPublic = {
     count: number;
 };
 
+export type AlertEventPublic = {
+    triggered_at?: string;
+    payload_snapshot?: (string | null);
+    status?: string;
+    error_message?: (string | null);
+    id: string;
+    rule_id: string;
+    channel_id: string;
+    rule_name?: (string | null);
+    channel_name?: (string | null);
+    rule_severity?: (string | null);
+    created_at: string;
+};
+
+export type AlertEventsPublic = {
+    data: Array<AlertEventPublic>;
+    count: number;
+};
+
+export type AlertRuleCreate = {
+    name: string;
+    description?: (string | null);
+    enabled?: boolean;
+    log_type: string;
+    condition_field: string;
+    condition_operator: string;
+    threshold?: (number | null);
+    time_window_minutes?: number;
+    severity?: string;
+    cooldown_minutes?: number;
+};
+
+export type AlertRulePublic = {
+    name: string;
+    description?: (string | null);
+    enabled?: boolean;
+    log_type: string;
+    condition_field: string;
+    condition_operator: string;
+    threshold?: (number | null);
+    time_window_minutes?: number;
+    severity?: string;
+    cooldown_minutes?: number;
+    id: string;
+    last_fired_at: (string | null);
+    created_at: string;
+    updated_at: string;
+};
+
+export type AlertRulesPublic = {
+    data: Array<AlertRulePublic>;
+    count: number;
+};
+
+export type AlertRuleUpdate = {
+    name?: (string | null);
+    description?: (string | null);
+    enabled?: (boolean | null);
+    log_type?: (string | null);
+    condition_field?: (string | null);
+    condition_operator?: (string | null);
+    threshold?: (number | null);
+    time_window_minutes?: (number | null);
+    severity?: (string | null);
+    cooldown_minutes?: (number | null);
+};
+
+export type AnomalyDetectionResultPublic = {
+    subject_type: string;
+    subject_value: string;
+    scored_at?: string;
+    anomaly_score: number;
+    is_anomaly?: boolean;
+    risk_level?: string;
+    feature_snapshot?: (string | null);
+    id: string;
+    created_at: string;
+    updated_at: string;
+};
+
+export type AnomalyDetectionResultsPublic = {
+    data: Array<AnomalyDetectionResultPublic>;
+    count: number;
+};
+
 export type AuditLogPublic = {
     action: string;
     entity_type: string;
@@ -322,6 +407,35 @@ export type Message = {
 export type NewPassword = {
     token: string;
     new_password: string;
+};
+
+export type NotificationChannelCreate = {
+    name: string;
+    channel_type: string;
+    config_json?: string;
+    enabled?: boolean;
+};
+
+export type NotificationChannelPublic = {
+    name: string;
+    channel_type: string;
+    config_json?: string;
+    enabled?: boolean;
+    id: string;
+    created_at: string;
+    updated_at: string;
+};
+
+export type NotificationChannelsPublic = {
+    data: Array<NotificationChannelPublic>;
+    count: number;
+};
+
+export type NotificationChannelUpdate = {
+    name?: (string | null);
+    channel_type?: (string | null);
+    config_json?: (string | null);
+    enabled?: (boolean | null);
 };
 
 export type PasskeyAuthenticateCompleteRequest = {
@@ -866,6 +980,63 @@ export type AdminUpdateAuthProviderData = {
 
 export type AdminUpdateAuthProviderResponse = (AuthProviderConfigPublic);
 
+export type AlertEventsReadAlertEventsData = {
+    limit?: number;
+    ruleId?: (string | null);
+    skip?: number;
+    status?: (string | null);
+};
+
+export type AlertEventsReadAlertEventsResponse = (AlertEventsPublic);
+
+export type AlertRulesReadAlertRulesData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type AlertRulesReadAlertRulesResponse = (AlertRulesPublic);
+
+export type AlertRulesCreateAlertRuleData = {
+    requestBody: AlertRuleCreate;
+};
+
+export type AlertRulesCreateAlertRuleResponse = (AlertRulePublic);
+
+export type AlertRulesReadAlertRuleByIdData = {
+    id: string;
+};
+
+export type AlertRulesReadAlertRuleByIdResponse = (AlertRulePublic);
+
+export type AlertRulesUpdateAlertRuleData = {
+    id: string;
+    requestBody: AlertRuleUpdate;
+};
+
+export type AlertRulesUpdateAlertRuleResponse = (AlertRulePublic);
+
+export type AlertRulesDeleteAlertRuleData = {
+    id: string;
+};
+
+export type AlertRulesDeleteAlertRuleResponse = ({
+    [key: string]: (string);
+});
+
+export type AnomalyDetectionReadAnomalyResultsData = {
+    isAnomalyOnly?: boolean;
+    limit?: number;
+    skip?: number;
+    sortBy?: string;
+    subjectType?: (string | null);
+};
+
+export type AnomalyDetectionReadAnomalyResultsResponse = (AnomalyDetectionResultsPublic);
+
+export type AnomalyDetectionRetrainAnomalyModelResponse = ({
+    [key: string]: unknown;
+});
+
 export type AuditLogsReadAuditLogsData = {
     limit?: number;
     search?: (string | null);
@@ -1069,6 +1240,48 @@ export type MavisesDeleteMavisData = {
 };
 
 export type MavisesDeleteMavisResponse = (Message);
+
+export type NotificationChannelsReadNotificationChannelsData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type NotificationChannelsReadNotificationChannelsResponse = (NotificationChannelsPublic);
+
+export type NotificationChannelsCreateNotificationChannelData = {
+    requestBody: NotificationChannelCreate;
+};
+
+export type NotificationChannelsCreateNotificationChannelResponse = (NotificationChannelPublic);
+
+export type NotificationChannelsReadNotificationChannelByIdData = {
+    id: string;
+};
+
+export type NotificationChannelsReadNotificationChannelByIdResponse = (NotificationChannelPublic);
+
+export type NotificationChannelsUpdateNotificationChannelData = {
+    id: string;
+    requestBody: NotificationChannelUpdate;
+};
+
+export type NotificationChannelsUpdateNotificationChannelResponse = (NotificationChannelPublic);
+
+export type NotificationChannelsDeleteNotificationChannelData = {
+    id: string;
+};
+
+export type NotificationChannelsDeleteNotificationChannelResponse = ({
+    [key: string]: (string);
+});
+
+export type NotificationChannelsTestNotificationChannelData = {
+    id: string;
+};
+
+export type NotificationChannelsTestNotificationChannelResponse = ({
+    [key: string]: (string);
+});
 
 export type OauthGoogleAuthorizeResponse = ({
     [key: string]: (string);

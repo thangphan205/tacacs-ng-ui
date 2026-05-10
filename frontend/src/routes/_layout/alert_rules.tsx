@@ -17,7 +17,7 @@ import {
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { FiBell, FiPlus, FiSearch } from "react-icons/fi"
+import { FiBell, FiPlus } from "react-icons/fi"
 import { z } from "zod"
 
 import type { AlertRulePublic } from "@/client"
@@ -118,9 +118,9 @@ function RuleDialog({
           condition_operator: rule.condition_operator,
           threshold: String(rule.threshold ?? ""),
           time_window_minutes: String(rule.time_window_minutes),
-          severity: rule.severity,
+          severity: rule.severity ?? "medium",
           cooldown_minutes: String(rule.cooldown_minutes),
-          enabled: rule.enabled,
+          enabled: rule.enabled ?? true,
         }
       : defaultForm,
   )
@@ -348,7 +348,7 @@ function AlertRulesTable() {
                 <Table.Row key={rule.id}>
                   <Table.Cell fontWeight="medium">{rule.name}</Table.Cell>
                   <Table.Cell>
-                    <Badge colorPalette={SEVERITY_COLORS[rule.severity] ?? "gray"}>
+                    <Badge colorPalette={SEVERITY_COLORS[rule.severity ?? ""] ?? "gray"}>
                       {rule.severity}
                     </Badge>
                   </Table.Cell>

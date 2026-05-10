@@ -5,6 +5,7 @@ import {
   EmptyState,
   Flex,
   Heading,
+  Table,
   Text,
   VStack,
 } from "@chakra-ui/react"
@@ -22,7 +23,6 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
-import { Table } from "@chakra-ui/react"
 
 const DEFAULT_PER_PAGE = 20
 
@@ -118,19 +118,19 @@ function AlertEventsTable() {
               {data?.data.map((ev) => (
                 <Table.Row key={ev.id}>
                   <Table.Cell fontSize="xs" whiteSpace="nowrap">
-                    {new Date(ev.triggered_at).toLocaleString()}
+                    {ev.triggered_at ? new Date(ev.triggered_at).toLocaleString() : "—"}
                   </Table.Cell>
                   <Table.Cell fontWeight="medium">{ev.rule_name ?? ev.rule_id}</Table.Cell>
                   <Table.Cell>
                     {ev.rule_severity && (
-                      <Badge colorPalette={SEVERITY_COLORS[ev.rule_severity] ?? "gray"}>
+                      <Badge colorPalette={SEVERITY_COLORS[ev.rule_severity ?? ""] ?? "gray"}>
                         {ev.rule_severity}
                       </Badge>
                     )}
                   </Table.Cell>
                   <Table.Cell>{ev.channel_name ?? ev.channel_id}</Table.Cell>
                   <Table.Cell>
-                    <Badge colorPalette={STATUS_COLORS[ev.status] ?? "gray"}>
+                    <Badge colorPalette={STATUS_COLORS[ev.status ?? ""] ?? "gray"}>
                       {ev.status}
                     </Badge>
                   </Table.Cell>
