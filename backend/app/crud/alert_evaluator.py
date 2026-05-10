@@ -3,13 +3,14 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 
-from sqlmodel import Session, func, select
+from sqlmodel import Session, col, func, select
 
 from app.crud import alert_events as crud_alert_events
 from app.crud import alert_rules as crud_alert_rules
 from app.crud.notification_dispatcher import dispatch_notification
 from app.models import (
     AlertRule,
+    AuditLog,
     AuthenticationStatistics,
     AuthorizationStatistics,
     NotificationChannel,
@@ -79,6 +80,13 @@ def _evaluate_rule(
 
     if rule.log_type in ("authz", "all"):
         triggered, payload = _check_authz_stats(
+            rule=rule, session=session, window_start=window_start
+        )
+        if triggered:
+            return True, payload
+
+    if rule.log_type in ("config", "all"):
+        triggered, payload = _check_audit_logs(
             rule=rule, session=session, window_start=window_start
         )
         if triggered:
@@ -172,6 +180,36 @@ def _check_authz_stats(
         }
 
     return False, {}
+
+
+_CONFIG_ACTION_MAP: dict[str, list[str]] = {
+    "any_change": ["CREATE", "UPDATE", "DELETE", "ACTIVATE"],
+    "created":    ["CREATE"],
+    "updated":    ["UPDATE"],
+    "deleted":    ["DELETE"],
+    "activated":  ["ACTIVATE"],
+}
+
+
+def _check_audit_logs(
+    *, rule: AlertRule, session: Session, window_start: datetime
+) -> tuple[bool, dict]:
+    actions = _CONFIG_ACTION_MAP.get(rule.condition_operator, ["CREATE", "UPDATE", "DELETE", "ACTIVATE"])
+    count = session.exec(
+        select(func.count()).where(
+            AuditLog.entity_type == "TacacsConfig",
+            col(AuditLog.action).in_(actions),
+            AuditLog.created_at >= window_start,
+        )
+    ).one() or 0
+    threshold = int(rule.threshold or 1)
+    triggered = count >= threshold
+    return triggered, {
+        "config_change_count": count,
+        "actions_checked": actions,
+        "window_minutes": rule.time_window_minutes,
+        "rule": rule.name,
+    }
 
 
 def _compare(*, value: float, operator: str, threshold: float) -> bool:

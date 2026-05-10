@@ -168,6 +168,17 @@ function RuleDialog({
     setForm((prev) => ({ ...prev, [k]: e.target.value }))
   }
 
+  const handleLogTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const t = e.target.value
+    if (t === "config") {
+      setForm((p) => ({ ...p, log_type: t, condition_field: "config_action", condition_operator: "any_change", threshold: "1" }))
+    } else {
+      setForm((p) => ({ ...p, log_type: t, condition_field: "fail_count", condition_operator: "gt" }))
+    }
+  }
+
+  const isConfig = form.log_type === "config"
+
   return (
     <Stack gap={3}>
       <Box>
@@ -181,9 +192,10 @@ function RuleDialog({
       <Flex gap={3}>
         <Box flex={1}>
           <Text fontSize="sm" mb={1}>Log Type</Text>
-          <select style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #ccc" }} value={form.log_type} onChange={f("log_type")}>
+          <select style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #ccc" }} value={form.log_type} onChange={handleLogTypeChange}>
             <option value="auth">Authentication</option>
             <option value="authz">Authorization</option>
+            <option value="config">Config Changes</option>
             <option value="all">All</option>
           </select>
         </Box>
@@ -198,27 +210,39 @@ function RuleDialog({
         </Box>
       </Flex>
       <Flex gap={3}>
+        {!isConfig && (
+          <Box flex={1}>
+            <Text fontSize="sm" mb={1}>Condition Field</Text>
+            <select style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #ccc" }} value={form.condition_field} onChange={f("condition_field")}>
+              <option value="fail_count">Fail Count</option>
+              <option value="deny_count">Deny Count</option>
+              <option value="username">New Username</option>
+              <option value="client_ip">New Source IP</option>
+            </select>
+          </Box>
+        )}
         <Box flex={1}>
-          <Text fontSize="sm" mb={1}>Condition Field</Text>
-          <select style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #ccc" }} value={form.condition_field} onChange={f("condition_field")}>
-            <option value="fail_count">Fail Count</option>
-            <option value="deny_count">Deny Count</option>
-            <option value="username">New Username</option>
-            <option value="client_ip">New Source IP</option>
-          </select>
+          <Text fontSize="sm" mb={1}>{isConfig ? "Config Action" : "Operator"}</Text>
+          {isConfig ? (
+            <select style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #ccc" }} value={form.condition_operator} onChange={f("condition_operator")}>
+              <option value="any_change">Any Change</option>
+              <option value="created">Created</option>
+              <option value="updated">Updated / Edited</option>
+              <option value="deleted">Deleted</option>
+              <option value="activated">Activated</option>
+            </select>
+          ) : (
+            <select style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #ccc" }} value={form.condition_operator} onChange={f("condition_operator")}>
+              <option value="gt">Greater Than</option>
+              <option value="lt">Less Than</option>
+              <option value="eq">Equal To</option>
+              <option value="new_value">New Value</option>
+            </select>
+          )}
         </Box>
         <Box flex={1}>
-          <Text fontSize="sm" mb={1}>Operator</Text>
-          <select style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #ccc" }} value={form.condition_operator} onChange={f("condition_operator")}>
-            <option value="gt">Greater Than</option>
-            <option value="lt">Less Than</option>
-            <option value="eq">Equal To</option>
-            <option value="new_value">New Value</option>
-          </select>
-        </Box>
-        <Box flex={1}>
-          <Text fontSize="sm" mb={1}>Threshold</Text>
-          <Input value={form.threshold} onChange={f("threshold")} placeholder="5" type="number" />
+          <Text fontSize="sm" mb={1}>{isConfig ? "Min occurrences" : "Threshold"}</Text>
+          <Input value={form.threshold} onChange={f("threshold")} placeholder={isConfig ? "1" : "5"} type="number" />
         </Box>
       </Flex>
       <Flex gap={3}>
