@@ -22,6 +22,13 @@ def _make_channel(session: Session, **kwargs) -> NotificationChannel:
     return crud_channels.create_notification_channel(session=session, channel_in=ch_in)
 
 
+def _cleanup(session: Session, *channels: NotificationChannel) -> None:
+    for ch in channels:
+        session.refresh(ch)
+        session.delete(ch)
+    session.commit()
+
+
 # ---------------------------------------------------------------------------
 # CRUD — Notification Channels
 # ---------------------------------------------------------------------------
@@ -29,25 +36,31 @@ def _make_channel(session: Session, **kwargs) -> NotificationChannel:
 class TestNotificationChannelCRUD:
     def test_create_and_read(self, client: TestClient, superuser_token_headers: dict, db: Session) -> None:
         ch = _make_channel(db, name="read-channel")
-        resp = client.get(
-            f"{settings.API_V1_STR}/notification_channels/{ch.id}",
-            headers=superuser_token_headers,
-        )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["id"] == str(ch.id)
-        assert data["name"] == "read-channel"
-        assert data["channel_type"] == "webhook"
+        try:
+            resp = client.get(
+                f"{settings.API_V1_STR}/notification_channels/{ch.id}",
+                headers=superuser_token_headers,
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["id"] == str(ch.id)
+            assert data["name"] == "read-channel"
+            assert data["channel_type"] == "webhook"
+        finally:
+            _cleanup(db, ch)
 
     def test_list_includes_channel(self, client: TestClient, superuser_token_headers: dict, db: Session) -> None:
         ch = _make_channel(db)
-        resp = client.get(
-            f"{settings.API_V1_STR}/notification_channels/",
-            headers=superuser_token_headers,
-        )
-        assert resp.status_code == 200
-        ids = [c["id"] for c in resp.json()["data"]]
-        assert str(ch.id) in ids
+        try:
+            resp = client.get(
+                f"{settings.API_V1_STR}/notification_channels/",
+                headers=superuser_token_headers,
+            )
+            assert resp.status_code == 200
+            ids = [c["id"] for c in resp.json()["data"]]
+            assert str(ch.id) in ids
+        finally:
+            _cleanup(db, ch)
 
     def test_create_via_api(self, client: TestClient, superuser_token_headers: dict) -> None:
         payload = {
@@ -66,18 +79,22 @@ class TestNotificationChannelCRUD:
         assert data["name"] == payload["name"]
         assert data["channel_type"] == "webhook"
         assert data["enabled"] is True
+        client.delete(f"{settings.API_V1_STR}/notification_channels/{data['id']}", headers=superuser_token_headers)
 
     def test_update_channel(self, client: TestClient, superuser_token_headers: dict, db: Session) -> None:
         ch = _make_channel(db)
-        resp = client.patch(
-            f"{settings.API_V1_STR}/notification_channels/{ch.id}",
-            headers=superuser_token_headers,
-            json={"enabled": False, "name": "updated-name"},
-        )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["enabled"] is False
-        assert data["name"] == "updated-name"
+        try:
+            resp = client.patch(
+                f"{settings.API_V1_STR}/notification_channels/{ch.id}",
+                headers=superuser_token_headers,
+                json={"enabled": False, "name": "updated-name"},
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["enabled"] is False
+            assert data["name"] == "updated-name"
+        finally:
+            _cleanup(db, ch)
 
     def test_delete_channel(self, client: TestClient, superuser_token_headers: dict, db: Session) -> None:
         ch = _make_channel(db)
@@ -101,19 +118,21 @@ class TestNotificationChannelCRUD:
 
     def test_disabled_channel_excluded_from_enabled_only(self, db: Session) -> None:
         ch = _make_channel(db, enabled=False)
-        channels, count = crud_channels.get_notification_channels(
-            session=db, enabled_only=True
-        )
-        ids = [c.id for c in channels]
-        assert ch.id not in ids
+        try:
+            channels, _ = crud_channels.get_notification_channels(session=db, enabled_only=True)
+            ids = [c.id for c in channels]
+            assert ch.id not in ids
+        finally:
+            _cleanup(db, ch)
 
     def test_enabled_channel_included_in_enabled_only(self, db: Session) -> None:
         ch = _make_channel(db, enabled=True)
-        channels, _ = crud_channels.get_notification_channels(
-            session=db, enabled_only=True
-        )
-        ids = [c.id for c in channels]
-        assert ch.id in ids
+        try:
+            channels, _ = crud_channels.get_notification_channels(session=db, enabled_only=True)
+            ids = [c.id for c in channels]
+            assert ch.id in ids
+        finally:
+            _cleanup(db, ch)
 
 
 # ---------------------------------------------------------------------------
@@ -250,29 +269,35 @@ class TestNotificationDispatcher:
 class TestChannelTestEndpoint:
     def test_test_endpoint_success(self, client: TestClient, superuser_token_headers: dict, db: Session) -> None:
         ch = _make_channel(db, channel_type="webhook", config_json=json.dumps({"webhook_url": "https://example.com/hook"}))
-        mock_resp = MagicMock()
-        mock_resp.is_success = True
-        with patch("httpx.post", return_value=mock_resp):
-            resp = client.post(
-                f"{settings.API_V1_STR}/notification_channels/{ch.id}/test",
-                headers=superuser_token_headers,
-            )
-        assert resp.status_code == 200
-        assert "message" in resp.json()
+        try:
+            mock_resp = MagicMock()
+            mock_resp.is_success = True
+            with patch("httpx.post", return_value=mock_resp):
+                resp = client.post(
+                    f"{settings.API_V1_STR}/notification_channels/{ch.id}/test",
+                    headers=superuser_token_headers,
+                )
+            assert resp.status_code == 200
+            assert "message" in resp.json()
+        finally:
+            _cleanup(db, ch)
 
     def test_test_endpoint_failure_returns_502(self, client: TestClient, superuser_token_headers: dict, db: Session) -> None:
         ch = _make_channel(db, channel_type="webhook", config_json=json.dumps({"webhook_url": "https://example.com/hook"}))
-        mock_resp = MagicMock()
-        mock_resp.is_success = False
-        mock_resp.status_code = 503
-        mock_resp.text = "Service Unavailable"
-        with patch("httpx.post", return_value=mock_resp):
-            resp = client.post(
-                f"{settings.API_V1_STR}/notification_channels/{ch.id}/test",
-                headers=superuser_token_headers,
-            )
-        assert resp.status_code == 502
-        assert "Test failed" in resp.json()["detail"]
+        try:
+            mock_resp = MagicMock()
+            mock_resp.is_success = False
+            mock_resp.status_code = 503
+            mock_resp.text = "Service Unavailable"
+            with patch("httpx.post", return_value=mock_resp):
+                resp = client.post(
+                    f"{settings.API_V1_STR}/notification_channels/{ch.id}/test",
+                    headers=superuser_token_headers,
+                )
+            assert resp.status_code == 502
+            assert "Test failed" in resp.json()["detail"]
+        finally:
+            _cleanup(db, ch)
 
     def test_test_endpoint_not_found(self, client: TestClient, superuser_token_headers: dict) -> None:
         resp = client.post(

@@ -25,6 +25,13 @@ def _make_rule(session: Session, **kwargs) -> AlertRule:
     return crud_alert_rules.create_alert_rule(session=session, rule_in=rule_in)
 
 
+def _cleanup(session: Session, *rules: AlertRule) -> None:
+    for rule in rules:
+        session.refresh(rule)
+        session.delete(rule)
+    session.commit()
+
+
 # ---------------------------------------------------------------------------
 # CRUD — Alert Rules
 # ---------------------------------------------------------------------------
@@ -32,25 +39,31 @@ def _make_rule(session: Session, **kwargs) -> AlertRule:
 class TestAlertRuleCRUD:
     def test_create_and_read(self, client: TestClient, superuser_token_headers: dict, db: Session) -> None:
         rule = _make_rule(db, name="crud-read-rule")
-        resp = client.get(
-            f"{settings.API_V1_STR}/alert_rules/{rule.id}",
-            headers=superuser_token_headers,
-        )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["id"] == str(rule.id)
-        assert data["name"] == "crud-read-rule"
-        assert data["is_system"] is False
+        try:
+            resp = client.get(
+                f"{settings.API_V1_STR}/alert_rules/{rule.id}",
+                headers=superuser_token_headers,
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["id"] == str(rule.id)
+            assert data["name"] == "crud-read-rule"
+            assert data["is_system"] is False
+        finally:
+            _cleanup(db, rule)
 
     def test_list_includes_rule(self, client: TestClient, superuser_token_headers: dict, db: Session) -> None:
         rule = _make_rule(db)
-        resp = client.get(
-            f"{settings.API_V1_STR}/alert_rules/",
-            headers=superuser_token_headers,
-        )
-        assert resp.status_code == 200
-        ids = [r["id"] for r in resp.json()["data"]]
-        assert str(rule.id) in ids
+        try:
+            resp = client.get(
+                f"{settings.API_V1_STR}/alert_rules/",
+                headers=superuser_token_headers,
+            )
+            assert resp.status_code == 200
+            ids = [r["id"] for r in resp.json()["data"]]
+            assert str(rule.id) in ids
+        finally:
+            _cleanup(db, rule)
 
     def test_create_via_api(self, client: TestClient, superuser_token_headers: dict) -> None:
         payload = {
@@ -74,18 +87,22 @@ class TestAlertRuleCRUD:
         assert data["name"] == payload["name"]
         assert data["severity"] == "high"
         assert data["is_system"] is False
+        client.delete(f"{settings.API_V1_STR}/alert_rules/{data['id']}", headers=superuser_token_headers)
 
     def test_update_rule(self, client: TestClient, superuser_token_headers: dict, db: Session) -> None:
         rule = _make_rule(db)
-        resp = client.patch(
-            f"{settings.API_V1_STR}/alert_rules/{rule.id}",
-            headers=superuser_token_headers,
-            json={"severity": "critical", "cooldown_minutes": 120},
-        )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["severity"] == "critical"
-        assert data["cooldown_minutes"] == 120
+        try:
+            resp = client.patch(
+                f"{settings.API_V1_STR}/alert_rules/{rule.id}",
+                headers=superuser_token_headers,
+                json={"severity": "critical", "cooldown_minutes": 120},
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["severity"] == "critical"
+            assert data["cooldown_minutes"] == 120
+        finally:
+            _cleanup(db, rule)
 
     def test_delete_user_rule(self, client: TestClient, superuser_token_headers: dict, db: Session) -> None:
         rule = _make_rule(db)
@@ -116,13 +133,16 @@ class TestAlertRuleCRUD:
         db.add(system_rule)
         db.commit()
         db.refresh(system_rule)
-
-        resp = client.delete(
-            f"{settings.API_V1_STR}/alert_rules/{system_rule.id}",
-            headers=superuser_token_headers,
-        )
-        assert resp.status_code == 403
-        assert "system" in resp.json()["detail"].lower()
+        try:
+            resp = client.delete(
+                f"{settings.API_V1_STR}/alert_rules/{system_rule.id}",
+                headers=superuser_token_headers,
+            )
+            assert resp.status_code == 403
+            assert "system" in resp.json()["detail"].lower()
+        finally:
+            db.delete(system_rule)
+            db.commit()
 
     def test_read_not_found(self, client: TestClient, superuser_token_headers: dict) -> None:
         resp = client.get(
@@ -152,3 +172,4 @@ class TestAlertRuleCRUD:
         data = resp.json()
         assert data["log_type"] == "config"
         assert data["condition_operator"] == "any_change"
+        client.delete(f"{settings.API_V1_STR}/alert_rules/{data['id']}", headers=superuser_token_headers)
