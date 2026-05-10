@@ -29,6 +29,10 @@ from app.api.routes import (
     authorization_statistics,
     accounting_statistics,
     aaa_statistics,
+    alert_rules,
+    notification_channels,
+    alert_events,
+    anomaly_detection,
 )
 from app.core.config import settings
 
@@ -61,6 +65,10 @@ api_router.include_router(authentication_statistics.router)
 api_router.include_router(authorization_statistics.router)
 api_router.include_router(accounting_statistics.router)
 api_router.include_router(aaa_statistics.router)
+api_router.include_router(alert_rules.router)
+api_router.include_router(notification_channels.router)
+api_router.include_router(alert_events.router)
+api_router.include_router(anomaly_detection.router)
 
 
 if settings.ENVIRONMENT == "local":

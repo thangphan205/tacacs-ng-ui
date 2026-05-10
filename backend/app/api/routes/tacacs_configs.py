@@ -1,3 +1,4 @@
+import json
 import re
 import uuid
 from datetime import datetime, timezone
@@ -229,6 +230,7 @@ def update_tacacs_config(
         db_tacacs_config=db_tacacs_config,
         tacacs_config_in=tacacs_config_in,
     )
+    new_values_json = db_tacacs_config.model_dump_json(exclude=_SENSITIVE)
     audit_logs_crud.log_entity_action(
         session=session, action="UPDATE", entity_type="TacacsConfig",
         entity_id=str(db_tacacs_config.id),
@@ -236,8 +238,18 @@ def update_tacacs_config(
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
-        new_values=db_tacacs_config.model_dump_json(exclude=_SENSITIVE),
+        new_values=new_values_json,
     )
+    old_active = json.loads(old_values).get("active", False)
+    if not old_active and db_tacacs_config.active:
+        audit_logs_crud.log_entity_action(
+            session=session, action="ACTIVATE", entity_type="TacacsConfig",
+            entity_id=str(db_tacacs_config.id),
+            user_id=current_user.id, user_email=current_user.email,
+            ip_address=get_client_ip(request),
+            user_agent=request.headers.get("user-agent"),
+            new_values=new_values_json,
+        )
     return db_tacacs_config
 
 

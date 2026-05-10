@@ -97,7 +97,6 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
     items: [
       { value: "clear", label: "clear" },
       { value: "crypt", label: "crypt" },
-      { value: "pbkdf2", label: "pbkdf2" },
       { value: "mavis", label: "mavis" },
     ],
   })
@@ -187,7 +186,7 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
                   <Select.Positioner>
                     <Select.Content>
                       <Select.ItemGroup>
-                        {["clear", "mavis", "crypt", "pbkdf2"].map((type) => (
+                        {["clear", "mavis", "crypt"].map((type) => (
                           <Select.Item key={type} item={type}>
                             {type}
                             <Select.ItemIndicator />

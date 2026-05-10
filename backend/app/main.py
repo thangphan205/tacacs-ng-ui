@@ -13,10 +13,14 @@ from app.api.main import api_router
 from app.core.config import settings
 from app.core.db import engine
 from app.crud.audit_logs import purge_old_audit_logs
+from app.crud.alert_evaluator import evaluate_all_rules
+from app.crud.ml_anomaly_scorer import run_daily_anomaly_scoring
 
 logger = logging.getLogger(__name__)
 
 _PURGE_INTERVAL_SECONDS = 24 * 60 * 60  # 24 hours
+_ALERT_EVAL_INTERVAL_SECONDS = 5 * 60   # 5 minutes
+_ML_SCORING_INTERVAL_SECONDS = 24 * 60 * 60  # 24 hours
 
 
 async def _audit_purge_loop() -> None:
@@ -31,11 +35,36 @@ async def _audit_purge_loop() -> None:
             logger.exception("Audit log purge failed")
 
 
+async def _alert_evaluation_loop() -> None:
+    while True:
+        await asyncio.sleep(_ALERT_EVAL_INTERVAL_SECONDS)
+        try:
+            with Session(engine) as session:
+                evaluate_all_rules(session=session)
+        except Exception:
+            logger.exception("Alert evaluation failed")
+
+
+async def _ml_scoring_loop() -> None:
+    await asyncio.sleep(60)  # brief startup delay
+    while True:
+        try:
+            with Session(engine) as session:
+                run_daily_anomaly_scoring(session=session)
+        except Exception:
+            logger.exception("ML anomaly scoring failed")
+        await asyncio.sleep(_ML_SCORING_INTERVAL_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
-    task = asyncio.create_task(_audit_purge_loop())
+    t1 = asyncio.create_task(_audit_purge_loop())
+    t2 = asyncio.create_task(_alert_evaluation_loop())
+    t3 = asyncio.create_task(_ml_scoring_loop())
     yield
-    task.cancel()
+    t1.cancel()
+    t2.cancel()
+    t3.cancel()
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:

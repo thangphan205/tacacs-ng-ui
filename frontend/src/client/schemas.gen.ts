@@ -356,6 +356,520 @@ export const AccountingStatisticsPublicSchema = {
     title: 'AccountingStatisticsPublic'
 } as const;
 
+export const AlertEventPublicSchema = {
+    properties: {
+        triggered_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Triggered At'
+        },
+        payload_snapshot: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Payload Snapshot'
+        },
+        status: {
+            type: 'string',
+            maxLength: 20,
+            title: 'Status',
+            default: 'sent'
+        },
+        error_message: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Error Message'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        rule_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Rule Id'
+        },
+        channel_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Channel Id'
+        },
+        rule_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Rule Name'
+        },
+        channel_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Channel Name'
+        },
+        rule_severity: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Rule Severity'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'rule_id', 'channel_id', 'created_at'],
+    title: 'AlertEventPublic'
+} as const;
+
+export const AlertEventsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/AlertEventPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'AlertEventsPublic'
+} as const;
+
+export const AlertRuleCreateSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Name'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        enabled: {
+            type: 'boolean',
+            title: 'Enabled',
+            default: true
+        },
+        log_type: {
+            type: 'string',
+            maxLength: 50,
+            title: 'Log Type'
+        },
+        condition_field: {
+            type: 'string',
+            maxLength: 100,
+            title: 'Condition Field'
+        },
+        condition_operator: {
+            type: 'string',
+            maxLength: 50,
+            title: 'Condition Operator'
+        },
+        threshold: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Threshold'
+        },
+        time_window_minutes: {
+            type: 'integer',
+            title: 'Time Window Minutes',
+            default: 10
+        },
+        severity: {
+            type: 'string',
+            maxLength: 20,
+            title: 'Severity',
+            default: 'medium'
+        },
+        cooldown_minutes: {
+            type: 'integer',
+            title: 'Cooldown Minutes',
+            default: 60
+        },
+        is_system: {
+            type: 'boolean',
+            title: 'Is System',
+            default: false
+        }
+    },
+    type: 'object',
+    required: ['name', 'log_type', 'condition_field', 'condition_operator'],
+    title: 'AlertRuleCreate'
+} as const;
+
+export const AlertRulePublicSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Name'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        enabled: {
+            type: 'boolean',
+            title: 'Enabled',
+            default: true
+        },
+        log_type: {
+            type: 'string',
+            maxLength: 50,
+            title: 'Log Type'
+        },
+        condition_field: {
+            type: 'string',
+            maxLength: 100,
+            title: 'Condition Field'
+        },
+        condition_operator: {
+            type: 'string',
+            maxLength: 50,
+            title: 'Condition Operator'
+        },
+        threshold: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Threshold'
+        },
+        time_window_minutes: {
+            type: 'integer',
+            title: 'Time Window Minutes',
+            default: 10
+        },
+        severity: {
+            type: 'string',
+            maxLength: 20,
+            title: 'Severity',
+            default: 'medium'
+        },
+        cooldown_minutes: {
+            type: 'integer',
+            title: 'Cooldown Minutes',
+            default: 60
+        },
+        is_system: {
+            type: 'boolean',
+            title: 'Is System',
+            default: false
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        last_fired_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Last Fired At'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['name', 'log_type', 'condition_field', 'condition_operator', 'id', 'last_fired_at', 'created_at', 'updated_at'],
+    title: 'AlertRulePublic'
+} as const;
+
+export const AlertRuleUpdateSchema = {
+    properties: {
+        name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        enabled: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Enabled'
+        },
+        log_type: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Log Type'
+        },
+        condition_field: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Condition Field'
+        },
+        condition_operator: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Condition Operator'
+        },
+        threshold: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Threshold'
+        },
+        time_window_minutes: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Time Window Minutes'
+        },
+        severity: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Severity'
+        },
+        cooldown_minutes: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cooldown Minutes'
+        }
+    },
+    type: 'object',
+    title: 'AlertRuleUpdate'
+} as const;
+
+export const AlertRulesPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/AlertRulePublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'AlertRulesPublic'
+} as const;
+
+export const AnomalyDetectionResultPublicSchema = {
+    properties: {
+        subject_type: {
+            type: 'string',
+            maxLength: 20,
+            title: 'Subject Type'
+        },
+        subject_value: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Subject Value'
+        },
+        scored_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Scored At'
+        },
+        anomaly_score: {
+            type: 'number',
+            title: 'Anomaly Score'
+        },
+        is_anomaly: {
+            type: 'boolean',
+            title: 'Is Anomaly',
+            default: false
+        },
+        risk_level: {
+            type: 'string',
+            maxLength: 20,
+            title: 'Risk Level',
+            default: 'normal'
+        },
+        feature_snapshot: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Feature Snapshot'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['subject_type', 'subject_value', 'anomaly_score', 'id', 'created_at', 'updated_at'],
+    title: 'AnomalyDetectionResultPublic'
+} as const;
+
+export const AnomalyDetectionResultsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/AnomalyDetectionResultPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'AnomalyDetectionResultsPublic'
+} as const;
+
 export const AuditLogPublicSchema = {
     properties: {
         action: {
@@ -1508,6 +2022,147 @@ export const NewPasswordSchema = {
     type: 'object',
     required: ['token', 'new_password'],
     title: 'NewPassword'
+} as const;
+
+export const NotificationChannelCreateSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Name'
+        },
+        channel_type: {
+            type: 'string',
+            maxLength: 50,
+            title: 'Channel Type'
+        },
+        config_json: {
+            type: 'string',
+            title: 'Config Json',
+            default: '{}'
+        },
+        enabled: {
+            type: 'boolean',
+            title: 'Enabled',
+            default: true
+        }
+    },
+    type: 'object',
+    required: ['name', 'channel_type'],
+    title: 'NotificationChannelCreate'
+} as const;
+
+export const NotificationChannelPublicSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Name'
+        },
+        channel_type: {
+            type: 'string',
+            maxLength: 50,
+            title: 'Channel Type'
+        },
+        config_json: {
+            type: 'string',
+            title: 'Config Json',
+            default: '{}'
+        },
+        enabled: {
+            type: 'boolean',
+            title: 'Enabled',
+            default: true
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['name', 'channel_type', 'id', 'created_at', 'updated_at'],
+    title: 'NotificationChannelPublic'
+} as const;
+
+export const NotificationChannelUpdateSchema = {
+    properties: {
+        name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        channel_type: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Channel Type'
+        },
+        config_json: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Config Json'
+        },
+        enabled: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Enabled'
+        }
+    },
+    type: 'object',
+    title: 'NotificationChannelUpdate'
+} as const;
+
+export const NotificationChannelsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/NotificationChannelPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'NotificationChannelsPublic'
 } as const;
 
 export const PasskeyAuthenticateCompleteRequestSchema = {

@@ -1,6 +1,6 @@
 [project]
 name = "app"
-version = "0.3.4"
+version = "0.3.5"
 description = ""
 requires-python = ">=3.12,<4.0"
 dependencies = [
@@ -24,6 +24,8 @@ dependencies = [
     "authlib>=1.3.0",
     "webauthn>=2.2.0,<3.0.0",
     "cryptography>=42.0.0,<44.0.0",
+    "scikit-learn>=1.4.0,<2.0.0",
+    "numpy>=1.26.0,<3.0.0",
 ]
 
 [dependency-groups]
