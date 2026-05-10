@@ -1,7 +1,7 @@
 """add alert anomaly tables
 
 Revision ID: a1b2c3d4e5f6
-Revises: ff45a8b12c03
+Revises: ab12cd34ef56
 Create Date: 2026-05-10 00:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlmodel
 
 # revision identifiers, used by Alembic.
 revision = "a1b2c3d4e5f6"
-down_revision = "ff45a8b12c03"
+down_revision = "ab12cd34ef56"
 branch_labels = None
 depends_on = None
 
