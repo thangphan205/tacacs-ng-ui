@@ -67,5 +67,7 @@ def delete_alert_rule(
     db_rule = crud_alert_rules.get_alert_rule(session=session, rule_id=id)
     if not db_rule:
         raise HTTPException(status_code=404, detail="Alert rule not found")
+    if db_rule.is_system:
+        raise HTTPException(status_code=403, detail="System alert rules cannot be deleted")
     crud_alert_rules.delete_alert_rule(session=session, db_rule=db_rule)
     return {"message": "Alert rule deleted"}

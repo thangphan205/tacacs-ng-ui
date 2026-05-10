@@ -17,7 +17,7 @@ import {
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { FiBell, FiPlus } from "react-icons/fi"
+import { FiBell, FiLock, FiPlus } from "react-icons/fi"
 import { z } from "zod"
 
 import type { AlertRulePublic } from "@/client"
@@ -370,7 +370,12 @@ function AlertRulesTable() {
             <Table.Body>
               {data?.data.map((rule) => (
                 <Table.Row key={rule.id}>
-                  <Table.Cell fontWeight="medium">{rule.name}</Table.Cell>
+                  <Table.Cell fontWeight="medium">
+                    <Flex align="center" gap={2}>
+                      {rule.is_system && <FiLock size={12} color="gray" />}
+                      {rule.name}
+                    </Flex>
+                  </Table.Cell>
                   <Table.Cell>
                     <Badge colorPalette={SEVERITY_COLORS[rule.severity ?? ""] ?? "gray"}>
                       {rule.severity}
@@ -401,7 +406,7 @@ function AlertRulesTable() {
                           <DialogBody><RuleDialog rule={rule} onClose={() => setEditRule(null)} /></DialogBody>
                         </DialogContent>
                       </DialogRoot>
-                      <DeleteRuleButton rule={rule} />
+                      {!rule.is_system && <DeleteRuleButton rule={rule} />}
                     </Flex>
                   </Table.Cell>
                 </Table.Row>

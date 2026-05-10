@@ -137,6 +137,7 @@ export type AlertRuleCreate = {
     time_window_minutes?: number;
     severity?: string;
     cooldown_minutes?: number;
+    is_system?: boolean;
 };
 
 export type AlertRulePublic = {
@@ -150,6 +151,7 @@ export type AlertRulePublic = {
     time_window_minutes?: number;
     severity?: string;
     cooldown_minutes?: number;
+    is_system?: boolean;
     id: string;
     last_fired_at: (string | null);
     created_at: string;

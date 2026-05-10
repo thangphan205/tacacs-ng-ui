@@ -3,20 +3,11 @@ from sqlmodel import Session, create_engine, select
 from app.crud import users
 from app.core.config import settings
 from app.models import (
-    User,
-    UserCreate,
-    TacacsNgSetting,
-    TacacsNgSettingCreate,
-    Mavis,
-    MavisCreate,
+    AlertRule,
     Host,
     HostCreate,
-    TacacsGroup,
-    TacacsGroupCreate,
-    TacacsUser,
-    TacacsUserCreate,
-    TacacsService,
-    TacacsServiceCreate,
+    Mavis,
+    MavisCreate,
     Profile,
     ProfileCreate,
     ProfileScript,
@@ -29,6 +20,16 @@ from app.models import (
     RulesetScriptCreate,
     RulesetScriptSet,
     RulesetScriptSetCreate,
+    TacacsGroup,
+    TacacsGroupCreate,
+    TacacsNgSetting,
+    TacacsNgSettingCreate,
+    TacacsService,
+    TacacsServiceCreate,
+    TacacsUser,
+    TacacsUserCreate,
+    User,
+    UserCreate,
 )
 
 engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
@@ -438,4 +439,92 @@ def init_db(session: Session) -> None:
             rulesetscriptset_cisco1_in
         )
         session.add(rulesetscriptset_cisco1_settings)
+    _seed_system_alert_rules(session)
     session.commit()
+
+
+_SYSTEM_ALERT_RULES: list[dict] = [
+    {
+        "name": "[System] High Auth Failure Rate",
+        "description": "Fires when total authentication failures exceed 10 in a 10-minute window.",
+        "log_type": "auth",
+        "condition_field": "fail_count",
+        "condition_operator": "gt",
+        "threshold": 10.0,
+        "time_window_minutes": 10,
+        "severity": "high",
+        "cooldown_minutes": 30,
+    },
+    {
+        "name": "[System] New Username Detected",
+        "description": "Fires when a username appears that was not seen in the prior 30 days.",
+        "log_type": "auth",
+        "condition_field": "username",
+        "condition_operator": "new_value",
+        "threshold": None,
+        "time_window_minutes": 60,
+        "severity": "medium",
+        "cooldown_minutes": 240,
+    },
+    {
+        "name": "[System] New Source IP Detected",
+        "description": "Fires when a source IP appears that was not seen in the prior 30 days.",
+        "log_type": "auth",
+        "condition_field": "client_ip",
+        "condition_operator": "new_value",
+        "threshold": None,
+        "time_window_minutes": 60,
+        "severity": "medium",
+        "cooldown_minutes": 240,
+    },
+    {
+        "name": "[System] High Authorization Deny Rate",
+        "description": "Fires when total authorization denials exceed 20 in a 10-minute window.",
+        "log_type": "authz",
+        "condition_field": "deny_count",
+        "condition_operator": "gt",
+        "threshold": 20.0,
+        "time_window_minutes": 10,
+        "severity": "high",
+        "cooldown_minutes": 30,
+    },
+    {
+        "name": "[System] TACACS Config Changed",
+        "description": "Fires when any TACACS config is created, updated, or deleted.",
+        "log_type": "config",
+        "condition_field": "config_action",
+        "condition_operator": "any_change",
+        "threshold": 1.0,
+        "time_window_minutes": 5,
+        "severity": "high",
+        "cooldown_minutes": 5,
+    },
+    {
+        "name": "[System] TACACS Config Activated",
+        "description": "Fires when a TACACS config is activated (pushed to live).",
+        "log_type": "config",
+        "condition_field": "config_action",
+        "condition_operator": "activated",
+        "threshold": 1.0,
+        "time_window_minutes": 5,
+        "severity": "critical",
+        "cooldown_minutes": 5,
+    },
+]
+
+
+def _seed_system_alert_rules(session: Session) -> None:
+    existing_names = set(
+        session.exec(
+            select(AlertRule.name).where(AlertRule.is_system == True)  # noqa: E712
+        ).all()
+    )
+    for rule_def in _SYSTEM_ALERT_RULES:
+        if rule_def["name"] in existing_names:
+            continue
+        rule = AlertRule(
+            **rule_def,
+            enabled=True,
+            is_system=True,
+        )
+        session.add(rule)

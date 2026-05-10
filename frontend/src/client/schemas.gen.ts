@@ -535,6 +535,11 @@ export const AlertRuleCreateSchema = {
             type: 'integer',
             title: 'Cooldown Minutes',
             default: 60
+        },
+        is_system: {
+            type: 'boolean',
+            title: 'Is System',
+            default: false
         }
     },
     type: 'object',
@@ -607,6 +612,11 @@ export const AlertRulePublicSchema = {
             type: 'integer',
             title: 'Cooldown Minutes',
             default: 60
+        },
+        is_system: {
+            type: 'boolean',
+            title: 'Is System',
+            default: false
         },
         id: {
             type: 'string',

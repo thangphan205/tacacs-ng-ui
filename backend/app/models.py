@@ -1086,13 +1086,14 @@ class AlertRuleBase(SQLModel):
     name: str = Field(index=True, max_length=255)
     description: str | None = Field(default=None, max_length=1024)
     enabled: bool = Field(default=True)
-    log_type: str = Field(max_length=50)  # auth/authz/accounting/all
-    condition_field: str = Field(max_length=100)  # username/nas_ip/client_ip/result/command
-    condition_operator: str = Field(max_length=50)  # gt/lt/eq/contains/new_value
+    log_type: str = Field(max_length=50)  # auth/authz/accounting/all/config
+    condition_field: str = Field(max_length=100)  # username/nas_ip/client_ip/result/command/config_action
+    condition_operator: str = Field(max_length=50)  # gt/lt/eq/contains/new_value/any_change/created/updated/deleted/activated
     threshold: float | None = Field(default=None)
     time_window_minutes: int = Field(default=10)
     severity: str = Field(default="medium", max_length=20)  # low/medium/high/critical
     cooldown_minutes: int = Field(default=60)
+    is_system: bool = Field(default=False)
 
 
 class AlertRuleCreate(AlertRuleBase):
