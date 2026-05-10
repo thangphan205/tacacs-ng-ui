@@ -4,7 +4,9 @@ import {
   Container,
   EmptyState,
   Flex,
+  Grid,
   Heading,
+  Stat,
   Table,
   Text,
   VStack,
@@ -160,11 +162,73 @@ function AlertEventsTable() {
   )
 }
 
+const SEVERITY_ORDER = ["critical", "high", "medium", "low"]
+
+function AlertStatisticsPanel() {
+  const { data } = useQuery({
+    queryFn: () => AlertEventsService.readAlertStatistics(),
+    queryKey: ["alert_statistics"],
+  })
+
+  if (!data) return null
+
+  return (
+    <Box mb={8}>
+      <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }} gap={4} mb={6}>
+        {[
+          { label: "Total Alerts", value: data.total },
+          { label: "Sent", value: data.sent },
+          { label: "Failed", value: data.failed },
+          { label: "Last 24h", value: data.last_24h },
+        ].map(({ label, value }) => (
+          <Box key={label} borderWidth="1px" borderRadius="lg" p={4}>
+            <Stat.Root>
+              <Stat.Label color="fg.muted" fontSize="xs">{label}</Stat.Label>
+              <Stat.ValueText fontSize="2xl" fontWeight="bold">{value}</Stat.ValueText>
+            </Stat.Root>
+          </Box>
+        ))}
+      </Grid>
+
+      <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={4}>
+        <Box borderWidth="1px" borderRadius="lg" p={4}>
+          <Text fontWeight="semibold" mb={3} fontSize="sm">By Severity</Text>
+          <VStack align="stretch" gap={2}>
+            {SEVERITY_ORDER.map((sev) => {
+              const item = data.by_severity.find((s) => s.severity === sev)
+              return (
+                <Flex key={sev} justify="space-between" align="center">
+                  <Badge colorPalette={SEVERITY_COLORS[sev] ?? "gray"} size="sm">{sev}</Badge>
+                  <Text fontSize="sm" fontWeight="medium">{item?.count ?? 0}</Text>
+                </Flex>
+              )
+            })}
+          </VStack>
+        </Box>
+
+        <Box borderWidth="1px" borderRadius="lg" p={4}>
+          <Text fontWeight="semibold" mb={3} fontSize="sm">Top Rules Fired</Text>
+          <VStack align="stretch" gap={2}>
+            {data.by_rule.length === 0 && <Text fontSize="sm" color="fg.muted">No data</Text>}
+            {data.by_rule.map((r) => (
+              <Flex key={r.rule_name} justify="space-between" align="center">
+                <Text fontSize="sm" truncate maxW="70%">{r.rule_name}</Text>
+                <Badge colorPalette="gray" size="sm">{r.count}</Badge>
+              </Flex>
+            ))}
+          </VStack>
+        </Box>
+      </Grid>
+    </Box>
+  )
+}
+
 function AlertEventsPage() {
   return (
     <Container maxW="full">
       <Heading size="lg" pt={12} pb={4}>Alert History</Heading>
       <Text color="fg.muted" mb={6}>History of all triggered alerts and their delivery status.</Text>
+      <AlertStatisticsPanel />
       <AlertEventsTable />
     </Container>
   )

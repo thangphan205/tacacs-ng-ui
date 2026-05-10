@@ -5,15 +5,20 @@ from fastapi import APIRouter
 
 from app.api.deps import CurrentUser, SessionDep
 from app.crud import alert_events as crud_alert_events
-from app.models import AlertEventsPublic
+from app.models import AlertEventsPublic, AlertStatistics
 
 router = APIRouter(prefix="/alert_events", tags=["alert_events"])
+
+
+@router.get("/statistics", response_model=AlertStatistics)
+def read_alert_statistics(session: SessionDep, _: CurrentUser) -> Any:
+    return crud_alert_events.get_alert_statistics(session=session)
 
 
 @router.get("/", response_model=AlertEventsPublic)
 def read_alert_events(
     session: SessionDep,
-    current_user: CurrentUser,
+    _: CurrentUser,
     skip: int = 0,
     limit: int = 100,
     rule_id: uuid.UUID | None = None,

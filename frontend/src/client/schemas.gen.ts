@@ -787,6 +787,80 @@ export const AlertRulesPublicSchema = {
     title: 'AlertRulesPublic'
 } as const;
 
+export const AlertStatisticsSchema = {
+    properties: {
+        total: {
+            type: 'integer',
+            title: 'Total'
+        },
+        sent: {
+            type: 'integer',
+            title: 'Sent'
+        },
+        failed: {
+            type: 'integer',
+            title: 'Failed'
+        },
+        by_severity: {
+            items: {
+                '$ref': '#/components/schemas/AlertStatisticsSeverityItem'
+            },
+            type: 'array',
+            title: 'By Severity'
+        },
+        by_rule: {
+            items: {
+                '$ref': '#/components/schemas/AlertStatisticsRuleItem'
+            },
+            type: 'array',
+            title: 'By Rule'
+        },
+        last_24h: {
+            type: 'integer',
+            title: 'Last 24H'
+        },
+        last_7d: {
+            type: 'integer',
+            title: 'Last 7D'
+        }
+    },
+    type: 'object',
+    required: ['total', 'sent', 'failed', 'by_severity', 'by_rule', 'last_24h', 'last_7d'],
+    title: 'AlertStatistics'
+} as const;
+
+export const AlertStatisticsRuleItemSchema = {
+    properties: {
+        rule_name: {
+            type: 'string',
+            title: 'Rule Name'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['rule_name', 'count'],
+    title: 'AlertStatisticsRuleItem'
+} as const;
+
+export const AlertStatisticsSeverityItemSchema = {
+    properties: {
+        severity: {
+            type: 'string',
+            title: 'Severity'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['severity', 'count'],
+    title: 'AlertStatisticsSeverityItem'
+} as const;
+
 export const AnomalyDetectionResultPublicSchema = {
     properties: {
         subject_type: {

@@ -1205,6 +1205,26 @@ class AlertEventsPublic(SQLModel):
     count: int
 
 
+class AlertStatisticsSeverityItem(SQLModel):
+    severity: str
+    count: int
+
+
+class AlertStatisticsRuleItem(SQLModel):
+    rule_name: str
+    count: int
+
+
+class AlertStatistics(SQLModel):
+    total: int
+    sent: int
+    failed: int
+    by_severity: list[AlertStatisticsSeverityItem]
+    by_rule: list[AlertStatisticsRuleItem]
+    last_24h: int
+    last_7d: int
+
+
 # ---------------------------------------------------------------------------
 # Anomaly Detection Results
 # ---------------------------------------------------------------------------

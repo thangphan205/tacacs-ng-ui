@@ -176,6 +176,26 @@ export type AlertRuleUpdate = {
     cooldown_minutes?: (number | null);
 };
 
+export type AlertStatistics = {
+    total: number;
+    sent: number;
+    failed: number;
+    by_severity: Array<AlertStatisticsSeverityItem>;
+    by_rule: Array<AlertStatisticsRuleItem>;
+    last_24h: number;
+    last_7d: number;
+};
+
+export type AlertStatisticsRuleItem = {
+    rule_name: string;
+    count: number;
+};
+
+export type AlertStatisticsSeverityItem = {
+    severity: string;
+    count: number;
+};
+
 export type AnomalyDetectionResultPublic = {
     subject_type: string;
     subject_value: string;
@@ -981,6 +1001,8 @@ export type AdminUpdateAuthProviderData = {
 };
 
 export type AdminUpdateAuthProviderResponse = (AuthProviderConfigPublic);
+
+export type AlertEventsReadAlertStatisticsResponse = (AlertStatistics);
 
 export type AlertEventsReadAlertEventsData = {
     limit?: number;
