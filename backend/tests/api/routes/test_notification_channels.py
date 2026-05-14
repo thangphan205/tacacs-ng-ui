@@ -245,7 +245,8 @@ class TestNotificationDispatcher:
             ok, err = dispatch_notification(channel=ch, subject="Slack Alert", body="msg")
         assert ok is True
         payload = mock_post.call_args.kwargs["json"]
-        assert "Slack Alert" in payload["text"]
+        header_text = payload["blocks"][0]["text"]["text"]
+        assert "Slack Alert" in header_text
 
     def test_telegram_success(self) -> None:
         from app.crud.notification_dispatcher import dispatch_notification
