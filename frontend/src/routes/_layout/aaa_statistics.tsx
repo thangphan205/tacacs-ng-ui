@@ -1,6 +1,7 @@
 import { Chart, useChart } from "@chakra-ui/charts"
 import {
   Box,
+  Button,
   Container,
   Flex,
   Grid,
@@ -10,7 +11,7 @@ import {
   Stat,
   Text,
 } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import {
   Area,
@@ -26,13 +27,18 @@ import {
   YAxis,
 } from "recharts"
 
+import type { ApiError } from "@/client"
 import { AaaStatisticsService } from "@/client"
+import useCustomToast from "@/hooks/useCustomToast"
+import { handleError } from "@/utils"
 
 export const Route = createFileRoute("/_layout/aaa_statistics")({
   component: AaaStatistics,
 })
 
 export function AaaStatistics() {
+  const queryClient = useQueryClient()
+  const { showSuccessToast } = useCustomToast()
   const {
     data: stats,
     isLoading,
@@ -40,6 +46,17 @@ export function AaaStatistics() {
   } = useQuery({
     queryKey: ["aaa_statistics"],
     queryFn: () => AaaStatisticsService.readAaaStatistics(),
+  })
+
+  const runMutation = useMutation({
+    mutationFn: () => AaaStatisticsService.runAaaStatistics(),
+    onSuccess: () => {
+      showSuccessToast("Statistics updated successfully.")
+      queryClient.invalidateQueries({ queryKey: ["aaa_statistics"] })
+    },
+    onError: (err: ApiError) => {
+      handleError(err)
+    },
   })
 
   const color_chart = [
@@ -131,6 +148,13 @@ export function AaaStatistics() {
           TACACS+ Today Authentication Statistics:{" "}
           {new Date().toISOString().split("T")[0]}
         </Heading>
+        <Button
+          size="sm"
+          onClick={() => runMutation.mutate()}
+          loading={runMutation.isPending}
+        >
+          Run Statistics Now
+        </Button>
       </Flex>
       {isLoading ? (
         <Flex justify="center" align="center" height="50vh">

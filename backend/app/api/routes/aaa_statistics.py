@@ -1,9 +1,12 @@
+import subprocess
+import sys
 from datetime import datetime, time, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.deps import SessionDep, get_current_user
+from app.api.deps import SessionDep, get_current_active_superuser, get_current_user
 from app.crud import aaa_statistics
 from app.models import (
     AaaStatisticsDateRangePublic,
@@ -45,7 +48,7 @@ def read_aaa_statistics(session: SessionDep, skip: int = 0, limit: int = 5) -> A
     response_model=AaaStatisticsDateRangePublic,
 )
 def read_aaa_statistics_range(
-    session: SessionDep, skip: int = 0, limit: int = 5, range_date: str = None
+    session: SessionDep, skip: int = 0, limit: int = 5, range_date: str | None = None
 ) -> Any:
     """
     Retrieve aaa_statistics.
@@ -97,3 +100,37 @@ def read_aaa_statistics_range(
     )
 
     return return_statistics
+
+
+@router.post(
+    "/run/",
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def run_aaa_statistics(date: str | None = None) -> Any:
+    """Manually trigger AAA statistics scripts for a given date (YYYY-MM-DD) or yesterday."""
+    scripts = [
+        "/app/scripts/tacacs_logs_authentication.py",
+        "/app/scripts/tacacs_logs_authorization.py",
+        "/app/scripts/tacacs_logs_accounting.py",
+    ]
+    results = {}
+    args = [date] if date else []
+    for script in scripts:
+        name = Path(script).stem
+        try:
+            proc = subprocess.run(
+                [sys.executable, script, *args],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            results[name] = {
+                "returncode": proc.returncode,
+                "stdout": proc.stdout[-2000:] if proc.stdout else "",
+                "stderr": proc.stderr[-1000:] if proc.stderr else "",
+            }
+        except subprocess.TimeoutExpired:
+            results[name] = {"returncode": -1, "error": "timeout"}
+        except Exception as e:
+            results[name] = {"returncode": -1, "error": str(e)}
+    return results

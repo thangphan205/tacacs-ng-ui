@@ -6,7 +6,7 @@ import re
 from datetime import datetime, time as dt_time, timedelta, timezone
 from collections import defaultdict
 
-from sqlmodel import Session, col, func, select
+from sqlmodel import Session, col, select
 
 from app.core.config import settings
 from app.crud import alert_events as crud_alert_events
@@ -282,7 +282,7 @@ def _check_authz_stats(
 
 
 _CONFIG_ACTION_MAP: dict[str, list[str]] = {
-    "any_change": ["CREATE", "UPDATE", "DELETE", "ACTIVATE"],
+    "any_change": ["CREATE", "UPDATE", "DELETE"],  # ACTIVATE excluded — has its own rule
     "created":    ["CREATE"],
     "updated":    ["UPDATE"],
     "deleted":    ["DELETE"],
@@ -293,19 +293,29 @@ _CONFIG_ACTION_MAP: dict[str, list[str]] = {
 def _check_audit_logs(
     *, rule: AlertRule, session: Session, window_start: datetime
 ) -> tuple[bool, dict]:
-    actions = _CONFIG_ACTION_MAP.get(rule.condition_operator, ["CREATE", "UPDATE", "DELETE", "ACTIVATE"])
-    count = session.exec(
-        select(func.count()).where(
+    actions = _CONFIG_ACTION_MAP.get(rule.condition_operator, ["CREATE", "UPDATE", "DELETE"])
+    rows = session.exec(
+        select(AuditLog).where(
             AuditLog.entity_type == "TacacsConfig",
             col(AuditLog.action).in_(actions),
             AuditLog.created_at >= window_start,
-        )
-    ).one() or 0
+        ).order_by(AuditLog.created_at.desc())  # type: ignore[attr-defined]
+    ).all()
+    count = len(rows)
     threshold = int(rule.threshold or 1)
     triggered = count >= threshold
+    changes = [
+        {
+            "action": r.action,
+            "entity_id": r.entity_id,
+            "by": r.user_email,
+            "at": r.created_at.strftime("%Y-%m-%d %H:%M:%S UTC"),
+        }
+        for r in rows[:5]  # cap at 5 entries to keep message concise
+    ]
     return triggered, {
         "config_change_count": count,
-        "actions_checked": actions,
+        "changes": changes,
         "window_minutes": rule.time_window_minutes,
         "rule": rule.name,
     }

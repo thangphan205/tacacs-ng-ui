@@ -970,11 +970,17 @@ export type AaaStatisticsReadAaaStatisticsResponse = (AaaStatisticsTodayPublic);
 
 export type AaaStatisticsReadAaaStatisticsRangeData = {
     limit?: number;
-    rangeDate?: string;
+    rangeDate?: (string | null);
     skip?: number;
 };
 
 export type AaaStatisticsReadAaaStatisticsRangeResponse = (AaaStatisticsDateRangePublic);
+
+export type AaaStatisticsRunAaaStatisticsData = {
+    date?: (string | null);
+};
+
+export type AaaStatisticsRunAaaStatisticsResponse = (unknown);
 
 export type AccountingStatisticsReadAccountingStatisticsData = {
     dateFrom?: (string | null);
