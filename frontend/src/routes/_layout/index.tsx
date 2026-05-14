@@ -34,7 +34,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import type { AuditLogPublic, CancelablePromise } from "@/client"
+import type { AuditLogPublic, CancelablePromise, TacacsLogEvent } from "@/client"
 import {
   AaaStatisticsService,
   AuditLogsService,
@@ -66,6 +66,21 @@ const FAIL_COLORS = [
   "yellow.500",
   "purple.500",
 ]
+
+const LOG_TYPE_COLOR: Record<string, string> = {
+  authentication: "blue",
+  authorization: "purple",
+  accounting: "teal",
+}
+
+const RESULT_COLOR: Record<string, string> = {
+  SUCCESS: "green",
+  PERMIT: "green",
+  FAILED: "red",
+  DENY: "red",
+  START: "teal",
+  STOP: "gray",
+}
 
 const ACTION_COLOR: Record<string, string> = {
   CREATE: "green",
@@ -558,6 +573,87 @@ function RecentActivity() {
   )
 }
 
+function LastTacacsLogs() {
+  const today = new Date().toISOString().split("T")[0]
+  const { data, isLoading } = useQuery({
+    queryKey: ["dashboard_last_tacacs_logs"],
+    queryFn: () => TacacsLogsService.listLogEvents({ date: today, limit: 10 }),
+  })
+
+  const logs = data?.data ?? []
+
+  return (
+    <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
+      <SectionHeading
+        action={
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          <Link to={"/tacacs_logs" as any}>
+            <Text fontSize="sm" color="blue.500">
+              View all →
+            </Text>
+          </Link>
+        }
+      >
+        Last TACACS Logs
+      </SectionHeading>
+      {isLoading ? (
+        <Spinner size="sm" />
+      ) : logs.length === 0 ? (
+        <Text color="fg.muted" fontSize="sm">
+          No logs today.
+        </Text>
+      ) : (
+        <Box borderWidth="1px" borderRadius="lg" overflow="hidden">
+          <Table.Root size="sm">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Time</Table.ColumnHeader>
+                <Table.ColumnHeader>Type</Table.ColumnHeader>
+                <Table.ColumnHeader>User</Table.ColumnHeader>
+                <Table.ColumnHeader>NAS IP</Table.ColumnHeader>
+                <Table.ColumnHeader>Client IP</Table.ColumnHeader>
+                <Table.ColumnHeader>Result</Table.ColumnHeader>
+                <Table.ColumnHeader>Command</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {logs.map((log: TacacsLogEvent, i: number) => (
+                <Table.Row key={i}>
+                  <Table.Cell whiteSpace="nowrap" fontSize="xs" color="fg.muted">
+                    {new Date(log.timestamp).toLocaleTimeString()}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge colorPalette={LOG_TYPE_COLOR[log.log_type] ?? "gray"} size="sm">
+                      {log.log_type}
+                    </Badge>
+                  </Table.Cell>
+                  <Table.Cell fontSize="xs" maxW="28" truncate>
+                    {log.username}
+                  </Table.Cell>
+                  <Table.Cell fontSize="xs" color="fg.muted">
+                    {log.nas_ip}
+                  </Table.Cell>
+                  <Table.Cell fontSize="xs" color="fg.muted">
+                    {log.client_ip}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge colorPalette={RESULT_COLOR[log.result] ?? "gray"} size="sm">
+                      {log.result}
+                    </Badge>
+                  </Table.Cell>
+                  <Table.Cell fontSize="xs" maxW="48" truncate color="fg.muted">
+                    {log.command ?? "—"}
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+        </Box>
+      )}
+    </GridItem>
+  )
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 function Dashboard() {
@@ -815,6 +911,9 @@ function Dashboard() {
               )}
             </Box>
           </GridItem>
+
+          {/* Last TACACS logs */}
+          <LastTacacsLogs />
 
           {/* Recent user activity */}
           <RecentActivity />
