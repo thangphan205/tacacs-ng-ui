@@ -2,6 +2,22 @@
 
 ## Latest Changes
 
+## v0.3.6
+
+### Features
+
+* ✨ **Google Chat & Email (SMTP) notification channels** — alert notifications can now be dispatched to Google Chat spaces via webhook and to any SMTP-compatible email server. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Rich notification formatting** — all channels (Telegram, Slack, Discord, Teams, Google Chat) now use structured layouts with severity/type emojis, humanized labels, and channel-native formatting (Slack Block Kit, Discord embeds with severity colors, Teams Adaptive Cards). PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Telegram topic ID support** — notification channel config for Telegram now accepts an optional `topic_id` to send alerts into a specific forum thread. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Alert Statistics panel** — the Alert History page now shows a summary dashboard with total/sent/failed counts, last 24h activity, breakdown by severity, and a top rules table. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Config change alert detail** — config change alerts now include up to 5 recent change entries (action, entity ID, actor email, timestamp) in the notification body. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Manual AAA statistics trigger** — "Run Statistics Now" button on the AAA Statistics page lets superusers immediately re-run all three statistics scripts without waiting for the scheduled cron job. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Fixes
+
+* 🐛 **4x duplicate config-change alerts** — `any_change` operator now excludes `ACTIVATE` (which has its own dedicated system rule), preventing double-firing when a config is activated. PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **AAA statistics cron not running** — fixed broken `/etc/cron_env.sh` generation: replaced fragile `sed` pipeline with `python3 + shlex.quote` to correctly handle env vars containing quotes or special characters. PR by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.3.5
 
 ### Features
