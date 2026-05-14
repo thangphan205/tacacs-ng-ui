@@ -32,7 +32,7 @@ psycopg==3.3.4
 psycopg-binary==3.3.3
 pydantic==2.12.5
 pydantic-settings==2.13.1
-pydantic_core==2.41.1
+pydantic_core==2.46.4
 Pygments==2.19.2
 PyJWT==2.10.1
 python-dateutil==2.9.0.post0
