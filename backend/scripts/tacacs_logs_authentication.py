@@ -47,7 +47,8 @@ def process_authentication_logs():
                 if "login" in message:
                     username = log_data["username"]
                     nas_ip = log_data["nas_ip"]
-                    client_ip = log_data["client_ip"]
+                    # client_ip absent in some formats (e.g. PAP); fall back to NAS IP
+                    client_ip = log_data["client_ip"] or nas_ip
                     key = (username, nas_ip, client_ip)
                     if "succeeded" in message:
                         successful_logins[key] += 1

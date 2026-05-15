@@ -2,16 +2,22 @@ import re
 import sys
 from datetime import date, datetime, time as time_, timedelta, timezone
 
-# Shared authentication log regex — IPv4 and IPv6 support
-# Example: "2025-11-23 11:39:08 +0000 103.161.38.106\tuser_admin\t\t10.3.13.20\tshell login failed"
-_IP = r"([a-fA-F0-9:.]+|[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})"
+# IPv4 or IPv6 — requires dots or colons so plain port/session numbers (e.g. "39001") don't match.
+# Supported log formats (tab-separated after timestamp+nas_ip):
+#   with client IP:    nas_ip\tuser\t[tty]\tclient_ip\tmessage
+#   without client IP: nas_ip\tuser\tport\tflag\tmessage  (e.g. PAP where client IP absent)
+_IP = r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}|[a-fA-F0-9]{0,4}(?::[a-fA-F0-9]{0,4})+"
+
+# Optional non-IP field (tty/port/flag) — skipped only when it is NOT a valid IP.
+_NON_IP_FIELD = rf"(?:\t(?!(?:{_IP})(?:\t|$))[^\t]*)?"
+
 AUTH_LOG_REGEX = re.compile(
     r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
-    rf"(?P<nas_ip>{_IP})\s+"
-    r"(?P<username>[\w.-]+)\s+"
-    r"(?:[\w.-]+\s+)?"
-    rf"(?P<client_ip>{_IP})\s+"
-    r"(?P<message>.*)$"
+    rf"(?P<nas_ip>{_IP})\t"
+    r"(?P<username>[\w.-]+)"
+    + _NON_IP_FIELD                          # optional tty / port / flag (not an IP)
+    + rf"(?:\t(?P<client_ip>{_IP}))?"        # optional real client IP
+    + r"\t(?P<message>[^\n]+)$"
 )
 
 

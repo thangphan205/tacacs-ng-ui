@@ -25,14 +25,15 @@ logger = logging.getLogger(__name__)
 # Live log parsing — real-time (no dependency on daily cron)
 # ---------------------------------------------------------------------------
 
-_IP = r"([a-fA-F0-9:.]+|[0-9]{1,3}(?:\.[0-9]{1,3}){3})"
+_IP = r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}|[a-fA-F0-9]{0,4}(?::[a-fA-F0-9]{0,4})+"
+_NON_IP_FIELD = rf"(?:\t(?!(?:{_IP})(?:\t|$))[^\t]*)?"
 _AUTH_REGEX = re.compile(
     r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
-    rf"(?P<nas_ip>{_IP})\s+"
-    r"(?P<username>[\w.-]+)\s+"
-    r"(?:[\w.-]+\s+)?"
-    rf"(?P<client_ip>{_IP})\s+"
-    r"(?P<message>.*)$"
+    rf"(?P<nas_ip>{_IP})\t"
+    r"(?P<username>[\w.-]+)"
+    + _NON_IP_FIELD
+    + rf"(?:\t(?P<client_ip>{_IP}))?"
+    + r"\t(?P<message>[^\n]+)$"
 )
 _AUTHZ_REGEX = re.compile(
     r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
@@ -85,7 +86,7 @@ def _parse_auth_log(window_start: datetime, now: datetime) -> tuple[dict[str, in
                         continue
                     msg = m.group("message").lower()
                     username = m.group("username")
-                    client_ip = m.group("client_ip")
+                    client_ip = m.group("client_ip") or m.group("nas_ip")
                     seen_usernames.add(username)
                     seen_ips.add(client_ip)
                     if "failed" in msg or "denied" in msg:
