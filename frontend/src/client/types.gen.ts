@@ -807,6 +807,7 @@ export type TacacsNgSettingPublic = {
     login_backend?: string;
     user_backend?: string;
     pap_backend?: string;
+    timezone?: string;
     id: string;
     created_at: string;
     updated_at: string;
@@ -829,6 +830,7 @@ export type TacacsNgSettingUpdate = {
     login_backend?: string;
     user_backend?: string;
     pap_backend?: string;
+    timezone?: string;
 };
 
 export type TacacsServiceCreate = {

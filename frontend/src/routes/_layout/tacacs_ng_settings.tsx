@@ -159,6 +159,17 @@ function TacacsNgSettingsForm() {
             >
               <Input {...register("login_backend")} type="text" />
             </Field>
+            <Field
+              label="Log Timezone"
+              helperText="IANA timezone name for log date calculations (e.g. Asia/Ho_Chi_Minh)"
+              errorText={errors.timezone?.message}
+            >
+              <Input
+                {...register("timezone", { required: "Timezone is required." })}
+                type="text"
+                placeholder="UTC"
+              />
+            </Field>
           </SimpleGrid>
           <Flex justifyContent="flex-end">
             <Button

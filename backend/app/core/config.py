@@ -126,6 +126,7 @@ class Settings(BaseSettings):
     INSTANCES_MAX: int = 10
     BACKGROUND: str = "no"
     TACACS_LOG_DIRECTORY: str = "/var/log/tacacs/"
+    TACACS_TIMEZONE: str = "UTC"  # IANA tz name, e.g. "Asia/Ho_Chi_Minh"
     ACCESS_LOG_DESTINATION: str = TACACS_LOG_DIRECTORY + "%Y/%m/access-%Y-%m-%d.log"
     AUTHENTICATION_LOG_DESTINATION: str = (
         TACACS_LOG_DIRECTORY + "%Y/%m/authentication-%Y-%m-%d.log"

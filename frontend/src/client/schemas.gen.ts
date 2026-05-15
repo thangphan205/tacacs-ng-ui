@@ -3912,6 +3912,11 @@ export const TacacsNgSettingPublicSchema = {
             title: 'Pap Backend',
             default: 'mavis'
         },
+        timezone: {
+            type: 'string',
+            title: 'Timezone',
+            default: 'UTC'
+        },
         id: {
             type: 'string',
             format: 'uuid',
@@ -4014,6 +4019,11 @@ export const TacacsNgSettingUpdateSchema = {
             type: 'string',
             title: 'Pap Backend',
             default: 'mavis'
+        },
+        timezone: {
+            type: 'string',
+            title: 'Timezone',
+            default: 'UTC'
         }
     },
     type: 'object',

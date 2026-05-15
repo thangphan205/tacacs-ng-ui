@@ -185,6 +185,7 @@ class TacacsNgSettingBase(SQLModel):
     login_backend: str = Field(default="mavis")
     user_backend: str = Field(default="mavis")
     pap_backend: str = Field(default="mavis")
+    timezone: str = Field(default="UTC")
 
 
 class TacacsNgSettingCreate(TacacsNgSettingBase):

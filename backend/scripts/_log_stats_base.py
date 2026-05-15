@@ -1,6 +1,8 @@
+import os
 import re
 import sys
 from datetime import date, datetime, time as time_, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 # IPv4 or IPv6 — requires dots or colons so plain port/session numbers (e.g. "39001") don't match.
 # Supported log formats (tab-separated after timestamp+nas_ip):
@@ -21,14 +23,32 @@ AUTH_LOG_REGEX = re.compile(
 )
 
 
+def _get_local_tz() -> ZoneInfo:
+    """Read timezone from DB setting, fall back to TZ env var, then UTC."""
+    try:
+        from app.core.db import engine
+        from app.models import TacacsNgSetting
+        from sqlmodel import Session, select
+        with Session(engine) as session:
+            setting = session.exec(select(TacacsNgSetting)).first()
+            if setting and setting.timezone:
+                return ZoneInfo(setting.timezone)
+    except Exception:
+        pass
+    try:
+        return ZoneInfo(os.environ.get("TZ", "UTC"))
+    except Exception:
+        return ZoneInfo("UTC")
+
+
 def get_target_date() -> date:
-    """Return date from argv[1] (YYYY-MM-DD) or yesterday UTC."""
+    """Return date from argv[1] (YYYY-MM-DD) or yesterday in the configured local timezone."""
     if len(sys.argv) > 1:
         try:
             return datetime.strptime(sys.argv[1], "%Y-%m-%d").date()
         except ValueError:
             print(f"Invalid date argument '{sys.argv[1]}'. Expected YYYY-MM-DD. Using yesterday.")
-    return (datetime.now(timezone.utc) - timedelta(days=1)).date()
+    return (datetime.now(_get_local_tz()) - timedelta(days=1)).date()
 
 
 def to_log_datetime(d: date) -> datetime:
