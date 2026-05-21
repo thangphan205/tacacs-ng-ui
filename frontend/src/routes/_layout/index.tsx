@@ -575,9 +575,17 @@ function RecentActivity() {
 
 function LastTacacsLogs() {
   const today = new Date().toISOString().split("T")[0]
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0]
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard_last_tacacs_logs"],
-    queryFn: () => TacacsLogsService.listLogEvents({ date: today, limit: 10 }),
+    queryFn: () =>
+      TacacsLogsService.listLogEvents({
+        dateFrom: sevenDaysAgo,
+        dateTo: today,
+        limit: 20,
+      }),
   })
 
   const logs = data?.data ?? []
@@ -600,7 +608,7 @@ function LastTacacsLogs() {
         <Spinner size="sm" />
       ) : logs.length === 0 ? (
         <Text color="fg.muted" fontSize="sm">
-          No logs today.
+          No logs in the last 7 days.
         </Text>
       ) : (
         <Box borderWidth="1px" borderRadius="lg" overflow="hidden">
@@ -620,7 +628,13 @@ function LastTacacsLogs() {
               {logs.map((log: TacacsLogEvent, i: number) => (
                 <Table.Row key={i}>
                   <Table.Cell whiteSpace="nowrap" fontSize="xs" color="fg.muted">
-                    {new Date(log.timestamp).toLocaleTimeString()}
+                    {new Date(log.timestamp).toLocaleString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    })}
                   </Table.Cell>
                   <Table.Cell>
                     <Badge colorPalette={LOG_TYPE_COLOR[log.log_type] ?? "gray"} size="sm">
