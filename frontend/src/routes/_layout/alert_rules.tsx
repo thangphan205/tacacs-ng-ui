@@ -387,7 +387,7 @@ function AlertRulesTable() {
                   </Table.Cell>
                   <Table.Cell>{rule.time_window_minutes}m</Table.Cell>
                   <Table.Cell fontSize="xs" color="fg.muted">
-                    {rule.last_fired_at ? new Date(rule.last_fired_at).toLocaleString() : "Never"}
+                    {rule.last_fired_at ? new Date(rule.last_fired_at).toLocaleString(undefined, { hour12: false }) : "Never"}
                   </Table.Cell>
                   <Table.Cell>
                     <Badge colorPalette={rule.enabled ? "green" : "gray"}>

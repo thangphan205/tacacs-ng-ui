@@ -543,7 +543,7 @@ function RecentActivity() {
                     fontSize="xs"
                     color="fg.muted"
                   >
-                    {new Date(log.created_at).toLocaleString()}
+                    {new Date(log.created_at).toLocaleString(undefined, { hour12: false })}
                   </Table.Cell>
                   <Table.Cell fontSize="xs" maxW="32" truncate>
                     {log.user_email}
@@ -634,6 +634,7 @@ function LastTacacsLogs() {
                       hour: "2-digit",
                       minute: "2-digit",
                       second: "2-digit",
+                      hour12: false,
                     })}
                   </Table.Cell>
                   <Table.Cell>
@@ -747,7 +748,7 @@ function Dashboard() {
         <Flex align="center" gap={2}>
           {dataUpdatedAt > 0 && (
             <Text color="fg.muted" fontSize="sm">
-              Updated {new Date(dataUpdatedAt).toLocaleTimeString()}
+              Updated {new Date(dataUpdatedAt).toLocaleTimeString(undefined, { hour12: false })}
             </Text>
           )}
           <IconButton

@@ -158,7 +158,7 @@ function TacacsConfigsTable() {
                     {tacacs_config.description || "—"}
                   </Table.Cell>
                   <Table.Cell fontSize="sm" color="fg.muted">
-                    {new Date(tacacs_config.created_at).toLocaleString()}
+                    {new Date(tacacs_config.created_at).toLocaleString(undefined, { hour12: false })}
                   </Table.Cell>
                   <Table.Cell>
                     <TacacsConfigActionsMenu tacacs_config={tacacs_config} />

@@ -212,7 +212,7 @@ function AuditLogsTable() {
               {logs.map((log) => (
                 <Table.Row key={log.id}>
                   <Table.Cell whiteSpace="nowrap">
-                    {new Date(log.created_at).toLocaleString()}
+                    {new Date(log.created_at).toLocaleString(undefined, { hour12: false })}
                   </Table.Cell>
                   <Table.Cell truncate maxW="48">
                     {log.user_email}

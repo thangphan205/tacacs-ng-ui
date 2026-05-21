@@ -120,7 +120,7 @@ function AlertEventsTable() {
               {data?.data.map((ev) => (
                 <Table.Row key={ev.id}>
                   <Table.Cell fontSize="xs" whiteSpace="nowrap">
-                    {ev.triggered_at ? new Date(ev.triggered_at).toLocaleString() : "—"}
+                    {ev.triggered_at ? new Date(ev.triggered_at).toLocaleString(undefined, { hour12: false }) : "—"}
                   </Table.Cell>
                   <Table.Cell fontWeight="medium">{ev.rule_name ?? ev.rule_id}</Table.Cell>
                   <Table.Cell>

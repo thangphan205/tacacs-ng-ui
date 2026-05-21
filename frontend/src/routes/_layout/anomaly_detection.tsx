@@ -168,7 +168,7 @@ function AnomalyTable() {
                     )}
                   </Table.Cell>
                   <Table.Cell fontSize="xs" color="fg.muted" whiteSpace="nowrap">
-                    {r.scored_at ? new Date(r.scored_at).toLocaleString() : "—"}
+                    {r.scored_at ? new Date(r.scored_at).toLocaleString(undefined, { hour12: false }) : "—"}
                   </Table.Cell>
                 </Table.Row>
               ))}
