@@ -1,3 +1,4 @@
+import html
 import json
 import logging
 
@@ -49,9 +50,9 @@ def _send_telegram(*, config: dict, subject: str, body: str) -> tuple[bool, str 
         return False, "telegram config missing bot_token or chat_id"
 
     divider = "─" * 28
-    text = f"🔔 *{subject}*\n`{divider}`\n{body}\n`{divider}`"
+    text = f"🔔 <b>{html.escape(subject)}</b>\n<code>{divider}</code>\n{html.escape(body)}\n<code>{divider}</code>"
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    payload: dict = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
+    payload: dict = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
     topic_id = config.get("topic_id")
     if topic_id:
         payload["message_thread_id"] = int(topic_id)
