@@ -28,6 +28,7 @@ import {
   DrawerContent,
   DrawerRoot,
 } from "../ui/drawer"
+import { MenuContent, MenuItem, MenuRoot, MenuTrigger } from "../ui/menu"
 import { Tooltip } from "../ui/tooltip"
 import SidebarItems from "./SidebarItems"
 
@@ -42,6 +43,11 @@ const SidebarFooter = ({
 }) => {
   const { logout } = useAuth()
 
+  const handleLogout = async () => {
+    if (onClose) onClose()
+    await logout()
+  }
+
   return (
     <VStack
       align="stretch"
@@ -52,116 +58,104 @@ const SidebarFooter = ({
       borderTopWidth="1px"
       borderTopColor="border.muted"
     >
-      {/* Profile Card */}
-      {!isCollapsed ? (
-        <Flex
-          align="center"
-          gap={3}
-          p={2.5}
-          borderRadius="xl"
-          bg="bg.muted"
-          borderWidth="1px"
-          borderColor="border.subtle"
-        >
-          {/* Avatar Initial Circle */}
-          <Flex
-            align="center"
-            justify="center"
-            boxSize="8"
-            borderRadius="full"
-            bg="teal.600"
-            color="white"
-            fontWeight="bold"
-            fontSize="sm"
-            flexShrink={0}
-          >
-            {email ? email.substring(0, 2).toUpperCase() : "U"}
-          </Flex>
-          <VStack align="flex-start" gap={0} flex="1" overflow="hidden">
-            <Text
-              fontSize="sm"
-              fontWeight="bold"
-              truncate
-              maxW="100%"
-              color="fg.default"
-            >
-              {email ? email.split("@")[0] : "User"}
-            </Text>
-            <Text fontSize="xs" color="fg.subtle" truncate maxW="100%">
-              {email || "user@example.com"}
-            </Text>
-          </VStack>
-        </Flex>
-      ) : (
-        <Tooltip content={email || "User"} placement="right">
-          <Flex
-            align="center"
-            justify="center"
-            boxSize="10"
-            borderRadius="full"
-            bg="teal.600"
-            color="white"
-            fontWeight="bold"
-            fontSize="md"
-            mx="auto"
-            cursor="pointer"
-          >
-            {email ? email.substring(0, 2).toUpperCase() : "U"}
-          </Flex>
-        </Tooltip>
-      )}
+      <MenuRoot positioning={{ placement: "right-end" }}>
+        <MenuTrigger asChild>
+          <Box cursor="pointer" data-testid="user-menu" outline="none">
+            {/* Profile Card */}
+            {!isCollapsed ? (
+              <Flex
+                align="center"
+                gap={3}
+                p={2.5}
+                borderRadius="xl"
+                bg="bg.muted"
+                borderWidth="1px"
+                borderColor="border.subtle"
+                _hover={{ bg: "bg.emphasized", borderColor: "teal.500" }}
+                transition="all 0.2s"
+              >
+                {/* Avatar Initial Circle */}
+                <Flex
+                  align="center"
+                  justify="center"
+                  boxSize="8"
+                  borderRadius="full"
+                  bg="teal.600"
+                  color="white"
+                  fontWeight="bold"
+                  fontSize="sm"
+                  flexShrink={0}
+                >
+                  {email ? email.substring(0, 2).toUpperCase() : "U"}
+                </Flex>
+                <VStack align="flex-start" gap={0} flex="1" overflow="hidden">
+                  <Text
+                    fontSize="sm"
+                    fontWeight="bold"
+                    truncate
+                    maxW="100%"
+                    color="fg.default"
+                  >
+                    {email ? email.split("@")[0] : "User"}
+                  </Text>
+                  <Text fontSize="xs" color="fg.subtle" truncate maxW="100%">
+                    {email || "user@example.com"}
+                  </Text>
+                </VStack>
+              </Flex>
+            ) : (
+              <Tooltip content={email || "User"} placement="right">
+                <Flex
+                  align="center"
+                  justify="center"
+                  boxSize="10"
+                  borderRadius="full"
+                  bg="teal.600"
+                  color="white"
+                  fontWeight="bold"
+                  fontSize="md"
+                  mx="auto"
+                  _hover={{ bg: "teal.700" }}
+                  transition="background 0.2s"
+                >
+                  {email ? email.substring(0, 2).toUpperCase() : "U"}
+                </Flex>
+              </Tooltip>
+            )}
+          </Box>
+        </MenuTrigger>
 
-      {/* Action Links */}
-      <VStack align="stretch" gap={1}>
-        <Tooltip
-          content="User Settings"
-          placement="right"
-          disabled={!isCollapsed}
-        >
+        <MenuContent minW="180px" zIndex={1500}>
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <RouterLink to={"/settings" as any} onClick={onClose}>
-            <Flex
-              align="center"
-              gap={3}
-              px={3}
-              py={2}
-              borderRadius="lg"
-              fontSize="sm"
-              fontWeight="medium"
-              color="fg.muted"
-              _hover={{ bg: "gray.subtle", color: "teal.600" }}
-              cursor="pointer"
-              transition="all 0.15s"
-              justify={isCollapsed ? "center" : "flex-start"}
-            >
-              <Icon as={FiSettings} />
-              {!isCollapsed && <Text>Settings</Text>}
-            </Flex>
+          <RouterLink
+            to={"/settings" as any}
+            onClick={onClose}
+            style={{ textDecoration: "none" }}
+          >
+            <MenuItem value="settings" gap={2.5} cursor="pointer" py={2}>
+              <Icon as={FiSettings} color="fg.muted" />
+              <Box flex="1" fontSize="sm" fontWeight="medium">
+                Settings
+              </Box>
+            </MenuItem>
           </RouterLink>
-        </Tooltip>
 
-        <Tooltip content="Log Out" placement="right" disabled={!isCollapsed}>
-          <Flex
-            as="button"
-            align="center"
-            gap={3}
-            px={3}
+          <MenuItem
+            value="logout"
+            gap={2.5}
+            cursor="pointer"
             py={2}
-            borderRadius="lg"
-            fontSize="sm"
-            fontWeight="medium"
-            color="fg.muted"
-            _hover={{ bg: "red.subtle", color: "red.600" }}
-            transition="all 0.15s"
-            onClick={logout}
-            w="full"
-            justify={isCollapsed ? "center" : "flex-start"}
+            onClick={handleLogout}
+            color="red.600"
+            _hover={{ bg: "red.subtle", color: "red.700" }}
           >
             <Icon as={FiLogOut} />
-            {!isCollapsed && <Text>Log Out</Text>}
-          </Flex>
-        </Tooltip>
-      </VStack>
+            <Box flex="1" fontSize="sm" fontWeight="medium">
+              Log out
+            </Box>
+          </MenuItem>
+        </MenuContent>
+      </MenuRoot>
 
       {/* GitHub & Version Info */}
       <Flex align="center" justify="center" gap={1.5} pt={2} color="fg.subtle">

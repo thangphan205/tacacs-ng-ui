@@ -239,7 +239,7 @@ function Login() {
                     to="/recover-password"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    Forgot your password?
+                    Forgot password?
                   </RouterLink>
                 </Link>
               </Flex>
