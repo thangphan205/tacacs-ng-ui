@@ -14,9 +14,9 @@ import {
   Textarea,
   VStack,
 } from "@chakra-ui/react"
-import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 import { FiPlus, FiSend } from "react-icons/fi"
 import { z } from "zod"
 
@@ -139,13 +139,19 @@ function ChannelDialog({
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const t = e.target.value
-    setForm((p) => ({ ...p, channel_type: t, config_json: CONFIG_PLACEHOLDERS[t] ?? "{}" }))
+    setForm((p) => ({
+      ...p,
+      channel_type: t,
+      config_json: CONFIG_PLACEHOLDERS[t] ?? "{}",
+    }))
   }
 
   return (
     <Stack gap={3}>
       <Box>
-        <Text fontSize="sm" mb={1}>Name</Text>
+        <Text fontSize="sm" mb={1}>
+          Name
+        </Text>
         <Input
           value={form.name}
           onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
@@ -153,9 +159,16 @@ function ChannelDialog({
         />
       </Box>
       <Box>
-        <Text fontSize="sm" mb={1}>Channel Type</Text>
+        <Text fontSize="sm" mb={1}>
+          Channel Type
+        </Text>
         <select
-          style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #ccc" }}
+          style={{
+            width: "100%",
+            padding: "6px",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+          }}
           value={form.channel_type}
           onChange={handleTypeChange}
         >
@@ -169,10 +182,14 @@ function ChannelDialog({
         </select>
       </Box>
       <Box>
-        <Text fontSize="sm" mb={1}>Configuration (JSON)</Text>
+        <Text fontSize="sm" mb={1}>
+          Configuration (JSON)
+        </Text>
         <Textarea
           value={form.config_json}
-          onChange={(e) => setForm((p) => ({ ...p, config_json: e.target.value }))}
+          onChange={(e) =>
+            setForm((p) => ({ ...p, config_json: e.target.value }))
+          }
           rows={6}
           fontFamily="mono"
           fontSize="xs"
@@ -181,16 +198,26 @@ function ChannelDialog({
       <Flex align="center" gap={2}>
         <Switch.Root
           checked={form.enabled}
-          onCheckedChange={(e) => setForm((p) => ({ ...p, enabled: e.checked }))}
+          onCheckedChange={(e) =>
+            setForm((p) => ({ ...p, enabled: e.checked }))
+          }
         >
           <Switch.HiddenInput />
-          <Switch.Control><Switch.Thumb /></Switch.Control>
+          <Switch.Control>
+            <Switch.Thumb />
+          </Switch.Control>
         </Switch.Root>
         <Text fontSize="sm">Enabled</Text>
       </Flex>
       <Flex justify="flex-end" gap={2} pt={2}>
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button colorPalette="blue" loading={mutation.isPending} onClick={() => mutation.mutate()}>
+        <Button variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          colorPalette="blue"
+          loading={mutation.isPending}
+          onClick={() => mutation.mutate()}
+        >
           {channel ? "Save" : "Create"}
         </Button>
       </Flex>
@@ -211,20 +238,31 @@ function TestButton({ channel }: { channel: NotificationChannelPublic }) {
     <Button
       size="xs"
       variant="ghost"
-      colorPalette={status === "ok" ? "green" : status === "fail" ? "red" : "blue"}
+      colorPalette={
+        status === "ok" ? "green" : status === "fail" ? "red" : "blue"
+      }
       loading={mutation.isPending}
-      onClick={() => { setStatus("idle"); mutation.mutate() }}
+      onClick={() => {
+        setStatus("idle")
+        mutation.mutate()
+      }}
     >
-      <FiSend /> {status === "ok" ? "Sent!" : status === "fail" ? "Failed" : "Test"}
+      <FiSend />{" "}
+      {status === "ok" ? "Sent!" : status === "fail" ? "Failed" : "Test"}
     </Button>
   )
 }
 
-function DeleteChannelButton({ channel }: { channel: NotificationChannelPublic }) {
+function DeleteChannelButton({
+  channel,
+}: {
+  channel: NotificationChannelPublic
+}) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const mutation = useMutation({
-    mutationFn: () => NotificationChannelsService.deleteNotificationChannel({ id: channel.id }),
+    mutationFn: () =>
+      NotificationChannelsService.deleteNotificationChannel({ id: channel.id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notification_channels"] })
       setOpen(false)
@@ -234,17 +272,31 @@ function DeleteChannelButton({ channel }: { channel: NotificationChannelPublic }
   return (
     <DialogRoot open={open} onOpenChange={(e) => setOpen(e.open)}>
       <DialogTrigger asChild>
-        <Button size="xs" variant="ghost" colorPalette="red">Delete</Button>
+        <Button size="xs" variant="ghost" colorPalette="red">
+          Delete
+        </Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>Delete Channel</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Delete Channel</DialogTitle>
+        </DialogHeader>
         <DialogCloseTrigger />
         <DialogBody>
-          <Text>Delete <strong>{channel.name}</strong>?</Text>
+          <Text>
+            Delete <strong>{channel.name}</strong>?
+          </Text>
         </DialogBody>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button colorPalette="red" loading={mutation.isPending} onClick={() => mutation.mutate()}>Delete</Button>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            colorPalette="red"
+            loading={mutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
+            Delete
+          </Button>
         </DialogFooter>
       </DialogContent>
     </DialogRoot>
@@ -255,7 +307,8 @@ function NotificationChannelsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page } = Route.useSearch()
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
-  const [editChannel, setEditChannel] = useState<NotificationChannelPublic | null>(null)
+  const [editChannel, setEditChannel] =
+    useState<NotificationChannelPublic | null>(null)
   const [addOpen, setAddOpen] = useState(false)
 
   const { data, isLoading } = useQuery(getQueryOptions({ page, perPage }))
@@ -266,15 +319,27 @@ function NotificationChannelsTable() {
   return (
     <Box>
       <Flex mb={4} justify="space-between" align="center">
-        <PageSizeSelect value={perPage} onChange={(v) => { setPerPage(v); navigate({ search: { page: 1 } }) }} />
+        <PageSizeSelect
+          value={perPage}
+          onChange={(v) => {
+            setPerPage(v)
+            navigate({ search: { page: 1 } })
+          }}
+        />
         <DialogRoot open={addOpen} onOpenChange={(e) => setAddOpen(e.open)}>
           <DialogTrigger asChild>
-            <Button colorPalette="blue" size="sm"><FiPlus /> Add Channel</Button>
+            <Button colorPalette="blue" size="sm">
+              <FiPlus /> Add Channel
+            </Button>
           </DialogTrigger>
           <DialogContent maxW="xl">
-            <DialogHeader><DialogTitle>Create Notification Channel</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Create Notification Channel</DialogTitle>
+            </DialogHeader>
             <DialogCloseTrigger />
-            <DialogBody><ChannelDialog onClose={() => setAddOpen(false)} /></DialogBody>
+            <DialogBody>
+              <ChannelDialog onClose={() => setAddOpen(false)} />
+            </DialogBody>
           </DialogContent>
         </DialogRoot>
       </Flex>
@@ -283,9 +348,13 @@ function NotificationChannelsTable() {
         <EmptyState.Root>
           <EmptyState.Content>
             <VStack>
-              <EmptyState.Indicator><FiSend /></EmptyState.Indicator>
+              <EmptyState.Indicator>
+                <FiSend />
+              </EmptyState.Indicator>
               <EmptyState.Title>No channels configured</EmptyState.Title>
-              <EmptyState.Description>Add a channel to receive alert notifications.</EmptyState.Description>
+              <EmptyState.Description>
+                Add a channel to receive alert notifications.
+              </EmptyState.Description>
             </VStack>
           </EmptyState.Content>
         </EmptyState.Root>
@@ -305,7 +374,9 @@ function NotificationChannelsTable() {
                 <Table.Row key={ch.id}>
                   <Table.Cell fontWeight="medium">{ch.name}</Table.Cell>
                   <Table.Cell>
-                    <Badge colorPalette={CHANNEL_COLORS[ch.channel_type] ?? "gray"}>
+                    <Badge
+                      colorPalette={CHANNEL_COLORS[ch.channel_type] ?? "gray"}
+                    >
                       {ch.channel_type}
                     </Badge>
                   </Table.Cell>
@@ -317,14 +388,26 @@ function NotificationChannelsTable() {
                   <Table.Cell>
                     <Flex gap={1}>
                       <TestButton channel={ch} />
-                      <DialogRoot open={editChannel?.id === ch.id} onOpenChange={(e) => setEditChannel(e.open ? ch : null)}>
+                      <DialogRoot
+                        open={editChannel?.id === ch.id}
+                        onOpenChange={(e) => setEditChannel(e.open ? ch : null)}
+                      >
                         <DialogTrigger asChild>
-                          <Button size="xs" variant="ghost">Edit</Button>
+                          <Button size="xs" variant="ghost">
+                            Edit
+                          </Button>
                         </DialogTrigger>
                         <DialogContent maxW="xl">
-                          <DialogHeader><DialogTitle>Edit Channel</DialogTitle></DialogHeader>
+                          <DialogHeader>
+                            <DialogTitle>Edit Channel</DialogTitle>
+                          </DialogHeader>
                           <DialogCloseTrigger />
-                          <DialogBody><ChannelDialog channel={ch} onClose={() => setEditChannel(null)} /></DialogBody>
+                          <DialogBody>
+                            <ChannelDialog
+                              channel={ch}
+                              onClose={() => setEditChannel(null)}
+                            />
+                          </DialogBody>
                         </DialogContent>
                       </DialogRoot>
                       <DeleteChannelButton channel={ch} />
@@ -356,8 +439,13 @@ function NotificationChannelsTable() {
 function NotificationChannelsPage() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12} pb={4}>Notification Channels</Heading>
-      <Text color="fg.muted" mb={6}>Configure destinations for alert notifications (Telegram, Slack, Discord, Teams, or generic webhooks).</Text>
+      <Heading size="lg" pt={12} pb={4}>
+        Notification Channels
+      </Heading>
+      <Text color="fg.muted" mb={6}>
+        Configure destinations for alert notifications (Telegram, Slack,
+        Discord, Teams, or generic webhooks).
+      </Text>
       <NotificationChannelsTable />
     </Container>
   )

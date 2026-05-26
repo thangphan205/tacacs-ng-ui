@@ -51,7 +51,7 @@ const CompareConfigs = () => {
       const others = configs.filter((c) => c.id !== configAId)
       if (others.length) setConfigBId(others[0].id)
     }
-  }, [configs]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [configs, configBId, configAId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: dataA, isLoading: loadingA } = useQuery({
     queryKey: ["tacacs_config", configAId],
@@ -137,88 +137,88 @@ const CompareConfigs = () => {
 
   return (
     <Box display="contents">
-    <DialogRoot
-      size={{ base: "xl", md: "xl" }}
-      placement="center"
-      open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
-    >
-      <DialogTrigger asChild>
-        <Button variant="solid" my={4}>
-          <FiGitBranch fontSize="16px" />
-          Compare Configs
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Compare Configurations</DialogTitle>
-        </DialogHeader>
-        <DialogBody>
-          {configs.length >= 2 && (
-            <>
-              <Flex align="center" gap={2} mb={2}>
-                <Text fontSize="sm" color="fg.muted" flexShrink={0} w="60px">
-                  Config A:
-                </Text>
-                <select
-                  value={configAId ?? ""}
-                  onChange={(e) => setConfigAId(e.target.value)}
-                  style={selectStyle}
-                >
-                  {configs.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.filename}
-                      {c.active ? " (Active)" : ""}
-                    </option>
-                  ))}
-                </select>
-              </Flex>
-              <Flex align="center" gap={2} mb={3}>
-                <Text fontSize="sm" color="fg.muted" flexShrink={0} w="60px">
-                  Config B:
-                </Text>
-                <select
-                  value={configBId ?? ""}
-                  onChange={(e) => setConfigBId(e.target.value)}
-                  style={selectStyle}
-                >
-                  {configs.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.filename}
-                      {c.active ? " (Active)" : ""}
-                    </option>
-                  ))}
-                </select>
-              </Flex>
-              {configAId !== configBId && (
-                <Flex justify="space-between" mb={1} px={4}>
-                  <Text fontFamily="mono" fontSize="xs" color="red.fg">
-                    --- {configA?.filename ?? ""}
-                  </Text>
-                  <Text fontFamily="mono" fontSize="xs" color="green.fg">
-                    +++ {configB?.filename ?? ""}
-                  </Text>
-                </Flex>
-              )}
-            </>
-          )}
-          <Box
-            maxH="500px"
-            overflowY="auto"
-            borderWidth="1px"
-            borderRadius="md"
-          >
-            {renderDiff()}
-          </Box>
-        </DialogBody>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => setIsOpen(false)}>
-            Close
+      <DialogRoot
+        size={{ base: "xl", md: "xl" }}
+        placement="center"
+        open={isOpen}
+        onOpenChange={({ open }) => setIsOpen(open)}
+      >
+        <DialogTrigger asChild>
+          <Button variant="solid" my={4}>
+            <FiGitBranch fontSize="16px" />
+            Compare Configs
           </Button>
-        </DialogFooter>
-        <DialogCloseTrigger />
-      </DialogContent>
-    </DialogRoot>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Compare Configurations</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            {configs.length >= 2 && (
+              <>
+                <Flex align="center" gap={2} mb={2}>
+                  <Text fontSize="sm" color="fg.muted" flexShrink={0} w="60px">
+                    Config A:
+                  </Text>
+                  <select
+                    value={configAId ?? ""}
+                    onChange={(e) => setConfigAId(e.target.value)}
+                    style={selectStyle}
+                  >
+                    {configs.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.filename}
+                        {c.active ? " (Active)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </Flex>
+                <Flex align="center" gap={2} mb={3}>
+                  <Text fontSize="sm" color="fg.muted" flexShrink={0} w="60px">
+                    Config B:
+                  </Text>
+                  <select
+                    value={configBId ?? ""}
+                    onChange={(e) => setConfigBId(e.target.value)}
+                    style={selectStyle}
+                  >
+                    {configs.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.filename}
+                        {c.active ? " (Active)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </Flex>
+                {configAId !== configBId && (
+                  <Flex justify="space-between" mb={1} px={4}>
+                    <Text fontFamily="mono" fontSize="xs" color="red.fg">
+                      --- {configA?.filename ?? ""}
+                    </Text>
+                    <Text fontFamily="mono" fontSize="xs" color="green.fg">
+                      +++ {configB?.filename ?? ""}
+                    </Text>
+                  </Flex>
+                )}
+              </>
+            )}
+            <Box
+              maxH="500px"
+              overflowY="auto"
+              borderWidth="1px"
+              borderRadius="md"
+            >
+              {renderDiff()}
+            </Box>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+          <DialogCloseTrigger />
+        </DialogContent>
+      </DialogRoot>
     </Box>
   )
 }

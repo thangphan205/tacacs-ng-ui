@@ -11,9 +11,9 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 import { FiFileText, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
@@ -23,8 +23,8 @@ import { SearchBox } from "@/components/Common/SearchBox"
 import { TacacsConfigActionsMenu } from "@/components/Common/TacacsConfigActionsMenu"
 import PendingTacacsConfigs from "@/components/Pending/PendingTacacsConfigs"
 import AddTacacsConfig from "@/components/TacacsConfigs/AddTacacsConfig"
-import PreviewTacacsConfig from "@/components/TacacsConfigs/PreviewTacacsConfig"
 import CompareConfigs from "@/components/TacacsConfigs/CompareConfigs"
+import PreviewTacacsConfig from "@/components/TacacsConfigs/PreviewTacacsConfig"
 import ShowActiveTacacsConfig from "@/components/TacacsConfigs/ShowActiveTacacsConfig"
 import ShowTacacsConfig from "@/components/TacacsConfigs/ShowTacacsConfig"
 import {
@@ -158,7 +158,10 @@ function TacacsConfigsTable() {
                     {tacacs_config.description || "—"}
                   </Table.Cell>
                   <Table.Cell fontSize="sm" color="fg.muted">
-                    {new Date(tacacs_config.created_at).toLocaleString(undefined, { hour12: false })}
+                    {new Date(tacacs_config.created_at).toLocaleString(
+                      undefined,
+                      { hour12: false },
+                    )}
                   </Table.Cell>
                   <Table.Cell>
                     <TacacsConfigActionsMenu tacacs_config={tacacs_config} />

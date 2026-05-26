@@ -46,7 +46,10 @@ const LoadMavisTemplate = () => {
   const mutation = useMutation({
     mutationFn: (entry: MavisTemplateEntry) =>
       MavisesService.createMavis({
-        requestBody: { mavis_key: entry.mavis_key, mavis_value: entry.mavis_value },
+        requestBody: {
+          mavis_key: entry.mavis_key,
+          mavis_value: entry.mavis_value,
+        },
       }),
     onSuccess: (_, entry) => {
       showSuccessToast(`${entry.mavis_key} added.`)
@@ -92,7 +95,10 @@ const LoadMavisTemplate = () => {
               rel="noopener noreferrer"
               color="blue.500"
             >
-              Full documentation <FiExternalLink style={{ display: "inline", verticalAlign: "middle" }} />
+              Full documentation{" "}
+              <FiExternalLink
+                style={{ display: "inline", verticalAlign: "middle" }}
+              />
             </Link>
           </Text>
           <Tabs.Root defaultValue={MAVIS_TEMPLATES[0].id} variant="subtle">

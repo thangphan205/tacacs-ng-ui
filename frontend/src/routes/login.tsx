@@ -1,5 +1,6 @@
 import {
-  Container,
+  Box,
+  Flex,
   Icon,
   Image,
   Input,
@@ -17,17 +18,16 @@ import {
 import { useEffect, useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FcGoogle } from "react-icons/fc"
-import { FiGithub, FiLock, FiMail } from "react-icons/fi"
+import { FiGithub } from "react-icons/fi"
 
 import type { Body_login_login_access_token as AccessToken } from "@/client"
 import { OpenAPI } from "@/client"
 import { Button } from "@/components/ui/button"
 import { Field } from "@/components/ui/field"
-import { InputGroup } from "@/components/ui/input-group"
 import { PasswordInput } from "@/components/ui/password-input"
 import useAuth, { isLoggedIn } from "@/hooks/useAuth"
 import { handleError } from "@/utils"
-import Logo from "/assets/images/tacacs-ng-ui.svg"
+import Logo from "/assets/images/tacacs-ng-ui-logo.svg"
 import { version } from "../../package.json"
 import { emailPattern, passwordRules } from "../utils"
 
@@ -158,106 +158,176 @@ function Login() {
     providers.google || providers.keycloak || providers.passkey
 
   return (
-    <Container
-      as="form"
-      onSubmit={handleSubmit(onSubmit)}
-      h="100vh"
-      maxW="sm"
-      alignItems="stretch"
-      justifyContent="center"
-      gap={4}
-      centerContent
-    >
-      <Image
-        src={Logo}
-        alt="FastAPI logo"
-        height="auto"
-        maxW="2xs"
-        alignSelf="center"
-        mb={4}
-      />
-      <Field
-        invalid={!!errors.username}
-        errorText={errors.username?.message || !!error}
+    <Flex h="100vh" w="100vw" overflow="hidden" direction="row">
+      {/* Left Pane - Brand/Logo (hidden on mobile, centered on desktop) */}
+      <Flex
+        flex="1"
+        bg="gray.50"
+        align="center"
+        justify="center"
+        display={{ base: "none", md: "flex" }}
+        h="full"
+        p={8}
       >
-        <InputGroup w="100%" startElement={<FiMail />}>
-          <Input
-            {...register("username", {
-              required: "Username is required",
-              pattern: emailPattern,
-            })}
-            placeholder="Email"
-            type="email"
+        <Image
+          src={Logo}
+          alt="FastAPI logo"
+          height="auto"
+          maxW="xs"
+          alignSelf="center"
+        />
+      </Flex>
+
+      {/* Right Pane - Login Form */}
+      <Flex
+        flex="1"
+        bg="bg"
+        align="center"
+        justify="center"
+        h="full"
+        p={{ base: 6, md: 12 }}
+      >
+        <Box
+          as="form"
+          onSubmit={handleSubmit(onSubmit)}
+          w="full"
+          maxW="sm"
+          display="flex"
+          flexDirection="column"
+          gap={5}
+        >
+          <Text
+            as="h1"
+            fontSize="2xl"
+            fontWeight="bold"
+            textAlign="center"
+            color="teal.600"
+            mb={2}
+          >
+            Login to your account
+          </Text>
+
+          <Field
+            label="Email"
+            invalid={!!errors.username}
+            errorText={errors.username?.message || !!error}
+          >
+            <Input
+              {...register("username", {
+                required: "Username is required",
+                pattern: emailPattern,
+              })}
+              placeholder="user@example.com"
+              type="email"
+              size="md"
+            />
+          </Field>
+
+          <PasswordInput
+            type="password"
+            label={
+              <Flex justify="space-between" align="center" w="full">
+                <Text as="span">Password</Text>
+                <Link
+                  asChild
+                  fontSize="xs"
+                  fontWeight="medium"
+                  color="gray.600"
+                  _hover={{ textDecoration: "underline" }}
+                >
+                  <RouterLink
+                    to="/recover-password"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Forgot your password?
+                  </RouterLink>
+                </Link>
+              </Flex>
+            }
+            {...register("password", passwordRules())}
+            placeholder="Password"
+            errors={errors}
+            size="md"
           />
-        </InputGroup>
-      </Field>
-      <PasswordInput
-        type="password"
-        startElement={<FiLock />}
-        {...register("password", passwordRules())}
-        placeholder="Password"
-        errors={errors}
-      />
-      <RouterLink to="/recover-password" className="main-link">
-        Forgot Password?
-      </RouterLink>
-      <Button variant="solid" type="submit" loading={isSubmitting} size="md">
-        Log In
-      </Button>
 
-      {hasOAuthProviders && <Separator />}
+          <Button
+            variant="solid"
+            colorPalette="teal"
+            type="submit"
+            loading={isSubmitting}
+            size="md"
+            w="full"
+            mt={2}
+          >
+            Log In
+          </Button>
 
-      {providers.google && (
-        <Button
-          variant="outline"
-          size="md"
-          onClick={handleGoogleLogin}
-          type="button"
-        >
-          <FcGoogle />
-          Sign in with Google
-        </Button>
-      )}
+          {hasOAuthProviders && <Separator my={2} />}
 
-      {providers.keycloak && (
-        <Button
-          variant="outline"
-          size="md"
-          onClick={handleKeycloakLogin}
-          type="button"
-        >
-          Sign in with Keycloak
-        </Button>
-      )}
+          {providers.google && (
+            <Button
+              variant="outline"
+              size="md"
+              onClick={handleGoogleLogin}
+              type="button"
+              w="full"
+            >
+              <FcGoogle />
+              Sign in with Google
+            </Button>
+          )}
 
-      {providers.passkey && (
-        <Button
-          variant="outline"
-          size="md"
-          onClick={handlePasskeyLogin}
-          type="button"
-        >
-          Sign in with a Passkey
-        </Button>
-      )}
+          {providers.keycloak && (
+            <Button
+              variant="outline"
+              size="md"
+              onClick={handleKeycloakLogin}
+              type="button"
+              w="full"
+            >
+              Sign in with Keycloak
+            </Button>
+          )}
 
-      <Text>
-        Don't have an account?{" "}
-        <RouterLink to="/signup" className="main-link">
-          Sign Up
-        </RouterLink>
-      </Text>
-      <Link
-        as="a"
-        href="https://github.com/thangphan205/tacacs-ng-ui"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <Icon as={FiGithub} />
-        <Text fontSize="sm" fontWeight="bold">
-          Version {version}
-        </Text>
-      </Link>
-    </Container>
+          {providers.passkey && (
+            <Button
+              variant="outline"
+              size="md"
+              onClick={handlePasskeyLogin}
+              type="button"
+              w="full"
+            >
+              Sign in with a Passkey
+            </Button>
+          )}
+
+          <Text fontSize="sm" color="gray.600" textAlign="center" mt={2}>
+            Don't have an account yet?{" "}
+            <Link asChild className="main-link" textDecoration="underline">
+              <RouterLink to="/signup">Sign up</RouterLink>
+            </Link>
+          </Text>
+
+          <Link
+            as="a"
+            href="https://github.com/thangphan205/tacacs-ng-ui"
+            target="_blank"
+            rel="noopener noreferrer"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            gap={1}
+            color="gray.400"
+            _hover={{ color: "gray.600" }}
+            mt={6}
+          >
+            <Icon as={FiGithub} />
+            <Text fontSize="xs" fontWeight="semibold">
+              Version {version}
+            </Text>
+          </Link>
+        </Box>
+      </Flex>
+    </Flex>
   )
 }

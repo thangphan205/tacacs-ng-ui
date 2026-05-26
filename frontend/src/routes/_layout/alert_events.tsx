@@ -11,9 +11,9 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 import { FiAlertCircle } from "react-icons/fi"
 import { z } from "zod"
 
@@ -73,7 +73,9 @@ function AlertEventsTable() {
   const { page, status } = Route.useSearch()
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
 
-  const { data, isLoading } = useQuery(getQueryOptions({ page, perPage, status }))
+  const { data, isLoading } = useQuery(
+    getQueryOptions({ page, perPage, status }),
+  )
   const count = data?.count ?? 0
 
   if (isLoading) return <Text>Loading...</Text>
@@ -81,11 +83,29 @@ function AlertEventsTable() {
   return (
     <Box>
       <Flex mb={4} gap={3} align="center">
-        <PageSizeSelect value={perPage} onChange={(v) => { setPerPage(v); navigate({ search: (s) => ({ ...s, page: 1 }) }) }} />
+        <PageSizeSelect
+          value={perPage}
+          onChange={(v) => {
+            setPerPage(v)
+            navigate({ search: (s) => ({ ...s, page: 1 }) })
+          }}
+        />
         <select
-          style={{ padding: "6px", borderRadius: "6px", border: "1px solid #ccc" }}
+          style={{
+            padding: "6px",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+          }}
           value={status ?? ""}
-          onChange={(e) => navigate({ search: (s) => ({ ...s, status: e.target.value || undefined, page: 1 }) })}
+          onChange={(e) =>
+            navigate({
+              search: (s) => ({
+                ...s,
+                status: e.target.value || undefined,
+                page: 1,
+              }),
+            })
+          }
         >
           <option value="">All statuses</option>
           <option value="sent">Sent</option>
@@ -97,9 +117,13 @@ function AlertEventsTable() {
         <EmptyState.Root>
           <EmptyState.Content>
             <VStack>
-              <EmptyState.Indicator><FiAlertCircle /></EmptyState.Indicator>
+              <EmptyState.Indicator>
+                <FiAlertCircle />
+              </EmptyState.Indicator>
               <EmptyState.Title>No alert events</EmptyState.Title>
-              <EmptyState.Description>Alerts will appear here when rules are triggered.</EmptyState.Description>
+              <EmptyState.Description>
+                Alerts will appear here when rules are triggered.
+              </EmptyState.Description>
             </VStack>
           </EmptyState.Content>
         </EmptyState.Root>
@@ -120,19 +144,31 @@ function AlertEventsTable() {
               {data?.data.map((ev) => (
                 <Table.Row key={ev.id}>
                   <Table.Cell fontSize="xs" whiteSpace="nowrap">
-                    {ev.triggered_at ? new Date(ev.triggered_at).toLocaleString(undefined, { hour12: false }) : "—"}
+                    {ev.triggered_at
+                      ? new Date(ev.triggered_at).toLocaleString(undefined, {
+                          hour12: false,
+                        })
+                      : "—"}
                   </Table.Cell>
-                  <Table.Cell fontWeight="medium">{ev.rule_name ?? ev.rule_id}</Table.Cell>
+                  <Table.Cell fontWeight="medium">
+                    {ev.rule_name ?? ev.rule_id}
+                  </Table.Cell>
                   <Table.Cell>
                     {ev.rule_severity && (
-                      <Badge colorPalette={SEVERITY_COLORS[ev.rule_severity ?? ""] ?? "gray"}>
+                      <Badge
+                        colorPalette={
+                          SEVERITY_COLORS[ev.rule_severity ?? ""] ?? "gray"
+                        }
+                      >
                         {ev.rule_severity}
                       </Badge>
                     )}
                   </Table.Cell>
                   <Table.Cell>{ev.channel_name ?? ev.channel_id}</Table.Cell>
                   <Table.Cell>
-                    <Badge colorPalette={STATUS_COLORS[ev.status ?? ""] ?? "gray"}>
+                    <Badge
+                      colorPalette={STATUS_COLORS[ev.status ?? ""] ?? "gray"}
+                    >
                       {ev.status}
                     </Badge>
                   </Table.Cell>
@@ -148,7 +184,9 @@ function AlertEventsTable() {
             count={count}
             pageSize={perPage}
             page={page}
-            onPageChange={(e) => navigate({ search: (s) => ({ ...s, page: e.page }) })}
+            onPageChange={(e) =>
+              navigate({ search: (s) => ({ ...s, page: e.page }) })
+            }
           >
             <Flex mt={4} justify="center" gap={2}>
               <PaginationPrevTrigger />
@@ -174,7 +212,11 @@ function AlertStatisticsPanel() {
 
   return (
     <Box mb={8}>
-      <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }} gap={4} mb={6}>
+      <Grid
+        templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }}
+        gap={4}
+        mb={6}
+      >
         {[
           { label: "Total Alerts", value: data.total },
           { label: "Sent", value: data.sent },
@@ -183,8 +225,12 @@ function AlertStatisticsPanel() {
         ].map(({ label, value }) => (
           <Box key={label} borderWidth="1px" borderRadius="lg" p={4}>
             <Stat.Root>
-              <Stat.Label color="fg.muted" fontSize="xs">{label}</Stat.Label>
-              <Stat.ValueText fontSize="2xl" fontWeight="bold">{value}</Stat.ValueText>
+              <Stat.Label color="fg.muted" fontSize="xs">
+                {label}
+              </Stat.Label>
+              <Stat.ValueText fontSize="2xl" fontWeight="bold">
+                {value}
+              </Stat.ValueText>
             </Stat.Root>
           </Box>
         ))}
@@ -192,14 +238,23 @@ function AlertStatisticsPanel() {
 
       <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={4}>
         <Box borderWidth="1px" borderRadius="lg" p={4}>
-          <Text fontWeight="semibold" mb={3} fontSize="sm">By Severity</Text>
+          <Text fontWeight="semibold" mb={3} fontSize="sm">
+            By Severity
+          </Text>
           <VStack align="stretch" gap={2}>
             {SEVERITY_ORDER.map((sev) => {
               const item = data.by_severity.find((s) => s.severity === sev)
               return (
                 <Flex key={sev} justify="space-between" align="center">
-                  <Badge colorPalette={SEVERITY_COLORS[sev] ?? "gray"} size="sm">{sev}</Badge>
-                  <Text fontSize="sm" fontWeight="medium">{item?.count ?? 0}</Text>
+                  <Badge
+                    colorPalette={SEVERITY_COLORS[sev] ?? "gray"}
+                    size="sm"
+                  >
+                    {sev}
+                  </Badge>
+                  <Text fontSize="sm" fontWeight="medium">
+                    {item?.count ?? 0}
+                  </Text>
                 </Flex>
               )
             })}
@@ -207,13 +262,23 @@ function AlertStatisticsPanel() {
         </Box>
 
         <Box borderWidth="1px" borderRadius="lg" p={4}>
-          <Text fontWeight="semibold" mb={3} fontSize="sm">Top Rules Fired</Text>
+          <Text fontWeight="semibold" mb={3} fontSize="sm">
+            Top Rules Fired
+          </Text>
           <VStack align="stretch" gap={2}>
-            {data.by_rule.length === 0 && <Text fontSize="sm" color="fg.muted">No data</Text>}
+            {data.by_rule.length === 0 && (
+              <Text fontSize="sm" color="fg.muted">
+                No data
+              </Text>
+            )}
             {data.by_rule.map((r) => (
               <Flex key={r.rule_name} justify="space-between" align="center">
-                <Text fontSize="sm" truncate maxW="70%">{r.rule_name}</Text>
-                <Badge colorPalette="gray" size="sm">{r.count}</Badge>
+                <Text fontSize="sm" truncate maxW="70%">
+                  {r.rule_name}
+                </Text>
+                <Badge colorPalette="gray" size="sm">
+                  {r.count}
+                </Badge>
               </Flex>
             ))}
           </VStack>
@@ -226,8 +291,12 @@ function AlertStatisticsPanel() {
 function AlertEventsPage() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12} pb={4}>Alert History</Heading>
-      <Text color="fg.muted" mb={6}>History of all triggered alerts and their delivery status.</Text>
+      <Heading size="lg" pt={12} pb={4}>
+        Alert History
+      </Heading>
+      <Text color="fg.muted" mb={6}>
+        History of all triggered alerts and their delivery status.
+      </Text>
       <AlertStatisticsPanel />
       <AlertEventsTable />
     </Container>

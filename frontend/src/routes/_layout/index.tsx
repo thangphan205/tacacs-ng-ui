@@ -34,7 +34,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import type { AuditLogPublic, CancelablePromise, TacacsLogEvent } from "@/client"
+import type {
+  AuditLogPublic,
+  CancelablePromise,
+  TacacsLogEvent,
+} from "@/client"
 import {
   AaaStatisticsService,
   AuditLogsService,
@@ -543,7 +547,9 @@ function RecentActivity() {
                     fontSize="xs"
                     color="fg.muted"
                   >
-                    {new Date(log.created_at).toLocaleString(undefined, { hour12: false })}
+                    {new Date(log.created_at).toLocaleString(undefined, {
+                      hour12: false,
+                    })}
                   </Table.Cell>
                   <Table.Cell fontSize="xs" maxW="32" truncate>
                     {log.user_email}
@@ -627,7 +633,11 @@ function LastTacacsLogs() {
             <Table.Body>
               {logs.map((log: TacacsLogEvent, i: number) => (
                 <Table.Row key={i}>
-                  <Table.Cell whiteSpace="nowrap" fontSize="xs" color="fg.muted">
+                  <Table.Cell
+                    whiteSpace="nowrap"
+                    fontSize="xs"
+                    color="fg.muted"
+                  >
                     {new Date(log.timestamp).toLocaleString(undefined, {
                       month: "short",
                       day: "numeric",
@@ -638,7 +648,10 @@ function LastTacacsLogs() {
                     })}
                   </Table.Cell>
                   <Table.Cell>
-                    <Badge colorPalette={LOG_TYPE_COLOR[log.log_type] ?? "gray"} size="sm">
+                    <Badge
+                      colorPalette={LOG_TYPE_COLOR[log.log_type] ?? "gray"}
+                      size="sm"
+                    >
                       {log.log_type}
                     </Badge>
                   </Table.Cell>
@@ -652,7 +665,10 @@ function LastTacacsLogs() {
                     {log.client_ip}
                   </Table.Cell>
                   <Table.Cell>
-                    <Badge colorPalette={RESULT_COLOR[log.result] ?? "gray"} size="sm">
+                    <Badge
+                      colorPalette={RESULT_COLOR[log.result] ?? "gray"}
+                      size="sm"
+                    >
                       {log.result}
                     </Badge>
                   </Table.Cell>
@@ -748,7 +764,10 @@ function Dashboard() {
         <Flex align="center" gap={2}>
           {dataUpdatedAt > 0 && (
             <Text color="fg.muted" fontSize="sm">
-              Updated {new Date(dataUpdatedAt).toLocaleTimeString(undefined, { hour12: false })}
+              Updated{" "}
+              {new Date(dataUpdatedAt).toLocaleTimeString(undefined, {
+                hour12: false,
+              })}
             </Text>
           )}
           <IconButton

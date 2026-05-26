@@ -11,9 +11,9 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 import { FiEye, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 import type { AuditLogPublic } from "@/client"
@@ -212,7 +212,9 @@ function AuditLogsTable() {
               {logs.map((log) => (
                 <Table.Row key={log.id}>
                   <Table.Cell whiteSpace="nowrap">
-                    {new Date(log.created_at).toLocaleString(undefined, { hour12: false })}
+                    {new Date(log.created_at).toLocaleString(undefined, {
+                      hour12: false,
+                    })}
                   </Table.Cell>
                   <Table.Cell truncate maxW="48">
                     {log.user_email}

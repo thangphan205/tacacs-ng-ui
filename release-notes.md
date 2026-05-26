@@ -2,6 +2,19 @@
 
 ## Latest Changes
 
+## v0.3.7
+
+### Features
+
+* ✨ **Premium Split-Pane Login Layout** — Completely redesigned the login route into a modern 50/50 split-pane layout featuring a responsive off-white brand left column, pure white login form right column, clean inputs without inner icons, and perfect integration with TanStack router links via `<Link asChild>`. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **High-Fidelity Sidebar Redesign** — Redesigned the main dashboard sidebar with elegant interactive aesthetics: a glowing teal active nav pill structure featuring a sliding left accent indicator bar, translate hover transitions (`translateX(2px)`), high letter-spacing uppercase section titles with dot dividers, and a brand header with smooth logo rotation-scaling and teal-to-cyan gradient text. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Integrated Profile Action Card** — Restructured the sidebar footer to nest user credentials inside a dedicated layout card complete with automated circular avatar initials, user credentials, and aligned menu settings/logout controls. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Fixes
+
+* 🐛 **Sidebar User Info Cache Glitch** — Replaced the synchronous, non-reactive static cache lookups with subscriptions to the custom `useAuth()` hook in both `Sidebar` and `SidebarItems`. This guarantees user name, email avatar, and superuser admin options resolve and render immediately on cold start or page hard refreshes. PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **Field Label Width & Constraints** — Upgraded the wrapper `Field` label width to `w="full"` and altered `PasswordInput` constraints from `alignSelf="start"` to `w="full"` so fields stretch properly to align the "Forgot your password?" recovery trigger perfectly to the far right. PR by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.3.6
 
 ### Features

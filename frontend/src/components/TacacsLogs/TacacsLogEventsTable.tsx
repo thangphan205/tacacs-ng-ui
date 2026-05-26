@@ -5,18 +5,18 @@ import {
   Code,
   createListCollection,
   DatePicker,
+  type DateValue,
   EmptyState,
   Flex,
   Input,
   InputGroup,
-  parseDate,
   Portal,
+  parseDate,
   Select,
   Spinner,
   Table,
   Text,
   VStack,
-  type DateValue,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
@@ -104,8 +104,8 @@ function EventDetailDrawer({
   // Session grouping: find all events in the current page with the same session_id
   const sessionEvents = event.session_id
     ? allEvents
-      .filter((e) => e.session_id === event.session_id)
-      .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+        .filter((e) => e.session_id === event.session_id)
+        .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
     : []
 
   return (
@@ -345,7 +345,10 @@ export default function TacacsLogEventsTable() {
     if (latestDateData?.date && latestDateData.date !== today) {
       setDateFrom(latestDateData.date)
       setDateTo(latestDateData.date)
-      setRangeValue([parseDate(latestDateData.date), parseDate(latestDateData.date)])
+      setRangeValue([
+        parseDate(latestDateData.date),
+        parseDate(latestDateData.date),
+      ])
     }
   }, [latestDateData?.date, today])
 
@@ -358,7 +361,10 @@ export default function TacacsLogEventsTable() {
   }, [searchInput])
 
   const { data, isLoading } = useQuery({
-    queryKey: ["tacacs_log_events", { page, perPage, dateFrom, dateTo, logType, result, search }],
+    queryKey: [
+      "tacacs_log_events",
+      { page, perPage, dateFrom, dateTo, logType, result, search },
+    ],
     queryFn: () =>
       TacacsLogsService.listLogEvents({
         dateFrom,
@@ -528,7 +534,8 @@ export default function TacacsLogEventsTable() {
               <VStack textAlign="center">
                 <EmptyState.Title>No events found</EmptyState.Title>
                 <EmptyState.Description>
-                  No log events match the current filters for {dateFrom === dateTo ? dateFrom : `${dateFrom} – ${dateTo}`}.
+                  No log events match the current filters for{" "}
+                  {dateFrom === dateTo ? dateFrom : `${dateFrom} – ${dateTo}`}.
                 </EmptyState.Description>
               </VStack>
             </EmptyState.Content>

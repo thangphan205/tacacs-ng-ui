@@ -1,10 +1,8 @@
 import { Box, Flex, Icon, Text } from "@chakra-ui/react"
-import { useQueryClient } from "@tanstack/react-query"
-import { Link as RouterLink } from "@tanstack/react-router"
+import { Link as RouterLink, useMatchRoute } from "@tanstack/react-router"
 import {
   FiActivity,
   FiAlertCircle,
-  FiArchive,
   FiBell,
   FiCode,
   FiCpu,
@@ -23,126 +21,234 @@ import {
   FiUsers,
 } from "react-icons/fi"
 import type { IconType } from "react-icons/lib"
-import type { UserPublic } from "@/client"
+import { LuBoxes } from "react-icons/lu"
+import useAuth from "@/hooks/useAuth"
+import { Tooltip } from "../ui/tooltip"
 
-const items = [
-  { icon: FiHome, title: "Dashboard", path: "/", level: 1 },
-  // { icon: FiHome, title: "Statistics", path: "/tacacs_statistics", level: 1 },
-  {
-    icon: FiArchive,
-    title: "Tacacs configs",
-    path: "/tacacs_configs",
-    level: 1,
-  },
-  { icon: FiServer, title: "Hosts", path: "/hosts", level: 1 },
-  { icon: FiUsers, title: "Tacacs Groups", path: "/tacacs_groups", level: 1 },
-  { icon: FiUser, title: "Tacacs Users", path: "/tacacs_users", level: 1 },
-  {
-    icon: FiGrid,
-    title: "Tacacs Services",
-    path: "/tacacs_services",
-    level: 1,
-  },
-  { icon: FiFileText, title: "Profiles", path: "/profiles", level: 1 },
-  { icon: FiCode, title: "Profiles Script", path: "/profilescripts", level: 2 },
-  {
-    icon: FiLayers,
-    title: "Profiles Script Set",
-    path: "/profilescriptsets",
-    level: 2,
-  },
-  { icon: FiShield, title: "Rulesets", path: "/rulesets", level: 1 },
-  { icon: FiCode, title: "Rulesets Script", path: "/rulesetscripts", level: 2 },
-  {
-    icon: FiLayers,
-    title: "Rulesets Script Set",
-    path: "/rulesetscriptsets",
-    level: 2,
-  },
-  {
-    icon: FiSettings,
-    title: "Tacacs-ng Settings",
-    path: "/tacacs_ng_settings",
-    level: 1,
-  },
-  { icon: FiDatabase, title: "Mavis Settings", path: "/mavises", level: 1 },
-  {
-    icon: FiSliders,
-    title: "Configuration Options",
-    path: "/configuration_options",
-    level: 1,
-  },
-  { icon: FiList, title: "Tacacs logs", path: "/tacacs_logs", level: 1 },
-  { icon: FiBell, title: "Alert Rules", path: "/alert_rules", level: 1 },
-  { icon: FiSend, title: "Notification Channels", path: "/notification_channels", level: 2 },
-  { icon: FiAlertCircle, title: "Alert History", path: "/alert_events", level: 2 },
-  { icon: FiCpu, title: "Anomaly Detection", path: "/anomaly_detection", level: 1 },
-  { icon: FiSettings, title: "User Settings", path: "/settings", level: 1 },
-]
-
-interface SidebarItemsProps {
-  onClose?: () => void
-}
-
-interface Item {
+interface NavItem {
   icon: IconType
   title: string
   path: string
-  level: number
+  indent?: boolean
 }
 
-const SidebarItems = ({ onClose }: SidebarItemsProps) => {
-  const queryClient = useQueryClient()
-  const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
+interface NavSection {
+  label: string
+  items: NavItem[]
+}
 
-  const finalItems: Item[] = [
-    ...items,
+const CONFIG_SECTIONS: NavSection[] = [
+  {
+    label: "Overview",
+    items: [{ icon: FiHome, title: "Dashboard", path: "/" }],
+  },
+  {
+    label: "TACACS+ Config",
+    items: [
+      { icon: LuBoxes, title: "TACACS Configs", path: "/tacacs_configs" },
+      { icon: FiServer, title: "Hosts", path: "/hosts" },
+      { icon: FiUser, title: "Users", path: "/tacacs_users" },
+      { icon: FiUsers, title: "Groups", path: "/tacacs_groups" },
+      { icon: FiGrid, title: "Services", path: "/tacacs_services" },
+      { icon: FiFileText, title: "Profiles", path: "/profiles" },
+      {
+        icon: FiCode,
+        title: "Profile Scripts",
+        path: "/profilescripts",
+        indent: true,
+      },
+      {
+        icon: FiLayers,
+        title: "Profile Script Sets",
+        path: "/profilescriptsets",
+        indent: true,
+      },
+      { icon: FiShield, title: "Rulesets", path: "/rulesets" },
+      {
+        icon: FiCode,
+        title: "Ruleset Scripts",
+        path: "/rulesetscripts",
+        indent: true,
+      },
+      {
+        icon: FiLayers,
+        title: "Ruleset Script Sets",
+        path: "/rulesetscriptsets",
+        indent: true,
+      },
+      { icon: FiDatabase, title: "MAVIS", path: "/mavises" },
+      {
+        icon: FiSliders,
+        title: "Config Options",
+        path: "/configuration_options",
+      },
+      { icon: FiSettings, title: "NG Settings", path: "/tacacs_ng_settings" },
+    ],
+  },
+  {
+    label: "Monitoring",
+    items: [
+      { icon: FiList, title: "TACACS Logs", path: "/tacacs_logs" },
+      { icon: FiBell, title: "Alert Rules", path: "/alert_rules" },
+      {
+        icon: FiSend,
+        title: "Notification Channels",
+        path: "/notification_channels",
+      },
+      { icon: FiAlertCircle, title: "Alert Events", path: "/alert_events" },
+      { icon: FiCpu, title: "Anomaly Detection", path: "/anomaly_detection" },
+      { icon: FiActivity, title: "Audit Logs", path: "/audit_logs" },
+    ],
+  },
+]
+
+const ADMIN_SECTION: NavSection = {
+  label: "Admin",
+  items: [
     {
-      icon: FiActivity,
-      title: "Audit Logs",
-      path: "/audit_logs",
-      level: 1,
+      icon: FiUsers,
+      title: "Users Management",
+      path: "/admin/users_management",
     },
-    ...(currentUser?.is_superuser
-      ? [
-          {
-            icon: FiUsers,
-            title: "Users Management",
-            path: "/admin/users_management",
-            level: 1,
-          },
-          {
-            icon: FiShield,
-            title: "Auth Providers",
-            path: "/admin/auth-providers",
-            level: 1,
-          },
-        ]
-      : []),
-  ]
+    { icon: FiShield, title: "Auth Providers", path: "/admin/auth-providers" },
+  ],
+}
 
-  const listItems = finalItems.map(({ icon, title, path, level }) => (
-    <RouterLink key={title} to={path as never} onClick={onClose}>
-      <Flex
-        gap={4}
-        px={level === 1 ? 4 : 8}
-        py={2}
-        _hover={{ background: "gray.subtle" }}
-        alignItems="center"
-        fontSize="sm"
-      >
-        <Icon as={icon} alignSelf="center" />
-        <Text ml={2}>{title}</Text>
-      </Flex>
-    </RouterLink>
-  ))
+interface SidebarNavItemProps extends NavItem {
+  onClose?: () => void
+  isCollapsed?: boolean
+}
+
+function SidebarNavItem({
+  icon,
+  title,
+  path,
+  indent,
+  onClose,
+  isCollapsed,
+}: SidebarNavItemProps) {
+  const matchRoute = useMatchRoute()
+  const isActive = !!matchRoute({ to: path as never, fuzzy: path !== "/" })
 
   return (
-    <Box>
-      <Text fontSize="xs" px={4} py={2} fontWeight="bold">
-        Menu
-      </Text>
-      {listItems}
+    <Tooltip content={title} placement="right" disabled={!isCollapsed}>
+      <RouterLink to={path as never} onClick={onClose}>
+        <Flex
+          align="center"
+          gap={3}
+          pl={isCollapsed ? 0 : indent ? 8 : 4}
+          pr={isCollapsed ? 0 : 4}
+          py={2.5}
+          mx={2}
+          my={0.5}
+          borderRadius="xl"
+          position="relative"
+          bg={isActive ? "teal.50" : "transparent"}
+          _dark={{ bg: isActive ? "rgba(0,150,136,0.12)" : "transparent" }}
+          _hover={{
+            bg: isActive ? "teal.50" : "gray.100",
+            transform: "translateX(2px)",
+            _dark: {
+              bg: isActive ? "rgba(0,150,136,0.12)" : "whiteAlpha.50",
+            },
+          }}
+          color={isActive ? "teal.700" : "fg.muted"}
+          fontWeight={isActive ? "bold" : "medium"}
+          fontSize="sm"
+          transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+          cursor="pointer"
+          justify={isCollapsed ? "center" : "flex-start"}
+        >
+          {/* Active indicator bar */}
+          {isActive && (
+            <Box
+              position="absolute"
+              left={0}
+              top="25%"
+              height="50%"
+              width="3px"
+              bg="teal.600"
+              borderRadius="full"
+            />
+          )}
+          <Icon
+            as={icon}
+            flexShrink={0}
+            fontSize={!isCollapsed && indent ? "xs" : "md"}
+            color={isActive ? "teal.600" : "fg.muted"}
+          />
+          {!isCollapsed && <Text lineClamp={1}>{title}</Text>}
+        </Flex>
+      </RouterLink>
+    </Tooltip>
+  )
+}
+
+function SectionLabel({
+  label,
+  isCollapsed,
+}: {
+  label: string
+  isCollapsed?: boolean
+}) {
+  if (isCollapsed) {
+    return (
+      <Flex justify="center" align="center" my={2}>
+        <Box
+          w="6px"
+          h="6px"
+          borderRadius="full"
+          bg="border.subtle"
+          opacity={0.6}
+        />
+      </Flex>
+    )
+  }
+
+  return (
+    <Text
+      fontSize="2xs"
+      fontWeight="extrabold"
+      color="fg.subtle"
+      textTransform="uppercase"
+      letterSpacing="widest"
+      px={4}
+      pt={4}
+      pb={1.5}
+      opacity={0.7}
+    >
+      {label}
+    </Text>
+  )
+}
+
+interface SidebarItemsProps {
+  onClose?: () => void
+  isCollapsed?: boolean
+}
+
+const SidebarItems = ({ onClose, isCollapsed }: SidebarItemsProps) => {
+  const { user: currentUser } = useAuth()
+
+  const sections = currentUser?.is_superuser
+    ? [...CONFIG_SECTIONS, ADMIN_SECTION]
+    : CONFIG_SECTIONS
+
+  return (
+    <Box py={2}>
+      {sections.map((section) => (
+        <Box key={section.label}>
+          <SectionLabel label={section.label} isCollapsed={isCollapsed} />
+          {section.items.map((item) => (
+            <SidebarNavItem
+              key={item.path}
+              {...item}
+              onClose={onClose}
+              isCollapsed={isCollapsed}
+            />
+          ))}
+        </Box>
+      ))}
     </Box>
   )
 }

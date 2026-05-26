@@ -1,7 +1,7 @@
 import { Badge, Container, Flex, Heading, Table } from "@chakra-ui/react"
-import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 import { z } from "zod"
 
 import { type UserPublic, UsersService } from "@/client"

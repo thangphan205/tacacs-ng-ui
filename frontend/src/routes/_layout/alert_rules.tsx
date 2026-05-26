@@ -14,9 +14,9 @@ import {
   Textarea,
   VStack,
 } from "@chakra-ui/react"
-import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 import { FiBell, FiLock, FiPlus } from "react-icons/fi"
 import { z } from "zod"
 
@@ -164,16 +164,33 @@ function RuleDialog({
     },
   })
 
-  const f = (k: keyof RuleFormData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setForm((prev) => ({ ...prev, [k]: e.target.value }))
-  }
+  const f =
+    (k: keyof RuleFormData) =>
+    (
+      e: React.ChangeEvent<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >,
+    ) => {
+      setForm((prev) => ({ ...prev, [k]: e.target.value }))
+    }
 
   const handleLogTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const t = e.target.value
     if (t === "config") {
-      setForm((p) => ({ ...p, log_type: t, condition_field: "config_action", condition_operator: "any_change", threshold: "1" }))
+      setForm((p) => ({
+        ...p,
+        log_type: t,
+        condition_field: "config_action",
+        condition_operator: "any_change",
+        threshold: "1",
+      }))
     } else {
-      setForm((p) => ({ ...p, log_type: t, condition_field: "fail_count", condition_operator: "gt" }))
+      setForm((p) => ({
+        ...p,
+        log_type: t,
+        condition_field: "fail_count",
+        condition_operator: "gt",
+      }))
     }
   }
 
@@ -182,17 +199,40 @@ function RuleDialog({
   return (
     <Stack gap={3}>
       <Box>
-        <Text fontSize="sm" mb={1}>Name</Text>
-        <Input value={form.name} onChange={f("name")} placeholder="High fail rate" />
+        <Text fontSize="sm" mb={1}>
+          Name
+        </Text>
+        <Input
+          value={form.name}
+          onChange={f("name")}
+          placeholder="High fail rate"
+        />
       </Box>
       <Box>
-        <Text fontSize="sm" mb={1}>Description</Text>
-        <Textarea value={form.description} onChange={f("description")} rows={2} />
+        <Text fontSize="sm" mb={1}>
+          Description
+        </Text>
+        <Textarea
+          value={form.description}
+          onChange={f("description")}
+          rows={2}
+        />
       </Box>
       <Flex gap={3}>
         <Box flex={1}>
-          <Text fontSize="sm" mb={1}>Log Type</Text>
-          <select style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #ccc" }} value={form.log_type} onChange={handleLogTypeChange}>
+          <Text fontSize="sm" mb={1}>
+            Log Type
+          </Text>
+          <select
+            style={{
+              width: "100%",
+              padding: "6px",
+              borderRadius: "6px",
+              border: "1px solid #ccc",
+            }}
+            value={form.log_type}
+            onChange={handleLogTypeChange}
+          >
             <option value="auth">Authentication</option>
             <option value="authz">Authorization</option>
             <option value="config">Config Changes</option>
@@ -200,8 +240,19 @@ function RuleDialog({
           </select>
         </Box>
         <Box flex={1}>
-          <Text fontSize="sm" mb={1}>Severity</Text>
-          <select style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #ccc" }} value={form.severity} onChange={f("severity")}>
+          <Text fontSize="sm" mb={1}>
+            Severity
+          </Text>
+          <select
+            style={{
+              width: "100%",
+              padding: "6px",
+              borderRadius: "6px",
+              border: "1px solid #ccc",
+            }}
+            value={form.severity}
+            onChange={f("severity")}
+          >
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
@@ -212,8 +263,19 @@ function RuleDialog({
       <Flex gap={3}>
         {!isConfig && (
           <Box flex={1}>
-            <Text fontSize="sm" mb={1}>Condition Field</Text>
-            <select style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #ccc" }} value={form.condition_field} onChange={f("condition_field")}>
+            <Text fontSize="sm" mb={1}>
+              Condition Field
+            </Text>
+            <select
+              style={{
+                width: "100%",
+                padding: "6px",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+              }}
+              value={form.condition_field}
+              onChange={f("condition_field")}
+            >
               <option value="fail_count">Fail Count</option>
               <option value="deny_count">Deny Count</option>
               <option value="username">New Username</option>
@@ -222,9 +284,20 @@ function RuleDialog({
           </Box>
         )}
         <Box flex={1}>
-          <Text fontSize="sm" mb={1}>{isConfig ? "Config Action" : "Operator"}</Text>
+          <Text fontSize="sm" mb={1}>
+            {isConfig ? "Config Action" : "Operator"}
+          </Text>
           {isConfig ? (
-            <select style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #ccc" }} value={form.condition_operator} onChange={f("condition_operator")}>
+            <select
+              style={{
+                width: "100%",
+                padding: "6px",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+              }}
+              value={form.condition_operator}
+              onChange={f("condition_operator")}
+            >
               <option value="any_change">Any Change</option>
               <option value="created">Created</option>
               <option value="updated">Updated / Edited</option>
@@ -232,7 +305,16 @@ function RuleDialog({
               <option value="activated">Activated</option>
             </select>
           ) : (
-            <select style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #ccc" }} value={form.condition_operator} onChange={f("condition_operator")}>
+            <select
+              style={{
+                width: "100%",
+                padding: "6px",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+              }}
+              value={form.condition_operator}
+              onChange={f("condition_operator")}
+            >
               <option value="gt">Greater Than</option>
               <option value="lt">Less Than</option>
               <option value="eq">Equal To</option>
@@ -241,24 +323,45 @@ function RuleDialog({
           )}
         </Box>
         <Box flex={1}>
-          <Text fontSize="sm" mb={1}>{isConfig ? "Min occurrences" : "Threshold"}</Text>
-          <Input value={form.threshold} onChange={f("threshold")} placeholder={isConfig ? "1" : "5"} type="number" />
+          <Text fontSize="sm" mb={1}>
+            {isConfig ? "Min occurrences" : "Threshold"}
+          </Text>
+          <Input
+            value={form.threshold}
+            onChange={f("threshold")}
+            placeholder={isConfig ? "1" : "5"}
+            type="number"
+          />
         </Box>
       </Flex>
       <Flex gap={3}>
         <Box flex={1}>
-          <Text fontSize="sm" mb={1}>Window (min)</Text>
-          <Input value={form.time_window_minutes} onChange={f("time_window_minutes")} type="number" />
+          <Text fontSize="sm" mb={1}>
+            Window (min)
+          </Text>
+          <Input
+            value={form.time_window_minutes}
+            onChange={f("time_window_minutes")}
+            type="number"
+          />
         </Box>
         <Box flex={1}>
-          <Text fontSize="sm" mb={1}>Cooldown (min)</Text>
-          <Input value={form.cooldown_minutes} onChange={f("cooldown_minutes")} type="number" />
+          <Text fontSize="sm" mb={1}>
+            Cooldown (min)
+          </Text>
+          <Input
+            value={form.cooldown_minutes}
+            onChange={f("cooldown_minutes")}
+            type="number"
+          />
         </Box>
       </Flex>
       <Flex align="center" gap={2}>
         <Switch.Root
           checked={form.enabled}
-          onCheckedChange={(e) => setForm((p) => ({ ...p, enabled: e.checked }))}
+          onCheckedChange={(e) =>
+            setForm((p) => ({ ...p, enabled: e.checked }))
+          }
         >
           <Switch.HiddenInput />
           <Switch.Control>
@@ -268,7 +371,9 @@ function RuleDialog({
         <Text fontSize="sm">Enabled</Text>
       </Flex>
       <Flex justify="flex-end" gap={2} pt={2}>
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
         <Button
           colorPalette="blue"
           loading={mutation.isPending}
@@ -295,17 +400,32 @@ function DeleteRuleButton({ rule }: { rule: AlertRulePublic }) {
   return (
     <DialogRoot open={open} onOpenChange={(e) => setOpen(e.open)}>
       <DialogTrigger asChild>
-        <Button size="xs" variant="ghost" colorPalette="red">Delete</Button>
+        <Button size="xs" variant="ghost" colorPalette="red">
+          Delete
+        </Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>Delete Alert Rule</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Delete Alert Rule</DialogTitle>
+        </DialogHeader>
         <DialogCloseTrigger />
         <DialogBody>
-          <Text>Delete <strong>{rule.name}</strong>? This will also remove all associated alert history.</Text>
+          <Text>
+            Delete <strong>{rule.name}</strong>? This will also remove all
+            associated alert history.
+          </Text>
         </DialogBody>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button colorPalette="red" loading={mutation.isPending} onClick={() => mutation.mutate()}>Delete</Button>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            colorPalette="red"
+            loading={mutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
+            Delete
+          </Button>
         </DialogFooter>
       </DialogContent>
     </DialogRoot>
@@ -328,16 +448,28 @@ function AlertRulesTable() {
     <Box>
       <Flex mb={4} justify="space-between" align="center">
         <Flex gap={2} align="center">
-          <PageSizeSelect value={perPage} onChange={(v) => { setPerPage(v); navigate({ search: { page: 1 } }) }} />
+          <PageSizeSelect
+            value={perPage}
+            onChange={(v) => {
+              setPerPage(v)
+              navigate({ search: { page: 1 } })
+            }}
+          />
         </Flex>
         <DialogRoot open={addOpen} onOpenChange={(e) => setAddOpen(e.open)}>
           <DialogTrigger asChild>
-            <Button colorPalette="blue" size="sm"><FiPlus /> Add Rule</Button>
+            <Button colorPalette="blue" size="sm">
+              <FiPlus /> Add Rule
+            </Button>
           </DialogTrigger>
           <DialogContent maxW="2xl">
-            <DialogHeader><DialogTitle>Create Alert Rule</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Create Alert Rule</DialogTitle>
+            </DialogHeader>
             <DialogCloseTrigger />
-            <DialogBody><RuleDialog onClose={() => setAddOpen(false)} /></DialogBody>
+            <DialogBody>
+              <RuleDialog onClose={() => setAddOpen(false)} />
+            </DialogBody>
           </DialogContent>
         </DialogRoot>
       </Flex>
@@ -346,9 +478,13 @@ function AlertRulesTable() {
         <EmptyState.Root>
           <EmptyState.Content>
             <VStack>
-              <EmptyState.Indicator><FiBell /></EmptyState.Indicator>
+              <EmptyState.Indicator>
+                <FiBell />
+              </EmptyState.Indicator>
               <EmptyState.Title>No alert rules</EmptyState.Title>
-              <EmptyState.Description>Create a rule to start receiving alerts.</EmptyState.Description>
+              <EmptyState.Description>
+                Create a rule to start receiving alerts.
+              </EmptyState.Description>
             </VStack>
           </EmptyState.Content>
         </EmptyState.Root>
@@ -377,17 +513,26 @@ function AlertRulesTable() {
                     </Flex>
                   </Table.Cell>
                   <Table.Cell>
-                    <Badge colorPalette={SEVERITY_COLORS[rule.severity ?? ""] ?? "gray"}>
+                    <Badge
+                      colorPalette={
+                        SEVERITY_COLORS[rule.severity ?? ""] ?? "gray"
+                      }
+                    >
                       {rule.severity}
                     </Badge>
                   </Table.Cell>
                   <Table.Cell>{rule.log_type}</Table.Cell>
                   <Table.Cell fontSize="xs" color="fg.muted">
-                    {rule.condition_field} {rule.condition_operator} {rule.threshold ?? "—"}
+                    {rule.condition_field} {rule.condition_operator}{" "}
+                    {rule.threshold ?? "—"}
                   </Table.Cell>
                   <Table.Cell>{rule.time_window_minutes}m</Table.Cell>
                   <Table.Cell fontSize="xs" color="fg.muted">
-                    {rule.last_fired_at ? new Date(rule.last_fired_at).toLocaleString(undefined, { hour12: false }) : "Never"}
+                    {rule.last_fired_at
+                      ? new Date(rule.last_fired_at).toLocaleString(undefined, {
+                          hour12: false,
+                        })
+                      : "Never"}
                   </Table.Cell>
                   <Table.Cell>
                     <Badge colorPalette={rule.enabled ? "green" : "gray"}>
@@ -396,14 +541,26 @@ function AlertRulesTable() {
                   </Table.Cell>
                   <Table.Cell>
                     <Flex gap={1}>
-                      <DialogRoot open={editRule?.id === rule.id} onOpenChange={(e) => setEditRule(e.open ? rule : null)}>
+                      <DialogRoot
+                        open={editRule?.id === rule.id}
+                        onOpenChange={(e) => setEditRule(e.open ? rule : null)}
+                      >
                         <DialogTrigger asChild>
-                          <Button size="xs" variant="ghost">Edit</Button>
+                          <Button size="xs" variant="ghost">
+                            Edit
+                          </Button>
                         </DialogTrigger>
                         <DialogContent maxW="2xl">
-                          <DialogHeader><DialogTitle>Edit Alert Rule</DialogTitle></DialogHeader>
+                          <DialogHeader>
+                            <DialogTitle>Edit Alert Rule</DialogTitle>
+                          </DialogHeader>
                           <DialogCloseTrigger />
-                          <DialogBody><RuleDialog rule={rule} onClose={() => setEditRule(null)} /></DialogBody>
+                          <DialogBody>
+                            <RuleDialog
+                              rule={rule}
+                              onClose={() => setEditRule(null)}
+                            />
+                          </DialogBody>
                         </DialogContent>
                       </DialogRoot>
                       {!rule.is_system && <DeleteRuleButton rule={rule} />}
@@ -435,8 +592,13 @@ function AlertRulesTable() {
 function AlertRulesPage() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12} pb={4}>Alert Rules</Heading>
-      <Text color="fg.muted" mb={6}>Define conditions that trigger notifications when suspicious TACACS+ activity is detected.</Text>
+      <Heading size="lg" pt={12} pb={4}>
+        Alert Rules
+      </Heading>
+      <Text color="fg.muted" mb={6}>
+        Define conditions that trigger notifications when suspicious TACACS+
+        activity is detected.
+      </Text>
       <AlertRulesTable />
     </Container>
   )

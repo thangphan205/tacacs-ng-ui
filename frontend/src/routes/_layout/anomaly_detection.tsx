@@ -11,9 +11,9 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 import { FiCpu, FiRefreshCw } from "react-icons/fi"
 import { z } from "zod"
 
@@ -83,11 +83,18 @@ function RetrainButton() {
         size="sm"
         variant="outline"
         loading={mutation.isPending}
-        onClick={() => { setMsg(null); mutation.mutate() }}
+        onClick={() => {
+          setMsg(null)
+          mutation.mutate()
+        }}
       >
         <FiRefreshCw /> Retrain Model
       </Button>
-      {msg && <Text fontSize="sm" color="fg.muted">{msg}</Text>}
+      {msg && (
+        <Text fontSize="sm" color="fg.muted">
+          {msg}
+        </Text>
+      )}
     </Flex>
   )
 }
@@ -98,7 +105,7 @@ function AnomalyTable() {
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
 
   const { data, isLoading } = useQuery(
-    getQueryOptions({ page, perPage, anomalyOnly: anomaly_only })
+    getQueryOptions({ page, perPage, anomalyOnly: anomaly_only }),
   )
   const count = data?.count ?? 0
 
@@ -107,14 +114,26 @@ function AnomalyTable() {
   return (
     <Box>
       <Flex mb={4} gap={4} align="center">
-        <PageSizeSelect value={perPage} onChange={(v) => { setPerPage(v); navigate({ search: (s) => ({ ...s, page: 1 }) }) }} />
+        <PageSizeSelect
+          value={perPage}
+          onChange={(v) => {
+            setPerPage(v)
+            navigate({ search: (s) => ({ ...s, page: 1 }) })
+          }}
+        />
         <Flex align="center" gap={2}>
           <Switch.Root
             checked={anomaly_only}
-            onCheckedChange={(e) => navigate({ search: (s) => ({ ...s, anomaly_only: e.checked, page: 1 }) })}
+            onCheckedChange={(e) =>
+              navigate({
+                search: (s) => ({ ...s, anomaly_only: e.checked, page: 1 }),
+              })
+            }
           >
             <Switch.HiddenInput />
-            <Switch.Control><Switch.Thumb /></Switch.Control>
+            <Switch.Control>
+              <Switch.Thumb />
+            </Switch.Control>
           </Switch.Root>
           <Text fontSize="sm">Anomalies only</Text>
         </Flex>
@@ -124,10 +143,13 @@ function AnomalyTable() {
         <EmptyState.Root>
           <EmptyState.Content>
             <VStack>
-              <EmptyState.Indicator><FiCpu /></EmptyState.Indicator>
+              <EmptyState.Indicator>
+                <FiCpu />
+              </EmptyState.Indicator>
               <EmptyState.Title>No scoring data</EmptyState.Title>
               <EmptyState.Description>
-                Run the model via "Retrain Model" or wait for the daily background scoring.
+                Run the model via "Retrain Model" or wait for the daily
+                background scoring.
               </EmptyState.Description>
             </VStack>
           </EmptyState.Content>
@@ -153,7 +175,9 @@ function AnomalyTable() {
                   </Table.Cell>
                   <Table.Cell fontWeight="medium">{r.subject_value}</Table.Cell>
                   <Table.Cell>
-                    <Badge colorPalette={RISK_COLORS[r.risk_level ?? ""] ?? "gray"}>
+                    <Badge
+                      colorPalette={RISK_COLORS[r.risk_level ?? ""] ?? "gray"}
+                    >
                       {r.risk_level}
                     </Badge>
                   </Table.Cell>
@@ -167,8 +191,16 @@ function AnomalyTable() {
                       <Badge colorPalette="green">No</Badge>
                     )}
                   </Table.Cell>
-                  <Table.Cell fontSize="xs" color="fg.muted" whiteSpace="nowrap">
-                    {r.scored_at ? new Date(r.scored_at).toLocaleString(undefined, { hour12: false }) : "—"}
+                  <Table.Cell
+                    fontSize="xs"
+                    color="fg.muted"
+                    whiteSpace="nowrap"
+                  >
+                    {r.scored_at
+                      ? new Date(r.scored_at).toLocaleString(undefined, {
+                          hour12: false,
+                        })
+                      : "—"}
                   </Table.Cell>
                 </Table.Row>
               ))}
@@ -179,7 +211,9 @@ function AnomalyTable() {
             count={count}
             pageSize={perPage}
             page={page}
-            onPageChange={(e) => navigate({ search: (s) => ({ ...s, page: e.page }) })}
+            onPageChange={(e) =>
+              navigate({ search: (s) => ({ ...s, page: e.page }) })
+            }
           >
             <Flex mt={4} justify="center" gap={2}>
               <PaginationPrevTrigger />
@@ -200,8 +234,8 @@ function AnomalyDetectionPage() {
         <Box>
           <Heading size="lg">Anomaly Detection</Heading>
           <Text color="fg.muted" mt={1}>
-            ML-based scoring of TACACS+ users using IsolationForest on 30-day rolling statistics.
-            More negative score = more anomalous.
+            ML-based scoring of TACACS+ users using IsolationForest on 30-day
+            rolling statistics. More negative score = more anomalous.
           </Text>
         </Box>
         <RetrainButton />

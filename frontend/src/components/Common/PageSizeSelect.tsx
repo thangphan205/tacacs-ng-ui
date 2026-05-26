@@ -11,7 +11,11 @@ interface PageSizeSelectProps {
   options?: number[]
 }
 
-export function PageSizeSelect({ value, onChange, options }: PageSizeSelectProps) {
+export function PageSizeSelect({
+  value,
+  onChange,
+  options,
+}: PageSizeSelectProps) {
   const sizes = options ?? defaultOptions(value)
   const collection = createListCollection({
     items: sizes.map((n) => ({ value: String(n) })),
@@ -41,7 +45,11 @@ export function PageSizeSelect({ value, onChange, options }: PageSizeSelectProps
           <Select.Content minW="110px">
             <Select.ItemGroup>
               {collection.items.map((item) => (
-                <Select.Item key={item.value} item={item.value} whiteSpace="nowrap">
+                <Select.Item
+                  key={item.value}
+                  item={item.value}
+                  whiteSpace="nowrap"
+                >
                   {item.value}
                   <Select.ItemIndicator />
                 </Select.Item>

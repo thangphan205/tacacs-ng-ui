@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   createListCollection,
   DialogActionTrigger,
@@ -7,7 +8,6 @@ import {
   Select,
   Text,
   VStack,
-  Alert,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
@@ -185,7 +185,8 @@ const AddTacacsUser = () => {
                 <Alert.Root status="warning" borderRadius="md">
                   <Alert.Indicator />
                   <Alert.Description>
-                    Password will be stored in plaintext in the TACACS+ config file.
+                    Password will be stored in plaintext in the TACACS+ config
+                    file.
                   </Alert.Description>
                 </Alert.Root>
               )}

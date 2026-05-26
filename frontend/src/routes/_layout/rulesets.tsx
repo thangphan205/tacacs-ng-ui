@@ -6,15 +6,15 @@ import {
   Table,
   VStack,
 } from "@chakra-ui/react"
-import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 import { FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { RulesetsService } from "@/client"
-import { RulesetActionsMenu } from "@/components/Common/RulesetActionsMenu"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
+import { RulesetActionsMenu } from "@/components/Common/RulesetActionsMenu"
 import { SearchBox } from "@/components/Common/SearchBox"
 import PendingRulesets from "@/components/Pending/PendingRulesets"
 import AddRuleset from "@/components/Rulesets/AddRuleset"

@@ -6,15 +6,15 @@ import {
   Table,
   VStack,
 } from "@chakra-ui/react"
-import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 import { FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { ProfilescriptsService } from "@/client"
-import { ProfileScriptActionsMenu } from "@/components/Common/ProfileScriptActionsMenu"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
+import { ProfileScriptActionsMenu } from "@/components/Common/ProfileScriptActionsMenu"
 import { SearchBox } from "@/components/Common/SearchBox"
 import PendingProfileScripts from "@/components/Pending/PendingProfileScripts"
 import AddProfileScript from "@/components/ProfileScripts/AddProfileScript"
