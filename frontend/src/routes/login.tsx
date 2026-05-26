@@ -217,7 +217,7 @@ function Login() {
                 required: "Username is required",
                 pattern: emailPattern,
               })}
-              placeholder="user@example.com"
+              placeholder="Email"
               type="email"
               size="md"
             />
