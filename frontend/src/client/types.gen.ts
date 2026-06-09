@@ -940,7 +940,6 @@ export type UserUpdate = {
 
 export type UserUpdateMe = {
     full_name?: (string | null);
-    email?: (string | null);
     password_login_disabled?: (boolean | null);
 };
 
@@ -1776,8 +1775,6 @@ export type UsersCreateUserData = {
 export type UsersCreateUserResponse = (UserPublic);
 
 export type UsersReadUserMeResponse = (UserPublic);
-
-export type UsersDeleteUserMeResponse = (Message);
 
 export type UsersUpdateUserMeData = {
     requestBody: UserUpdateMe;

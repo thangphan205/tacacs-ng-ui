@@ -133,12 +133,6 @@ def update_user_me(
     Update own user.
     """
 
-    if user_in.email:
-        existing_user = users.get_user_by_email(session=session, email=user_in.email)
-        if existing_user and existing_user.id != current_user.id:
-            raise HTTPException(
-                status_code=409, detail="User with this email already exists"
-            )
     old_values = current_user.model_dump_json(exclude=_SENSITIVE)
     user_data = user_in.model_dump(exclude_unset=True)
     current_user.sqlmodel_update(user_data)
@@ -194,33 +188,6 @@ def read_user_me(current_user: CurrentUser) -> Any:
     """
     return current_user
 
-
-@router.delete("/me", response_model=Message)
-def delete_user_me(
-    session: SessionDep, request: Request, current_user: CurrentUser
-) -> Any:
-    """
-    Delete own user.
-    """
-    if current_user.is_superuser:
-        raise HTTPException(
-            status_code=403, detail="Super users are not allowed to delete themselves"
-        )
-    old_values = current_user.model_dump_json(exclude=_SENSITIVE)
-    user_id = current_user.id
-    user_email = current_user.email
-    ip = get_client_ip(request)
-    ua = request.headers.get("user-agent")
-    session.delete(current_user)
-    session.commit()
-    audit_logs_crud.log_entity_action(
-        session=session, action="DELETE", entity_type="User",
-        entity_id=str(user_id),
-        user_id=user_id, user_email=user_email,
-        ip_address=ip, user_agent=ua,
-        old_values=old_values,
-    )
-    return Message(message="User deleted successfully")
 
 
 @router.post("/signup", response_model=UserPublic)

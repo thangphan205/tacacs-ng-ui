@@ -19,7 +19,7 @@ import {
 } from "@/client"
 import useAuth from "@/hooks/useAuth"
 import useCustomToast from "@/hooks/useCustomToast"
-import { emailPattern, handleError } from "@/utils"
+import { handleError } from "@/utils"
 import { Field } from "../ui/field"
 
 const UserInformation = () => {
@@ -31,8 +31,7 @@ const UserInformation = () => {
     register,
     handleSubmit,
     reset,
-    getValues,
-    formState: { isSubmitting, errors, isDirty },
+    formState: { isSubmitting, isDirty },
   } = useForm<UserPublic>({
     mode: "onTouched",
     criteriaMode: "all",
@@ -98,34 +97,18 @@ const UserInformation = () => {
             </Text>
           )}
         </Field>
-        <Field
-          mt={4}
-          label="Email"
-          invalid={!!errors.email}
-          errorText={errors.email?.message}
-        >
-          {editMode ? (
-            <Input
-              {...register("email", {
-                required: "Email is required",
-                pattern: emailPattern,
-              })}
-              type="email"
-              size="md"
-            />
-          ) : (
-            <Text fontSize="md" py={2} truncate maxW="sm">
-              {currentUser?.email}
-            </Text>
-          )}
+        <Field mt={4} label="Email">
+          <Text fontSize="md" py={2} truncate maxW="sm">
+            {currentUser?.email}
+          </Text>
         </Field>
         <Flex mt={4} gap={3}>
           <Button
             variant="solid"
             onClick={toggleEditMode}
-            type={editMode ? "button" : "submit"}
+            type={editMode ? "submit" : "button"}
             loading={editMode ? isSubmitting : false}
-            disabled={editMode ? !isDirty || !getValues("email") : false}
+            disabled={editMode ? !isDirty : false}
           >
             {editMode ? "Save" : "Edit"}
           </Button>
