@@ -4571,19 +4571,6 @@ export const UserUpdateMeSchema = {
             ],
             title: 'Full Name'
         },
-        email: {
-            anyOf: [
-                {
-                    type: 'string',
-                    maxLength: 255,
-                    format: 'email'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Email'
-        },
         password_login_disabled: {
             anyOf: [
                 {
