@@ -2,6 +2,33 @@
 
 ## Latest Changes
 
+## v0.3.8
+
+### Refactors
+
+* 🔧 **Remove email update from user settings** — email is now immutable after account creation; the email field and associated backend route have been removed from the user self-update flow. PR by [@thangphan205](https://github.com/thangphan205).
+* 🔧 **Remove account deletion** — self-service account deletion has been removed from user settings and the backend API. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Fixes
+
+* 🐛 **Sidebar login alignment** — aligned user-menu dropdown and recover link to match E2E assertions. PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **Email placeholder restored** — restored Email field placeholder text to keep Playwright E2E tests in sync. PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **Stale generated client schema** — regenerated `schemas.gen.ts` to remove the `email` field from `UserUpdateMeSchema` left over after the email-update removal. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Dependencies
+
+* ⬆️ **starlette 0.50.0 → 1.0.1** (major) — first stable Starlette release. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **tenacity 8.5.0 → 9.1.4** (major). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **node 25 → 26** (Docker build image, major). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **axios 1.15.2 → 1.16.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **react-dom 19.2.5 → 19.2.6**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **psycopg-binary 3.3.3 → 3.3.4**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **idna 3.11 → 3.15**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **pygments 2.19.2 → 2.20.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **markdown-it-py 4.0.0 → 4.2.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@tanstack/router-devtools 1.157.15 → 1.167.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@vitejs/plugin-react-swc 4.3.0 → 4.3.1**. PR by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.3.7
 
 ### Features
