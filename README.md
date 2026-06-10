@@ -253,6 +253,12 @@ docker compose up -d
 
 please see [deployment.md](./deployment.md)
 
+## High Availability (HA) Deployment
+
+### High Availability (HA) Deployment & Backend Authentication with Mavis Settings
+
+[![High Availability (HA) Deployment](img/tacacs-ng-ui-high-availability.svg)](https://github.com/thangphan205/tacacs-ng-ui)
+
 ### Configure
 
 You can then update configs in the `.env` files to customize your configurations.
