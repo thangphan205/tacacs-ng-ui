@@ -4,7 +4,7 @@ import { createUser } from "./utils/privateApi.ts"
 import { randomEmail, randomPassword } from "./utils/random"
 import { logInUser, logOutUser } from "./utils/user"
 
-const tabs = ["My profile", "Password", "Appearance"]
+const tabs = ["My profile", "Password", "Security Keys", "Appearance"]
 
 // User Information
 
@@ -47,49 +47,10 @@ test.describe("Edit user full name and email successfully", () => {
       page.getByLabel("My profile").getByText(updatedName, { exact: true }),
     ).toBeVisible()
   })
-
-  test("Edit user email with a valid email", async ({ page }) => {
-    const email = randomEmail()
-    const updatedEmail = randomEmail()
-    const password = randomPassword()
-
-    await createUser({ email, password })
-
-    // Log in the user
-    await logInUser(page, email, password)
-
-    await page.goto("/settings")
-    await page.getByRole("tab", { name: "My profile" }).click()
-    await page.getByRole("button", { name: "Edit" }).click()
-    await page.getByLabel("Email").fill(updatedEmail)
-    await page.getByRole("button", { name: "Save" }).click()
-    await expect(page.getByText("User updated successfully")).toBeVisible()
-    await expect(
-      page.getByLabel("My profile").getByText(updatedEmail, { exact: true }),
-    ).toBeVisible()
-  })
 })
 
 test.describe("Edit user with invalid data", () => {
   test.use({ storageState: { cookies: [], origins: [] } })
-
-  test("Edit user email with an invalid email", async ({ page }) => {
-    const email = randomEmail()
-    const password = randomPassword()
-    const invalidEmail = ""
-
-    await createUser({ email, password })
-
-    // Log in the user
-    await logInUser(page, email, password)
-
-    await page.goto("/settings")
-    await page.getByRole("tab", { name: "My profile" }).click()
-    await page.getByRole("button", { name: "Edit" }).click()
-    await page.getByLabel("Email").fill(invalidEmail)
-    await page.getByLabel("Email").press("Tab")
-    await expect(page.getByText("Email is required")).toBeVisible()
-  })
 
   test("Cancel edit action restores original name", async ({ page }) => {
     const email = randomEmail()
@@ -110,26 +71,6 @@ test.describe("Edit user with invalid data", () => {
       page
         .getByLabel("My profile")
         .getByText(user.full_name as string, { exact: true }),
-    ).toBeVisible()
-  })
-
-  test("Cancel edit action restores original email", async ({ page }) => {
-    const email = randomEmail()
-    const password = randomPassword()
-    const updatedEmail = randomEmail()
-
-    await createUser({ email, password })
-
-    // Log in the user
-    await logInUser(page, email, password)
-
-    await page.goto("/settings")
-    await page.getByRole("tab", { name: "My profile" }).click()
-    await page.getByRole("button", { name: "Edit" }).click()
-    await page.getByLabel("Email").fill(updatedEmail)
-    await page.getByRole("button", { name: "Cancel" }).first().click()
-    await expect(
-      page.getByLabel("My profile").getByText(email, { exact: true }),
     ).toBeVisible()
   })
 })

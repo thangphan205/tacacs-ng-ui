@@ -50,6 +50,7 @@ const UserInformation = () => {
       UsersService.updateUserMe({ requestBody: data }),
     onSuccess: () => {
       showSuccessToast("User updated successfully.")
+      setEditMode(false)
     },
     onError: (err: ApiError) => {
       handleError(err)
@@ -105,7 +106,7 @@ const UserInformation = () => {
         <Flex mt={4} gap={3}>
           <Button
             variant="solid"
-            onClick={toggleEditMode}
+            onClick={editMode ? undefined : toggleEditMode}
             type={editMode ? "submit" : "button"}
             loading={editMode ? isSubmitting : false}
             disabled={editMode ? !isDirty : false}
