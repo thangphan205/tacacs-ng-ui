@@ -32,7 +32,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
     "@hey-api/openapi-ts": "0.73.0",
-    "@playwright/test": "1.59.1",
+    "@playwright/test": "1.60.0",
     "@tanstack/router-devtools": "^1.167.0",
     "@tanstack/router-plugin": "^1.139.1",
     "@types/diff": "^8.0.0",
