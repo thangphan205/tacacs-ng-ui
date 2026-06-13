@@ -1,8 +1,40 @@
 # TACACS-NG-UI
 
+<div align="center">
+
+🌐 **Language / Ngôn ngữ:** [🇬🇧 English](./README.md) | [🇻🇳 Tiếng Việt](./README.vi.md)
+
+</div>
+
+---
+
 **tacacs-ng-ui** is a modern, full-stack web application that provides a user-friendly graphical interface for managing TACACS+ server configurations. It simplifies the administration of network device authentication, authorization, and accounting (AAA) by offering a clean and intuitive web-based dashboard.
 
 Built with a powerful and modern technology stack, the application features a FastAPI backend and a React frontend. This combination ensures a high-performance, scalable, and maintainable solution for network administrators.
+
+## Table of Contents
+
+- [Key Features](#key-features)
+- [Live Demo](#live-demo)
+- [Device Configuration Examples](#device-configuration-examples)
+  - [Juniper Config](#juniper-config)
+  - [Cisco Config](#cisco-config)
+  - [Arista Config](#arista-config)
+- [Technology Stack](#technology-stack-and-features)
+- [How To Use It](#how-to-use-it)
+- [Deployment](#deploy-on-a-localhost)
+  - [Deploy on localhost](#deploy-on-a-localhost)
+  - [Deploy on remote server](#deploy-on-a-remote-server)
+  - [Deploy with domain name](#deploy-on-a-remote-server-with-domain-name)
+  - [High Availability (HA)](#high-availability-ha-deployment)
+- [User Guide](#user-guide)
+- [Development](#backend-development)
+- [Screenshots](#dashboard)
+- [Roadmap](#future-works--research-roadmap)
+- [Release Notes](#release-notes)
+- [License](#license)
+
+---
 
 ## Key Features
 
