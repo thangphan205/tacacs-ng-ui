@@ -281,7 +281,7 @@ function EventDetailDrawer({
                           {ev.timestamp.slice(11, 19)}
                         </Code>
                         {ev.command ? (
-                          <Text fontSize="xs" fontFamily="mono" truncate>
+                          <Text fontSize="xs" fontFamily="mono" wordBreak="break-all">
                             {ev.command}
                           </Text>
                         ) : (
@@ -289,9 +289,9 @@ function EventDetailDrawer({
                             fontSize="xs"
                             color="fg.muted"
                             fontStyle="italic"
-                            truncate
+                            wordBreak="break-all"
                           >
-                            {ev.message.slice(0, 60)}
+                            {ev.message}
                           </Text>
                         )}
                       </VStack>
