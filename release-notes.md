@@ -2,6 +2,13 @@
 
 ## Latest Changes
 
+## v0.3.9
+
+### Fixes
+
+* 🐛 **Audit logs visible to all authenticated users** — normal users can now view all audit log entries (previously restricted to own activity only). PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **No logout on 403** — frontend no longer clears the session when a 403 Forbidden response is received; only 401 Unauthorized triggers logout. PR by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.3.8
 
 ### Refactors
