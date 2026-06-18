@@ -91,6 +91,7 @@ interface EventDetailDrawerProps {
   allEvents: TacacsLogEvent[]
   open: boolean
   onClose: () => void
+  onSelectEvent?: (event: TacacsLogEvent) => void
 }
 
 function EventDetailDrawer({
@@ -98,7 +99,16 @@ function EventDetailDrawer({
   allEvents,
   open,
   onClose,
+  onSelectEvent,
 }: EventDetailDrawerProps) {
+  const drawerBodyRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (drawerBodyRef.current) {
+      drawerBodyRef.current.scrollTop = 0
+    }
+  }, [])
+
   if (!event) return null
 
   // Session grouping: find all events in the current page with the same session_id
@@ -124,7 +134,7 @@ function EventDetailDrawer({
           </DrawerTitle>
         </DrawerHeader>
 
-        <DrawerBody overflowY="auto" py={5} px={5}>
+        <DrawerBody ref={drawerBodyRef} overflowY="auto" py={5} px={5}>
           <VStack align="stretch" gap={5}>
             {/* ── Core fields ── */}
             <Box>
@@ -264,8 +274,16 @@ function EventDetailDrawer({
                       bg={ev === event ? "colorPalette.50" : "transparent"}
                       _dark={{
                         bg: ev === event ? "colorPalette.900" : "transparent",
+                        _hover: {
+                          bg: ev === event ? "colorPalette.800" : "bg.subtle",
+                        },
+                      }}
+                      _hover={{
+                        bg: ev === event ? "colorPalette.100" : "bg.subtle",
                       }}
                       align="flex-start"
+                      cursor="pointer"
+                      onClick={() => onSelectEvent?.(ev)}
                     >
                       <Box flex="none" mt={0.5}>
                         <Badge
@@ -281,7 +299,12 @@ function EventDetailDrawer({
                           {ev.timestamp.slice(11, 19)}
                         </Code>
                         {ev.command ? (
-                          <Text fontSize="xs" fontFamily="mono" wordBreak="break-all">
+                          <Text
+                            fontSize="xs"
+                            fontFamily="mono"
+                            wordBreak="break-all"
+                            title={ev.command}
+                          >
                             {ev.command}
                           </Text>
                         ) : (
@@ -290,6 +313,7 @@ function EventDetailDrawer({
                             color="fg.muted"
                             fontStyle="italic"
                             wordBreak="break-all"
+                            title={ev.message}
                           >
                             {ev.message}
                           </Text>
@@ -683,6 +707,7 @@ export default function TacacsLogEventsTable() {
         allEvents={events}
         open={selectedEvent !== null}
         onClose={() => setSelectedEvent(null)}
+        onSelectEvent={setSelectedEvent}
       />
     </>
   )

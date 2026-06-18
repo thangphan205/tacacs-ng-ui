@@ -672,7 +672,13 @@ function LastTacacsLogs() {
                       {log.result}
                     </Badge>
                   </Table.Cell>
-                  <Table.Cell fontSize="xs" maxW="48" truncate color="fg.muted">
+                  <Table.Cell
+                    fontSize="xs"
+                    maxW="48"
+                    truncate
+                    color="fg.muted"
+                    title={log.command || undefined}
+                  >
                     {log.command ?? "—"}
                   </Table.Cell>
                 </Table.Row>
