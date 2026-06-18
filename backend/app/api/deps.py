@@ -35,7 +35,7 @@ def get_current_user(session: SessionDep, token: TokenDep) -> User:
         token_data = TokenPayload(**payload)
     except (InvalidTokenError, ValidationError):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
         )
     user = session.get(User, token_data.sub)
