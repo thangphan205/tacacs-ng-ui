@@ -4,6 +4,8 @@ import {
   DialogRoot,
   DialogTrigger,
   Flex,
+  Grid,
+  GridItem,
   HStack,
   Icon,
   Input,
@@ -14,10 +16,20 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
-import { FiCheck } from "react-icons/fi"
+import {
+  FiCheck,
+  FiKey,
+  FiLock,
+  FiMail,
+  FiShield,
+  FiToggleRight,
+  FiType,
+  FiUserPlus,
+} from "react-icons/fi"
 
 import { type UserPublic, UsersService, type UserUpdate } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
+import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { emailPattern, handleError } from "@/utils"
 import { Checkbox } from "../ui/checkbox"
@@ -30,6 +42,49 @@ import {
   DialogTitle,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
+
+const fieldGuideItems: FieldGuideItem[] = [
+  {
+    icon: FiMail,
+    label: "Email",
+    description:
+      "The user's email address. Used as the login identifier for the web management interface (not for TACACS+ device authentication).",
+    example: "admin@example.com",
+    required: true,
+  },
+  {
+    icon: FiType,
+    label: "Full Name",
+    description:
+      "The user's display name. Shown in the UI and audit logs for identification purposes.",
+    example: "John Doe",
+  },
+  {
+    icon: FiLock,
+    label: "Password",
+    description:
+      "The login password for the web interface. Must meet the complexity requirements shown below the field (12+ chars, mixed case, numbers, special chars).",
+    required: true,
+  },
+  {
+    icon: FiShield,
+    label: "Is Superuser",
+    description:
+      "Superusers have full administrative access to all features, including user management, system settings, and TACACS+ config generation.",
+  },
+  {
+    icon: FiToggleRight,
+    label: "Is Active",
+    description:
+      "Only active users can log in to the web interface. Deactivating a user prevents access without deleting their account.",
+  },
+  {
+    icon: FiKey,
+    label: "Disable Password Login",
+    description:
+      "When enabled, the user cannot log in with a password and must use an alternative method (OAuth, Passkey). Useful for enforcing SSO-only access.",
+  },
+]
 
 interface EditUserProps {
   user: UserPublic
@@ -106,7 +161,7 @@ const EditUser = ({ user }: EditUserProps) => {
 
   return (
     <DialogRoot
-      size={{ base: "xs", md: "md" }}
+      size="xl"
       placement="center"
       open={isOpen}
       onOpenChange={({ open }) => setIsOpen(open)}
@@ -123,135 +178,162 @@ const EditUser = ({ user }: EditUserProps) => {
             <DialogTitle>Edit User</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Update the user details below.</Text>
-            <VStack gap={4}>
-              <Field
-                required
-                invalid={!!errors.email}
-                errorText={errors.email?.message}
-                label="Email"
-              >
-                <Input
-                  {...register("email", {
-                    required: "Email is required",
-                    pattern: emailPattern,
-                  })}
-                  placeholder="Email"
-                  type="email"
-                />
-              </Field>
+            <Grid templateColumns={{ base: "1fr", lg: "7fr 5fr" }} gap={6}>
+              <GridItem>
+                <Text mb={4} color="fg.muted" fontSize="sm">
+                  Update the user details below. Leave password blank to keep
+                  the current password.
+                </Text>
+                <VStack gap={4}>
+                  <Field
+                    required
+                    invalid={!!errors.email}
+                    errorText={errors.email?.message}
+                    label="Email"
+                  >
+                    <Input
+                      {...register("email", {
+                        required: "Email is required",
+                        pattern: emailPattern,
+                      })}
+                      placeholder="Email"
+                      type="email"
+                    />
+                  </Field>
 
-              <Field
-                invalid={!!errors.full_name}
-                errorText={errors.full_name?.message}
-                label="Full Name"
-              >
-                <Input
-                  {...register("full_name")}
-                  placeholder="Full name"
-                  type="text"
-                />
-              </Field>
+                  <Field
+                    invalid={!!errors.full_name}
+                    errorText={errors.full_name?.message}
+                    label="Full Name"
+                  >
+                    <Input
+                      {...register("full_name")}
+                      placeholder="Full name"
+                      type="text"
+                    />
+                  </Field>
 
-              <Field
-                invalid={!!errors.password}
-                errorText={errors.password?.message}
-                label="Set Password"
-              >
-                <Input
-                  {...register("password", {
-                    validate: (value) => {
-                      if (!value) return true // Password is optional
-                      if (value.length < 12)
-                        return "Password must be at least 12 characters long"
-                      if (!/[a-z]/.test(value))
-                        return "Must contain one lowercase letter"
-                      if (!/[A-Z]/.test(value))
-                        return "Must contain one uppercase letter"
-                      if (!/[0-9]/.test(value)) return "Must contain one number"
-                      if (!/[!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]/.test(value))
-                        return "Must contain one special character"
-                      return true
-                    },
-                  })}
-                  placeholder="Password"
-                  type="password"
+                  <Field
+                    invalid={!!errors.password}
+                    errorText={errors.password?.message}
+                    label="Set Password"
+                  >
+                    <Input
+                      {...register("password", {
+                        validate: (value) => {
+                          if (!value) return true // Password is optional
+                          if (value.length < 12)
+                            return "Password must be at least 12 characters long"
+                          if (!/[a-z]/.test(value))
+                            return "Must contain one lowercase letter"
+                          if (!/[A-Z]/.test(value))
+                            return "Must contain one uppercase letter"
+                          if (!/[0-9]/.test(value))
+                            return "Must contain one number"
+                          if (
+                            !/[!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]/.test(value)
+                          )
+                            return "Must contain one special character"
+                          return true
+                        },
+                      })}
+                      placeholder="Password"
+                      type="password"
+                    />
+                  </Field>
+                  <Field
+                    invalid={!!errors.confirm_password}
+                    errorText={errors.confirm_password?.message}
+                    label="Confirm Password"
+                  >
+                    <Input
+                      {...register("confirm_password", {
+                        validate: (value) =>
+                          value === getValues().password ||
+                          "The passwords do not match",
+                      })}
+                      placeholder="Password"
+                      type="password"
+                    />
+                  </Field>
+                  <VStack align="start" w="full" color="gray.500" fontSize="sm">
+                    <Text>Password must contain at least:</Text>
+                    {passwordPolicies.map((policy, index) => {
+                      const isMet = policy.regex.test(password || "")
+                      return (
+                        <HStack
+                          key={index}
+                          color={isMet ? "green" : "gray.500"}
+                        >
+                          <Icon as={FiCheck} />
+                          <Text as="span" fontSize="sm">
+                            {policy.text}
+                          </Text>
+                        </HStack>
+                      )
+                    })}
+                  </VStack>
+                </VStack>
+                <Flex mt={4} direction="column" gap={4}>
+                  <Controller
+                    control={control}
+                    name="is_superuser"
+                    render={({ field }) => (
+                      <Field disabled={field.disabled} colorPalette="teal">
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
+                        >
+                          Is superuser?
+                        </Checkbox>
+                      </Field>
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name="is_active"
+                    render={({ field }) => (
+                      <Field disabled={field.disabled} colorPalette="teal">
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
+                        >
+                          Is active?
+                        </Checkbox>
+                      </Field>
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name="password_login_disabled"
+                    render={({ field }) => (
+                      <Field disabled={field.disabled} colorPalette="teal">
+                        <Checkbox
+                          checked={field.value ?? false}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
+                        >
+                          Disable password login?
+                        </Checkbox>
+                      </Field>
+                    )}
+                  />
+                </Flex>
+              </GridItem>
+              <GridItem>
+                <FieldGuide
+                  items={fieldGuideItems}
+                  icon={FiUserPlus}
+                  subtitle="Learn what each field means and how it controls admin panel credentials."
+                  howItWorks="Web UI administrator accounts are separate from network device TACACS+ accounts. They control who can manage the TACACS+ server rules, hosts, and daemon configuration via this admin panel."
                 />
-              </Field>
-              <Field
-                invalid={!!errors.confirm_password}
-                errorText={errors.confirm_password?.message}
-                label="Confirm Password"
-              >
-                <Input
-                  {...register("confirm_password", {
-                    validate: (value) =>
-                      value === getValues().password ||
-                      "The passwords do not match",
-                  })}
-                  placeholder="Password"
-                  type="password"
-                />
-              </Field>
-              <VStack align="start" w="full" color="gray.500" fontSize="sm">
-                <Text>Password must contain at least:</Text>
-                {passwordPolicies.map((policy, index) => {
-                  const isMet = policy.regex.test(password || "")
-                  return (
-                    <HStack key={index} color={isMet ? "green" : "gray.500"}>
-                      <Icon as={FiCheck} />
-                      <Text as="span" fontSize="sm">
-                        {policy.text}
-                      </Text>
-                    </HStack>
-                  )
-                })}
-              </VStack>
-            </VStack>
-            <Flex mt={4} direction="column" gap={4}>
-              <Controller
-                control={control}
-                name="is_superuser"
-                render={({ field }) => (
-                  <Field disabled={field.disabled} colorPalette="teal">
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={({ checked }) => field.onChange(checked)}
-                    >
-                      Is superuser?
-                    </Checkbox>
-                  </Field>
-                )}
-              />
-              <Controller
-                control={control}
-                name="is_active"
-                render={({ field }) => (
-                  <Field disabled={field.disabled} colorPalette="teal">
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={({ checked }) => field.onChange(checked)}
-                    >
-                      Is active?
-                    </Checkbox>
-                  </Field>
-                )}
-              />
-              <Controller
-                control={control}
-                name="password_login_disabled"
-                render={({ field }) => (
-                  <Field disabled={field.disabled} colorPalette="teal">
-                    <Checkbox
-                      checked={field.value ?? false}
-                      onCheckedChange={({ checked }) => field.onChange(checked)}
-                    >
-                      Disable password login?
-                    </Checkbox>
-                  </Field>
-                )}
-              />
-            </Flex>
+              </GridItem>
+            </Grid>
           </DialogBody>
 
           <DialogFooter gap={2}>

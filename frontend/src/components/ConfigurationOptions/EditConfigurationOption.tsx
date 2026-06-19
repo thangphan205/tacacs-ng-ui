@@ -3,6 +3,8 @@ import {
   ButtonGroup,
   createListCollection,
   DialogActionTrigger,
+  Grid,
+  GridItem,
   Input,
   Select,
   Text,
@@ -13,12 +15,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
+import { FiCode, FiInfo, FiSliders, FiType } from "react-icons/fi"
 
 import {
   type ApiError,
   type ConfigurationOptionPublic,
   ConfigurationOptionsService,
 } from "@/client"
+import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -32,6 +36,30 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
+
+const fieldGuideItems: FieldGuideItem[] = [
+  {
+    icon: FiType,
+    label: "Name / Scope",
+    description:
+      "The configuration scope this option applies to. Choose 'host', 'group', 'user', 'profile', or 'rule' to inject the config block into the corresponding section of the TACACS+ daemon config.",
+    required: true,
+  },
+  {
+    icon: FiCode,
+    label: "Config Option",
+    description:
+      "The raw TACACS+ configuration text to inject. This is written verbatim into the daemon config file under the selected scope. Use tac_plus-ng syntax.",
+    example: 'enable = crypt "$6$hash..."',
+    required: true,
+  },
+  {
+    icon: FiInfo,
+    label: "Description",
+    description:
+      "Optional notes explaining what this configuration option does. Not included in the generated config.",
+  },
+]
 
 interface EditConfigurationOptionProps {
   configuration_option: ConfigurationOptionPublic
@@ -104,7 +132,7 @@ const EditConfigurationOption = ({
   })
   return (
     <DialogRoot
-      size={{ base: "md", md: "md" }}
+      size="xl"
       placement="center"
       open={isOpen}
       onOpenChange={({ open }) => setIsOpen(open)}
@@ -121,63 +149,77 @@ const EditConfigurationOption = ({
             <DialogTitle>Edit ConfigurationOption</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Update the item details below.</Text>
-            <VStack gap={4}>
-              <Field
-                required
-                invalid={!!errors.name}
-                errorText={errors.name?.message}
-                label="name"
-              >
-                <Select.Root
-                  defaultValue={[configuration_option.name]}
-                  collection={items_configuration_option}
-                  onSelect={(selection) => {
-                    setValue("name", selection.value)
-                  }}
-                  size="md"
-                >
-                  <Select.Trigger>
-                    <Select.ValueText placeholder="Select Configuration Option" />
-                  </Select.Trigger>
-                  <Select.Positioner>
-                    <Select.Content>
-                      {items_configuration_option.items.map((framework) => (
-                        <Select.Item item={framework} key={framework.value}>
-                          {framework.label}
-                          <Select.ItemIndicator />
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select.Positioner>
-                </Select.Root>
-              </Field>
-              <Field
-                required
-                invalid={!!errors.config_option}
-                errorText={errors.config_option?.message}
-                label="config_option"
-              >
-                <Textarea
-                  {...register("config_option", {
-                    required: "config_option is required",
-                  })}
-                  rows={10}
-                  placeholder="config_option"
+            <Grid templateColumns={{ base: "1fr", lg: "7fr 5fr" }} gap={6}>
+              <GridItem>
+                <Text mb={4} color="fg.muted" fontSize="sm">
+                  Update the raw configuration block parameters.
+                </Text>
+                <VStack gap={4}>
+                  <Field
+                    required
+                    invalid={!!errors.name}
+                    errorText={errors.name?.message}
+                    label="Name / Scope"
+                  >
+                    <Select.Root
+                      defaultValue={[configuration_option.name]}
+                      collection={items_configuration_option}
+                      onSelect={(selection) => {
+                        setValue("name", selection.value)
+                      }}
+                      size="md"
+                    >
+                      <Select.Trigger>
+                        <Select.ValueText placeholder="Select Configuration Option" />
+                      </Select.Trigger>
+                      <Select.Positioner>
+                        <Select.Content>
+                          {items_configuration_option.items.map((framework) => (
+                            <Select.Item item={framework} key={framework.value}>
+                              {framework.label}
+                              <Select.ItemIndicator />
+                            </Select.Item>
+                          ))}
+                        </Select.Content>
+                      </Select.Positioner>
+                    </Select.Root>
+                  </Field>
+                  <Field
+                    required
+                    invalid={!!errors.config_option}
+                    errorText={errors.config_option?.message}
+                    label="Config Option"
+                  >
+                    <Textarea
+                      {...register("config_option", {
+                        required: "config_option is required",
+                      })}
+                      rows={10}
+                      placeholder="config_option"
+                    />
+                  </Field>
+                  <Field
+                    invalid={!!errors.description}
+                    errorText={errors.description?.message}
+                    label="Description"
+                  >
+                    <Input
+                      {...register("description")}
+                      placeholder="Description"
+                      type="text"
+                    />
+                  </Field>
+                </VStack>
+              </GridItem>
+              <GridItem>
+                <FieldGuide
+                  items={fieldGuideItems}
+                  icon={FiSliders}
+                  subtitle="Learn what each field means and how it maps to the TACACS+ daemon config."
+                  howItWorks="Configuration Options allow you to inject custom, raw configuration parameters directly into different scopes of the generated tac_plus-ng config file."
                 />
-              </Field>
-              <Field
-                invalid={!!errors.description}
-                errorText={errors.description?.message}
-                label="Description"
-              >
-                <Input
-                  {...register("description")}
-                  placeholder="Description"
-                  type="text"
-                />
-              </Field>
-            </VStack>
+              </GridItem>
+            </Grid>
           </DialogBody>
 
           <DialogFooter gap={2}>

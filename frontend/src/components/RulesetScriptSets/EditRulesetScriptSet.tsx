@@ -3,6 +3,8 @@ import {
   ButtonGroup,
   createListCollection,
   DialogActionTrigger,
+  Grid,
+  GridItem,
   Input,
   Select,
   Span,
@@ -14,6 +16,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
+import { FiCode, FiInfo, FiKey, FiList, FiSliders } from "react-icons/fi"
 
 import {
   type ApiError,
@@ -22,6 +25,7 @@ import {
   RulesetscriptsetsService,
   RulesetscriptsService,
 } from "@/client"
+import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -35,6 +39,38 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
+
+const fieldGuideItems: FieldGuideItem[] = [
+  {
+    icon: FiSliders,
+    label: "Ruleset Script Parent",
+    description:
+      "The conditional script block (e.g. 'if group == admin') inside which this variable is set.",
+    required: true,
+  },
+  {
+    icon: FiKey,
+    label: "Key",
+    description:
+      "The variable key to configure (e.g. 'profile' to assign an authorization profile).",
+    example: "profile, priv-lvl",
+    required: true,
+  },
+  {
+    icon: FiCode,
+    label: "Value",
+    description:
+      "The value to set. If Key is 'profile', you can select an authorization profile; otherwise, enter a custom string.",
+    example: "read_only_profile, admin_profile",
+    required: true,
+  },
+  {
+    icon: FiInfo,
+    label: "Description",
+    description:
+      "Optional notes explaining what this variable configuration achieves.",
+  },
+]
 
 interface EditRulesetScriptSetProps {
   rulesetscriptset: RulesetScriptSetPublic
@@ -150,7 +186,7 @@ const EditRulesetScriptSet = ({
 
   return (
     <DialogRoot
-      size={{ base: "xs", md: "md" }}
+      size="xl"
       placement="center"
       open={isOpen}
       onOpenChange={({ open }) => {
@@ -180,97 +216,54 @@ const EditRulesetScriptSet = ({
             <DialogTitle>Edit RulesetScriptSet</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Update the item details below.</Text>
-            <VStack gap={4}>
-              <Field
-                required
-                invalid={!!errors.rulesetscript_id}
-                errorText={errors.rulesetscript_id?.message}
-                label="Ruleset Script Parent"
-              >
-                <input
-                  type="hidden"
-                  {...register("rulesetscript_id", {
-                    required: "Ruleset Script Parent is required.",
-                  })}
-                />
-                <Select.Root
-                  collection={items_tacacs_rulesetscripts}
-                  size="sm"
-                  defaultValue={[rulesetscriptset.rulesetscript_id]}
-                  onValueChange={(selection) => {
-                    setValue("rulesetscript_id", selection.value.toString(), {
-                      shouldValidate: true,
-                    })
-                  }}
-                >
-                  <Select.Trigger>
-                    <Select.ValueText placeholder="Select Tacacs RulesetScript" />
-                  </Select.Trigger>
-                  <Select.Positioner>
-                    <Select.Content>
-                      <Select.ItemGroup>
-                        {items_tacacs_rulesetscripts.items.map((item) => (
-                          <Select.Item item={item} key={item.value}>
-                            <Stack gap="0">
-                              <Select.ItemText>{item.label}</Select.ItemText>
-                              <Span color="fg.muted" textStyle="xs">
-                                {item.description}
-                              </Span>
-                            </Stack>
-                            <Select.ItemIndicator />
-                          </Select.Item>
-                        ))}
-                      </Select.ItemGroup>
-                    </Select.Content>
-                  </Select.Positioner>
-                </Select.Root>
-              </Field>
-              <Field
-                required
-                invalid={!!errors.key}
-                errorText={errors.key?.message}
-                label="Key"
-              >
-                <Input
-                  {...register("key", {
-                    required: "key is required",
-                  })}
-                  placeholder="key"
-                  type="text"
-                />
-              </Field>
-              <Field
-                required
-                invalid={!!errors.value}
-                errorText={errors.value?.message}
-                label="Value"
-              >
-                {watchedKey === "profile" ? (
-                  <>
+            <Grid templateColumns={{ base: "1fr", lg: "7fr 5fr" }} gap={6}>
+              <GridItem>
+                <Text mb={4} color="fg.muted" fontSize="sm">
+                  Update the dynamic conditional ruleset script set variables.
+                </Text>
+                <VStack gap={4}>
+                  <Field
+                    required
+                    invalid={!!errors.rulesetscript_id}
+                    errorText={errors.rulesetscript_id?.message}
+                    label="Ruleset Script Parent"
+                  >
                     <input
                       type="hidden"
-                      {...register("value", { required: "value is required." })}
+                      {...register("rulesetscript_id", {
+                        required: "Ruleset Script Parent is required.",
+                      })}
                     />
                     <Select.Root
-                      collection={items_tacacs_profiles}
+                      collection={items_tacacs_rulesetscripts}
                       size="sm"
-                      defaultValue={[rulesetscriptset.value]}
+                      defaultValue={[rulesetscriptset.rulesetscript_id]}
                       onValueChange={(selection) => {
-                        setValue("value", selection.value.toString(), {
-                          shouldValidate: true,
-                        })
+                        setValue(
+                          "rulesetscript_id",
+                          selection.value.toString(),
+                          {
+                            shouldValidate: true,
+                          },
+                        )
                       }}
                     >
                       <Select.Trigger>
-                        <Select.ValueText placeholder="Select a Profile" />
+                        <Select.ValueText placeholder="Select Tacacs RulesetScript" />
                       </Select.Trigger>
                       <Select.Positioner>
                         <Select.Content>
                           <Select.ItemGroup>
-                            {items_tacacs_profiles.items.map((item) => (
+                            {items_tacacs_rulesetscripts.items.map((item) => (
                               <Select.Item item={item} key={item.value}>
-                                <Select.ItemText>{item.label}</Select.ItemText>
+                                <Stack gap="0">
+                                  <Select.ItemText>
+                                    {item.label}
+                                  </Select.ItemText>
+                                  <Span color="fg.muted" textStyle="xs">
+                                    {item.description}
+                                  </Span>
+                                </Stack>
                                 <Select.ItemIndicator />
                               </Select.Item>
                             ))}
@@ -278,29 +271,96 @@ const EditRulesetScriptSet = ({
                         </Select.Content>
                       </Select.Positioner>
                     </Select.Root>
-                  </>
-                ) : (
-                  <Input
-                    {...register("value", {
-                      required: "value is required.",
-                    })}
-                    placeholder="value"
-                    type="text"
-                  />
-                )}
-              </Field>
-              <Field
-                invalid={!!errors.description}
-                errorText={errors.description?.message}
-                label="Description"
-              >
-                <Input
-                  {...register("description")}
-                  placeholder="Description"
-                  type="text"
+                  </Field>
+                  <Field
+                    required
+                    invalid={!!errors.key}
+                    errorText={errors.key?.message}
+                    label="Key"
+                  >
+                    <Input
+                      {...register("key", {
+                        required: "key is required",
+                      })}
+                      placeholder="key"
+                      type="text"
+                    />
+                  </Field>
+                  <Field
+                    required
+                    invalid={!!errors.value}
+                    errorText={errors.value?.message}
+                    label="Value"
+                  >
+                    {watchedKey === "profile" ? (
+                      <>
+                        <input
+                          type="hidden"
+                          {...register("value", {
+                            required: "value is required.",
+                          })}
+                        />
+                        <Select.Root
+                          collection={items_tacacs_profiles}
+                          size="sm"
+                          defaultValue={[rulesetscriptset.value]}
+                          onValueChange={(selection) => {
+                            setValue("value", selection.value.toString(), {
+                              shouldValidate: true,
+                            })
+                          }}
+                        >
+                          <Select.Trigger>
+                            <Select.ValueText placeholder="Select a Profile" />
+                          </Select.Trigger>
+                          <Select.Positioner>
+                            <Select.Content>
+                              <Select.ItemGroup>
+                                {items_tacacs_profiles.items.map((item) => (
+                                  <Select.Item item={item} key={item.value}>
+                                    <Select.ItemText>
+                                      {item.label}
+                                    </Select.ItemText>
+                                    <Select.ItemIndicator />
+                                  </Select.Item>
+                                ))}
+                              </Select.ItemGroup>
+                            </Select.Content>
+                          </Select.Positioner>
+                        </Select.Root>
+                      </>
+                    ) : (
+                      <Input
+                        {...register("value", {
+                          required: "value is required.",
+                        })}
+                        placeholder="value"
+                        type="text"
+                      />
+                    )}
+                  </Field>
+                  <Field
+                    invalid={!!errors.description}
+                    errorText={errors.description?.message}
+                    label="Description"
+                  >
+                    <Input
+                      {...register("description")}
+                      placeholder="Description"
+                      type="text"
+                    />
+                  </Field>
+                </VStack>
+              </GridItem>
+              <GridItem>
+                <FieldGuide
+                  items={fieldGuideItems}
+                  icon={FiList}
+                  subtitle="Learn what each field means and how it configures ruleset script parameters."
+                  howItWorks="RulesetScriptSets allow you to define key-value variables that get dynamically set when their parent condition script succeeds. Commonly used to assign access profiles."
                 />
-              </Field>
-            </VStack>
+              </GridItem>
+            </Grid>
           </DialogBody>
 
           <DialogFooter gap={2}>

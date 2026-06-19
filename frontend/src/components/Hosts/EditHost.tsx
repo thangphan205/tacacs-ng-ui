@@ -4,6 +4,8 @@ import {
   Collapsible,
   createListCollection,
   DialogActionTrigger,
+  Grid,
+  GridItem,
   Input,
   Select,
   SimpleGrid,
@@ -15,7 +17,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
+import {
+  FiGlobe,
+  FiHash,
+  FiInfo,
+  FiKey,
+  FiLayers,
+  FiMessageSquare,
+  FiServer,
+  FiSettings,
+  FiType,
+} from "react-icons/fi"
 import { type ApiError, type HostPublic, HostsService } from "@/client"
+import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import { Checkbox } from "../ui/checkbox"
@@ -30,6 +44,64 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
+
+const fieldGuideItems: FieldGuideItem[] = [
+  {
+    icon: FiType,
+    label: "Name",
+    description:
+      "A unique identifier for this network device. Used in the generated TACACS+ config and as reference across the UI.",
+    example: "core-switch-01, dc1-fw-primary",
+    required: true,
+  },
+  {
+    icon: FiGlobe,
+    label: "IPv4 Address / CIDR",
+    description:
+      "The management IP address or subnet (CIDR) of the device. CIDR notation allows a range of devices to share the same TACACS+ key.",
+    example: "10.0.1.1 or 10.0.1.0/24",
+    required: true,
+  },
+  {
+    icon: FiHash,
+    label: "IPv6 Address",
+    description:
+      "Optional IPv6 management address. Set this if your device connects to the TACACS+ server over IPv6.",
+    example: "2001:db8::1",
+  },
+  {
+    icon: FiKey,
+    label: "Secret Key",
+    description:
+      "The shared secret between this device and the TACACS+ server. Must match the key configured on the network device exactly (case-sensitive).",
+    example: "MyS3cretK3y!",
+    required: true,
+  },
+  {
+    icon: FiLayers,
+    label: "Parent Host",
+    description:
+      "Optionally inherit settings from an existing host. The child host will use its parent's configuration as a fallback.",
+  },
+  {
+    icon: FiInfo,
+    label: "Description",
+    description:
+      "Free-text note for your reference. Not included in the generated config — useful for documenting location, role, or owner.",
+  },
+  {
+    icon: FiSettings,
+    label: "Generate to Config",
+    description:
+      "When enabled, this host will be included in the generated TACACS+ daemon configuration file. Disable to keep the record without activating it.",
+  },
+  {
+    icon: FiMessageSquare,
+    label: "Banner Messages",
+    description:
+      "Optional banners displayed to users during authentication: Welcome (on success), Reject (on deny), MOTD (after login), and Failed Authentication.",
+  },
+]
 
 interface EditHostProps {
   host: HostPublic
@@ -121,7 +193,7 @@ const EditHost = ({ host }: EditHostProps) => {
 
   return (
     <DialogRoot
-      size={{ base: "xs", md: "md" }}
+      size="xl"
       placement="center"
       open={isOpen}
       onOpenChange={({ open }) => setIsOpen(open)}
@@ -138,171 +210,187 @@ const EditHost = ({ host }: EditHostProps) => {
             <DialogTitle>Edit Host</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4} color="fg.muted" fontSize="sm">
-              Update the details for <strong>{host.name}</strong>.
-            </Text>
-            <VStack gap={4} as="section">
-              <Field
-                required
-                invalid={!!errors.name}
-                errorText={errors.name?.message}
-                label="Name"
-              >
-                <Input
-                  {...register("name", {
-                    required: "Name is required.",
-                  })}
-                  placeholder="core-switch-01"
-                  type="text"
-                />
-              </Field>
-              <SimpleGrid columns={2} gap={4} w="full">
-                <Field
-                  required
-                  invalid={!!errors.ipv4_address}
-                  errorText={errors.ipv4_address?.message}
-                  label="IPv4 Address / CIDR"
-                >
-                  <Input
-                    {...register("ipv4_address", {
-                      required: "IPv4 address is required.",
-                    })}
-                    placeholder="192.168.1.1 or 192.168.1.0/24"
-                    type="text"
-                  />
-                </Field>
-                <Field
-                  invalid={!!errors.ipv6_address}
-                  errorText={errors.ipv6_address?.message}
-                  label="IPv6 Address"
-                >
-                  <Input
-                    {...register("ipv6_address")}
-                    placeholder="2001:db8::1 (optional)"
-                    type="text"
-                  />
-                </Field>
-                <Field
-                  required
-                  invalid={!!errors.secret_key}
-                  errorText={errors.secret_key?.message}
-                  label="Secret Key"
-                >
-                  <Input
-                    {...register("secret_key", {
-                      required: "Secret key is required.",
-                    })}
-                    placeholder="Shared secret key"
-                    type="password"
-                  />
-                </Field>
-                <Field
-                  invalid={!!errors.parent}
-                  errorText={errors.parent?.message}
-                  label="Parent Host"
-                >
-                  <Select.Root
-                    collection={items_hosts}
-                    size="sm"
-                    onSelect={(selection) => {
-                      setValue("parent", selection.value)
-                    }}
+            <Grid templateColumns={{ base: "1fr", lg: "7fr 5fr" }} gap={6}>
+              <GridItem>
+                <Text mb={4} color="fg.muted" fontSize="sm">
+                  Update the details for <strong>{host.name}</strong>.
+                </Text>
+                <VStack gap={4} as="section">
+                  <Field
+                    required
+                    invalid={!!errors.name}
+                    errorText={errors.name?.message}
+                    label="Name"
                   >
-                    <Select.Trigger>
-                      <Select.ValueText placeholder="None" />
-                    </Select.Trigger>
-                    <Select.Positioner>
-                      <Select.Content>
-                        <Select.ItemGroup>
-                          {items_hosts.items.map((item) => (
-                            <Select.Item key={item.value} item={item.value}>
-                              {item.label}
-                              <Select.ItemIndicator />
-                            </Select.Item>
-                          ))}
-                        </Select.ItemGroup>
-                      </Select.Content>
-                    </Select.Positioner>
-                  </Select.Root>
-                </Field>
-              </SimpleGrid>
-              <Field
-                invalid={!!errors.description}
-                errorText={errors.description?.message}
-                label="Description"
-              >
-                <Input
-                  {...register("description")}
-                  placeholder="Optional description"
-                  type="text"
-                />
-              </Field>
-              <Controller
-                control={control}
-                name="generate_config"
-                render={({ field }) => (
-                  <Field disabled={field.disabled} colorPalette="teal">
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={({ checked }) => field.onChange(checked)}
-                    >
-                      Generate to TACACS+ Config
-                    </Checkbox>
+                    <Input
+                      {...register("name", {
+                        required: "Name is required.",
+                      })}
+                      placeholder="core-switch-01"
+                      type="text"
+                    />
                   </Field>
-                )}
-              />
-              <Collapsible.Root style={{ width: "100%" }}>
-                <Collapsible.Trigger asChild>
-                  <Button w="full" variant="outline" size="sm">
-                    Configure Banner Messages
-                  </Button>
-                </Collapsible.Trigger>
-                <Collapsible.Content>
-                  <VStack gap={4} pt={4}>
+                  <SimpleGrid columns={2} gap={4} w="full">
                     <Field
-                      invalid={!!errors.welcome_banner}
-                      errorText={errors.welcome_banner?.message}
-                      label="Welcome Banner"
+                      required
+                      invalid={!!errors.ipv4_address}
+                      errorText={errors.ipv4_address?.message}
+                      label="IPv4 Address / CIDR"
                     >
-                      <Textarea
-                        {...register("welcome_banner")}
-                        placeholder="Message shown on successful login"
+                      <Input
+                        {...register("ipv4_address", {
+                          required: "IPv4 address is required.",
+                        })}
+                        placeholder="192.168.1.1 or 192.168.1.0/24"
+                        type="text"
                       />
                     </Field>
                     <Field
-                      invalid={!!errors.reject_banner}
-                      errorText={errors.reject_banner?.message}
-                      label="Reject Banner"
+                      invalid={!!errors.ipv6_address}
+                      errorText={errors.ipv6_address?.message}
+                      label="IPv6 Address"
                     >
-                      <Textarea
-                        {...register("reject_banner")}
-                        placeholder="Message shown when access is denied"
+                      <Input
+                        {...register("ipv6_address")}
+                        placeholder="2001:db8::1 (optional)"
+                        type="text"
                       />
                     </Field>
                     <Field
-                      invalid={!!errors.motd_banner}
-                      errorText={errors.motd_banner?.message}
-                      label="MOTD Banner"
+                      required
+                      invalid={!!errors.secret_key}
+                      errorText={errors.secret_key?.message}
+                      label="Secret Key"
                     >
-                      <Textarea
-                        {...register("motd_banner")}
-                        placeholder="Message of the day shown after login"
+                      <Input
+                        {...register("secret_key", {
+                          required: "Secret key is required.",
+                        })}
+                        placeholder="Shared secret key"
+                        type="password"
                       />
                     </Field>
                     <Field
-                      invalid={!!errors.failed_authentication_banner}
-                      errorText={errors.failed_authentication_banner?.message}
-                      label="Failed Authentication Banner"
+                      invalid={!!errors.parent}
+                      errorText={errors.parent?.message}
+                      label="Parent Host"
                     >
-                      <Textarea
-                        {...register("failed_authentication_banner")}
-                        placeholder="Message shown on failed authentication"
-                      />
+                      <Select.Root
+                        collection={items_hosts}
+                        size="sm"
+                        onSelect={(selection) => {
+                          setValue("parent", selection.value)
+                        }}
+                      >
+                        <Select.Trigger>
+                          <Select.ValueText placeholder="None" />
+                        </Select.Trigger>
+                        <Select.Positioner>
+                          <Select.Content>
+                            <Select.ItemGroup>
+                              {items_hosts.items.map((item) => (
+                                <Select.Item key={item.value} item={item.value}>
+                                  {item.label}
+                                  <Select.ItemIndicator />
+                                </Select.Item>
+                              ))}
+                            </Select.ItemGroup>
+                          </Select.Content>
+                        </Select.Positioner>
+                      </Select.Root>
                     </Field>
-                  </VStack>
-                </Collapsible.Content>
-              </Collapsible.Root>
-            </VStack>
+                  </SimpleGrid>
+                  <Field
+                    invalid={!!errors.description}
+                    errorText={errors.description?.message}
+                    label="Description"
+                  >
+                    <Input
+                      {...register("description")}
+                      placeholder="Optional description"
+                      type="text"
+                    />
+                  </Field>
+                  <Controller
+                    control={control}
+                    name="generate_config"
+                    render={({ field }) => (
+                      <Field disabled={field.disabled} colorPalette="teal">
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
+                        >
+                          Generate to TACACS+ Config
+                        </Checkbox>
+                      </Field>
+                    )}
+                  />
+                  <Collapsible.Root style={{ width: "100%" }}>
+                    <Collapsible.Trigger asChild>
+                      <Button w="full" variant="outline" size="sm">
+                        Configure Banner Messages
+                      </Button>
+                    </Collapsible.Trigger>
+                    <Collapsible.Content>
+                      <VStack gap={4} pt={4}>
+                        <Field
+                          invalid={!!errors.welcome_banner}
+                          errorText={errors.welcome_banner?.message}
+                          label="Welcome Banner"
+                        >
+                          <Textarea
+                            {...register("welcome_banner")}
+                            placeholder="Message shown on successful login"
+                          />
+                        </Field>
+                        <Field
+                          invalid={!!errors.reject_banner}
+                          errorText={errors.reject_banner?.message}
+                          label="Reject Banner"
+                        >
+                          <Textarea
+                            {...register("reject_banner")}
+                            placeholder="Message shown when access is denied"
+                          />
+                        </Field>
+                        <Field
+                          invalid={!!errors.motd_banner}
+                          errorText={errors.motd_banner?.message}
+                          label="MOTD Banner"
+                        >
+                          <Textarea
+                            {...register("motd_banner")}
+                            placeholder="Message of the day shown after login"
+                          />
+                        </Field>
+                        <Field
+                          invalid={!!errors.failed_authentication_banner}
+                          errorText={
+                            errors.failed_authentication_banner?.message
+                          }
+                          label="Failed Authentication Banner"
+                        >
+                          <Textarea
+                            {...register("failed_authentication_banner")}
+                            placeholder="Message shown on failed authentication"
+                          />
+                        </Field>
+                      </VStack>
+                    </Collapsible.Content>
+                  </Collapsible.Root>
+                </VStack>
+              </GridItem>
+              <GridItem>
+                <FieldGuide
+                  items={fieldGuideItems}
+                  icon={FiServer}
+                  subtitle="Learn what each field means and how it maps to the TACACS+ daemon configuration."
+                  howItWorks="When you save a host block, it gets compiled into the server config definition for TACACS+ routing."
+                />
+              </GridItem>
+            </Grid>
           </DialogBody>
 
           <DialogFooter gap={2}>
