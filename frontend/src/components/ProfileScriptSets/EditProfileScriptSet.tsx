@@ -86,8 +86,8 @@ const EditProfileScriptSet = ({
     data_profilescripts.data.forEach((profilescript) => {
       items_tacacs_profilescripts.items.push({
         value: profilescript.id,
-        label: `Profile: ${profilescript.profile_name}` || "No Profile",
-        description: `ProfileScript: ${profilescript.condition}(${profilescript.key}==${profilescript.value})`,
+        label: `${profilescript.profile_name || "No Profile"}: ${profilescript.condition}(${profilescript.key}==${profilescript.value})`,
+        description: `Profile: ${profilescript.profile_name || "No Profile"}`,
       })
     })
   }

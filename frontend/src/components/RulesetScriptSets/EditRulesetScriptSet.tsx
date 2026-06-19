@@ -102,8 +102,8 @@ const EditRulesetScriptSet = ({
     data_rulesetscripts.data.forEach((rulesetscript) => {
       items_tacacs_rulesetscripts.items.push({
         value: rulesetscript.id,
-        label: `Ruleset: ${rulesetscript.ruleset_name}`,
-        description: `RulesetScript: ${rulesetscript.condition}(${rulesetscript.key}==${rulesetscript.value})`,
+        label: `${rulesetscript.ruleset_name}: ${rulesetscript.condition}(${rulesetscript.key}==${rulesetscript.value})`,
+        description: `Ruleset: ${rulesetscript.ruleset_name}`,
       })
     })
   }
