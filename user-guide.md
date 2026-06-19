@@ -16,8 +16,9 @@
 ## Table of Contents
 
 1. [Getting Started](#getting-started)
-2. [Core Concepts](#core-concepts)
-3. [Step-by-Step: First-Time Setup](#step-by-step-first-time-setup)
+2. [Initial Data (Seed)](#initial-data-seed)
+3. [Core Concepts](#core-concepts)
+4. [Step-by-Step: First-Time Setup](#step-by-step-first-time-setup)
 4. [Managing TACACS+ Users & Groups](#managing-tacacs-users--groups)
 5. [Configuring Network Devices (Hosts)](#configuring-network-devices-hosts)
 6. [Access Control: Profiles & Rulesets](#access-control-profiles--rulesets)
@@ -54,6 +55,91 @@ Default admin credentials are set via `FIRST_SUPERUSER` and `FIRST_SUPERUSER_PAS
 After login you land on the main dashboard:
 
 ![Dashboard](img/dashboard.png)
+
+---
+
+## Initial Data (Seed)
+
+On first startup, tacacs-ng-ui automatically creates the following data. This gives you a working TACACS+ configuration out of the box for Cisco, Arista, Huawei, Juniper, Palo Alto, and Fortinet devices.
+
+### Services
+
+| Name | Used by |
+|------|---------|
+| `shell` | Cisco, Arista, Huawei VRP |
+| `junos-exec` | Juniper |
+| `h3c_shell` | Huawei H3C / Comware |
+| `PaloAlto` | Palo Alto Networks |
+| `fortigate` | Fortinet FortiGate |
+
+### Groups
+
+| Group | Purpose |
+|-------|---------|
+| `tacacs_super_user` | Full admin access — privilege level 15 |
+| `tacacs_read_only` | Read-only access — privilege level 1 |
+
+### TACACS+ Users
+
+| Username | Password | Group | Purpose |
+|----------|----------|-------|---------|
+| `user_admin` | `change_this` | `tacacs_super_user` | Admin — full access on all devices |
+| `user_read_only` | `change_this` | `tacacs_read_only` | Read-only on all devices |
+
+> **Action required:** Change these passwords immediately after first login via **TACACS Users → Edit**.
+
+### Profiles & Authorization Attributes
+
+**`tacacs_super_user_profile`** — returned for `tacacs_super_user` group members:
+
+| Service | Attribute returned | Value |
+|---------|--------------------|-------|
+| `shell` | `priv-lvl` | `15` |
+| `junos-exec` | `local-user-name` | `tacacs_super_user` |
+| `h3c_shell` | `priv-lvl` | `15` |
+| `PaloAlto` | `PaloAlto-Admin-Role` | `superuser` |
+| `fortigate` | `admin_prof` | `super_admin` |
+
+**`tacacs_read_only_profile`** — returned for `tacacs_read_only` group members:
+
+| Service | Attribute returned | Value |
+|---------|--------------------|-------|
+| `shell` | `priv-lvl` | `1` |
+| `junos-exec` | `local-user-name` | `tacacs_read_only` |
+| `h3c_shell` | `priv-lvl` | `1` |
+| `PaloAlto` | `PaloAlto-Admin-Role` | `devicereader` |
+| `fortigate` | `admin_prof` | `read_only` |
+
+### Ruleset
+
+`default_ruleset` maps each group to its profile:
+
+| If group is | → Apply profile |
+|-------------|-----------------|
+| `tacacs_super_user` | `tacacs_super_user_profile` |
+| `tacacs_read_only` | `tacacs_read_only_profile` |
+| *(no match)* | deny |
+
+### Authorization Flow
+
+```
+Network device → user_admin authenticates
+  ↓
+tac_plus-ng: member = tacacs_super_user
+  ↓
+default_ruleset: group == tacacs_super_user → tacacs_super_user_profile
+  ↓
+service == shell → return priv-lvl=15
+  ↓
+Device grants full admin access
+```
+
+### Next Steps After First Login
+
+1. Change `user_admin` and `user_read_only` passwords (**TACACS Users → Edit**)
+2. Add your network devices (**Hosts → Add Host**)
+3. Generate and activate the config (**TACACS Configs → Generate → Activate**)
+4. Configure your devices to point at this TACACS+ server
 
 ---
 
