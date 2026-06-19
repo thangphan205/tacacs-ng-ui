@@ -1,7 +1,7 @@
 import {
+  Badge,
   Box,
   Button,
-  Code,
   Collapsible,
   createListCollection,
   DialogActionTrigger,
@@ -9,19 +9,29 @@ import {
   Flex,
   Grid,
   GridItem,
-  Heading,
   Input,
   Select,
   SimpleGrid,
   Text,
   Textarea,
   VStack,
-  Tabs,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
-import { FiBookOpen, FiPlus } from "react-icons/fi"
+import {
+  FiGlobe,
+  FiHash,
+  FiInfo,
+  FiKey,
+  FiLayers,
+  FiLock,
+  FiMessageSquare,
+  FiPlus,
+  FiServer,
+  FiSettings,
+  FiType,
+} from "react-icons/fi"
 import { type HostCreate, HostsService } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
@@ -38,6 +48,119 @@ import {
 } from "../ui/dialog"
 import { Field } from "../ui/field"
 
+interface FieldGuideItem {
+  icon: React.ElementType
+  label: string
+  description: string
+  example?: string
+  required?: boolean
+}
+
+const fieldGuideItems: FieldGuideItem[] = [
+  {
+    icon: FiType,
+    label: "Name",
+    description:
+      "A unique identifier for this network device. Used in the generated TACACS+ config and as reference across the UI.",
+    example: "core-switch-01, dc1-fw-primary",
+    required: true,
+  },
+  {
+    icon: FiGlobe,
+    label: "IPv4 Address / CIDR",
+    description:
+      "The management IP address or subnet (CIDR) of the device. CIDR notation allows a range of devices to share the same TACACS+ key.",
+    example: "10.0.1.1 or 10.0.1.0/24",
+    required: true,
+  },
+  {
+    icon: FiHash,
+    label: "IPv6 Address",
+    description:
+      "Optional IPv6 management address. Set this if your device connects to the TACACS+ server over IPv6.",
+    example: "2001:db8::1",
+  },
+  {
+    icon: FiKey,
+    label: "Secret Key",
+    description:
+      "The shared secret between this device and the TACACS+ server. Must match the key configured on the network device exactly (case-sensitive).",
+    example: "MyS3cretK3y!",
+    required: true,
+  },
+  {
+    icon: FiLayers,
+    label: "Parent Host",
+    description:
+      "Optionally inherit settings from an existing host. The child host will use its parent's configuration as a fallback.",
+  },
+  {
+    icon: FiInfo,
+    label: "Description",
+    description:
+      "Free-text note for your reference. Not included in the generated config — useful for documenting location, role, or owner.",
+  },
+  {
+    icon: FiSettings,
+    label: "Generate to Config",
+    description:
+      "When enabled, this host will be included in the generated TACACS+ daemon configuration file. Disable to keep the record without activating it.",
+  },
+  {
+    icon: FiMessageSquare,
+    label: "Banner Messages",
+    description:
+      "Optional banners displayed to users during authentication: Welcome (on success), Reject (on deny), MOTD (after login), and Failed Authentication.",
+  },
+]
+
+const FieldGuideCard = ({ item }: { item: FieldGuideItem }) => {
+  const Icon = item.icon
+  return (
+    <Box>
+      <Flex align="flex-start" gap={2.5}>
+        <Box
+          mt={0.5}
+          p={1}
+          bg="teal.muted"
+          color="teal.fg"
+          borderRadius="md"
+          flexShrink={0}
+        >
+          <Icon size={12} />
+        </Box>
+        <Box>
+          <Flex align="center" gap={1.5} mb={0.5}>
+            <Text fontSize="xs" fontWeight="semibold" color="fg">
+              {item.label}
+            </Text>
+            {item.required && (
+              <Badge
+                colorPalette="red"
+                variant="subtle"
+                size="sm"
+                fontSize="2xs"
+                px={1}
+                lineHeight="1.4"
+              >
+                Required
+              </Badge>
+            )}
+          </Flex>
+          <Text fontSize="xs" color="fg.muted" lineHeight="1.5">
+            {item.description}
+          </Text>
+          {item.example && (
+            <Text fontSize="2xs" color="fg.muted/70" mt={0.5} fontFamily="mono">
+              e.g. {item.example}
+            </Text>
+          )}
+        </Box>
+      </Flex>
+    </Box>
+  )
+}
+
 const AddHost = () => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -48,7 +171,6 @@ const AddHost = () => {
     reset,
     setValue,
     control,
-    watch,
     formState: { errors, isValid, isSubmitting },
   } = useForm<HostCreate>({
     mode: "onBlur",
@@ -67,48 +189,6 @@ const AddHost = () => {
       generate_config: true,
     },
   })
-
-  const secretKey = watch("secret_key") || "<your_secret_key>"
-  const serverIp = typeof window !== "undefined" ? (window.location.hostname || "192.168.1.100") : "192.168.1.100"
-
-  const [copiedText, setCopiedText] = useState(false)
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text)
-    setCopiedText(true)
-    setTimeout(() => setCopiedText(false), 2000)
-  }
-
-  const ciscoSnippet = `! Configure the TACACS+ Server
-tacacs server TACACS_SERVER
- address ipv4 ${serverIp}
- key ${secretKey}
-!
-! Enable AAA and define server group
-aaa new-model
-aaa group server tacacs+ TACACS_GROUP
- server name TACACS_SERVER
-!
-! Apply authentication and authorization
-aaa authentication login default group TACACS_GROUP local
-aaa authorization exec default group TACACS_GROUP local
-aaa accounting exec default start-stop group TACACS_GROUP`
-
-  const juniperSnippet = `# Configure TACACS+ server and key
-set system tacplus-server ${serverIp} secret "${secretKey}"
-# Configure authentication order
-set system authentication-order [ tacplus password ]
-# Create a template user for authorization
-set system login user template-user uid 2000 class super-user`
-
-  const aristaSnippet = `! Configure the TACACS+ server
-tacacs-server host ${serverIp} key ${secretKey}
-!
-! Apply AAA settings
-aaa group server tacacs+ TACACS_GROUP
- server ${serverIp}
-!
-aaa authentication login default group TACACS_GROUP local
-aaa authorization exec default group TACACS_GROUP local`
 
   const { data: hostsData } = useQuery({
     queryKey: ["hosts"],
@@ -337,7 +417,7 @@ aaa authorization exec default group TACACS_GROUP local`
                 </VStack>
               </GridItem>
 
-              {/* Right Column: Dynamic Configuration Instructions */}
+              {/* Right Column: Field Guide */}
               <GridItem
                 bg="bg.muted/60"
                 p={5}
@@ -346,115 +426,44 @@ aaa authorization exec default group TACACS_GROUP local`
                 borderColor="border.subtle"
                 height="fit-content"
               >
-                <Flex align="center" gap={2} mb={3}>
+                <Flex align="center" gap={2} mb={1}>
                   <Box p={1.5} bg="teal.muted" color="teal.fg" borderRadius="md">
-                    <FiBookOpen fontSize="16px" />
+                    <FiServer size={16} />
                   </Box>
-                  <Heading size="xs" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" color="teal.fg">
-                    Configuration Guide
-                  </Heading>
+                  <Text fontSize="xs" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" color="teal.fg">
+                    Field Guide
+                  </Text>
                 </Flex>
                 <Text fontSize="xs" color="fg.muted" mb={4}>
-                  Use these real-time generated commands on your device to establish authentication with this TACACS+ server.
+                  Learn what each field means and how it maps to the TACACS+ daemon configuration.
                 </Text>
 
-                <Tabs.Root defaultValue="cisco" size="sm" variant="subtle" colorPalette="teal">
-                  <Tabs.List mb={3}>
-                    <Tabs.Trigger value="cisco" fontSize="xs">Cisco IOS</Tabs.Trigger>
-                    <Tabs.Trigger value="juniper" fontSize="xs">Juniper Junos</Tabs.Trigger>
-                    <Tabs.Trigger value="arista" fontSize="xs">Arista EOS</Tabs.Trigger>
-                  </Tabs.List>
+                <VStack gap={3.5} align="stretch">
+                  {fieldGuideItems.map((item) => (
+                    <FieldGuideCard key={item.label} item={item} />
+                  ))}
+                </VStack>
 
-                  <Tabs.Content value="cisco">
-                    <Box position="relative" mt={1}>
-                      <Code
-                        display="block"
-                        whiteSpace="pre"
-                        fontSize="2xs"
-                        p={3}
-                        borderRadius="md"
-                        bg="bg.panel"
-                        borderWidth="1px"
-                        maxH="280px"
-                        overflowY="auto"
-                        fontFamily="mono"
-                      >
-                        {ciscoSnippet}
-                      </Code>
-                      <Button
-                        size="2xs"
-                        variant="subtle"
-                        position="absolute"
-                        top={2}
-                        right={2}
-                        onClick={() => handleCopy(ciscoSnippet)}
-                        colorPalette="teal"
-                      >
-                        {copiedText ? "Copied!" : "Copy"}
-                      </Button>
-                    </Box>
-                  </Tabs.Content>
-
-                  <Tabs.Content value="juniper">
-                    <Box position="relative" mt={1}>
-                      <Code
-                        display="block"
-                        whiteSpace="pre"
-                        fontSize="2xs"
-                        p={3}
-                        borderRadius="md"
-                        bg="bg.panel"
-                        borderWidth="1px"
-                        maxH="280px"
-                        overflowY="auto"
-                        fontFamily="mono"
-                      >
-                        {juniperSnippet}
-                      </Code>
-                      <Button
-                        size="2xs"
-                        variant="subtle"
-                        position="absolute"
-                        top={2}
-                        right={2}
-                        onClick={() => handleCopy(juniperSnippet)}
-                        colorPalette="teal"
-                      >
-                        {copiedText ? "Copied!" : "Copy"}
-                      </Button>
-                    </Box>
-                  </Tabs.Content>
-
-                  <Tabs.Content value="arista">
-                    <Box position="relative" mt={1}>
-                      <Code
-                        display="block"
-                        whiteSpace="pre"
-                        fontSize="2xs"
-                        p={3}
-                        borderRadius="md"
-                        bg="bg.panel"
-                        borderWidth="1px"
-                        maxH="280px"
-                        overflowY="auto"
-                        fontFamily="mono"
-                      >
-                        {aristaSnippet}
-                      </Code>
-                      <Button
-                        size="2xs"
-                        variant="subtle"
-                        position="absolute"
-                        top={2}
-                        right={2}
-                        onClick={() => handleCopy(aristaSnippet)}
-                        colorPalette="teal"
-                      >
-                        {copiedText ? "Copied!" : "Copy"}
-                      </Button>
-                    </Box>
-                  </Tabs.Content>
-                </Tabs.Root>
+                <Box
+                  mt={4}
+                  p={3}
+                  bg="teal.muted/40"
+                  borderRadius="md"
+                  borderWidth="1px"
+                  borderColor="teal.muted"
+                >
+                  <Flex align="center" gap={1.5} mb={1}>
+                    <FiLock size={11} />
+                    <Text fontSize="2xs" fontWeight="semibold" color="teal.fg">
+                      How it works
+                    </Text>
+                  </Flex>
+                  <Text fontSize="2xs" color="fg.muted" lineHeight="1.5">
+                    When you save a host with "Generate to Config" enabled, the system creates a{" "}
+                    <Text as="span" fontFamily="mono" fontWeight="medium">host</Text> block in the
+                    TACACS+ daemon config using the Name, IPv4 Address, and Secret Key you provide.
+                  </Text>
+                </Box>
               </GridItem>
             </Grid>
           </DialogBody>
@@ -486,3 +495,4 @@ aaa authorization exec default group TACACS_GROUP local`
 }
 
 export default AddHost
+
