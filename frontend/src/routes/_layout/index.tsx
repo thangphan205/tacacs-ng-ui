@@ -796,9 +796,10 @@ function LastTacacsLogs() {
                     color="fg.muted"
                   >
                     {new Date(
-                      log.timestamp
-                        .replace(" ", "T")
-                        .replace(/([+-]\d{2})(\d{2})$/, "$1:$2"),
+                      log.timestamp.replace(
+                        /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([+-]\d{2})(\d{2})$/,
+                        "$1T$2$3:$4",
+                      ),
                     ).toLocaleString("en-US", {
                       hour12: false,
                     })}
