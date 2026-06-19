@@ -113,10 +113,11 @@ function TacacsUsersTable() {
       >
         <Table.Header>
           <Table.Row>
-            <Table.ColumnHeader w="20%">Username</Table.ColumnHeader>
-            <Table.ColumnHeader w="15%">Password Type</Table.ColumnHeader>
-            <Table.ColumnHeader w="25%">Group Membership</Table.ColumnHeader>
-            <Table.ColumnHeader w="20%">Description</Table.ColumnHeader>
+            <Table.ColumnHeader w="18%">Username</Table.ColumnHeader>
+            <Table.ColumnHeader w="12%">Password Type</Table.ColumnHeader>
+            <Table.ColumnHeader w="20%">Group Membership</Table.ColumnHeader>
+            <Table.ColumnHeader w="12%">Generate</Table.ColumnHeader>
+            <Table.ColumnHeader w="18%">Description</Table.ColumnHeader>
             <Table.ColumnHeader w="12%">Last Updated</Table.ColumnHeader>
             <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
           </Table.Row>
@@ -166,6 +167,11 @@ function TacacsUsersTable() {
                 ) : (
                   <Text color="fg.muted">—</Text>
                 )}
+              </Table.Cell>
+              <Table.Cell>
+                <Badge colorPalette={tacacs_user.generate_config ? "green" : "red"} variant="subtle" size="sm">
+                  {tacacs_user.generate_config ? "Yes" : "No"}
+                </Badge>
               </Table.Cell>
               <Table.Cell
                 color={!tacacs_user.description ? "gray" : "inherit"}

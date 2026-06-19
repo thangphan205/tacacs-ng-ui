@@ -53,7 +53,7 @@ def profile_generator(session: Session) -> str:
             )
         profile_template += "\n    # End of Profile Configuration Options\n"
 
-    profiles_db = session.exec(select(Profile)).all()
+    profiles_db = session.exec(select(Profile).where(Profile.generate_config == True)).all()
     for profile_db in profiles_db:
 
         statement = select(ProfileScript).where(

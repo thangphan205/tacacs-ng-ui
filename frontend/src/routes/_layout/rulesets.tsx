@@ -153,66 +153,72 @@ function RulesetsTable() {
             w="full"
           >
             <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader w="6%" />
-                <Table.ColumnHeader w="30%">Name</Table.ColumnHeader>
-                <Table.ColumnHeader w="15%">Fallback Action</Table.ColumnHeader>
-                <Table.ColumnHeader w="41%">Description</Table.ColumnHeader>
-                <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {rulesets?.map((ruleset) => {
-                const isExpanded = !!expandedRows[ruleset.id]
-                const rulesetScripts =
-                  scriptsData?.data.filter(
-                    (s) => s.ruleset_id === ruleset.id,
-                  ) || []
+          <Table.Row>
+            <Table.ColumnHeader w="6%" />
+            <Table.ColumnHeader w="25%">Name</Table.ColumnHeader>
+            <Table.ColumnHeader w="15%">Generate</Table.ColumnHeader>
+            <Table.ColumnHeader w="15%">Fallback Action</Table.ColumnHeader>
+            <Table.ColumnHeader w="31%">Description</Table.ColumnHeader>
+            <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {rulesets?.map((ruleset) => {
+            const isExpanded = !!expandedRows[ruleset.id]
+            const rulesetScripts =
+              scriptsData?.data.filter(
+                (s) => s.ruleset_id === ruleset.id,
+              ) || []
 
-                return (
-                  <Fragment key={ruleset.id}>
-                    <Table.Row opacity={isPlaceholderData ? 0.5 : 1}>
-                      <Table.Cell>
-                        <IconButton
-                          variant="ghost"
-                          size="xs"
-                          onClick={() => toggleRow(ruleset.id)}
-                          aria-label="Expand ruleset scripts"
-                        >
-                          {isExpanded ? <FiChevronDown /> : <FiChevronRight />}
-                        </IconButton>
-                      </Table.Cell>
-                      <Table.Cell fontWeight="medium" truncate>
-                        {ruleset.name}
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Badge
-                          variant="subtle"
-                          colorPalette={
-                            ruleset.action === "permit" ? "green" : "orange"
-                          }
-                        >
-                          {ruleset.action}
-                        </Badge>
-                      </Table.Cell>
-                      <Table.Cell
-                        color={!ruleset.description ? "gray" : "inherit"}
-                        truncate
-                      >
-                        {ruleset.description || "N/A"}
-                      </Table.Cell>
-                      <Table.Cell>
-                        <RulesetActionsMenu ruleset={ruleset} />
-                      </Table.Cell>
-                    </Table.Row>
-                    {isExpanded && (
-                      <Table.Row>
-                        <Table.Cell
-                          colSpan={5}
-                          p={4}
-                          bg="bg.subtle"
-                          borderBottomWidth="1px"
-                          borderColor="border.subtle"
+            return (
+              <Fragment key={ruleset.id}>
+                <Table.Row opacity={isPlaceholderData ? 0.5 : 1}>
+                  <Table.Cell>
+                    <IconButton
+                      variant="ghost"
+                      size="xs"
+                      onClick={() => toggleRow(ruleset.id)}
+                      aria-label="Expand ruleset scripts"
+                    >
+                      {isExpanded ? <FiChevronDown /> : <FiChevronRight />}
+                    </IconButton>
+                  </Table.Cell>
+                  <Table.Cell fontWeight="medium" truncate>
+                    {ruleset.name}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge colorPalette={ruleset.generate_config ? "green" : "red"} variant="subtle" size="sm">
+                      {ruleset.generate_config ? "Yes" : "No"}
+                    </Badge>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge
+                      variant="subtle"
+                      colorPalette={
+                        ruleset.action === "permit" ? "green" : "orange"
+                      }
+                    >
+                      {ruleset.action}
+                    </Badge>
+                  </Table.Cell>
+                  <Table.Cell
+                    color={!ruleset.description ? "gray" : "inherit"}
+                    truncate
+                  >
+                    {ruleset.description || "N/A"}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <RulesetActionsMenu ruleset={ruleset} />
+                  </Table.Cell>
+                </Table.Row>
+                {isExpanded && (
+                  <Table.Row>
+                    <Table.Cell
+                      colSpan={6}
+                      p={4}
+                      bg="bg.subtle"
+                      borderBottomWidth="1px"
+                      borderColor="border.subtle"
                         >
                           <Flex justify="space-between" align="center" mb={3}>
                             <Heading

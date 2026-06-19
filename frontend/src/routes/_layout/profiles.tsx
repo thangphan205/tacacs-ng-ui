@@ -137,9 +137,10 @@ function ProfilesTable() {
         <Table.Header>
           <Table.Row>
             <Table.ColumnHeader w="6%" />
-            <Table.ColumnHeader w="30%">Name</Table.ColumnHeader>
+            <Table.ColumnHeader w="25%">Name</Table.ColumnHeader>
+            <Table.ColumnHeader w="15%">Generate</Table.ColumnHeader>
             <Table.ColumnHeader w="15%">Fallback Action</Table.ColumnHeader>
-            <Table.ColumnHeader w="41%">Description</Table.ColumnHeader>
+            <Table.ColumnHeader w="31%">Description</Table.ColumnHeader>
             <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
           </Table.Row>
         </Table.Header>
@@ -166,6 +167,11 @@ function ProfilesTable() {
                     {profile.name}
                   </Table.Cell>
                   <Table.Cell>
+                    <Badge colorPalette={profile.generate_config ? "green" : "red"} variant="subtle" size="sm">
+                      {profile.generate_config ? "Yes" : "No"}
+                    </Badge>
+                  </Table.Cell>
+                  <Table.Cell>
                     <Badge
                       variant="subtle"
                       colorPalette={
@@ -188,7 +194,7 @@ function ProfilesTable() {
                 {isExpanded && (
                   <Table.Row>
                     <Table.Cell
-                      colSpan={5}
+                      colSpan={6}
                       p={4}
                       bg="bg.subtle"
                       borderBottomWidth="1px"

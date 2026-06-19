@@ -1,4 +1,5 @@
 import {
+  Badge,
   Container,
   EmptyState,
   Flex,
@@ -110,9 +111,10 @@ function TacacsServicesTable() {
           >
             <Table.Header>
               <Table.Row>
-                <Table.ColumnHeader w="35%">Service Name</Table.ColumnHeader>
-                <Table.ColumnHeader w="40%">Description</Table.ColumnHeader>
-                <Table.ColumnHeader w="17%">Last Updated</Table.ColumnHeader>
+                <Table.ColumnHeader w="30%">Service Name</Table.ColumnHeader>
+                <Table.ColumnHeader w="15%">Generate</Table.ColumnHeader>
+                <Table.ColumnHeader w="35%">Description</Table.ColumnHeader>
+                <Table.ColumnHeader w="12%">Last Updated</Table.ColumnHeader>
                 <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
               </Table.Row>
             </Table.Header>
@@ -129,6 +131,11 @@ function TacacsServicesTable() {
                         {tacacs_service.name}
                       </Text>
                     </Flex>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge colorPalette={tacacs_service.generate_config ? "green" : "red"} variant="subtle" size="sm">
+                      {tacacs_service.generate_config ? "Yes" : "No"}
+                    </Badge>
                   </Table.Cell>
                   <Table.Cell
                     color={!tacacs_service.description ? "gray" : "inherit"}

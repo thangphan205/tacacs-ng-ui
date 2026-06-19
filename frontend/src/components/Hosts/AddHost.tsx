@@ -13,12 +13,13 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { type SubmitHandler, useForm } from "react-hook-form"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
 import { type HostCreate, HostsService } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -39,6 +40,7 @@ const AddHost = () => {
     handleSubmit,
     reset,
     setValue,
+    control,
     formState: { errors, isValid, isSubmitting },
   } = useForm<HostCreate>({
     mode: "onBlur",
@@ -54,6 +56,7 @@ const AddHost = () => {
       motd_banner: "",
       failed_authentication_banner: "",
       parent: "",
+      generate_config: true,
     },
   })
 
@@ -213,6 +216,20 @@ const AddHost = () => {
                   type="text"
                 />
               </Field>
+              <Controller
+                control={control}
+                name="generate_config"
+                render={({ field }) => (
+                  <Field disabled={field.disabled} colorPalette="teal">
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={({ checked }) => field.onChange(checked)}
+                    >
+                      Generate to TACACS+ Config
+                    </Checkbox>
+                  </Field>
+                )}
+              />
               <Collapsible.Root style={{ width: "100%" }}>
                 <Collapsible.Trigger asChild>
                   <Button w="full" variant="outline" size="sm">

@@ -116,7 +116,7 @@ id = tac_plus-ng {{
             hosts_template += "\n   # Host Configuration Options"
             hosts_template += f"""   {configuration_host_option.config_option}\n"""
             hosts_template += "\n    # End of Host Configuration Options\n"
-    statement = select(Host)
+    statement = select(Host).where(Host.generate_config == True)
     host_basic = session.exec(statement).all()
 
     for host in host_basic:
@@ -143,7 +143,7 @@ id = tac_plus-ng {{
                 f"""    {configuration_group_option.config_option}\n"""
             )
         tacacs_groups_template += "    # End of Group Configuration Options\n"
-    statement = select(TacacsGroup)
+    statement = select(TacacsGroup).where(TacacsGroup.generate_config == True)
     tacacs_group_basic = session.exec(statement).all()
 
     for tacacs_group in tacacs_group_basic:
@@ -165,7 +165,7 @@ id = tac_plus-ng {{
             )
         tacacs_users_template += "    # End of User Configuration Options\n"
 
-    statement = select(TacacsUser)
+    statement = select(TacacsUser).where(TacacsUser.generate_config == True)
     tacacs_users_basic = session.exec(statement).all()
 
     for tacacs_user in tacacs_users_basic:

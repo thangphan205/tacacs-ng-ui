@@ -11,7 +11,7 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
-import { type SubmitHandler, useForm } from "react-hook-form"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
 
 import {
@@ -22,6 +22,7 @@ import {
 import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -44,6 +45,7 @@ const AddTacacsUser = () => {
     handleSubmit,
     reset,
     setValue,
+    control,
     formState: { errors, isValid, isSubmitting },
   } = useForm<TacacsUserCreate>({
     mode: "onBlur",
@@ -53,6 +55,7 @@ const AddTacacsUser = () => {
       description: "",
       member: "",
       password_type: "crypt",
+      generate_config: true,
     },
   })
 
@@ -265,6 +268,20 @@ const AddTacacsUser = () => {
                   type="text"
                 />
               </Field>
+              <Controller
+                control={control}
+                name="generate_config"
+                render={({ field }) => (
+                  <Field disabled={field.disabled} colorPalette="teal">
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={({ checked }) => field.onChange(checked)}
+                    >
+                      Generate to TACACS+ Config
+                    </Checkbox>
+                  </Field>
+                )}
+              />
             </VStack>
           </DialogBody>
 

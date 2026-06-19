@@ -1552,6 +1552,11 @@ export const HostCreateSchema = {
             ],
             title: 'Parent'
         },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
+        },
         description: {
             anyOf: [
                 {
@@ -1657,6 +1662,11 @@ export const HostPublicSchema = {
                 }
             ],
             title: 'Parent'
+        },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
         },
         description: {
             anyOf: [
@@ -1778,6 +1788,11 @@ export const HostUpdateSchema = {
                 }
             ],
             title: 'Parent'
+        },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
         },
         description: {
             anyOf: [
@@ -2314,6 +2329,11 @@ export const ProfileCreateSchema = {
             maxLength: 255,
             title: 'Action'
         },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
+        },
         description: {
             anyOf: [
                 {
@@ -2384,6 +2404,11 @@ export const ProfilePublicSchema = {
             type: 'string',
             maxLength: 255,
             title: 'Action'
+        },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
         },
         description: {
             anyOf: [
@@ -2787,6 +2812,11 @@ export const ProfileUpdateSchema = {
             maxLength: 255,
             title: 'Action'
         },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
+        },
         description: {
             anyOf: [
                 {
@@ -2839,6 +2869,11 @@ export const RulesetCreateSchema = {
             type: 'string',
             maxLength: 255,
             title: 'Action'
+        },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
         },
         description: {
             anyOf: [
@@ -2915,6 +2950,11 @@ export const RulesetPublicSchema = {
             type: 'string',
             maxLength: 255,
             title: 'Action'
+        },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
         },
         description: {
             anyOf: [
@@ -3312,6 +3352,11 @@ export const RulesetUpdateSchema = {
             maxLength: 255,
             title: 'Action'
         },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
+        },
         description: {
             anyOf: [
                 {
@@ -3533,6 +3578,11 @@ export const TacacsGroupCreateSchema = {
             maxLength: 255,
             title: 'Group Name'
         },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
+        },
         description: {
             anyOf: [
                 {
@@ -3556,6 +3606,11 @@ export const TacacsGroupPublicSchema = {
             type: 'string',
             maxLength: 255,
             title: 'Group Name'
+        },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
         },
         description: {
             anyOf: [
@@ -3595,6 +3650,11 @@ export const TacacsGroupUpdateSchema = {
             type: 'string',
             maxLength: 255,
             title: 'Group Name'
+        },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
         },
         description: {
             anyOf: [
@@ -4065,6 +4125,11 @@ export const TacacsServiceCreateSchema = {
             maxLength: 255,
             title: 'Name'
         },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
+        },
         description: {
             anyOf: [
                 {
@@ -4088,6 +4153,11 @@ export const TacacsServicePublicSchema = {
             type: 'string',
             maxLength: 255,
             title: 'Name'
+        },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
         },
         description: {
             anyOf: [
@@ -4127,6 +4197,11 @@ export const TacacsServiceUpdateSchema = {
             type: 'string',
             maxLength: 255,
             title: 'Name'
+        },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
         },
         description: {
             anyOf: [
@@ -4181,6 +4256,11 @@ export const TacacsUserCreateSchema = {
             maxLength: 255,
             title: 'Member'
         },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
+        },
         description: {
             anyOf: [
                 {
@@ -4228,6 +4308,11 @@ export const TacacsUserPublicSchema = {
         member: {
             type: 'string',
             title: 'Member'
+        },
+        generate_config: {
+            type: 'boolean',
+            title: 'Generate Config',
+            default: true
         },
         description: {
             anyOf: [
@@ -4304,6 +4389,17 @@ export const TacacsUserUpdateSchema = {
                 }
             ],
             title: 'Description'
+        },
+        generate_config: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Generate Config'
         },
         password: {
             anyOf: [

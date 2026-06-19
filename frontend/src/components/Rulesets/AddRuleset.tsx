@@ -10,13 +10,14 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { type SubmitHandler, useForm } from "react-hook-form"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
 
 import { type RulesetCreate, RulesetsService } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -44,6 +45,7 @@ const AddRuleset = () => {
     handleSubmit,
     reset,
     setValue,
+    control,
     formState: { errors, isValid, isSubmitting },
   } = useForm<RulesetCreate>({
     mode: "onBlur",
@@ -52,6 +54,7 @@ const AddRuleset = () => {
       name: "",
       action: "deny",
       description: "",
+      generate_config: true,
     },
   })
 
@@ -160,6 +163,20 @@ const AddRuleset = () => {
                   type="text"
                 />
               </Field>
+              <Controller
+                control={control}
+                name="generate_config"
+                render={({ field }) => (
+                  <Field disabled={field.disabled} colorPalette="teal">
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={({ checked }) => field.onChange(checked)}
+                    >
+                      Generate to TACACS+ Config
+                    </Checkbox>
+                  </Field>
+                )}
+              />
             </VStack>
           </DialogBody>
 

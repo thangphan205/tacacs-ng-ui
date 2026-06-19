@@ -8,7 +8,7 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { type SubmitHandler, useForm } from "react-hook-form"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
 import {
@@ -18,6 +18,7 @@ import {
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -37,6 +38,7 @@ interface EditTacacsServiceProps {
 interface TacacsServiceUpdateForm {
   name: string
   description?: string
+  generate_config?: boolean
 }
 
 const EditTacacsService = ({ tacacs_service }: EditTacacsServiceProps) => {
@@ -47,6 +49,7 @@ const EditTacacsService = ({ tacacs_service }: EditTacacsServiceProps) => {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<TacacsServiceUpdateForm>({
     mode: "onBlur",
@@ -54,6 +57,7 @@ const EditTacacsService = ({ tacacs_service }: EditTacacsServiceProps) => {
     defaultValues: {
       ...tacacs_service,
       description: tacacs_service.description ?? undefined,
+      generate_config: tacacs_service.generate_config ?? true,
     },
   })
 
@@ -131,6 +135,20 @@ const EditTacacsService = ({ tacacs_service }: EditTacacsServiceProps) => {
                   type="text"
                 />
               </Field>
+              <Controller
+                control={control}
+                name="generate_config"
+                render={({ field }) => (
+                  <Field disabled={field.disabled} colorPalette="teal">
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={({ checked }) => field.onChange(checked)}
+                    >
+                      Generate to TACACS+ Config
+                    </Checkbox>
+                  </Field>
+                )}
+              />
             </VStack>
           </DialogBody>
 

@@ -108,6 +108,7 @@ function HostsTable() {
                 <Table.ColumnHeader>IPv4 Address</Table.ColumnHeader>
                 <Table.ColumnHeader>IPv6 Address</Table.ColumnHeader>
                 <Table.ColumnHeader>Parent</Table.ColumnHeader>
+                <Table.ColumnHeader>Generate</Table.ColumnHeader>
                 <Table.ColumnHeader>Description</Table.ColumnHeader>
                 <Table.ColumnHeader w="16">Actions</Table.ColumnHeader>
               </Table.Row>
@@ -136,6 +137,11 @@ function HostsTable() {
                   </Table.Cell>
                   <Table.Cell color={!host.parent ? "fg.muted" : "inherit"}>
                     {host.parent || "—"}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge colorPalette={host.generate_config ? "green" : "red"} variant="subtle" size="sm">
+                      {host.generate_config ? "Yes" : "No"}
+                    </Badge>
                   </Table.Cell>
                   <Table.Cell
                     color={!host.description ? "fg.muted" : "inherit"}

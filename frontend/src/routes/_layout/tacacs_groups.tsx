@@ -1,4 +1,5 @@
 import {
+  Badge,
   Container,
   EmptyState,
   Flex,
@@ -108,9 +109,10 @@ function TacacsGroupsTable() {
           >
             <Table.Header>
               <Table.Row>
-                <Table.ColumnHeader w="35%">Group Name</Table.ColumnHeader>
-                <Table.ColumnHeader w="40%">Description</Table.ColumnHeader>
-                <Table.ColumnHeader w="17%">Last Updated</Table.ColumnHeader>
+                <Table.ColumnHeader w="30%">Group Name</Table.ColumnHeader>
+                <Table.ColumnHeader w="15%">Generate</Table.ColumnHeader>
+                <Table.ColumnHeader w="35%">Description</Table.ColumnHeader>
+                <Table.ColumnHeader w="12%">Last Updated</Table.ColumnHeader>
                 <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
               </Table.Row>
             </Table.Header>
@@ -127,6 +129,11 @@ function TacacsGroupsTable() {
                         {tacacs_group.group_name}
                       </Text>
                     </Flex>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge colorPalette={tacacs_group.generate_config ? "green" : "red"} variant="subtle" size="sm">
+                      {tacacs_group.generate_config ? "Yes" : "No"}
+                    </Badge>
                   </Table.Cell>
                   <Table.Cell
                     color={!tacacs_group.description ? "gray" : "inherit"}

@@ -328,6 +328,7 @@ export type HostCreate = {
     motd_banner?: (string | null);
     failed_authentication_banner?: (string | null);
     parent?: (string | null);
+    generate_config?: boolean;
     description?: (string | null);
 };
 
@@ -341,6 +342,7 @@ export type HostPublic = {
     motd_banner?: (string | null);
     failed_authentication_banner?: (string | null);
     parent?: (string | null);
+    generate_config?: boolean;
     description?: (string | null);
     id: string;
     created_at: string;
@@ -362,6 +364,7 @@ export type HostUpdate = {
     motd_banner?: (string | null);
     failed_authentication_banner?: (string | null);
     parent?: (string | null);
+    generate_config?: boolean;
     description?: (string | null);
 };
 
@@ -483,6 +486,7 @@ export type PrivateUserCreate = {
 export type ProfileCreate = {
     name: string;
     action: string;
+    generate_config?: boolean;
     description?: (string | null);
 };
 
@@ -495,6 +499,7 @@ export type ProfilePreviewPublic = {
 export type ProfilePublic = {
     name: string;
     action: string;
+    generate_config?: boolean;
     description?: (string | null);
     id: string;
     created_at: string;
@@ -577,6 +582,7 @@ export type ProfilesPublic = {
 export type ProfileUpdate = {
     name: string;
     action: string;
+    generate_config?: boolean;
     description?: (string | null);
 };
 
@@ -584,6 +590,7 @@ export type RulesetCreate = {
     name: string;
     enabled?: string;
     action: string;
+    generate_config?: boolean;
     description?: (string | null);
 };
 
@@ -597,6 +604,7 @@ export type RulesetPublic = {
     name: string;
     enabled?: string;
     action: string;
+    generate_config?: boolean;
     description?: (string | null);
     id: string;
     created_at: string;
@@ -680,6 +688,7 @@ export type RulesetUpdate = {
     name: string;
     enabled?: string;
     action: string;
+    generate_config?: boolean;
     description?: (string | null);
 };
 
@@ -718,11 +727,13 @@ export type TacacsConfigUpdate = {
 
 export type TacacsGroupCreate = {
     group_name: string;
+    generate_config?: boolean;
     description?: (string | null);
 };
 
 export type TacacsGroupPublic = {
     group_name: string;
+    generate_config?: boolean;
     description?: (string | null);
     id: string;
     created_at: string;
@@ -736,6 +747,7 @@ export type TacacsGroupsPublic = {
 
 export type TacacsGroupUpdate = {
     group_name: string;
+    generate_config?: boolean;
     description?: (string | null);
 };
 
@@ -837,11 +849,13 @@ export type TacacsNgSettingUpdate = {
 
 export type TacacsServiceCreate = {
     name: string;
+    generate_config?: boolean;
     description?: (string | null);
 };
 
 export type TacacsServicePublic = {
     name: string;
+    generate_config?: boolean;
     description?: (string | null);
     id: string;
     created_at: string;
@@ -855,6 +869,7 @@ export type TacacsServicesPublic = {
 
 export type TacacsServiceUpdate = {
     name: string;
+    generate_config?: boolean;
     description?: (string | null);
 };
 
@@ -862,6 +877,7 @@ export type TacacsUserCreate = {
     username: string;
     password_type: string;
     member: string;
+    generate_config?: boolean;
     description?: (string | null);
     password?: (string | null);
 };
@@ -871,6 +887,7 @@ export type TacacsUserPublic = {
     username: string;
     password_type: string;
     member: string;
+    generate_config?: boolean;
     description?: (string | null);
     created_at: string;
     updated_at: string;
@@ -886,6 +903,7 @@ export type TacacsUserUpdate = {
     password_type?: (string | null);
     member?: (string | null);
     description?: (string | null);
+    generate_config?: (boolean | null);
     password?: (string | null);
 };
 
