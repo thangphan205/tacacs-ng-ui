@@ -1,5 +1,5 @@
 import {
-  Badge,
+  Alert,
   Box,
   Button,
   ButtonGroup,
@@ -8,12 +8,11 @@ import {
   Spinner,
   Text,
   Textarea,
-  VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type React from "react"
 import { useEffect, useState } from "react"
-import { FaDownload, FaEdit, FaEye, FaSave } from "react-icons/fa"
+import { FaCopy, FaDownload, FaEdit, FaEye, FaSave } from "react-icons/fa"
 import type { HighlighterGeneric } from "shiki"
 import {
   type ApiError,
@@ -182,6 +181,11 @@ const ShowTacacsConfig = ({
 
   const correctedLine = getCorrectedLineNumber()
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    showSuccessToast("Error message copied to clipboard.")
+  }
+
   return (
     <DialogRoot
       size={{ base: "xl", md: "xl" }}
@@ -247,26 +251,56 @@ const ShowTacacsConfig = ({
           )}
           {checkResult.status && (
             <Box p={2}>
-              <Badge
-                colorPalette={
-                  checkResult.status === "success" ? "green" : "red"
-                }
-                variant="solid"
-                w="full"
-                p={2}
+              <Alert.Root
+                status={checkResult.status === "success" ? "success" : "error"}
                 borderRadius="md"
+                variant="subtle"
+                w="full"
               >
-                <VStack align="start" gap={1}>
+                <Alert.Indicator />
+                <Alert.Content>
                   {correctedLine > 0 && (
-                    <Text textStyle="md">
-                      Error Line: {correctedLine}
-                      {correctedLine !== checkResult.line &&
+                    <Alert.Title mb={1}>
+                      {checkResult.status === "success"
+                        ? "Success"
+                        : `Error Line: ${correctedLine}`}
+                      {checkResult.status !== "success" &&
+                        correctedLine !== checkResult.line &&
                         ` (detected at block start: ${checkResult.line})`}
-                    </Text>
+                    </Alert.Title>
                   )}
-                  <Text textStyle="md">Message: {checkResult.message}</Text>
-                </VStack>
-              </Badge>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="start"
+                    gap={2}
+                    mt={1}
+                  >
+                    <Alert.Description
+                      flex="1"
+                      whiteSpace="normal"
+                      wordBreak="break-word"
+                      userSelect="text"
+                      fontSize="sm"
+                      fontFamily="mono"
+                    >
+                      {checkResult.message}
+                    </Alert.Description>
+                    {checkResult.status !== "success" && (
+                      <Button
+                        size="xs"
+                        variant="subtle"
+                        colorPalette="red"
+                        onClick={() => copyToClipboard(checkResult.message)}
+                        flexShrink={0}
+                      >
+                        <FaCopy />
+                        Copy
+                      </Button>
+                    )}
+                  </Box>
+                </Alert.Content>
+              </Alert.Root>
             </Box>
           )}
         </DialogBody>

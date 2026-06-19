@@ -197,7 +197,7 @@ function AnomalyTable() {
                     whiteSpace="nowrap"
                   >
                     {r.scored_at
-                      ? new Date(r.scored_at).toLocaleString(undefined, {
+                      ? new Date(r.scored_at).toLocaleString("en-US", {
                           hour12: false,
                         })
                       : "—"}

@@ -2,19 +2,23 @@ import {
   Button,
   DialogActionTrigger,
   DialogTitle,
+  Grid,
+  GridItem,
   Input,
   Text,
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { type SubmitHandler, useForm } from "react-hook-form"
-import { FaPlus } from "react-icons/fa"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
+import { FiInfo, FiPlus, FiSettings, FiTool, FiType } from "react-icons/fi"
 
 import { type TacacsServiceCreate, TacacsServicesService } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
+import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -26,6 +30,30 @@ import {
 } from "../ui/dialog"
 import { Field } from "../ui/field"
 
+const fieldGuideItems: FieldGuideItem[] = [
+  {
+    icon: FiType,
+    label: "Service Name",
+    description:
+      "A unique identifier for the TACACS+ service. This maps to the authorization context configured on network devices (e.g. 'exec' for shell, 'ppp' for PPP sessions).",
+    example: "exec, ppp, shell",
+    required: true,
+  },
+  {
+    icon: FiInfo,
+    label: "Description",
+    description:
+      "Optional notes about what this service governs. Not included in the generated config — useful for documenting purpose.",
+    example: "Shell access for interactive sessions",
+  },
+  {
+    icon: FiSettings,
+    label: "Generate to Config",
+    description:
+      "When enabled, this service will be included in the generated TACACS+ daemon configuration file. Disable to keep the record without activating it.",
+  },
+]
+
 const AddTacacsService = () => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -34,6 +62,7 @@ const AddTacacsService = () => {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isValid, isSubmitting },
   } = useForm<TacacsServiceCreate>({
     mode: "onBlur",
@@ -41,6 +70,7 @@ const AddTacacsService = () => {
     defaultValues: {
       name: "",
       description: "",
+      generate_config: true,
     },
   })
 
@@ -66,52 +96,83 @@ const AddTacacsService = () => {
 
   return (
     <DialogRoot
-      size={{ base: "xs", md: "md" }}
+      size="xl"
       placement="center"
       open={isOpen}
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
         <Button value="add-item" my={4}>
-          <FaPlus fontSize="16px" />
-          Add TacacsService
+          <FiPlus fontSize="16px" />
+          Add TACACS Service
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Add TacacsService</DialogTitle>
+            <DialogTitle>Add TACACS Service</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Fill in the details to add a new item.</Text>
-            <VStack gap={4}>
-              <Field
-                required
-                invalid={!!errors.name}
-                errorText={errors.name?.message}
-                label="name"
-              >
-                <Input
-                  {...register("name", {
-                    required: "name is required.",
-                  })}
-                  placeholder="name"
-                  type="text"
-                />
-              </Field>
+            <Grid templateColumns={{ base: "1fr", lg: "7fr 5fr" }} gap={6}>
+              <GridItem>
+                <Text mb={4} color="fg.muted" fontSize="sm">
+                  Create a new TACACS+ service definition. Services represent
+                  authorization contexts (such as 'exec' for shell sessions or 'ppp'
+                  for network access) configured on network client devices.
+                </Text>
+                <VStack gap={4}>
+                  <Field
+                    required
+                    invalid={!!errors.name}
+                    errorText={errors.name?.message}
+                    label="Service Name"
+                  >
+                    <Input
+                      {...register("name", {
+                        required: "Service Name is required.",
+                      })}
+                      placeholder="Service Name"
+                      type="text"
+                    />
+                  </Field>
 
-              <Field
-                invalid={!!errors.description}
-                errorText={errors.description?.message}
-                label="Description"
-              >
-                <Input
-                  {...register("description")}
-                  placeholder="Description"
-                  type="text"
+                  <Field
+                    invalid={!!errors.description}
+                    errorText={errors.description?.message}
+                    label="Description"
+                  >
+                    <Input
+                      {...register("description")}
+                      placeholder="Description"
+                      type="text"
+                    />
+                  </Field>
+                  <Controller
+                    control={control}
+                    name="generate_config"
+                    render={({ field }) => (
+                      <Field disabled={field.disabled} colorPalette="teal">
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={({ checked }) => field.onChange(checked)}
+                        >
+                          Generate to TACACS+ Config
+                        </Checkbox>
+                      </Field>
+                    )}
+                  />
+                </VStack>
+              </GridItem>
+
+              <GridItem>
+                <FieldGuide
+                  items={fieldGuideItems}
+                  icon={FiTool}
+                  subtitle="Learn what each field means and how it maps to the TACACS+ service configuration."
+                  howItWorks="Services define authorization contexts on network devices. When linked to a profile, they control which service attributes (e.g. privilege level, auto-command) are applied during authorization."
                 />
-              </Field>
-            </VStack>
+              </GridItem>
+            </Grid>
           </DialogBody>
 
           <DialogFooter gap={2}>

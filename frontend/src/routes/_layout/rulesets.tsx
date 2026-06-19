@@ -11,6 +11,7 @@ import {
   Table,
   Text,
   VStack,
+  HStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -22,6 +23,7 @@ import {
   FiExternalLink,
   FiPlus,
   FiSearch,
+  FiSliders,
   FiTrash2,
 } from "react-icons/fi"
 import { z } from "zod"
@@ -31,6 +33,7 @@ import {
   RulesetscriptsService,
   RulesetsService,
 } from "@/client"
+import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { RulesetActionsMenu } from "@/components/Common/RulesetActionsMenu"
 import { SearchBox } from "@/components/Common/SearchBox"
@@ -49,6 +52,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
+import { Tooltip } from "@/components/ui/tooltip"
 
 const rulesetsSearchSchema = z.object({
   page: z.number().catch(1),
@@ -146,73 +150,81 @@ function RulesetsTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Table.Root
-            size={{ base: "sm", md: "md" }}
-            mt={2}
-            tableLayout="fixed"
-            w="full"
-          >
-            <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader w="6%" />
-                <Table.ColumnHeader w="30%">Name</Table.ColumnHeader>
-                <Table.ColumnHeader w="15%">Fallback Action</Table.ColumnHeader>
-                <Table.ColumnHeader w="41%">Description</Table.ColumnHeader>
-                <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {rulesets?.map((ruleset) => {
-                const isExpanded = !!expandedRows[ruleset.id]
-                const rulesetScripts =
-                  scriptsData?.data.filter(
-                    (s) => s.ruleset_id === ruleset.id,
-                  ) || []
+          <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+            <Table.Root
+              size={{ base: "sm", md: "md" }}
+              tableLayout="fixed"
+              w="full"
+            >
+              <Table.Header bg="bg.muted">
+                <Table.Row>
+            <Table.ColumnHeader w="6%" />
+            <Table.ColumnHeader w="25%">Name</Table.ColumnHeader>
+            <Table.ColumnHeader w="15%">Generate</Table.ColumnHeader>
+            <Table.ColumnHeader w="15%">Fallback Action</Table.ColumnHeader>
+            <Table.ColumnHeader w="31%">Description</Table.ColumnHeader>
+            <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {rulesets?.map((ruleset) => {
+            const isExpanded = !!expandedRows[ruleset.id]
+            const rulesetScripts =
+              scriptsData?.data.filter(
+                (s) => s.ruleset_id === ruleset.id,
+              ) || []
 
-                return (
-                  <Fragment key={ruleset.id}>
-                    <Table.Row opacity={isPlaceholderData ? 0.5 : 1}>
-                      <Table.Cell>
-                        <IconButton
-                          variant="ghost"
-                          size="xs"
-                          onClick={() => toggleRow(ruleset.id)}
-                          aria-label="Expand ruleset scripts"
-                        >
-                          {isExpanded ? <FiChevronDown /> : <FiChevronRight />}
-                        </IconButton>
-                      </Table.Cell>
-                      <Table.Cell fontWeight="medium" truncate>
-                        {ruleset.name}
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Badge
-                          variant="subtle"
-                          colorPalette={
-                            ruleset.action === "permit" ? "green" : "orange"
-                          }
-                        >
-                          {ruleset.action}
-                        </Badge>
-                      </Table.Cell>
-                      <Table.Cell
-                        color={!ruleset.description ? "gray" : "inherit"}
-                        truncate
+            return (
+              <Fragment key={ruleset.id}>
+                <Table.Row opacity={isPlaceholderData ? 0.5 : 1}>
+                  <Table.Cell>
+                    <Tooltip content={isExpanded ? "Click to collapse" : "Click to expand and view scripts"} showArrow placement="right">
+                      <IconButton
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => toggleRow(ruleset.id)}
+                        aria-label="Expand ruleset scripts"
                       >
-                        {ruleset.description || "N/A"}
-                      </Table.Cell>
-                      <Table.Cell>
-                        <RulesetActionsMenu ruleset={ruleset} />
-                      </Table.Cell>
-                    </Table.Row>
-                    {isExpanded && (
-                      <Table.Row>
-                        <Table.Cell
-                          colSpan={5}
-                          p={4}
-                          bg="bg.subtle"
-                          borderBottomWidth="1px"
-                          borderColor="border.subtle"
+                        {isExpanded ? <FiChevronDown /> : <FiChevronRight />}
+                      </IconButton>
+                    </Tooltip>
+                  </Table.Cell>
+                  <Table.Cell fontWeight="medium" truncate>
+                    {ruleset.name}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge colorPalette={ruleset.generate_config ? "green" : "red"} variant="subtle" size="sm">
+                      {ruleset.generate_config ? "Yes" : "No"}
+                    </Badge>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge
+                      variant="subtle"
+                      colorPalette={
+                        ruleset.action === "permit" ? "green" : "orange"
+                      }
+                    >
+                      {ruleset.action}
+                    </Badge>
+                  </Table.Cell>
+                  <Table.Cell
+                    color={!ruleset.description ? "gray" : "inherit"}
+                    truncate
+                  >
+                    {ruleset.description || "N/A"}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <RulesetActionsMenu ruleset={ruleset} />
+                  </Table.Cell>
+                </Table.Row>
+                {isExpanded && (
+                  <Table.Row>
+                    <Table.Cell
+                      colSpan={6}
+                      p={4}
+                      bg="bg.subtle"
+                      borderBottomWidth="1px"
+                      borderColor="border.subtle"
                         >
                           <Flex justify="space-between" align="center" mb={3}>
                             <Heading
@@ -500,6 +512,7 @@ function RulesetsTable() {
               })}
             </Table.Body>
           </Table.Root>
+          </Box>
           <Flex justifyContent="space-between" align="center" mt={4}>
             <PageSizeSelect
               value={perPage}
@@ -539,24 +552,21 @@ function Rulesets() {
 
   return (
     <Container maxW="full">
-      <Flex
-        align="center"
-        justify="space-between"
-        pt={6}
-        pb={4}
-        wrap="wrap"
-        gap={4}
-      >
-        <Heading size="md">Rulesets Management</Heading>
-        <Flex align="center" gap={3}>
-          <SearchBox
-            initialValue={search}
-            onSearch={handleSearch}
-            placeholder="Search by name, action, description..."
-          />
+      <PageHeader
+        title="Rulesets Management"
+        description="Rulesets match client properties (like usernames, client IPs, or service options) and map them to appropriate Profiles. Click the chevron (>) on any row to expand and view its script structure."
+        icon={FiSliders}
+      />
+      <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
+        <HStack gap={3}>
           <AddRuleset />
           <PreviewRuleset />
-        </Flex>
+        </HStack>
+        <SearchBox
+          initialValue={search}
+          onSearch={handleSearch}
+          placeholder="Search by name, action, description..."
+        />
       </Flex>
       <RulesetsTable />
     </Container>

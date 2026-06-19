@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   ButtonGroup,
   createListCollection,
@@ -10,7 +11,7 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { type SubmitHandler, useForm } from "react-hook-form"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
 import {
@@ -21,6 +22,7 @@ import {
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -43,12 +45,16 @@ interface TacacsUserUpdateForm {
   password: string
   member: string
   description?: string
+  generate_config?: boolean
 }
 
 const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [isSelectMavis, setIsSelectMavis] = useState(
     tacacs_user.password_type === "mavis",
+  )
+  const [isSelectClear, setIsSelectClear] = useState(
+    tacacs_user.password_type === "clear",
   )
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
@@ -57,6 +63,7 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
     handleSubmit,
     reset,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<TacacsUserUpdateForm>({
     mode: "onBlur",
@@ -67,6 +74,7 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
       password_type: tacacs_user.password_type ?? undefined,
       password: "",
       member: tacacs_user.member ?? undefined,
+      generate_config: tacacs_user.generate_config ?? true,
     },
   })
   function getTacacsGroupsQueryOptions() {
@@ -133,22 +141,27 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
       <DialogTrigger asChild>
         <Button variant="ghost">
           <FaExchangeAlt fontSize="16px" />
-          Edit TacacsUser
+          Edit TACACS User
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Edit TacacsUser</DialogTitle>
+            <DialogTitle>Edit TACACS User</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Update the item details below.</Text>
+            <Text mb={4} color="fg.muted" fontSize="sm">
+              Update the user account details. Local logins support secure
+              hashing (crypt) or plaintext (clear), while mavis delegates auth
+              to remote servers (LDAP/AD).
+            </Text>
             <VStack gap={4}>
               <Field
                 required
                 invalid={!!errors.username}
                 errorText={errors.username?.message}
                 label="Username"
+                helperText="The username is unique and cannot be modified."
               >
                 <Input
                   {...register("username", {
@@ -175,9 +188,11 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
                     ].filter(Boolean) as string[]
                   }
                   collection={items_password_type}
-                  onSelect={(selection) => {
-                    setValue("password_type", selection.value)
-                    setIsSelectMavis(selection.value === "mavis")
+                  onValueChange={(selection) => {
+                    const val = selection.value[0] ?? ""
+                    setValue("password_type", val)
+                    setIsSelectMavis(val === "mavis")
+                    setIsSelectClear(val === "clear")
                   }}
                   size="sm"
                 >
@@ -198,18 +213,28 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
                   </Select.Positioner>
                 </Select.Root>
               </Field>
+              {isSelectClear && (
+                <Alert.Root status="warning" borderRadius="md">
+                  <Alert.Indicator />
+                  <Alert.Description>
+                    Password will be stored in plaintext in the TACACS+ config
+                    file.
+                  </Alert.Description>
+                </Alert.Root>
+              )}
               {!isSelectMavis && (
                 <Field
                   required
                   invalid={!!errors.password}
                   errorText={errors.password?.message}
                   label="Password"
+                  helperText="For 'crypt' type, this will be hashed with SHA-512 on the server. For 'clear', it is stored as plaintext."
                 >
                   <Input
                     {...register("password", {
                       required: isSelectMavis ? false : "password is required.",
                     })}
-                    placeholder="password"
+                    placeholder="Password"
                     type="password"
                   />
                 </Field>
@@ -219,6 +244,7 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
                 invalid={!!errors.member}
                 errorText={errors.member?.message}
                 label="Group Membership"
+                helperText="Associate the user with one or more groups to inherit their command and service access profiles."
               >
                 <Select.Root
                   collection={items_tacacs_groups}
@@ -262,6 +288,7 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
                 invalid={!!errors.description}
                 errorText={errors.description?.message}
                 label="Description"
+                helperText="Optional descriptive notes (e.g. employee name or department)."
               >
                 <Input
                   {...register("description")}
@@ -269,6 +296,20 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
                   type="text"
                 />
               </Field>
+              <Controller
+                control={control}
+                name="generate_config"
+                render={({ field }) => (
+                  <Field disabled={field.disabled} colorPalette="teal">
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={({ checked }) => field.onChange(checked)}
+                    >
+                      Generate to TACACS+ Config
+                    </Checkbox>
+                  </Field>
+                )}
+              />
             </VStack>
           </DialogBody>
 

@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.4.0
+
+### Features
+
+* ✨ **Pre-defined Multi-Vendor Templates & Idempotent Seeding** — seeded dedicated groups, crypt-hashed user accounts, authorization profiles, and ruleset mappings for Cisco, Juniper, Huawei, Palo Alto, Fortinet, Checkpoint, Arista, HP, Aruba, Dell, and NAS/Clearpass, allowing administrators to instantly deploy templates for all popular network vendors. Seeding is now fully idempotent and updates properties in place. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Secure Crypt Password Storage & Automated Migration** — transitioned default template credentials to secure crypt-hashed (SHA-512) passwords. Pre-existing user accounts using cleartext passwords are automatically migrated and crypt-hashed on system startup. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Full TACACS+ Service Compiler Blocks** — added generator support to automatically compile and format custom `service` blocks (e.g. `service = shell {}`) and global service configuration options in `tac_plus-ng.cfg`. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Read and Copy Compiler Error Panel UX** — replaced uppercase, non-wrapping badges with a standard wrapping Alert dialog featuring text selection and an inline "Copy" button to easily copy parser error messages. PR by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.3.10
 
 ### Features

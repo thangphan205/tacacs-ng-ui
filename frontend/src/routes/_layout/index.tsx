@@ -19,7 +19,22 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
-import { LuRefreshCw } from "react-icons/lu"
+import {
+  FiActivity,
+  FiClock,
+  FiFileText,
+  FiFolder,
+  FiGlobe,
+  FiInbox,
+  FiRefreshCw,
+  FiServer,
+  FiShield,
+  FiShieldOff,
+  FiSliders,
+  FiTrendingUp,
+  FiUsers,
+} from "react-icons/fi"
+import { PageHeader } from "@/components/Common/PageHeader"
 import {
   CartesianGrid,
   LabelList,
@@ -184,22 +199,54 @@ interface StatCardProps {
 }
 
 function StatCard({ label, value, highlight = "none" }: StatCardProps) {
-  const valueColor =
-    highlight === "danger" && (value ?? 0) > 0
-      ? "red.500"
-      : highlight === "success"
-        ? "green.500"
-        : undefined
+  let Icon = FiActivity
+  let colorPalette = "teal"
+  let borderLeftColor = "teal.500"
+
+  if (highlight === "success") {
+    Icon = FiShield
+    colorPalette = "green"
+    borderLeftColor = "green.500"
+  } else if (highlight === "danger") {
+    Icon = FiShieldOff
+    colorPalette = "red"
+    borderLeftColor = "red.500"
+  } else if (label.toLowerCase().includes("source")) {
+    Icon = FiGlobe
+    colorPalette = "purple"
+    borderLeftColor = "purple.500"
+  } else if (label.toLowerCase().includes("nas")) {
+    Icon = FiServer
+    colorPalette = "blue"
+    borderLeftColor = "blue.500"
+  }
+
   return (
-    <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
-      <Stat.Root>
-        <Stat.Label fontSize="sm" color="fg.muted">
-          {label}
-        </Stat.Label>
-        <Stat.ValueText fontSize="3xl" fontWeight="bold" color={valueColor}>
-          {value ?? 0}
-        </Stat.ValueText>
-      </Stat.Root>
+    <Box
+      p={5}
+      bg="bg.panel"
+      borderWidth="1px"
+      borderLeftWidth="4px"
+      borderLeftColor={borderLeftColor}
+      borderRadius="xl"
+      shadow="sm"
+      transition="all 0.2s"
+      _hover={{ shadow: "md", borderColor: borderLeftColor }}
+      h="100%"
+    >
+      <Flex align="center" justify="space-between">
+        <Stat.Root>
+          <Stat.Label fontSize="xs" fontWeight="semibold" textTransform="uppercase" letterSpacing="wider" color="fg.muted">
+            {label}
+          </Stat.Label>
+          <Stat.ValueText fontSize="4xl" fontWeight="extrabold" mt={2} fontFamily="mono">
+            {value ?? 0}
+          </Stat.ValueText>
+        </Stat.Root>
+        <Box p={3} bg={`${colorPalette}.muted`} color={`${colorPalette}.fg`} borderRadius="lg" shadow="xs">
+          <Icon fontSize="22px" />
+        </Box>
+      </Flex>
     </Box>
   )
 }
@@ -208,8 +255,8 @@ function StatPie({ title, data }: { title: string; data: PieData[] }) {
   const chart = useChart({ data: data })
 
   return (
-    <Box p={4} borderWidth="1px" borderRadius="lg" h="100%">
-      <Heading size="sm" mb={3}>
+    <Box p={5} bg="bg.panel" borderWidth="1px" borderRadius="xl" shadow="sm" h="100%">
+      <Heading size="sm" mb={4} fontWeight="bold">
         {title}
       </Heading>
       {data.length === 0 ? (
@@ -217,11 +264,13 @@ function StatPie({ title, data }: { title: string; data: PieData[] }) {
           direction="column"
           align="center"
           justify="center"
-          h="160px"
-          gap={1}
+          h="180px"
+          gap={2}
         >
-          <Text fontSize="2xl">📭</Text>
-          <Text color="fg.muted" fontSize="sm" fontWeight="medium">
+          <Box p={3} bg="bg.muted" borderRadius="full" color="fg.subtle">
+            <FiInbox fontSize="20px" />
+          </Box>
+          <Text color="fg.muted" fontSize="sm" fontWeight="semibold">
             No activity
           </Text>
           <Text color="fg.subtle" fontSize="xs" textAlign="center">
@@ -371,7 +420,7 @@ function TodayLogSummary() {
         action={
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           <Link to={"/tacacs_logs" as any}>
-            <Text fontSize="sm" color="blue.500">
+            <Text fontSize="sm" color="teal.500" fontWeight="semibold" _hover={{ color: "teal.600", textDecoration: "underline" }}>
               View logs →
             </Text>
           </Link>
@@ -381,16 +430,16 @@ function TodayLogSummary() {
       </SectionHeading>
       <Grid templateColumns={{ base: "1fr", sm: "repeat(3, 1fr)" }} gap={4}>
         {cards.map(({ label, badges }) => (
-          <Box key={label} p={4} borderWidth="1px" borderRadius="lg">
-            <Text fontWeight="semibold" mb={2} fontSize="sm" color="fg.muted">
+          <Box key={label} p={5} bg="bg.panel" borderWidth="1px" borderRadius="xl" shadow="sm">
+            <Text fontWeight="bold" mb={3} fontSize="xs" textTransform="uppercase" letterSpacing="wider" color="fg.muted">
               {label}
             </Text>
             {isLoading ? (
-              <Skeleton height="24px" />
+              <Skeleton height="32px" />
             ) : (
-              <Flex gap={2} flexWrap="wrap">
+              <Flex gap={2.5} flexWrap="wrap">
                 {badges.map((b) => (
-                  <Badge key={b.label} colorPalette={b.color} size="md">
+                  <Badge key={b.label} colorPalette={b.color} size="md" variant="subtle" fontWeight="bold">
                     {b.label}
                   </Badge>
                 ))}
@@ -409,6 +458,7 @@ interface ConfigItem {
   label: string
   to: string
   queryKey: string
+  icon: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fn: () => CancelablePromise<any>
 }
@@ -418,60 +468,75 @@ const CONFIG_ITEMS: ConfigItem[] = [
     label: "Hosts",
     to: "/hosts",
     queryKey: "config_count_hosts",
+    icon: FiServer,
     fn: () => HostsService.readHosts({ limit: 1 }),
   },
   {
     label: "Users",
     to: "/tacacs_users",
     queryKey: "config_count_users",
+    icon: FiUsers,
     fn: () => TacacsUsersService.readTacacsUsers({ limit: 1 }),
   },
   {
     label: "Groups",
     to: "/tacacs_groups",
     queryKey: "config_count_groups",
+    icon: FiFolder,
     fn: () => TacacsGroupsService.readTacacsGroups({ limit: 1 }),
   },
   {
     label: "Profiles",
     to: "/profiles",
     queryKey: "config_count_profiles",
+    icon: FiFileText,
     fn: () => ProfilesService.readProfiles({ limit: 1 }),
   },
   {
     label: "Rulesets",
     to: "/rulesets",
     queryKey: "config_count_rulesets",
+    icon: FiSliders,
     fn: () => RulesetsService.readRulesets({ limit: 1 }),
   },
 ]
 
-function ConfigCountCard({ label, to, queryKey, fn }: ConfigItem) {
+function ConfigCountCard({ label, to, queryKey, fn, icon: Icon }: ConfigItem) {
   const { data, isLoading } = useQuery({ queryKey: [queryKey], queryFn: fn })
   return (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <Link to={to as any}>
+    <Link to={to as any} style={{ display: "block", height: "100%" }}>
       <Box
-        p={4}
+        p={5}
+        bg="bg.panel"
         borderWidth="1px"
-        borderRadius="lg"
+        borderRadius="xl"
         h="100%"
         cursor="pointer"
-        _hover={{ borderColor: "blue.400", shadow: "sm" }}
-        transition="all 0.15s"
+        transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+        _hover={{ 
+          borderColor: "teal.500", 
+          shadow: "md", 
+          transform: "translateY(-4px)" 
+        }}
       >
-        <Stat.Root>
-          <Stat.Label fontSize="sm" color="fg.muted">
-            {label}
-          </Stat.Label>
-          {isLoading ? (
-            <Skeleton height="36px" mt={1} />
-          ) : (
-            <Stat.ValueText fontSize="3xl" fontWeight="bold">
-              {data?.count ?? 0}
-            </Stat.ValueText>
-          )}
-        </Stat.Root>
+        <Flex justify="space-between" align="flex-start">
+          <Stat.Root>
+            <Stat.Label fontSize="sm" color="fg.muted" fontWeight="medium">
+              {label}
+            </Stat.Label>
+            {isLoading ? (
+              <Skeleton height="36px" mt={2} />
+            ) : (
+              <Stat.ValueText fontSize="3xl" fontWeight="extrabold" mt={1} fontFamily="mono">
+                {data?.count ?? 0}
+              </Stat.ValueText>
+            )}
+          </Stat.Root>
+          <Box p={2.5} bg="bg.muted" color="fg.muted" borderRadius="lg" transition="all 0.2s">
+            <Icon fontSize="18px" />
+          </Box>
+        </Flex>
       </Box>
     </Link>
   )
@@ -513,7 +578,7 @@ function RecentActivity() {
         action={
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           <Link to={"/audit_logs" as any}>
-            <Text fontSize="sm" color="blue.500">
+            <Text fontSize="sm" color="teal.500" fontWeight="semibold" _hover={{ color: "teal.600", textDecoration: "underline" }}>
               View all →
             </Text>
           </Link>
@@ -522,15 +587,17 @@ function RecentActivity() {
         Recent User Activity
       </SectionHeading>
       {isLoading ? (
-        <Spinner size="sm" />
+        <Flex justify="center" py={4}>
+          <Spinner size="sm" />
+        </Flex>
       ) : logs.length === 0 ? (
         <Text color="fg.muted" fontSize="sm">
           No recent activity.
         </Text>
       ) : (
-        <Box borderWidth="1px" borderRadius="lg" overflow="hidden">
-          <Table.Root size="sm">
-            <Table.Header>
+        <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" shadow="sm">
+          <Table.Root size="sm" variant="line">
+            <Table.Header bg="bg.muted">
               <Table.Row>
                 <Table.ColumnHeader>Time</Table.ColumnHeader>
                 <Table.ColumnHeader>User</Table.ColumnHeader>
@@ -541,28 +608,29 @@ function RecentActivity() {
             </Table.Header>
             <Table.Body>
               {logs.map((log: AuditLogPublic) => (
-                <Table.Row key={log.id}>
+                <Table.Row key={log.id} _hover={{ bg: "bg.muted/50" }}>
                   <Table.Cell
                     whiteSpace="nowrap"
                     fontSize="xs"
                     color="fg.muted"
                   >
-                    {new Date(log.created_at).toLocaleString(undefined, {
+                    {new Date(log.created_at).toLocaleString("en-US", {
                       hour12: false,
                     })}
                   </Table.Cell>
-                  <Table.Cell fontSize="xs" maxW="32" truncate>
+                  <Table.Cell fontSize="xs" maxW="32" truncate fontWeight="medium">
                     {log.user_email}
                   </Table.Cell>
                   <Table.Cell>
                     <Badge
                       colorPalette={ACTION_COLOR[log.action] ?? "gray"}
                       size="sm"
+                      variant="subtle"
                     >
                       {log.action}
                     </Badge>
                   </Table.Cell>
-                  <Table.Cell fontSize="xs">
+                  <Table.Cell fontSize="xs" fontFamily="mono">
                     {log.entity_type}
                     {log.entity_id ? ` #${log.entity_id.slice(0, 8)}` : ""}
                   </Table.Cell>
@@ -602,7 +670,7 @@ function LastTacacsLogs() {
         action={
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           <Link to={"/tacacs_logs" as any}>
-            <Text fontSize="sm" color="blue.500">
+            <Text fontSize="sm" color="teal.500" fontWeight="semibold" _hover={{ color: "teal.600", textDecoration: "underline" }}>
               View all →
             </Text>
           </Link>
@@ -611,15 +679,17 @@ function LastTacacsLogs() {
         Last TACACS Logs
       </SectionHeading>
       {isLoading ? (
-        <Spinner size="sm" />
+        <Flex justify="center" py={4}>
+          <Spinner size="sm" />
+        </Flex>
       ) : logs.length === 0 ? (
         <Text color="fg.muted" fontSize="sm">
           No logs in the last 7 days.
         </Text>
       ) : (
-        <Box borderWidth="1px" borderRadius="lg" overflow="hidden">
-          <Table.Root size="sm">
-            <Table.Header>
+        <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" shadow="sm">
+          <Table.Root size="sm" variant="line">
+            <Table.Header bg="bg.muted">
               <Table.Row>
                 <Table.ColumnHeader>Time</Table.ColumnHeader>
                 <Table.ColumnHeader>Type</Table.ColumnHeader>
@@ -632,18 +702,13 @@ function LastTacacsLogs() {
             </Table.Header>
             <Table.Body>
               {logs.map((log: TacacsLogEvent, i: number) => (
-                <Table.Row key={i}>
+                <Table.Row key={i} _hover={{ bg: "bg.muted/50" }}>
                   <Table.Cell
                     whiteSpace="nowrap"
                     fontSize="xs"
                     color="fg.muted"
                   >
-                    {new Date(log.timestamp).toLocaleString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
+                    {new Date(log.timestamp).toLocaleString("en-US", {
                       hour12: false,
                     })}
                   </Table.Cell>
@@ -651,23 +716,25 @@ function LastTacacsLogs() {
                     <Badge
                       colorPalette={LOG_TYPE_COLOR[log.log_type] ?? "gray"}
                       size="sm"
+                      variant="subtle"
                     >
                       {log.log_type}
                     </Badge>
                   </Table.Cell>
-                  <Table.Cell fontSize="xs" maxW="28" truncate>
+                  <Table.Cell fontSize="xs" maxW="28" truncate fontWeight="medium">
                     {log.username}
                   </Table.Cell>
-                  <Table.Cell fontSize="xs" color="fg.muted">
+                  <Table.Cell fontSize="xs" color="fg.muted" fontFamily="mono">
                     {log.nas_ip}
                   </Table.Cell>
-                  <Table.Cell fontSize="xs" color="fg.muted">
+                  <Table.Cell fontSize="xs" color="fg.muted" fontFamily="mono">
                     {log.client_ip}
                   </Table.Cell>
                   <Table.Cell>
                     <Badge
                       colorPalette={RESULT_COLOR[log.result] ?? "gray"}
                       size="sm"
+                      variant="subtle"
                     >
                       {log.result}
                     </Badge>
@@ -678,6 +745,7 @@ function LastTacacsLogs() {
                     truncate
                     color="fg.muted"
                     title={log.command || undefined}
+                    fontFamily="mono"
                   >
                     {log.command ?? "—"}
                   </Table.Cell>
@@ -765,25 +833,33 @@ function Dashboard() {
 
   return (
     <Container maxW="full" py={8}>
-      <Flex justify="space-between" align="center" mb={6}>
-        <Heading size="md">Dashboard</Heading>
-        <Flex align="center" gap={2}>
+      <Flex justify="space-between" align="flex-start" mb={6} gap={4} wrap="wrap">
+        <PageHeader
+          title="Security & Analytics Dashboard"
+          description="Real-time TACACS+ server metrics, access trends, configuration overview, and audit logs."
+          icon={FiTrendingUp}
+        />
+        <Flex align="center" gap={3} pt={{ base: 0, md: 6 }}>
           {dataUpdatedAt > 0 && (
-            <Text color="fg.muted" fontSize="sm">
-              Updated{" "}
-              {new Date(dataUpdatedAt).toLocaleTimeString(undefined, {
-                hour12: false,
-              })}
-            </Text>
+            <Flex color="fg.muted" fontSize="xs" align="center" gap={1}>
+              <FiClock />
+              <Text>
+                Updated{" "}
+                {new Date(dataUpdatedAt).toLocaleTimeString("en-US", {
+                  hour12: false,
+                })}
+              </Text>
+            </Flex>
           )}
           <IconButton
-            variant="ghost"
+            variant="outline"
             size="sm"
-            aria-label="Refresh"
+            aria-label="Refresh dashboard"
             onClick={handleRefresh}
             loading={isFetching}
+            colorPalette="teal"
           >
-            <LuRefreshCw />
+            <FiRefreshCw />
           </IconButton>
         </Flex>
       </Flex>
@@ -901,9 +977,9 @@ function Dashboard() {
 
           {/* Trend chart */}
           <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
-            <Box p={4} borderWidth="1px" borderRadius="lg">
+            <Box p={5} bg="bg.panel" borderWidth="1px" borderRadius="xl" shadow="sm">
               <Flex align="center" justify="space-between" mb={4}>
-                <Heading size="sm">{TREND_LABEL[filterMode]}</Heading>
+                <Heading size="sm" fontWeight="bold">{TREND_LABEL[filterMode]}</Heading>
               </Flex>
               {chartsLoading ? (
                 <Flex justify="center" py={8}>
@@ -914,11 +990,13 @@ function Dashboard() {
                   direction="column"
                   align="center"
                   justify="center"
-                  h="200px"
-                  gap={2}
+                  h="220px"
+                  gap={3}
                 >
-                  <Text fontSize="2xl">📈</Text>
-                  <Text color="fg.muted" fontSize="sm" fontWeight="medium">
+                  <Box p={3.5} bg="bg.muted" borderRadius="full" color="fg.subtle">
+                    <FiTrendingUp fontSize="24px" />
+                  </Box>
+                  <Text color="fg.muted" fontSize="sm" fontWeight="semibold">
                     No trend data
                   </Text>
                   <Text color="fg.subtle" fontSize="xs">

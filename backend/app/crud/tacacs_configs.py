@@ -116,7 +116,7 @@ id = tac_plus-ng {{
             hosts_template += "\n   # Host Configuration Options"
             hosts_template += f"""   {configuration_host_option.config_option}\n"""
             hosts_template += "\n    # End of Host Configuration Options\n"
-    statement = select(Host)
+    statement = select(Host).where(Host.generate_config == True)
     host_basic = session.exec(statement).all()
 
     for host in host_basic:
@@ -139,17 +139,17 @@ id = tac_plus-ng {{
     if configuration_group_options:
         tacacs_groups_template += "\n    # Group Configuration Options\n"
         for configuration_group_option in configuration_group_options:
-            tacacs_groups_template += f"""    {configuration_group_option.config_option}\n"""
+            tacacs_groups_template += (
+                f"""    {configuration_group_option.config_option}\n"""
+            )
         tacacs_groups_template += "    # End of Group Configuration Options\n"
-    statement = select(TacacsGroup)
+    statement = select(TacacsGroup).where(TacacsGroup.generate_config == True)
     tacacs_group_basic = session.exec(statement).all()
 
     for tacacs_group in tacacs_group_basic:
         tacacs_group_info = tacacs_group.model_dump()
         tacacs_groups_template += """
-    group = {group_name}""".format(
-            group_name=tacacs_group_info["group_name"]
-        )
+    group = {group_name}""".format(group_name=tacacs_group_info["group_name"])
 
     # Begin user
     statement_configuration_user = select(ConfigurationOption).where(
@@ -160,10 +160,12 @@ id = tac_plus-ng {{
     if configuration_user_options:
         tacacs_users_template += "\n    # User Configuration Options\n"
         for configuration_user_option in configuration_user_options:
-            tacacs_users_template += f"""    {configuration_user_option.config_option}\n"""
+            tacacs_users_template += (
+                f"""    {configuration_user_option.config_option}\n"""
+            )
         tacacs_users_template += "    # End of User Configuration Options\n"
 
-    statement = select(TacacsUser)
+    statement = select(TacacsUser).where(TacacsUser.generate_config == True)
     tacacs_users_basic = session.exec(statement).all()
 
     for tacacs_user in tacacs_users_basic:
@@ -178,7 +180,6 @@ id = tac_plus-ng {{
                 member=tacacs_user_info["member"],
             )
         else:
-
             tacacs_users_template += """
     user {username} {{
         password login = {mavis_type} "{mavis_password}"
@@ -255,7 +256,6 @@ def generate_preview_tacacs_config(*, session: Session) -> Any:
 def create_tacacs_config(
     *, session: Session, tacacs_config_create: TacacsConfigCreate
 ) -> TacacsConfig:
-
     tacacs_config = generate_tacacs_ng_config(session=session)
 
     # 1. Create a unique filename and save the content
@@ -299,12 +299,16 @@ def update_tacacs_config(
             return f"Error writing source file: {e}"
 
     # Determine if we should perform activation logic (default to True if active is not specified for backwards compatibility)
-    should_activate = tacacs_config_in.active if tacacs_config_in.active is not None else True
+    should_activate = (
+        tacacs_config_in.active if tacacs_config_in.active is not None else True
+    )
 
     if should_activate:
         # Read the content from the specified source file
         try:
-            if not os.path.exists(source_file_path) or not os.path.isfile(source_file_path):
+            if not os.path.exists(source_file_path) or not os.path.isfile(
+                source_file_path
+            ):
                 return f"Source file not found:{source_file_path}"
 
             with open(source_file_path) as f:
@@ -437,7 +441,11 @@ def check_tacacs_config_by_id(*, session: Session, id: int) -> dict[str, Any]:
         if result.returncode == 0:
             status = "success"
             if raw_output:
-                lines = [line_str.strip() for line_str in raw_output.splitlines() if line_str.strip()]
+                lines = [
+                    line_str.strip()
+                    for line_str in raw_output.splitlines()
+                    if line_str.strip()
+                ]
                 if lines:
                     parts = lines[0].split(":")
                     if len(parts) >= 4:
@@ -453,7 +461,11 @@ def check_tacacs_config_by_id(*, session: Session, id: int) -> dict[str, Any]:
         else:
             status = "error"
             if raw_output:
-                lines = [line_str.strip() for line_str in raw_output.splitlines() if line_str.strip()]
+                lines = [
+                    line_str.strip()
+                    for line_str in raw_output.splitlines()
+                    if line_str.strip()
+                ]
                 if lines:
                     # Find a line containing the filename to extract the exact error details
                     matched_line = None

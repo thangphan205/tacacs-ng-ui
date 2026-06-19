@@ -3,6 +3,8 @@ import {
   createListCollection,
   DialogActionTrigger,
   DialogTitle,
+  Grid,
+  GridItem,
   Input,
   Select,
   Text,
@@ -10,13 +12,22 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { type SubmitHandler, useForm } from "react-hook-form"
-import { FaPlus } from "react-icons/fa"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
+import {
+  FiInfo,
+  FiList,
+  FiPlus,
+  FiSettings,
+  FiShield,
+  FiType,
+} from "react-icons/fi"
 
 import { type RulesetCreate, RulesetsService } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
+import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -35,6 +46,36 @@ const actionCollection = createListCollection({
   ],
 })
 
+const fieldGuideItems: FieldGuideItem[] = [
+  {
+    icon: FiType,
+    label: "Name",
+    description:
+      "A unique name for the ruleset. Rulesets group command authorization rules (e.g. which CLI commands a user can execute) and are assigned to TACACS groups.",
+    example: "show_only, full_config_access",
+    required: true,
+  },
+  {
+    icon: FiShield,
+    label: "Action",
+    description:
+      "The default command authorization action: 'permit' allows command execution, 'deny' blocks it. Individual script sets within the ruleset can override this.",
+    required: true,
+  },
+  {
+    icon: FiInfo,
+    label: "Description",
+    description:
+      "Optional notes about the ruleset. Not included in the generated config — useful for documenting its purpose.",
+  },
+  {
+    icon: FiSettings,
+    label: "Generate to Config",
+    description:
+      "When enabled, this ruleset will be included in the generated TACACS+ daemon configuration file. Disable to keep the record without activating it.",
+  },
+]
+
 const AddRuleset = () => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -44,6 +85,7 @@ const AddRuleset = () => {
     handleSubmit,
     reset,
     setValue,
+    control,
     formState: { errors, isValid, isSubmitting },
   } = useForm<RulesetCreate>({
     mode: "onBlur",
@@ -52,6 +94,7 @@ const AddRuleset = () => {
       name: "",
       action: "deny",
       description: "",
+      generate_config: true,
     },
   })
 
@@ -77,14 +120,14 @@ const AddRuleset = () => {
 
   return (
     <DialogRoot
-      size={{ base: "xs", md: "md" }}
+      size="xl"
       placement="center"
       open={isOpen}
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
         <Button value="add-item" my={4}>
-          <FaPlus fontSize="16px" />
+          <FiPlus fontSize="16px" />
           Add Ruleset
         </Button>
       </DialogTrigger>
@@ -94,73 +137,103 @@ const AddRuleset = () => {
             <DialogTitle>Add Ruleset</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Fill in the details to add a new item.</Text>
-            <VStack gap={4}>
-              <Field
-                required
-                invalid={!!errors.name}
-                errorText={errors.name?.message}
-                label="Name"
-              >
-                <Input
-                  {...register("name", {
-                    required: "Name is required.",
-                  })}
-                  placeholder="Name"
-                  type="text"
+            <Grid templateColumns={{ base: "1fr", lg: "7fr 5fr" }} gap={6}>
+              <GridItem>
+                <Text mb={4} color="fg.muted" fontSize="sm">
+                  Create a new command authorization ruleset. Rulesets define which
+                  CLI commands users are permitted or denied.
+                </Text>
+                <VStack gap={4}>
+                  <Field
+                    required
+                    invalid={!!errors.name}
+                    errorText={errors.name?.message}
+                    label="Name"
+                  >
+                    <Input
+                      {...register("name", {
+                        required: "Name is required.",
+                      })}
+                      placeholder="Name"
+                      type="text"
+                    />
+                  </Field>
+                  <Field
+                    required
+                    invalid={!!errors.action}
+                    errorText={errors.action?.message}
+                    label="Action"
+                  >
+                    <input
+                      type="hidden"
+                      {...register("action", {
+                        required: "action is required.",
+                      })}
+                    />
+                    <Select.Root
+                      collection={actionCollection}
+                      size="sm"
+                      defaultValue={["deny"]}
+                      onValueChange={(selection) => {
+                        setValue("action", selection.value[0], {
+                          shouldValidate: true,
+                        })
+                      }}
+                    >
+                      <Select.Trigger>
+                        <Select.ValueText placeholder="Select Action" />
+                      </Select.Trigger>
+                      <Select.Positioner>
+                        <Select.Content>
+                          <Select.ItemGroup>
+                            {actionCollection.items.map((item) => (
+                              <Select.Item key={item.value} item={item.value}>
+                                {item.label}
+                                <Select.ItemIndicator />
+                              </Select.Item>
+                            ))}
+                          </Select.ItemGroup>
+                        </Select.Content>
+                      </Select.Positioner>
+                    </Select.Root>
+                  </Field>
+                  <Field
+                    invalid={!!errors.description}
+                    errorText={errors.description?.message}
+                    label="Description"
+                  >
+                    <Input
+                      {...register("description")}
+                      placeholder="Description"
+                      type="text"
+                    />
+                  </Field>
+                  <Controller
+                    control={control}
+                    name="generate_config"
+                    render={({ field }) => (
+                      <Field disabled={field.disabled} colorPalette="teal">
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={({ checked }) => field.onChange(checked)}
+                        >
+                          Generate to TACACS+ Config
+                        </Checkbox>
+                      </Field>
+                    )}
+                  />
+                </VStack>
+              </GridItem>
+
+              <GridItem>
+                <FieldGuide
+                  items={fieldGuideItems}
+                  icon={FiList}
+                  subtitle="Learn what each field means and how it maps to the TACACS+ ruleset configuration."
+                  howItWorks="Rulesets define command authorization rules. They contain script sets with regex patterns that match CLI commands and determine whether they are permitted or denied."
                 />
-              </Field>
-              <Field
-                required
-                invalid={!!errors.action}
-                errorText={errors.action?.message}
-                label="Action"
-              >
-                <input
-                  type="hidden"
-                  {...register("action", {
-                    required: "action is required.",
-                  })}
-                />
-                <Select.Root
-                  collection={actionCollection}
-                  size="sm"
-                  defaultValue={["deny"]}
-                  onValueChange={(selection) => {
-                    setValue("action", selection.value[0], {
-                      shouldValidate: true,
-                    })
-                  }}
-                >
-                  <Select.Trigger>
-                    <Select.ValueText placeholder="Select Action" />
-                  </Select.Trigger>
-                  <Select.Positioner>
-                    <Select.Content>
-                      <Select.ItemGroup>
-                        {actionCollection.items.map((item) => (
-                          <Select.Item key={item.value} item={item.value}>
-                            {item.label}
-                            <Select.ItemIndicator />
-                          </Select.Item>
-                        ))}
-                      </Select.ItemGroup>
-                    </Select.Content>
-                  </Select.Positioner>
-                </Select.Root>
-              </Field>
-              <Field
-                invalid={!!errors.description}
-                errorText={errors.description?.message}
-                label="Description"
-              >
-                <Input
-                  {...register("description")}
-                  placeholder="Description"
-                  type="text"
-                />
-              </Field>
-            </VStack>
+              </GridItem>
+            </Grid>
           </DialogBody>
 
           <DialogFooter gap={2}>

@@ -159,7 +159,7 @@ function TacacsConfigsTable() {
                   </Table.Cell>
                   <Table.Cell fontSize="sm" color="fg.muted">
                     {new Date(tacacs_config.created_at).toLocaleString(
-                      undefined,
+                      "en-US",
                       { hour12: false },
                     )}
                   </Table.Cell>

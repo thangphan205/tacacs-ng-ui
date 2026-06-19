@@ -51,7 +51,7 @@ def ruleset_generator(session: Session) -> str:
             )
         ruleset_template += "\n   # End of Ruleset Configuration Options\n"
 
-    rulesets_db = session.exec(select(Ruleset)).all()
+    rulesets_db = session.exec(select(Ruleset).where(Ruleset.generate_config == True)).all()
 
     for ruleset_db in rulesets_db:
         statement = select(RulesetScript).where(

@@ -8,7 +8,7 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { type SubmitHandler, useForm } from "react-hook-form"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
 import {
@@ -18,6 +18,7 @@ import {
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -37,6 +38,7 @@ interface EditTacacsGroupProps {
 interface TacacsGroupUpdateForm {
   group_name: string
   description?: string
+  generate_config?: boolean
 }
 
 const EditTacacsGroup = ({ tacacs_group }: EditTacacsGroupProps) => {
@@ -47,6 +49,7 @@ const EditTacacsGroup = ({ tacacs_group }: EditTacacsGroupProps) => {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<TacacsGroupUpdateForm>({
     mode: "onBlur",
@@ -54,6 +57,7 @@ const EditTacacsGroup = ({ tacacs_group }: EditTacacsGroupProps) => {
     defaultValues: {
       ...tacacs_group,
       description: tacacs_group.description ?? undefined,
+      generate_config: tacacs_group.generate_config ?? true,
     },
   })
 
@@ -90,28 +94,32 @@ const EditTacacsGroup = ({ tacacs_group }: EditTacacsGroupProps) => {
       <DialogTrigger asChild>
         <Button variant="ghost">
           <FaExchangeAlt fontSize="16px" />
-          Edit TacacsGroup
+          Edit TACACS Group
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Edit TacacsGroup</DialogTitle>
+            <DialogTitle>Edit TACACS Group</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Update the item details below.</Text>
+            <Text mb={4} color="fg.muted" fontSize="sm">
+              Update the TACACS group details. Users assigned to this group will
+              inherit these modified parameters.
+            </Text>
             <VStack gap={4}>
               <Field
                 required
                 invalid={!!errors.group_name}
                 errorText={errors.group_name?.message}
-                label="group_name"
+                label="Group Name"
+                helperText="A unique identifier for the TACACS group. Changing this will affect all users who are members of this group."
               >
                 <Input
                   {...register("group_name", {
-                    required: "Title is required",
+                    required: "Group Name is required.",
                   })}
-                  placeholder="group_name"
+                  placeholder="Group Name"
                   type="text"
                 />
               </Field>
@@ -120,6 +128,7 @@ const EditTacacsGroup = ({ tacacs_group }: EditTacacsGroupProps) => {
                 invalid={!!errors.description}
                 errorText={errors.description?.message}
                 label="Description"
+                helperText="Optional description or notes detailing the group's purpose or permission level."
               >
                 <Input
                   {...register("description")}
@@ -127,6 +136,20 @@ const EditTacacsGroup = ({ tacacs_group }: EditTacacsGroupProps) => {
                   type="text"
                 />
               </Field>
+              <Controller
+                control={control}
+                name="generate_config"
+                render={({ field }) => (
+                  <Field disabled={field.disabled} colorPalette="teal">
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={({ checked }) => field.onChange(checked)}
+                    >
+                      Generate to TACACS+ Config
+                    </Checkbox>
+                  </Field>
+                )}
+              />
             </VStack>
           </DialogBody>
 

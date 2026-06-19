@@ -5,7 +5,6 @@ import {
   Container,
   EmptyState,
   Flex,
-  Heading,
   Input,
   Stack,
   Switch,
@@ -22,6 +21,7 @@ import { z } from "zod"
 
 import type { AlertRulePublic } from "@/client"
 import { AlertRulesService } from "@/client"
+import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import {
   DialogBody,
@@ -490,20 +490,21 @@ function AlertRulesTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Table.Root size="sm">
-            <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader>Name</Table.ColumnHeader>
-                <Table.ColumnHeader>Severity</Table.ColumnHeader>
-                <Table.ColumnHeader>Log Type</Table.ColumnHeader>
-                <Table.ColumnHeader>Condition</Table.ColumnHeader>
-                <Table.ColumnHeader>Window</Table.ColumnHeader>
-                <Table.ColumnHeader>Last Fired</Table.ColumnHeader>
-                <Table.ColumnHeader>Enabled</Table.ColumnHeader>
-                <Table.ColumnHeader>Actions</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+          <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+            <Table.Root size="sm">
+              <Table.Header bg="bg.muted">
+                <Table.Row>
+                  <Table.ColumnHeader>Name</Table.ColumnHeader>
+                  <Table.ColumnHeader>Severity</Table.ColumnHeader>
+                  <Table.ColumnHeader>Log Type</Table.ColumnHeader>
+                  <Table.ColumnHeader>Condition</Table.ColumnHeader>
+                  <Table.ColumnHeader>Window</Table.ColumnHeader>
+                  <Table.ColumnHeader>Last Fired</Table.ColumnHeader>
+                  <Table.ColumnHeader>Enabled</Table.ColumnHeader>
+                  <Table.ColumnHeader>Actions</Table.ColumnHeader>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
               {data?.data.map((rule) => (
                 <Table.Row key={rule.id}>
                   <Table.Cell fontWeight="medium">
@@ -529,7 +530,7 @@ function AlertRulesTable() {
                   <Table.Cell>{rule.time_window_minutes}m</Table.Cell>
                   <Table.Cell fontSize="xs" color="fg.muted">
                     {rule.last_fired_at
-                      ? new Date(rule.last_fired_at).toLocaleString(undefined, {
+                      ? new Date(rule.last_fired_at).toLocaleString("en-US", {
                           hour12: false,
                         })
                       : "Never"}
@@ -570,6 +571,7 @@ function AlertRulesTable() {
               ))}
             </Table.Body>
           </Table.Root>
+          </Box>
 
           <PaginationRoot
             count={count}
@@ -592,14 +594,14 @@ function AlertRulesTable() {
 function AlertRulesPage() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12} pb={4}>
-        Alert Rules
-      </Heading>
-      <Text color="fg.muted" mb={6}>
-        Define conditions that trigger notifications when suspicious TACACS+
-        activity is detected.
-      </Text>
-      <AlertRulesTable />
+      <PageHeader
+        title="Alert Rules"
+        description="Define conditions that trigger notifications when suspicious TACACS+ activity is detected."
+        icon={FiBell}
+      />
+      <Box mt={6}>
+        <AlertRulesTable />
+      </Box>
     </Container>
   )
 }

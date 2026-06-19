@@ -5,7 +5,6 @@ import {
   Container,
   EmptyState,
   Flex,
-  Heading,
   Input,
   Stack,
   Switch,
@@ -22,6 +21,7 @@ import { z } from "zod"
 
 import type { NotificationChannelPublic } from "@/client"
 import { NotificationChannelsService } from "@/client"
+import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import {
   DialogBody,
@@ -360,17 +360,18 @@ function NotificationChannelsTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Table.Root size="sm">
-            <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader>Name</Table.ColumnHeader>
-                <Table.ColumnHeader>Type</Table.ColumnHeader>
-                <Table.ColumnHeader>Enabled</Table.ColumnHeader>
-                <Table.ColumnHeader>Actions</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {data?.data.map((ch) => (
+          <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+            <Table.Root size="sm">
+              <Table.Header bg="bg.muted">
+                <Table.Row>
+                  <Table.ColumnHeader>Name</Table.ColumnHeader>
+                  <Table.ColumnHeader>Type</Table.ColumnHeader>
+                  <Table.ColumnHeader>Enabled</Table.ColumnHeader>
+                  <Table.ColumnHeader>Actions</Table.ColumnHeader>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {data?.data.map((ch) => (
                 <Table.Row key={ch.id}>
                   <Table.Cell fontWeight="medium">{ch.name}</Table.Cell>
                   <Table.Cell>
@@ -417,6 +418,7 @@ function NotificationChannelsTable() {
               ))}
             </Table.Body>
           </Table.Root>
+          </Box>
 
           <PaginationRoot
             count={count}
@@ -439,14 +441,14 @@ function NotificationChannelsTable() {
 function NotificationChannelsPage() {
   return (
     <Container maxW="full">
-      <Heading size="lg" pt={12} pb={4}>
-        Notification Channels
-      </Heading>
-      <Text color="fg.muted" mb={6}>
-        Configure destinations for alert notifications (Telegram, Slack,
-        Discord, Teams, or generic webhooks).
-      </Text>
-      <NotificationChannelsTable />
+      <PageHeader
+        title="Notification Channels"
+        description="Configure destinations for alert notifications (Telegram, Slack, Discord, Teams, or generic webhooks)."
+        icon={FiSend}
+      />
+      <Box mt={6}>
+        <NotificationChannelsTable />
+      </Box>
     </Container>
   )
 }

@@ -138,11 +138,11 @@ const PasskeyManager = () => {
               <Table.Row key={pk.id}>
                 <Table.Cell>{pk.name ?? "Unnamed key"}</Table.Cell>
                 <Table.Cell>
-                  {new Date(pk.created_at).toLocaleDateString()}
+                  {new Date(pk.created_at).toLocaleString("en-US", { hour12: false })}
                 </Table.Cell>
                 <Table.Cell>
                   {pk.last_used_at
-                    ? new Date(pk.last_used_at).toLocaleDateString()
+                    ? new Date(pk.last_used_at).toLocaleString("en-US", { hour12: false })
                     : "Never"}
                 </Table.Cell>
                 <Table.Cell>

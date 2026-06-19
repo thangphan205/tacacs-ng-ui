@@ -8,7 +8,7 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { type SubmitHandler, useForm } from "react-hook-form"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
 import {
@@ -18,6 +18,7 @@ import {
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -37,6 +38,7 @@ interface EditTacacsServiceProps {
 interface TacacsServiceUpdateForm {
   name: string
   description?: string
+  generate_config?: boolean
 }
 
 const EditTacacsService = ({ tacacs_service }: EditTacacsServiceProps) => {
@@ -47,6 +49,7 @@ const EditTacacsService = ({ tacacs_service }: EditTacacsServiceProps) => {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<TacacsServiceUpdateForm>({
     mode: "onBlur",
@@ -54,6 +57,7 @@ const EditTacacsService = ({ tacacs_service }: EditTacacsServiceProps) => {
     defaultValues: {
       ...tacacs_service,
       description: tacacs_service.description ?? undefined,
+      generate_config: tacacs_service.generate_config ?? true,
     },
   })
 
@@ -90,28 +94,32 @@ const EditTacacsService = ({ tacacs_service }: EditTacacsServiceProps) => {
       <DialogTrigger asChild>
         <Button variant="ghost">
           <FaExchangeAlt fontSize="16px" />
-          Edit TacacsService
+          Edit TACACS Service
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Edit TacacsService</DialogTitle>
+            <DialogTitle>Edit TACACS Service</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Update the item details below.</Text>
+            <Text mb={4} color="fg.muted" fontSize="sm">
+              Update the TACACS service details. Rules and scripts referencing
+              this service will inherit the updated parameters.
+            </Text>
             <VStack gap={4}>
               <Field
                 required
                 invalid={!!errors.name}
                 errorText={errors.name?.message}
-                label="name"
+                label="Service Name"
+                helperText="A unique identifier for the service. Changing this will impact all rules and scripts referring to this service."
               >
                 <Input
                   {...register("name", {
-                    required: "name is required",
+                    required: "Service Name is required.",
                   })}
-                  placeholder="name"
+                  placeholder="Service Name"
                   type="text"
                 />
               </Field>
@@ -119,6 +127,7 @@ const EditTacacsService = ({ tacacs_service }: EditTacacsServiceProps) => {
                 invalid={!!errors.description}
                 errorText={errors.description?.message}
                 label="Description"
+                helperText="Optional description or notes detailing what authorization attributes this service governs."
               >
                 <Input
                   {...register("description")}
@@ -126,6 +135,20 @@ const EditTacacsService = ({ tacacs_service }: EditTacacsServiceProps) => {
                   type="text"
                 />
               </Field>
+              <Controller
+                control={control}
+                name="generate_config"
+                render={({ field }) => (
+                  <Field disabled={field.disabled} colorPalette="teal">
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={({ checked }) => field.onChange(checked)}
+                    >
+                      Generate to TACACS+ Config
+                    </Checkbox>
+                  </Field>
+                )}
+              />
             </VStack>
           </DialogBody>
 

@@ -13,11 +13,12 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { type SubmitHandler, useForm } from "react-hook-form"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 import { type ApiError, type HostPublic, HostsService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -45,6 +46,7 @@ interface HostUpdateForm {
   motd_banner?: string
   failed_authentication_banner?: string
   parent?: string
+  generate_config?: boolean
 }
 
 const EditHost = ({ host }: EditHostProps) => {
@@ -56,6 +58,7 @@ const EditHost = ({ host }: EditHostProps) => {
     handleSubmit,
     reset,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<HostUpdateForm>({
     mode: "onBlur",
@@ -73,6 +76,7 @@ const EditHost = ({ host }: EditHostProps) => {
       failed_authentication_banner:
         host.failed_authentication_banner ?? undefined,
       parent: host.parent ?? undefined,
+      generate_config: host.generate_config ?? true,
     },
   })
 
@@ -233,6 +237,20 @@ const EditHost = ({ host }: EditHostProps) => {
                   type="text"
                 />
               </Field>
+              <Controller
+                control={control}
+                name="generate_config"
+                render={({ field }) => (
+                  <Field disabled={field.disabled} colorPalette="teal">
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={({ checked }) => field.onChange(checked)}
+                    >
+                      Generate to TACACS+ Config
+                    </Checkbox>
+                  </Field>
+                )}
+              />
               <Collapsible.Root style={{ width: "100%" }}>
                 <Collapsible.Trigger asChild>
                   <Button w="full" variant="outline" size="sm">

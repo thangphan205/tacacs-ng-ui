@@ -259,6 +259,7 @@ class HostBase(SQLModel):
     motd_banner: str | None = None
     failed_authentication_banner: str | None = None
     parent: str | None = None
+    generate_config: bool = Field(default=True)
     description: str | None = None
 
 
@@ -289,6 +290,7 @@ class HostsPublic(SQLModel):
 
 class TacacsGroupBase(SQLModel):
     group_name: str = Field(index=True, unique=True, max_length=255)
+    generate_config: bool = Field(default=True)
     description: str | None = None
 
 
@@ -322,6 +324,7 @@ class TacacsUserBase(SQLModel):
     username: str = Field(index=True, unique=True, max_length=255)
     password_type: str = Field(index=True, max_length=255)
     member: str = Field(index=True, max_length=255)
+    generate_config: bool = Field(default=True)
     description: str | None = None
     password: str | None = None
 
@@ -335,6 +338,7 @@ class TacacsUserUpdate(SQLModel):
     password_type: str | None = Field(default=None, max_length=255)
     member: str | None = Field(default=None, max_length=255)
     description: str | None = None
+    generate_config: bool | None = Field(default=None)
     password: str | None = Field(default=None, max_length=255)
 
 
@@ -350,6 +354,7 @@ class TacacsUserPublic(SQLModel):
     username: str
     password_type: str
     member: str
+    generate_config: bool = True
     description: str | None = None
     created_at: datetime
     updated_at: datetime
@@ -363,6 +368,7 @@ class TacacsUsersPublic(SQLModel):
 # -- TacacsService Table ---
 class TacacsServiceBase(SQLModel):
     name: str = Field(index=True, unique=True, max_length=255)
+    generate_config: bool = Field(default=True)
     description: str | None = None
 
 
@@ -396,6 +402,7 @@ class TacacsServicesPublic(SQLModel):
 class ProfileBase(SQLModel):
     name: str = Field(index=True, unique=True, max_length=255)
     action: str = Field(index=True, max_length=255)
+    generate_config: bool = Field(default=True)
     description: str | None = None
 
 
@@ -530,6 +537,7 @@ class RulesetBase(SQLModel):
     name: str = Field(index=True, unique=True, max_length=255)
     enabled: str = Field(default="yes")
     action: str = Field(index=True, max_length=255)
+    generate_config: bool = Field(default=True)
     description: str | None = None
 
 

@@ -145,7 +145,7 @@ function AlertEventsTable() {
                 <Table.Row key={ev.id}>
                   <Table.Cell fontSize="xs" whiteSpace="nowrap">
                     {ev.triggered_at
-                      ? new Date(ev.triggered_at).toLocaleString(undefined, {
+                      ? new Date(ev.triggered_at).toLocaleString("en-US", {
                           hour12: false,
                         })
                       : "—"}

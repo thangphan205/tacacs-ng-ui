@@ -69,7 +69,7 @@ const ShowActiveTacacsConfig = () => {
             Active TACACS+ Config, Created At:{" "}
             {activeConfigData?.created_at
               ? new Date(activeConfigData.created_at).toLocaleString(
-                  undefined,
+                  "en-US",
                   { hour12: false },
                 )
               : "N/A"}

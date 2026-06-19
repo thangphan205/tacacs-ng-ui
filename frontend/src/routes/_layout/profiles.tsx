@@ -11,6 +11,7 @@ import {
   Table,
   Text,
   VStack,
+  HStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -20,6 +21,7 @@ import {
   FiChevronRight,
   FiEdit,
   FiExternalLink,
+  FiFileText,
   FiPlus,
   FiSearch,
   FiTrash2,
@@ -31,6 +33,7 @@ import {
   ProfilescriptsService,
   ProfilesService,
 } from "@/client"
+import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { ProfileActionsMenu } from "@/components/Common/ProfileActionsMenu"
 import { SearchBox } from "@/components/Common/SearchBox"
@@ -49,6 +52,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
+import { Tooltip } from "@/components/ui/tooltip"
 
 const profilesSearchSchema = z.object({
   page: z.number().catch(1),
@@ -128,18 +132,19 @@ function ProfilesTable() {
 
   return (
     <>
-      <Table.Root
-        size={{ base: "sm", md: "md" }}
-        mt={2}
-        tableLayout="fixed"
-        w="full"
-      >
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader w="6%" />
-            <Table.ColumnHeader w="30%">Name</Table.ColumnHeader>
+      <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+        <Table.Root
+          size={{ base: "sm", md: "md" }}
+          tableLayout="fixed"
+          w="full"
+        >
+          <Table.Header bg="bg.muted">
+            <Table.Row>
+              <Table.ColumnHeader w="6%" />
+            <Table.ColumnHeader w="25%">Name</Table.ColumnHeader>
+            <Table.ColumnHeader w="15%">Generate</Table.ColumnHeader>
             <Table.ColumnHeader w="15%">Fallback Action</Table.ColumnHeader>
-            <Table.ColumnHeader w="41%">Description</Table.ColumnHeader>
+            <Table.ColumnHeader w="31%">Description</Table.ColumnHeader>
             <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
           </Table.Row>
         </Table.Header>
@@ -153,17 +158,24 @@ function ProfilesTable() {
               <Fragment key={profile.id}>
                 <Table.Row opacity={isPlaceholderData ? 0.5 : 1}>
                   <Table.Cell>
-                    <IconButton
-                      variant="ghost"
-                      size="xs"
-                      onClick={() => toggleRow(profile.id)}
-                      aria-label="Expand profile scripts"
-                    >
-                      {isExpanded ? <FiChevronDown /> : <FiChevronRight />}
-                    </IconButton>
+                    <Tooltip content={isExpanded ? "Click to collapse" : "Click to expand and view scripts"} showArrow placement="right">
+                      <IconButton
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => toggleRow(profile.id)}
+                        aria-label="Expand profile scripts"
+                      >
+                        {isExpanded ? <FiChevronDown /> : <FiChevronRight />}
+                      </IconButton>
+                    </Tooltip>
                   </Table.Cell>
                   <Table.Cell fontWeight="medium" truncate>
                     {profile.name}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge colorPalette={profile.generate_config ? "green" : "red"} variant="subtle" size="sm">
+                      {profile.generate_config ? "Yes" : "No"}
+                    </Badge>
                   </Table.Cell>
                   <Table.Cell>
                     <Badge
@@ -188,7 +200,7 @@ function ProfilesTable() {
                 {isExpanded && (
                   <Table.Row>
                     <Table.Cell
-                      colSpan={5}
+                      colSpan={6}
                       p={4}
                       bg="bg.subtle"
                       borderBottomWidth="1px"
@@ -474,6 +486,7 @@ function ProfilesTable() {
           })}
         </Table.Body>
       </Table.Root>
+      </Box>
       <Flex justifyContent="space-between" align="center" mt={4}>
         <PageSizeSelect
           value={perPage}
@@ -513,24 +526,21 @@ function Profiles() {
 
   return (
     <Container maxW="full">
-      <Flex
-        align="center"
-        justify="space-between"
-        pt={6}
-        pb={4}
-        wrap="wrap"
-        gap={4}
-      >
-        <Heading size="md">Profiles Management</Heading>
-        <Flex align="center" gap={3}>
-          <SearchBox
-            initialValue={search}
-            onSearch={handleProfileSearch}
-            placeholder="Search by name, action, description..."
-          />
+      <PageHeader
+        title="Profiles Management"
+        description="Profiles group service configurations, authorization instructions, and command permissions returned to network clients. Click the chevron (>) on any row to expand and view its script structure."
+        icon={FiFileText}
+      />
+      <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
+        <HStack gap={3}>
           <AddProfile />
           <PreviewProfile />
-        </Flex>
+        </HStack>
+        <SearchBox
+          initialValue={search}
+          onSearch={handleProfileSearch}
+          placeholder="Search by name, action, description..."
+        />
       </Flex>
 
       <ProfilesTable />
