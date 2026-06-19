@@ -795,7 +795,11 @@ function LastTacacsLogs() {
                     fontSize="xs"
                     color="fg.muted"
                   >
-                    {new Date(log.timestamp).toLocaleString("en-US", {
+                    {new Date(
+                      log.timestamp
+                        .replace(" ", "T")
+                        .replace(/([+-]\d{2})(\d{2})$/, "$1:$2"),
+                    ).toLocaleString("en-US", {
                       hour12: false,
                     })}
                   </Table.Cell>
