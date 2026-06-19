@@ -49,6 +49,7 @@ interface ProfileScriptUpdateForm {
 
 const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [formKey, setFormKey] = useState(0)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const {
@@ -145,7 +146,20 @@ const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
       size={{ base: "md", md: "xl" }}
       placement="center"
       open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
+      onOpenChange={({ open }) => {
+        setIsOpen(open)
+        if (!open) {
+          setFormKey((k) => k + 1)
+          reset({
+            condition: profilescript.condition ?? undefined,
+            key: profilescript.key ?? undefined,
+            value: profilescript.value ?? undefined,
+            action: profilescript.action ?? undefined,
+            description: profilescript.description ?? undefined,
+            profile_id: profilescript.profile_id ?? undefined,
+          })
+        }
+      }}
     >
       <DialogTrigger asChild>
         <Button variant="ghost">
@@ -154,7 +168,7 @@ const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
         </Button>
       </DialogTrigger>
       <DialogContent>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form key={formKey} onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>Edit ProfileScript</DialogTitle>
           </DialogHeader>

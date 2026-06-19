@@ -50,6 +50,7 @@ const EditProfileScriptSet = ({
   profilescriptset,
 }: EditProfileScriptSetProps) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [formKey, setFormKey] = useState(0)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const {
@@ -119,7 +120,18 @@ const EditProfileScriptSet = ({
       size={{ base: "xs", md: "md" }}
       placement="center"
       open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
+      onOpenChange={({ open }) => {
+        setIsOpen(open)
+        if (!open) {
+          setFormKey((k) => k + 1)
+          reset({
+            key: profilescriptset.key,
+            value: profilescriptset.value,
+            description: profilescriptset.description ?? undefined,
+            profilescript_id: profilescriptset.profilescript_id,
+          })
+        }
+      }}
     >
       <DialogTrigger asChild>
         <Button variant="ghost">
@@ -128,7 +140,7 @@ const EditProfileScriptSet = ({
         </Button>
       </DialogTrigger>
       <DialogContent>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form key={formKey} onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>Edit ProfileScriptSet</DialogTitle>
           </DialogHeader>

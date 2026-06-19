@@ -49,6 +49,7 @@ interface RulesetScriptUpdateForm {
 
 const EditRulesetScript = ({ rulesetscript }: EditRulesetScriptProps) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [formKey, setFormKey] = useState(0)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const {
@@ -147,7 +148,20 @@ const EditRulesetScript = ({ rulesetscript }: EditRulesetScriptProps) => {
       size={{ base: "md", md: "md" }}
       placement="center"
       open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
+      onOpenChange={({ open }) => {
+        setIsOpen(open)
+        if (!open) {
+          setFormKey((k) => k + 1)
+          reset({
+            condition: rulesetscript.condition ?? undefined,
+            key: rulesetscript.key ?? undefined,
+            value: rulesetscript.value ?? undefined,
+            action: rulesetscript.action ?? undefined,
+            description: rulesetscript.description ?? undefined,
+            ruleset_id: rulesetscript.ruleset_id ?? undefined,
+          })
+        }
+      }}
     >
       <DialogTrigger asChild>
         <Button variant="ghost">
@@ -156,7 +170,7 @@ const EditRulesetScript = ({ rulesetscript }: EditRulesetScriptProps) => {
         </Button>
       </DialogTrigger>
       <DialogContent>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form key={formKey} onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>Edit RulesetScript</DialogTitle>
           </DialogHeader>
