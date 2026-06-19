@@ -23,7 +23,7 @@ dependencies = [
     "pyjwt<3.0.0,>=2.12.0",
     "authlib>=1.6.12",
     "webauthn>=2.2.0,<3.0.0",
-    "cryptography>=46.0.5",
+    "cryptography>=48.0.1",
     "scikit-learn>=1.4.0,<2.0.0",
     "numpy>=1.26.0,<3.0.0",
 ]
