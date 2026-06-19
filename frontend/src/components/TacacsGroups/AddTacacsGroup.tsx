@@ -2,6 +2,8 @@ import {
   Button,
   DialogActionTrigger,
   DialogTitle,
+  Grid,
+  GridItem,
   Input,
   Text,
   VStack,
@@ -9,10 +11,11 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
-import { FaPlus } from "react-icons/fa"
+import { FiInfo, FiPlus, FiSettings, FiType, FiUsers } from "react-icons/fi"
 
 import { type TacacsGroupCreate, TacacsGroupsService } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
+import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import { Checkbox } from "../ui/checkbox"
@@ -26,6 +29,30 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
+
+const fieldGuideItems: FieldGuideItem[] = [
+  {
+    icon: FiType,
+    label: "Group Name",
+    description:
+      "A unique identifier for the TACACS group. Users assigned to this group inherit its profiles, services, and command authorization rules.",
+    example: "admin, noc_operators, read_only",
+    required: true,
+  },
+  {
+    icon: FiInfo,
+    label: "Description",
+    description:
+      "Optional notes describing the group's purpose or permission level. Not included in the generated config.",
+    example: "Full admin access for senior engineers",
+  },
+  {
+    icon: FiSettings,
+    label: "Generate to Config",
+    description:
+      "When enabled, this group will be included in the generated TACACS+ daemon configuration file. Disable to keep the record without activating it.",
+  },
+]
 
 const AddTacacsGroup = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -69,14 +96,14 @@ const AddTacacsGroup = () => {
 
   return (
     <DialogRoot
-      size={{ base: "xs", md: "md" }}
+      size="xl"
       placement="center"
       open={isOpen}
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
         <Button value="add-item" my={4}>
-          <FaPlus fontSize="16px" />
+          <FiPlus fontSize="16px" />
           Add TACACS Group
         </Button>
       </DialogTrigger>
@@ -86,55 +113,66 @@ const AddTacacsGroup = () => {
             <DialogTitle>Add TACACS Group</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4} color="fg.muted" fontSize="sm">
-              A TACACS Group acts as a template for user authorization. Users
-              assigned to a group inherit its profiles, permitted services, and
-              command authorization rules.
-            </Text>
-            <VStack gap={4}>
-              <Field
-                required
-                invalid={!!errors.group_name}
-                errorText={errors.group_name?.message}
-                label="Group Name"
-                helperText="A unique identifier for the TACACS group (e.g. 'admin', 'noc_operators')."
-              >
-                <Input
-                  {...register("group_name", {
-                    required: "Group Name is required.",
-                  })}
-                  placeholder="Group Name"
-                  type="text"
-                />
-              </Field>
-
-              <Field
-                invalid={!!errors.description}
-                errorText={errors.description?.message}
-                label="Description"
-                helperText="Optional description or notes detailing the group's purpose or permission level."
-              >
-                <Input
-                  {...register("description")}
-                  placeholder="Description"
-                  type="text"
-                />
-              </Field>
-              <Controller
-                control={control}
-                name="generate_config"
-                render={({ field }) => (
-                  <Field disabled={field.disabled} colorPalette="teal">
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={({ checked }) => field.onChange(checked)}
-                    >
-                      Generate to TACACS+ Config
-                    </Checkbox>
+            <Grid templateColumns={{ base: "1fr", lg: "7fr 5fr" }} gap={6}>
+              <GridItem>
+                <Text mb={4} color="fg.muted" fontSize="sm">
+                  A TACACS Group acts as a template for user authorization. Users
+                  assigned to a group inherit its profiles, permitted services, and
+                  command authorization rules.
+                </Text>
+                <VStack gap={4}>
+                  <Field
+                    required
+                    invalid={!!errors.group_name}
+                    errorText={errors.group_name?.message}
+                    label="Group Name"
+                  >
+                    <Input
+                      {...register("group_name", {
+                        required: "Group Name is required.",
+                      })}
+                      placeholder="Group Name"
+                      type="text"
+                    />
                   </Field>
-                )}
-              />
-            </VStack>
+
+                  <Field
+                    invalid={!!errors.description}
+                    errorText={errors.description?.message}
+                    label="Description"
+                  >
+                    <Input
+                      {...register("description")}
+                      placeholder="Description"
+                      type="text"
+                    />
+                  </Field>
+                  <Controller
+                    control={control}
+                    name="generate_config"
+                    render={({ field }) => (
+                      <Field disabled={field.disabled} colorPalette="teal">
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={({ checked }) => field.onChange(checked)}
+                        >
+                          Generate to TACACS+ Config
+                        </Checkbox>
+                      </Field>
+                    )}
+                  />
+                </VStack>
+              </GridItem>
+
+              <GridItem>
+                <FieldGuide
+                  items={fieldGuideItems}
+                  icon={FiUsers}
+                  subtitle="Learn what each field means and how it maps to the TACACS+ group configuration."
+                  howItWorks='When "Generate to Config" is enabled, this group is written as a group block in the TACACS+ daemon config. Users referencing this group will inherit its authorization settings.'
+                />
+              </GridItem>
+            </Grid>
           </DialogBody>
 
           <DialogFooter gap={2}>

@@ -1,12 +1,9 @@
 import {
-  Badge,
-  Box,
   Button,
   Collapsible,
   createListCollection,
   DialogActionTrigger,
   DialogTitle,
-  Flex,
   Grid,
   GridItem,
   Input,
@@ -25,7 +22,6 @@ import {
   FiInfo,
   FiKey,
   FiLayers,
-  FiLock,
   FiMessageSquare,
   FiPlus,
   FiServer,
@@ -34,6 +30,7 @@ import {
 } from "react-icons/fi"
 import { type HostCreate, HostsService } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
+import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import { Checkbox } from "../ui/checkbox"
@@ -47,14 +44,6 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
-
-interface FieldGuideItem {
-  icon: React.ElementType
-  label: string
-  description: string
-  example?: string
-  required?: boolean
-}
 
 const fieldGuideItems: FieldGuideItem[] = [
   {
@@ -113,53 +102,6 @@ const fieldGuideItems: FieldGuideItem[] = [
       "Optional banners displayed to users during authentication: Welcome (on success), Reject (on deny), MOTD (after login), and Failed Authentication.",
   },
 ]
-
-const FieldGuideCard = ({ item }: { item: FieldGuideItem }) => {
-  const Icon = item.icon
-  return (
-    <Box>
-      <Flex align="flex-start" gap={2.5}>
-        <Box
-          mt={0.5}
-          p={1}
-          bg="teal.muted"
-          color="teal.fg"
-          borderRadius="md"
-          flexShrink={0}
-        >
-          <Icon size={12} />
-        </Box>
-        <Box>
-          <Flex align="center" gap={1.5} mb={0.5}>
-            <Text fontSize="xs" fontWeight="semibold" color="fg">
-              {item.label}
-            </Text>
-            {item.required && (
-              <Badge
-                colorPalette="red"
-                variant="subtle"
-                size="sm"
-                fontSize="2xs"
-                px={1}
-                lineHeight="1.4"
-              >
-                Required
-              </Badge>
-            )}
-          </Flex>
-          <Text fontSize="xs" color="fg.muted" lineHeight="1.5">
-            {item.description}
-          </Text>
-          {item.example && (
-            <Text fontSize="2xs" color="fg.muted/70" mt={0.5} fontFamily="mono">
-              e.g. {item.example}
-            </Text>
-          )}
-        </Box>
-      </Flex>
-    </Box>
-  )
-}
 
 const AddHost = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -418,52 +360,13 @@ const AddHost = () => {
               </GridItem>
 
               {/* Right Column: Field Guide */}
-              <GridItem
-                bg="bg.muted/60"
-                p={5}
-                borderRadius="xl"
-                borderWidth="1px"
-                borderColor="border.subtle"
-                height="fit-content"
-              >
-                <Flex align="center" gap={2} mb={1}>
-                  <Box p={1.5} bg="teal.muted" color="teal.fg" borderRadius="md">
-                    <FiServer size={16} />
-                  </Box>
-                  <Text fontSize="xs" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" color="teal.fg">
-                    Field Guide
-                  </Text>
-                </Flex>
-                <Text fontSize="xs" color="fg.muted" mb={4}>
-                  Learn what each field means and how it maps to the TACACS+ daemon configuration.
-                </Text>
-
-                <VStack gap={3.5} align="stretch">
-                  {fieldGuideItems.map((item) => (
-                    <FieldGuideCard key={item.label} item={item} />
-                  ))}
-                </VStack>
-
-                <Box
-                  mt={4}
-                  p={3}
-                  bg="teal.muted/40"
-                  borderRadius="md"
-                  borderWidth="1px"
-                  borderColor="teal.muted"
-                >
-                  <Flex align="center" gap={1.5} mb={1}>
-                    <FiLock size={11} />
-                    <Text fontSize="2xs" fontWeight="semibold" color="teal.fg">
-                      How it works
-                    </Text>
-                  </Flex>
-                  <Text fontSize="2xs" color="fg.muted" lineHeight="1.5">
-                    When you save a host with "Generate to Config" enabled, the system creates a{" "}
-                    <Text as="span" fontFamily="mono" fontWeight="medium">host</Text> block in the
-                    TACACS+ daemon config using the Name, IPv4 Address, and Secret Key you provide.
-                  </Text>
-                </Box>
+              <GridItem>
+                <FieldGuide
+                  items={fieldGuideItems}
+                  icon={FiServer}
+                  subtitle="Learn what each field means and how it maps to the TACACS+ daemon configuration."
+                  howItWorks='When you save a host with "Generate to Config" enabled, the system creates a host block in the TACACS+ daemon config using the Name, IPv4 Address, and Secret Key you provide.'
+                />
               </GridItem>
             </Grid>
           </DialogBody>
@@ -495,4 +398,3 @@ const AddHost = () => {
 }
 
 export default AddHost
-
