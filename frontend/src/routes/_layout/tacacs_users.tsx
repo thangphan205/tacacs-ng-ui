@@ -225,9 +225,13 @@ function TacacsUsers() {
 
   return (
     <Container maxW="full">
-      <Heading size="md" pt={6}>
-        TACACS Users
-      </Heading>
+      <Flex direction="column" pt={6} gap={1}>
+        <Heading size="md">TACACS Users</Heading>
+        <Text color="fg.muted" fontSize="sm">
+          Configure local users, their authentication mechanisms (crypt, mavis,
+          clear), and associate them with group permissions.
+        </Text>
+      </Flex>
       <Flex mt={4} align="center" justify="space-between">
         <AddTacacsUser />
         <SearchBox

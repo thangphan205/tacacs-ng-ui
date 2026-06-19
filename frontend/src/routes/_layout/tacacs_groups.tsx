@@ -195,9 +195,13 @@ function TacacsGroups() {
 
   return (
     <Container maxW="full">
-      <Heading size="md" pt={6}>
-        TACACS Groups
-      </Heading>
+      <Flex direction="column" pt={6} gap={1}>
+        <Heading size="md">TACACS Groups</Heading>
+        <Text color="fg.muted" fontSize="sm">
+          Groups serve as templates for user authorizations and exec parameters,
+          which are mapped to Profiles via Ruleset evaluation.
+        </Text>
+      </Flex>
       <Flex mt={4} align="center" justify="space-between">
         <AddTacacsGroup />
         <SearchBox
