@@ -3458,8 +3458,15 @@ export const TacacsConfigPublicSchema = {
 export const TacacsConfigUpdateSchema = {
     properties: {
         filename: {
-            type: 'string',
-            maxLength: 255,
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
             title: 'Filename'
         },
         description: {
@@ -3472,10 +3479,31 @@ export const TacacsConfigUpdateSchema = {
                 }
             ],
             title: 'Description'
+        },
+        data: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Data'
+        },
+        active: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Active'
         }
     },
     type: 'object',
-    required: ['filename'],
     title: 'TacacsConfigUpdate'
 } as const;
 

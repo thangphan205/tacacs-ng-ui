@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import uuid
 from datetime import datetime, timezone
@@ -217,12 +218,27 @@ def update_tacacs_config(
             detail="The tacacs_config with this id does not exist in the system",
         )
 
-    result = tacacs_configs.check_tacacs_config_by_id(session=session, id=id)
-    if result["status"] == "error":
-        raise HTTPException(
-            status_code=400,
-            detail=result["message"],
-        )
+    # 1. Save data to candidate file first if provided so syntax check runs on new content
+    if tacacs_config_in.data is not None:
+        filename = db_tacacs_config.filename + ".cfg"
+        if ".." in filename or "/" in filename:
+            raise HTTPException(status_code=400, detail="Invalid filename path traversal.")
+        source_file_path = os.path.join(tacacs_configs.CONFIG_PATH, filename)
+        try:
+            with open(source_file_path, "w", encoding="utf-8") as f:
+                f.write(tacacs_config_in.data)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error writing configuration file: {e}")
+
+    # 2. Only run syntax check if we are activating
+    should_activate = tacacs_config_in.active if tacacs_config_in.active is not None else True
+    if should_activate:
+        result = tacacs_configs.check_tacacs_config_by_id(session=session, id=id)
+        if result["status"] == "error":
+            raise HTTPException(
+                status_code=400,
+                detail=result["message"],
+            )
 
     old_values = db_tacacs_config.model_dump_json(exclude=_SENSITIVE)
     db_tacacs_config = tacacs_configs.update_tacacs_config(

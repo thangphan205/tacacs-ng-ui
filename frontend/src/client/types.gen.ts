@@ -710,8 +710,10 @@ export type TacacsConfigsPublic = {
 };
 
 export type TacacsConfigUpdate = {
-    filename: string;
+    filename?: (string | null);
     description?: (string | null);
+    data?: (string | null);
+    active?: (boolean | null);
 };
 
 export type TacacsGroupCreate = {

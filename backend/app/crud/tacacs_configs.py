@@ -290,64 +290,84 @@ def update_tacacs_config(
 
     source_file_path = os.path.join(CONFIG_PATH, filename)
 
-    # 1. Read the content from the specified source file
-    try:
-        if not os.path.exists(source_file_path) or not os.path.isfile(source_file_path):
-            return f"Source file not found:{source_file_path}"
+    # 1. If configuration data is provided, save it to the candidate config file on disk first
+    if tacacs_config_in.data is not None:
+        try:
+            with open(source_file_path, "w", encoding="utf-8") as f:
+                f.write(tacacs_config_in.data)
+        except Exception as e:
+            return f"Error writing source file: {e}"
 
-        with open(source_file_path) as f:
-            config_data = f.read()
-    except Exception as e:
-        return f"Error reading source file: {e}"
+    # Determine if we should perform activation logic (default to True if active is not specified for backwards compatibility)
+    should_activate = tacacs_config_in.active if tacacs_config_in.active is not None else True
 
-    # 2. Save the new configuration to the main config file and create a backup
-    try:
-        # Write new content, overwriting the old file
-        with open(CONFIG_FILE_PATH, "w") as f:
-            f.write("#!/usr/local/sbin/tac_plus-ng\n")
-            f.write(f"# Tacacs config from {filename}\n")
-            f.write(f"# Description: {db_tacacs_config.description}\n")
-            f.write(config_data)
+    if should_activate:
+        # Read the content from the specified source file
+        try:
+            if not os.path.exists(source_file_path) or not os.path.isfile(source_file_path):
+                return f"Source file not found:{source_file_path}"
 
-    except Exception as e:
-        log.exception(f"Exception log: {e}")
+            with open(source_file_path) as f:
+                config_data = f.read()
+        except Exception as e:
+            return f"Error reading source file: {e}"
 
-    # 3. Trigger automatic reload
-    try:
-        # Reload tac_plus-ng using supervisorctl
-        result = subprocess.run(
-            [
-                "supervisorctl",
-                "-c",
-                "/etc/supervisor/conf.d/supervisord.conf",
-                "restart",
-                "tacacs",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        if result.returncode != 0:
-            log.warning(
-                f"Supervisorctl reload failed: {result.stderr or result.stdout}"
+        # 2. Save the new configuration to the main config file and create a backup
+        try:
+            # Write new content, overwriting the old file
+            with open(CONFIG_FILE_PATH, "w") as f:
+                f.write("#!/usr/local/sbin/tac_plus-ng\n")
+                f.write(f"# Tacacs config from {filename}\n")
+                f.write(f"# Description: {db_tacacs_config.description}\n")
+                f.write(config_data)
+
+        except Exception as e:
+            log.exception(f"Exception log: {e}")
+
+        # 3. Trigger automatic reload
+        try:
+            # Reload tac_plus-ng using supervisorctl
+            result = subprocess.run(
+                [
+                    "supervisorctl",
+                    "-c",
+                    "/etc/supervisor/conf.d/supervisord.conf",
+                    "restart",
+                    "tacacs",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
-        else:
-            log.info("tac_plus-ng reloaded via supervisorctl.")
-    except Exception as e:
-        log.warning(f"Failed to reload tac_plus-ng via supervisorctl: {e}")
+            if result.returncode != 0:
+                log.warning(
+                    f"Supervisorctl reload failed: {result.stderr or result.stdout}"
+                )
+            else:
+                log.info("tac_plus-ng reloaded via supervisorctl.")
+        except Exception as e:
+            log.warning(f"Failed to reload tac_plus-ng via supervisorctl: {e}")
 
-    # 4. Set all other configs to inactive
+        # 4. Set all other configs to inactive
+        statement = select(TacacsConfig).where(TacacsConfig.id != db_tacacs_config.id)
+        other_configs = session.exec(statement).all()
+        for config in other_configs:
+            if config.active:
+                config.active = False
+                session.add(config)
 
-    statement = select(TacacsConfig).where(TacacsConfig.id != db_tacacs_config.id)
-    other_configs = session.exec(statement).all()
-    for config in other_configs:
-        if config.active:
-            config.active = False
-            session.add(config)
-
+    # 5. Update database object
     tacacs_config_data = tacacs_config_in.model_dump(exclude_unset=True)
-    extra_data = {"active": True}
-    db_tacacs_config.sqlmodel_update(tacacs_config_data, update=extra_data)
+    # Remove 'data' as it's not a database column
+    tacacs_config_data.pop("data", None)
+
+    # If active was not set, force it to False to prevent DB activation
+    if tacacs_config_in.active is None and not should_activate:
+        tacacs_config_data["active"] = False
+    elif tacacs_config_in.active is not None:
+        tacacs_config_data["active"] = tacacs_config_in.active
+
+    db_tacacs_config.sqlmodel_update(tacacs_config_data)
     session.add(db_tacacs_config)
     session.commit()
     session.refresh(db_tacacs_config)

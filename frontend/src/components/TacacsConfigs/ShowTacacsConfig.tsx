@@ -7,12 +7,13 @@ import {
   createShikiAdapter,
   Spinner,
   Text,
+  Textarea,
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type React from "react"
-import { useState } from "react"
-import { FaEye } from "react-icons/fa"
+import { useEffect, useState } from "react"
+import { FaDownload, FaEdit, FaEye, FaSave } from "react-icons/fa"
 import type { HighlighterGeneric } from "shiki"
 import {
   type ApiError,
@@ -68,6 +69,8 @@ const ShowTacacsConfig = ({
   const [isOpen, setIsOpen] = useState(false)
   const { colorMode } = useColorMode()
   const queryClient = useQueryClient()
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedContent, setEditedContent] = useState("")
   const [checkResult, setCheckResult] = useState<CheckTacacsConfigProps>({
     status: "",
     raw_output: "",
@@ -82,24 +85,22 @@ const ShowTacacsConfig = ({
         id: tacacs_config.id,
         requestBody: data,
       }),
-    onSuccess: () => {
-      showSuccessToast("TacacsConfig activated successfully.")
-      setIsOpen(false)
-    },
     onError: (err: ApiError) => {
       handleError(err)
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["tacacs_configs"] })
+      queryClient.invalidateQueries({
+        queryKey: ["tacacs_config", tacacs_config.id],
+      })
     },
   })
 
   const mutation2 = useMutation<CheckTacacsConfigProps, ApiError>({
     mutationFn: () =>
       TacacsConfigsService.checkTacacsConfigById({
-        // This service call returns `unknown`
         id: tacacs_config.id,
-      }) as Promise<CheckTacacsConfigProps>, // We cast it to the correct type
+      }) as Promise<CheckTacacsConfigProps>,
     onSuccess: (data) => {
       setCheckResult(data)
     },
@@ -118,22 +119,80 @@ const ShowTacacsConfig = ({
     enabled: isOpen, // Only fetch when the dialog is open
   })
 
+  useEffect(() => {
+    if (data?.data) {
+      setEditedContent(data.data)
+    }
+  }, [data?.data])
+
   const onActivate = () => {
-    // We only need to send the filename, as the backend will handle the activation logic.
-    // The description is optional.
-    const { filename, description } = tacacs_config
-    mutation.mutate({ filename, description })
+    mutation.mutate(
+      { filename: tacacs_config.filename, active: true },
+      {
+        onSuccess: () => {
+          showSuccessToast("TacacsConfig activated successfully.")
+          setIsOpen(false)
+        },
+      },
+    )
   }
+
+  const onSave = () => {
+    mutation.mutate(
+      { filename: tacacs_config.filename, data: editedContent, active: false },
+      {
+        onSuccess: () => {
+          showSuccessToast("Configuration changes saved successfully.")
+          setIsEditing(false)
+        },
+      },
+    )
+  }
+
   const onCheck = () => {
     mutation2.mutate()
   }
+
+  const onDownload = () => {
+    const content = editedContent || data?.data || ""
+    const element = document.createElement("a")
+    const file = new Blob([content], { type: "text/plain" })
+    element.href = URL.createObjectURL(file)
+    element.download = `${tacacs_config.filename}.cfg`
+    document.body.appendChild(element)
+    element.click()
+    document.body.removeChild(element)
+  }
+
+  const getCorrectedLineNumber = () => {
+    if (!checkResult.message || checkResult.line <= 0 || !editedContent) {
+      return checkResult.line
+    }
+    const match = checkResult.message.match(/['"]([^'"]+)['"]/)
+    if (match) {
+      const token = match[1]
+      const lines = editedContent.split("\n")
+      const foundIndex = lines.findIndex((line) => line.includes(token))
+      if (foundIndex !== -1) {
+        return foundIndex + 1 // 1-indexed
+      }
+    }
+    return checkResult.line
+  }
+
+  const correctedLine = getCorrectedLineNumber()
 
   return (
     <DialogRoot
       size={{ base: "xl", md: "xl" }}
       placement="center"
       open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
+      onOpenChange={({ open }) => {
+        setIsOpen(open)
+        if (!open) {
+          setIsEditing(false)
+        }
+      }}
     >
       <DialogTrigger asChild>
         {children || (
@@ -152,6 +211,20 @@ const ShowTacacsConfig = ({
             <Spinner />
           ) : error ? (
             <Text color="red.500">Error loading configuration.</Text>
+          ) : isEditing ? (
+            <Textarea
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+              fontFamily="mono"
+              fontSize="sm"
+              height="350px"
+              maxH="400px"
+              bg={colorMode === "dark" ? "gray.950" : "gray.50"}
+              color={colorMode === "dark" ? "gray.100" : "gray.900"}
+              borderColor={colorMode === "dark" ? "gray.800" : "gray.300"}
+              p={3}
+              borderRadius="md"
+            />
           ) : data?.data ? (
             <CodeBlock.AdapterProvider value={shikiAdapter}>
               <CodeBlock.Root
@@ -184,8 +257,12 @@ const ShowTacacsConfig = ({
                 borderRadius="md"
               >
                 <VStack align="start" gap={1}>
-                  {checkResult.line > 0 && (
-                    <Text textStyle="md">Error Line: {checkResult.line}</Text>
+                  {correctedLine > 0 && (
+                    <Text textStyle="md">
+                      Error Line: {correctedLine}
+                      {correctedLine !== checkResult.line &&
+                        ` (detected at block start: ${checkResult.line})`}
+                    </Text>
                   )}
                   <Text textStyle="md">Message: {checkResult.message}</Text>
                 </VStack>
@@ -204,21 +281,55 @@ const ShowTacacsConfig = ({
                 Cancel
               </Button>
             </DialogActionTrigger>
-            <Button
-              variant="solid"
-              onClick={onActivate}
-              loading={mutation.isPending}
-              disabled={tacacs_config.active}
-            >
-              {tacacs_config.active ? "Already Active" : "Activate"}
-            </Button>
-            <Button
-              variant="solid"
-              onClick={onCheck}
-              loading={mutation.isPending}
-            >
-              Config Check
-            </Button>
+            {isEditing ? (
+              <>
+                <Button
+                  variant="subtle"
+                  onClick={() => {
+                    setIsEditing(false)
+                    setEditedContent(data?.data || "")
+                  }}
+                  disabled={mutation.isPending}
+                >
+                  Cancel Edit
+                </Button>
+                <Button
+                  variant="solid"
+                  onClick={onSave}
+                  loading={mutation.isPending}
+                >
+                  <FaSave />
+                  Save
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="subtle" onClick={onDownload}>
+                  <FaDownload />
+                  Download
+                </Button>
+                <Button variant="subtle" onClick={() => setIsEditing(true)}>
+                  <FaEdit />
+                  Edit
+                </Button>
+                <Button
+                  variant="solid"
+                  onClick={onCheck}
+                  loading={mutation2.isPending}
+                >
+                  Config Check
+                </Button>
+                <Button
+                  variant="solid"
+                  colorPalette="teal"
+                  onClick={onActivate}
+                  loading={mutation.isPending}
+                  disabled={tacacs_config.active}
+                >
+                  {tacacs_config.active ? "Already Active" : "Activate"}
+                </Button>
+              </>
+            )}
           </ButtonGroup>
         </DialogFooter>
         <DialogCloseTrigger />

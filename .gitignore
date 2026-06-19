@@ -1,4 +1,5 @@
 .DS_Store
+img/.DS_Store
 .vscode
 node_modules/
 /test-results/

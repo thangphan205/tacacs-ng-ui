@@ -5,6 +5,7 @@ import sqlalchemy as sa
 from pydantic import EmailStr
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
+
 from app.core.config import settings
 
 
@@ -668,7 +669,10 @@ class TacacsConfigCreate(TacacsConfigBase):
 
 
 class TacacsConfigUpdate(TacacsConfigBase):
+    filename: str | None = Field(default=None, max_length=255)
     description: str | None = Field(default=None)
+    data: str | None = Field(default=None)
+    active: bool | None = Field(default=None)
 
 
 # Database model, database table inferred from class name
