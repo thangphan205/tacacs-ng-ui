@@ -172,17 +172,21 @@ const ShowTacacsConfig = ({
           ) : (
             <Text>No content available.</Text>
           )}
-          {checkResult.line > -1 && (
+          {checkResult.status && (
             <Box p={2}>
               <Badge
-                colorPalette={checkResult.line === 0 ? "green" : "red"}
+                colorPalette={
+                  checkResult.status === "success" ? "green" : "red"
+                }
                 variant="solid"
                 w="full"
                 p={2}
                 borderRadius="md"
               >
-                <VStack align="start">
-                  <Text textStyle="md">Error Line: {checkResult.line}</Text>
+                <VStack align="start" gap={1}>
+                  {checkResult.line > 0 && (
+                    <Text textStyle="md">Error Line: {checkResult.line}</Text>
+                  )}
                   <Text textStyle="md">Message: {checkResult.message}</Text>
                 </VStack>
               </Badge>

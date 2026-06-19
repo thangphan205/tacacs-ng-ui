@@ -1,24 +1,25 @@
+import logging
 import os
-from pathlib import Path
-from typing import Any
 import subprocess
 import tempfile
+from pathlib import Path
+from typing import Any
+
+from fastapi import HTTPException
 from sqlmodel import Session, select
+
+from app.crud import profiles, rulesets
 from app.models import (
     ConfigurationOption,
+    Host,
+    Mavis,
     TacacsConfig,
     TacacsConfigCreate,
     TacacsConfigUpdate,
     TacacsGroup,
     TacacsNgSetting,
-    Mavis,
-    Host,
     TacacsUser,
-    TacacsConfigPublic,
 )
-import logging
-from fastapi import HTTPException
-from app.crud import profiles, rulesets
 
 log = logging.getLogger(__name__)
 
@@ -33,18 +34,14 @@ def generate_tacacs_mavis_setting(*, session: Session) -> Any:
     mavises_db = session.exec(statement).all()
     mavis_template = ""
     for mavis in mavises_db:
-        mavis_template += """setenv {key}="{value}"
-        """.format(
-            key=mavis.mavis_key, value=mavis.mavis_value
-        )
+        mavis_template += f"""setenv {mavis.mavis_key}="{mavis.mavis_value}"
+        """
 
-    mavises_template = """mavis module = external {{
+    mavises_template = f"""mavis module = external {{
         # Set environment variables for LDAP connection
         {mavis_template}
         exec = /usr/local/lib/mavis/mavis_tacplus-ng_ldap.pl
-    }}""".format(
-        mavis_template=mavis_template
-    )
+    }}"""
     return mavises_template
 
 
@@ -117,9 +114,7 @@ id = tac_plus-ng {{
     if configuration_host_options:
         for configuration_host_option in configuration_host_options:
             hosts_template += "\n   # Host Configuration Options"
-            hosts_template += """   {}\n""".format(
-                configuration_host_option.config_option
-            )
+            hosts_template += f"""   {configuration_host_option.config_option}\n"""
             hosts_template += "\n    # End of Host Configuration Options\n"
     statement = select(Host)
     host_basic = session.exec(statement).all()
@@ -144,9 +139,7 @@ id = tac_plus-ng {{
     if configuration_group_options:
         tacacs_groups_template += "\n    # Group Configuration Options\n"
         for configuration_group_option in configuration_group_options:
-            tacacs_groups_template += """    {}\n""".format(
-                configuration_group_option.config_option
-            )
+            tacacs_groups_template += f"""    {configuration_group_option.config_option}\n"""
         tacacs_groups_template += "    # End of Group Configuration Options\n"
     statement = select(TacacsGroup)
     tacacs_group_basic = session.exec(statement).all()
@@ -167,9 +160,7 @@ id = tac_plus-ng {{
     if configuration_user_options:
         tacacs_users_template += "\n    # User Configuration Options\n"
         for configuration_user_option in configuration_user_options:
-            tacacs_users_template += """    {}\n""".format(
-                configuration_user_option.config_option
-            )
+            tacacs_users_template += f"""    {configuration_user_option.config_option}\n"""
         tacacs_users_template += "    # End of User Configuration Options\n"
 
     statement = select(TacacsUser)
@@ -247,7 +238,7 @@ def get_tacacs_config_by_filename(filename: str) -> str | None:
         )
 
     try:
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             content = f.read()
         return content
     except Exception as e:
@@ -275,7 +266,7 @@ def create_tacacs_config(
         with open(filepath, "w") as f:
             f.write(tacacs_config)
     except Exception as e:
-        log.exception("Exception log: {}".format(e))
+        log.exception(f"Exception log: {e}")
         return False
 
     # 2. Save the filename to the database
@@ -295,31 +286,31 @@ def update_tacacs_config(
     filename = db_tacacs_config.filename + ".cfg"
     # Basic security check to prevent directory traversal
     if ".." in filename or "/" in filename:
-        return "Path traversal attack detected: {}".format(filename)
+        return f"Path traversal attack detected: {filename}"
 
     source_file_path = os.path.join(CONFIG_PATH, filename)
 
     # 1. Read the content from the specified source file
     try:
         if not os.path.exists(source_file_path) or not os.path.isfile(source_file_path):
-            return "Source file not found:{}".format(source_file_path)
+            return f"Source file not found:{source_file_path}"
 
-        with open(source_file_path, "r") as f:
+        with open(source_file_path) as f:
             config_data = f.read()
     except Exception as e:
-        return "Error reading source file: {}".format(e)
+        return f"Error reading source file: {e}"
 
     # 2. Save the new configuration to the main config file and create a backup
     try:
         # Write new content, overwriting the old file
         with open(CONFIG_FILE_PATH, "w") as f:
             f.write("#!/usr/local/sbin/tac_plus-ng\n")
-            f.write("# Tacacs config from {}\n".format(filename))
-            f.write("# Description: {}\n".format(db_tacacs_config.description))
+            f.write(f"# Tacacs config from {filename}\n")
+            f.write(f"# Description: {db_tacacs_config.description}\n")
             f.write(config_data)
 
     except Exception as e:
-        log.exception("Exception log: {}".format(e))
+        log.exception(f"Exception log: {e}")
 
     # 3. Trigger automatic reload
     try:
@@ -419,23 +410,60 @@ def check_tacacs_config_by_id(*, session: Session, id: int) -> dict[str, Any]:
             command, capture_output=True, text=True, check=False, timeout=10
         )
         logging.info(f"Command error: {result.stderr}")
-        list_of_lines = ["", "", 0, "Syntax check successful."]
+        raw_output = result.stderr or result.stdout or ""
+        line = 0
+        message = "Syntax check successful."
+
         if result.returncode == 0:
-            if result.stderr:
-                list_of_lines = result.stderr.split(":")
-            return {
-                "status": "success",
-                "raw_output": result.stderr
-                or result.stdout
-                or "Syntax check successful.",
-                "line": list_of_lines[2],
-                "message": list_of_lines[3],
-            }
+            status = "success"
+            if raw_output:
+                lines = [line_str.strip() for line_str in raw_output.splitlines() if line_str.strip()]
+                if lines:
+                    parts = lines[0].split(":")
+                    if len(parts) >= 4:
+                        try:
+                            line = int(parts[2].strip())
+                            message = ":".join(parts[3:]).strip()
+                        except ValueError:
+                            message = lines[0]
+                    elif len(parts) >= 2:
+                        message = ":".join(parts[1:]).strip()
+                    else:
+                        message = lines[0]
         else:
-            output = (
-                result.stderr or result.stdout or "Unknown error during syntax check."
-            )
-            return {"status": "error", "output": output}
+            status = "error"
+            if raw_output:
+                lines = [line_str.strip() for line_str in raw_output.splitlines() if line_str.strip()]
+                if lines:
+                    # Find a line containing the filename to extract the exact error details
+                    matched_line = None
+                    for line_item in lines:
+                        if filename in line_item and len(line_item.split(":")) >= 4:
+                            matched_line = line_item
+                            break
+                    if not matched_line:
+                        matched_line = lines[0]
+
+                    parts = matched_line.split(":")
+                    if len(parts) >= 4:
+                        try:
+                            line = int(parts[2].strip())
+                            message = ":".join(parts[3:]).strip()
+                        except ValueError:
+                            message = matched_line
+                    elif len(parts) >= 2:
+                        message = ":".join(parts[1:]).strip()
+                    else:
+                        message = matched_line
+            else:
+                message = "Unknown error during syntax check."
+
+        return {
+            "status": status,
+            "raw_output": raw_output or message,
+            "line": line,
+            "message": message,
+        }
     except FileNotFoundError:
         raise HTTPException(
             status_code=500,

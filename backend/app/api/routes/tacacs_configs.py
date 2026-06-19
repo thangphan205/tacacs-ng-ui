@@ -218,7 +218,7 @@ def update_tacacs_config(
         )
 
     result = tacacs_configs.check_tacacs_config_by_id(session=session, id=id)
-    if result["line"] > 0:
+    if result["status"] == "error":
         raise HTTPException(
             status_code=400,
             detail=result["message"],
