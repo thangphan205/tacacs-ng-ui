@@ -147,7 +147,7 @@ function TacacsGroupsTable() {
                     </Table.Cell>
                     <Table.Cell fontSize="sm" color="fg.muted">
                       {new Date(tacacs_group.updated_at).toLocaleString(
-                        undefined,
+                        "en-US",
                         {
                           hour12: false,
                         },

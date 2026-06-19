@@ -212,7 +212,7 @@ function AuditLogsTable() {
               {logs.map((log) => (
                 <Table.Row key={log.id}>
                   <Table.Cell whiteSpace="nowrap">
-                    {new Date(log.created_at).toLocaleString(undefined, {
+                    {new Date(log.created_at).toLocaleString("en-US", {
                       hour12: false,
                     })}
                   </Table.Cell>

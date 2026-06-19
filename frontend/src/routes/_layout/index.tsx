@@ -614,7 +614,7 @@ function RecentActivity() {
                     fontSize="xs"
                     color="fg.muted"
                   >
-                    {new Date(log.created_at).toLocaleString(undefined, {
+                    {new Date(log.created_at).toLocaleString("en-US", {
                       hour12: false,
                     })}
                   </Table.Cell>
@@ -708,12 +708,7 @@ function LastTacacsLogs() {
                     fontSize="xs"
                     color="fg.muted"
                   >
-                    {new Date(log.timestamp).toLocaleString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
+                    {new Date(log.timestamp).toLocaleString("en-US", {
                       hour12: false,
                     })}
                   </Table.Cell>
@@ -850,7 +845,7 @@ function Dashboard() {
               <FiClock />
               <Text>
                 Updated{" "}
-                {new Date(dataUpdatedAt).toLocaleTimeString(undefined, {
+                {new Date(dataUpdatedAt).toLocaleTimeString("en-US", {
                   hour12: false,
                 })}
               </Text>

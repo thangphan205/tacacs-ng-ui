@@ -183,7 +183,7 @@ function TacacsUsersTable() {
                   {tacacs_user.description || "N/A"}
                 </Table.Cell>
                 <Table.Cell fontSize="sm" color="fg.muted">
-                  {new Date(tacacs_user.updated_at).toLocaleString(undefined, {
+                  {new Date(tacacs_user.updated_at).toLocaleString("en-US", {
                     hour12: false,
                   })}
                 </Table.Cell>

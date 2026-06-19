@@ -530,7 +530,7 @@ function AlertRulesTable() {
                   <Table.Cell>{rule.time_window_minutes}m</Table.Cell>
                   <Table.Cell fontSize="xs" color="fg.muted">
                     {rule.last_fired_at
-                      ? new Date(rule.last_fired_at).toLocaleString(undefined, {
+                      ? new Date(rule.last_fired_at).toLocaleString("en-US", {
                           hour12: false,
                         })
                       : "Never"}
