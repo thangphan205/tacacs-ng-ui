@@ -52,6 +52,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
+import { Tooltip } from "@/components/ui/tooltip"
 
 const profilesSearchSchema = z.object({
   page: z.number().catch(1),
@@ -157,14 +158,16 @@ function ProfilesTable() {
               <Fragment key={profile.id}>
                 <Table.Row opacity={isPlaceholderData ? 0.5 : 1}>
                   <Table.Cell>
-                    <IconButton
-                      variant="ghost"
-                      size="xs"
-                      onClick={() => toggleRow(profile.id)}
-                      aria-label="Expand profile scripts"
-                    >
-                      {isExpanded ? <FiChevronDown /> : <FiChevronRight />}
-                    </IconButton>
+                    <Tooltip content={isExpanded ? "Click to collapse" : "Click to expand and view scripts"} showArrow placement="right">
+                      <IconButton
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => toggleRow(profile.id)}
+                        aria-label="Expand profile scripts"
+                      >
+                        {isExpanded ? <FiChevronDown /> : <FiChevronRight />}
+                      </IconButton>
+                    </Tooltip>
                   </Table.Cell>
                   <Table.Cell fontWeight="medium" truncate>
                     {profile.name}
@@ -525,7 +528,7 @@ function Profiles() {
     <Container maxW="full">
       <PageHeader
         title="Profiles Management"
-        description="Profiles group service configurations, authorization instructions, and command permissions returned to network clients."
+        description="Profiles group service configurations, authorization instructions, and command permissions returned to network clients. Click the chevron (>) on any row to expand and view its script structure."
         icon={FiFileText}
       />
       <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">

@@ -52,6 +52,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
+import { Tooltip } from "@/components/ui/tooltip"
 
 const rulesetsSearchSchema = z.object({
   page: z.number().catch(1),
@@ -177,14 +178,16 @@ function RulesetsTable() {
               <Fragment key={ruleset.id}>
                 <Table.Row opacity={isPlaceholderData ? 0.5 : 1}>
                   <Table.Cell>
-                    <IconButton
-                      variant="ghost"
-                      size="xs"
-                      onClick={() => toggleRow(ruleset.id)}
-                      aria-label="Expand ruleset scripts"
-                    >
-                      {isExpanded ? <FiChevronDown /> : <FiChevronRight />}
-                    </IconButton>
+                    <Tooltip content={isExpanded ? "Click to collapse" : "Click to expand and view scripts"} showArrow placement="right">
+                      <IconButton
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => toggleRow(ruleset.id)}
+                        aria-label="Expand ruleset scripts"
+                      >
+                        {isExpanded ? <FiChevronDown /> : <FiChevronRight />}
+                      </IconButton>
+                    </Tooltip>
                   </Table.Cell>
                   <Table.Cell fontWeight="medium" truncate>
                     {ruleset.name}
@@ -551,7 +554,7 @@ function Rulesets() {
     <Container maxW="full">
       <PageHeader
         title="Rulesets Management"
-        description="Rulesets match client properties (like usernames, client IPs, or service options) and map them to appropriate Profiles."
+        description="Rulesets match client properties (like usernames, client IPs, or service options) and map them to appropriate Profiles. Click the chevron (>) on any row to expand and view its script structure."
         icon={FiSliders}
       />
       <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
