@@ -1,9 +1,10 @@
 import {
   Badge,
+  Box,
   Container,
   EmptyState,
   Flex,
-  Heading,
+  HStack,
   Table,
   Text,
   VStack,
@@ -15,6 +16,7 @@ import { FiLayers, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { TacacsServicesService } from "@/client"
+import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
 import { TacacsServiceActionsMenu } from "@/components/Common/TacacsServiceActionsMenu"
@@ -103,61 +105,64 @@ function TacacsServicesTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Table.Root
-            size={{ base: "sm", md: "md" }}
-            mt={2}
-            tableLayout="fixed"
-            w="full"
-          >
-            <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader w="30%">Service Name</Table.ColumnHeader>
-                <Table.ColumnHeader w="15%">Generate</Table.ColumnHeader>
-                <Table.ColumnHeader w="35%">Description</Table.ColumnHeader>
-                <Table.ColumnHeader w="12%">Last Updated</Table.ColumnHeader>
-                <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {tacacs_service?.map((tacacs_service) => (
-                <Table.Row
-                  key={tacacs_service.id}
-                  opacity={isPlaceholderData ? 0.5 : 1}
-                >
-                  <Table.Cell fontWeight="medium" truncate>
-                    <Flex align="center" gap={2} truncate>
-                      <FiLayers style={{ flexShrink: 0, color: "gray" }} />
-                      <Text as="span" truncate>
-                        {tacacs_service.name}
-                      </Text>
-                    </Flex>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge colorPalette={tacacs_service.generate_config ? "green" : "red"} variant="subtle" size="sm">
-                      {tacacs_service.generate_config ? "Yes" : "No"}
-                    </Badge>
-                  </Table.Cell>
-                  <Table.Cell
-                    color={!tacacs_service.description ? "gray" : "inherit"}
-                    truncate
-                  >
-                    {tacacs_service.description || "N/A"}
-                  </Table.Cell>
-                  <Table.Cell fontSize="sm" color="fg.muted">
-                    {new Date(tacacs_service.updated_at).toLocaleString(
-                      undefined,
-                      {
-                        hour12: false,
-                      },
-                    )}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <TacacsServiceActionsMenu tacacs_service={tacacs_service} />
-                  </Table.Cell>
+          <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+            <Table.Root
+              size={{ base: "sm", md: "md" }}
+              tableLayout="fixed"
+              w="full"
+            >
+              <Table.Header bg="bg.muted">
+                <Table.Row>
+                  <Table.ColumnHeader w="30%">Service Name</Table.ColumnHeader>
+                  <Table.ColumnHeader w="15%">Generate</Table.ColumnHeader>
+                  <Table.ColumnHeader w="35%">Description</Table.ColumnHeader>
+                  <Table.ColumnHeader w="12%">Last Updated</Table.ColumnHeader>
+                  <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
                 </Table.Row>
-              ))}
-            </Table.Body>
-          </Table.Root>
+              </Table.Header>
+              <Table.Body>
+                {tacacs_service?.map((tacacs_service) => (
+                  <Table.Row
+                    key={tacacs_service.id}
+                    opacity={isPlaceholderData ? 0.5 : 1}
+                    _hover={{ bg: "bg.muted/50" }}
+                    transition="background 0.2s"
+                  >
+                    <Table.Cell fontWeight="medium" truncate>
+                      <HStack gap={2} truncate>
+                        <FiLayers style={{ flexShrink: 0, color: "gray" }} />
+                        <Text as="span" truncate>
+                          {tacacs_service.name}
+                        </Text>
+                      </HStack>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge colorPalette={tacacs_service.generate_config ? "green" : "red"} variant="subtle" size="sm">
+                        {tacacs_service.generate_config ? "Yes" : "No"}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell
+                      color={!tacacs_service.description ? "gray" : "inherit"}
+                      truncate
+                    >
+                      {tacacs_service.description || "N/A"}
+                    </Table.Cell>
+                    <Table.Cell fontSize="sm" color="fg.muted">
+                      {new Date(tacacs_service.updated_at).toLocaleString(
+                        undefined,
+                        {
+                          hour12: false,
+                        },
+                      )}
+                    </Table.Cell>
+                    <Table.Cell>
+                      <TacacsServiceActionsMenu tacacs_service={tacacs_service} />
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Root>
+          </Box>
           <Flex justifyContent="space-between" align="center" mt={4}>
             <PageSizeSelect
               value={perPage}
@@ -204,10 +209,12 @@ function TacacsServices() {
 
   return (
     <Container maxW="full">
-      <Heading size="md" pt={6}>
-        TacacsServices Management
-      </Heading>
-      <Flex mt={4} align="center" justify="space-between">
+      <PageHeader
+        title="TACACS Services"
+        description="Configure services and service options (such as shell, git, or custom protocols) mapped to TACACS+ policies."
+        icon={FiLayers}
+      />
+      <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
         <AddTacacsService />
         <SearchBox
           initialValue={search}

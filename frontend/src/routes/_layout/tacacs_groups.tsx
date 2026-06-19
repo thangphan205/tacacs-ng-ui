@@ -1,9 +1,10 @@
 import {
   Badge,
+  Box,
   Container,
   EmptyState,
   Flex,
-  Heading,
+  HStack,
   Table,
   Text,
   VStack,
@@ -11,10 +12,11 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { FiSearch, FiUsers } from "react-icons/fi"
+import { FiFolder, FiSearch, FiUsers } from "react-icons/fi"
 import { z } from "zod"
 
 import { TacacsGroupsService } from "@/client"
+import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
 import { TacacsGroupActionsMenu } from "@/components/Common/TacacsGroupActionsMenu"
@@ -101,61 +103,64 @@ function TacacsGroupsTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Table.Root
-            size={{ base: "sm", md: "md" }}
-            mt={2}
-            tableLayout="fixed"
-            w="full"
-          >
-            <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader w="30%">Group Name</Table.ColumnHeader>
-                <Table.ColumnHeader w="15%">Generate</Table.ColumnHeader>
-                <Table.ColumnHeader w="35%">Description</Table.ColumnHeader>
-                <Table.ColumnHeader w="12%">Last Updated</Table.ColumnHeader>
-                <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {tacacs_groups?.map((tacacs_group) => (
-                <Table.Row
-                  key={tacacs_group.id}
-                  opacity={isPlaceholderData ? 0.5 : 1}
-                >
-                  <Table.Cell fontWeight="medium" truncate>
-                    <Flex align="center" gap={2} truncate>
-                      <FiUsers style={{ flexShrink: 0, color: "gray" }} />
-                      <Text as="span" truncate>
-                        {tacacs_group.group_name}
-                      </Text>
-                    </Flex>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge colorPalette={tacacs_group.generate_config ? "green" : "red"} variant="subtle" size="sm">
-                      {tacacs_group.generate_config ? "Yes" : "No"}
-                    </Badge>
-                  </Table.Cell>
-                  <Table.Cell
-                    color={!tacacs_group.description ? "gray" : "inherit"}
-                    truncate
-                  >
-                    {tacacs_group.description || "N/A"}
-                  </Table.Cell>
-                  <Table.Cell fontSize="sm" color="fg.muted">
-                    {new Date(tacacs_group.updated_at).toLocaleString(
-                      undefined,
-                      {
-                        hour12: false,
-                      },
-                    )}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <TacacsGroupActionsMenu tacacs_group={tacacs_group} />
-                  </Table.Cell>
+          <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+            <Table.Root
+              size={{ base: "sm", md: "md" }}
+              tableLayout="fixed"
+              w="full"
+            >
+              <Table.Header bg="bg.muted">
+                <Table.Row>
+                  <Table.ColumnHeader w="30%">Group Name</Table.ColumnHeader>
+                  <Table.ColumnHeader w="15%">Generate</Table.ColumnHeader>
+                  <Table.ColumnHeader w="35%">Description</Table.ColumnHeader>
+                  <Table.ColumnHeader w="12%">Last Updated</Table.ColumnHeader>
+                  <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
                 </Table.Row>
-              ))}
-            </Table.Body>
-          </Table.Root>
+              </Table.Header>
+              <Table.Body>
+                {tacacs_groups?.map((tacacs_group) => (
+                  <Table.Row
+                    key={tacacs_group.id}
+                    opacity={isPlaceholderData ? 0.5 : 1}
+                    _hover={{ bg: "bg.muted/50" }}
+                    transition="background 0.2s"
+                  >
+                    <Table.Cell fontWeight="medium" truncate>
+                      <HStack gap={2} truncate>
+                        <FiUsers style={{ flexShrink: 0, color: "gray" }} />
+                        <Text as="span" truncate>
+                          {tacacs_group.group_name}
+                        </Text>
+                      </HStack>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge colorPalette={tacacs_group.generate_config ? "green" : "red"} variant="subtle" size="sm">
+                        {tacacs_group.generate_config ? "Yes" : "No"}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell
+                      color={!tacacs_group.description ? "gray" : "inherit"}
+                      truncate
+                    >
+                      {tacacs_group.description || "N/A"}
+                    </Table.Cell>
+                    <Table.Cell fontSize="sm" color="fg.muted">
+                      {new Date(tacacs_group.updated_at).toLocaleString(
+                        undefined,
+                        {
+                          hour12: false,
+                        },
+                      )}
+                    </Table.Cell>
+                    <Table.Cell>
+                      <TacacsGroupActionsMenu tacacs_group={tacacs_group} />
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Root>
+          </Box>
           <Flex justifyContent="space-between" align="center" mt={4}>
             <PageSizeSelect
               value={perPage}
@@ -202,14 +207,12 @@ function TacacsGroups() {
 
   return (
     <Container maxW="full">
-      <Flex direction="column" pt={6} gap={1}>
-        <Heading size="md">TACACS Groups</Heading>
-        <Text color="fg.muted" fontSize="sm">
-          Groups serve as templates for user authorizations and exec parameters,
-          which are mapped to Profiles via Ruleset evaluation.
-        </Text>
-      </Flex>
-      <Flex mt={4} align="center" justify="space-between">
+      <PageHeader
+        title="TACACS Groups"
+        description="Groups serve as templates for user authorizations and exec parameters, which are mapped to Profiles via Ruleset evaluation."
+        icon={FiFolder}
+      />
+      <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
         <AddTacacsGroup />
         <SearchBox
           initialValue={search}

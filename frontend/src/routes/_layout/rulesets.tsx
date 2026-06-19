@@ -11,6 +11,7 @@ import {
   Table,
   Text,
   VStack,
+  HStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -22,6 +23,7 @@ import {
   FiExternalLink,
   FiPlus,
   FiSearch,
+  FiSliders,
   FiTrash2,
 } from "react-icons/fi"
 import { z } from "zod"
@@ -31,6 +33,7 @@ import {
   RulesetscriptsService,
   RulesetsService,
 } from "@/client"
+import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { RulesetActionsMenu } from "@/components/Common/RulesetActionsMenu"
 import { SearchBox } from "@/components/Common/SearchBox"
@@ -146,14 +149,14 @@ function RulesetsTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Table.Root
-            size={{ base: "sm", md: "md" }}
-            mt={2}
-            tableLayout="fixed"
-            w="full"
-          >
-            <Table.Header>
-          <Table.Row>
+          <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+            <Table.Root
+              size={{ base: "sm", md: "md" }}
+              tableLayout="fixed"
+              w="full"
+            >
+              <Table.Header bg="bg.muted">
+                <Table.Row>
             <Table.ColumnHeader w="6%" />
             <Table.ColumnHeader w="25%">Name</Table.ColumnHeader>
             <Table.ColumnHeader w="15%">Generate</Table.ColumnHeader>
@@ -506,6 +509,7 @@ function RulesetsTable() {
               })}
             </Table.Body>
           </Table.Root>
+          </Box>
           <Flex justifyContent="space-between" align="center" mt={4}>
             <PageSizeSelect
               value={perPage}
@@ -545,24 +549,21 @@ function Rulesets() {
 
   return (
     <Container maxW="full">
-      <Flex
-        align="center"
-        justify="space-between"
-        pt={6}
-        pb={4}
-        wrap="wrap"
-        gap={4}
-      >
-        <Heading size="md">Rulesets Management</Heading>
-        <Flex align="center" gap={3}>
-          <SearchBox
-            initialValue={search}
-            onSearch={handleSearch}
-            placeholder="Search by name, action, description..."
-          />
+      <PageHeader
+        title="Rulesets Management"
+        description="Rulesets match client properties (like usernames, client IPs, or service options) and map them to appropriate Profiles."
+        icon={FiSliders}
+      />
+      <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
+        <HStack gap={3}>
           <AddRuleset />
           <PreviewRuleset />
-        </Flex>
+        </HStack>
+        <SearchBox
+          initialValue={search}
+          onSearch={handleSearch}
+          placeholder="Search by name, action, description..."
+        />
       </Flex>
       <RulesetsTable />
     </Container>

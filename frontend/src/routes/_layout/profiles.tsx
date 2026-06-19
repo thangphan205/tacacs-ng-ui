@@ -11,6 +11,7 @@ import {
   Table,
   Text,
   VStack,
+  HStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -20,6 +21,7 @@ import {
   FiChevronRight,
   FiEdit,
   FiExternalLink,
+  FiFileText,
   FiPlus,
   FiSearch,
   FiTrash2,
@@ -31,6 +33,7 @@ import {
   ProfilescriptsService,
   ProfilesService,
 } from "@/client"
+import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { ProfileActionsMenu } from "@/components/Common/ProfileActionsMenu"
 import { SearchBox } from "@/components/Common/SearchBox"
@@ -128,15 +131,15 @@ function ProfilesTable() {
 
   return (
     <>
-      <Table.Root
-        size={{ base: "sm", md: "md" }}
-        mt={2}
-        tableLayout="fixed"
-        w="full"
-      >
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader w="6%" />
+      <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+        <Table.Root
+          size={{ base: "sm", md: "md" }}
+          tableLayout="fixed"
+          w="full"
+        >
+          <Table.Header bg="bg.muted">
+            <Table.Row>
+              <Table.ColumnHeader w="6%" />
             <Table.ColumnHeader w="25%">Name</Table.ColumnHeader>
             <Table.ColumnHeader w="15%">Generate</Table.ColumnHeader>
             <Table.ColumnHeader w="15%">Fallback Action</Table.ColumnHeader>
@@ -480,6 +483,7 @@ function ProfilesTable() {
           })}
         </Table.Body>
       </Table.Root>
+      </Box>
       <Flex justifyContent="space-between" align="center" mt={4}>
         <PageSizeSelect
           value={perPage}
@@ -519,24 +523,21 @@ function Profiles() {
 
   return (
     <Container maxW="full">
-      <Flex
-        align="center"
-        justify="space-between"
-        pt={6}
-        pb={4}
-        wrap="wrap"
-        gap={4}
-      >
-        <Heading size="md">Profiles Management</Heading>
-        <Flex align="center" gap={3}>
-          <SearchBox
-            initialValue={search}
-            onSearch={handleProfileSearch}
-            placeholder="Search by name, action, description..."
-          />
+      <PageHeader
+        title="Profiles Management"
+        description="Profiles group service configurations, authorization instructions, and command permissions returned to network clients."
+        icon={FiFileText}
+      />
+      <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
+        <HStack gap={3}>
           <AddProfile />
           <PreviewProfile />
-        </Flex>
+        </HStack>
+        <SearchBox
+          initialValue={search}
+          onSearch={handleProfileSearch}
+          placeholder="Search by name, action, description..."
+        />
       </Flex>
 
       <ProfilesTable />
