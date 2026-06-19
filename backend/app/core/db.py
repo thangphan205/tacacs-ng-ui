@@ -83,12 +83,21 @@ def get_or_create_user(
         session.add(user)
         session.flush()
     else:
+        changed = False
+        if user.member != member:
+            user.member = member
+            changed = True
+        if user.description != description:
+            user.description = description
+            changed = True
         if user.password_type != password_type:
             user.password_type = password_type
             if password_type == "crypt" and password and not password.startswith("$6$"):
                 user.password = hash_tacacs_password(password)
             else:
                 user.password = password
+            changed = True
+        if changed:
             session.add(user)
             session.flush()
     return user

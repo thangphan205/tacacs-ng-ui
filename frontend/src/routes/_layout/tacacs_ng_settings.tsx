@@ -60,6 +60,7 @@ function TacacsNgSettingsForm() {
     handleSubmit,
     reset,
     watch,
+    getValues,
     control,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<TacacsNgSettingUpdate>({
@@ -136,7 +137,7 @@ function TacacsNgSettingsForm() {
 
   const tabs = [
     { id: "network", label: "Network & Listeners", icon: FiServer, desc: "Port mappings and network interfaces." },
-    { id: "performance", label: "Scaling & Scaling", icon: FiCpu, desc: "Process scaling limits and run mode." },
+    { id: "performance", label: "Scaling & Performance", icon: FiCpu, desc: "Process scaling limits and run mode." },
     { id: "backends", label: "Auth Backends", icon: FiDatabase, desc: "LDAP, AD, Mavis backend routing." },
     { id: "logging", label: "Logging Paths", icon: FiFileText, desc: "Path destinations and timezone setup." },
   ]
@@ -359,6 +360,9 @@ function TacacsNgSettingsForm() {
                       required: "Maximum instances is required.",
                       valueAsNumber: true,
                       min: { value: 1, message: "Must be at least 1." },
+                      validate: (value) =>
+                        (value ?? 0) >= (getValues("instances_min") ?? 0) ||
+                        "Maximum must be ≥ minimum instances.",
                     })}
                     type="number"
                   />
