@@ -34,8 +34,24 @@ import {
 } from "../ui/dialog"
 import { Field } from "../ui/field"
 
+const conditionCollection = createListCollection({
+  items: [
+    { label: "if", value: "if" },
+    { label: "elif", value: "elif" },
+    { label: "else", value: "else" },
+  ],
+})
+
+const scriptActionCollection = createListCollection({
+  items: [
+    { label: "permit", value: "permit" },
+    { label: "deny", value: "deny" },
+  ],
+})
+
 interface EditProfileScriptProps {
   profilescript: ProfileScriptPublic
+  buttonElement?: React.ReactElement
 }
 
 interface ProfileScriptUpdateForm {
@@ -47,7 +63,10 @@ interface ProfileScriptUpdateForm {
   profile_id?: string | null
 }
 
-const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
+const EditProfileScript = ({
+  profilescript,
+  buttonElement,
+}: EditProfileScriptProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [formKey, setFormKey] = useState(0)
   const queryClient = useQueryClient()
@@ -162,10 +181,12 @@ const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost">
-          <FaExchangeAlt fontSize="16px" />
-          Edit ProfileScript
-        </Button>
+        {buttonElement || (
+          <Button variant="ghost">
+            <FaExchangeAlt fontSize="16px" />
+            Edit ProfileScript
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <form key={formKey} onSubmit={handleSubmit(onSubmit)}>
@@ -181,12 +202,20 @@ const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
                 errorText={errors.profile_id?.message}
                 label="Profile Parent"
               >
+                <input
+                  type="hidden"
+                  {...register("profile_id", {
+                    required: "Profile Parent is required.",
+                  })}
+                />
                 <Select.Root
                   collection={items_tacacs_profiles}
                   size="sm"
                   defaultValue={[profilescript.profile_id || ""]}
                   onValueChange={(selection) => {
-                    setValue("profile_id", selection.value.toString())
+                    setValue("profile_id", selection.value.toString(), {
+                      shouldValidate: true,
+                    })
                   }}
                 >
                   <Select.Trigger>
@@ -210,15 +239,40 @@ const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
                 required
                 invalid={!!errors.condition}
                 errorText={errors.condition?.message}
-                label="condition"
+                label="Condition"
               >
-                <Input
+                <input
+                  type="hidden"
                   {...register("condition", {
                     required: "condition is required.",
                   })}
-                  placeholder="condition"
-                  type="text"
                 />
+                <Select.Root
+                  collection={conditionCollection}
+                  size="sm"
+                  defaultValue={[profilescript.condition || "if"]}
+                  onValueChange={(selection) => {
+                    setValue("condition", selection.value[0], {
+                      shouldValidate: true,
+                    })
+                  }}
+                >
+                  <Select.Trigger>
+                    <Select.ValueText placeholder="Select Condition" />
+                  </Select.Trigger>
+                  <Select.Positioner>
+                    <Select.Content>
+                      <Select.ItemGroup>
+                        {conditionCollection.items.map((item) => (
+                          <Select.Item key={item.value} item={item.value}>
+                            {item.label}
+                            <Select.ItemIndicator />
+                          </Select.Item>
+                        ))}
+                      </Select.ItemGroup>
+                    </Select.Content>
+                  </Select.Positioner>
+                </Select.Root>
               </Field>
               <Field
                 required
@@ -241,32 +295,38 @@ const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
                 label="value"
               >
                 {watchedKey === "service" ? (
-                  <Select.Root
-                    collection={items_tacacs_services}
-                    size="sm"
-                    defaultValue={[profilescript.value || ""]}
-                    onValueChange={(selection) => {
-                      setValue("value", selection.value.toString(), {
-                        shouldValidate: true,
-                      })
-                    }}
-                  >
-                    <Select.Trigger>
-                      <Select.ValueText placeholder="Select Tacacs Service" />
-                    </Select.Trigger>
-                    <Select.Positioner>
-                      <Select.Content>
-                        <Select.ItemGroup>
-                          {items_tacacs_services.items.map((item) => (
-                            <Select.Item key={item.value} item={item.value}>
-                              {item.label}
-                              <Select.ItemIndicator />
-                            </Select.Item>
-                          ))}
-                        </Select.ItemGroup>
-                      </Select.Content>
-                    </Select.Positioner>
-                  </Select.Root>
+                  <>
+                    <input
+                      type="hidden"
+                      {...register("value", { required: "value is required." })}
+                    />
+                    <Select.Root
+                      collection={items_tacacs_services}
+                      size="sm"
+                      defaultValue={[profilescript.value || ""]}
+                      onValueChange={(selection) => {
+                        setValue("value", selection.value.toString(), {
+                          shouldValidate: true,
+                        })
+                      }}
+                    >
+                      <Select.Trigger>
+                        <Select.ValueText placeholder="Select Tacacs Service" />
+                      </Select.Trigger>
+                      <Select.Positioner>
+                        <Select.Content>
+                          <Select.ItemGroup>
+                            {items_tacacs_services.items.map((item) => (
+                              <Select.Item key={item.value} item={item.value}>
+                                {item.label}
+                                <Select.ItemIndicator />
+                              </Select.Item>
+                            ))}
+                          </Select.ItemGroup>
+                        </Select.Content>
+                      </Select.Positioner>
+                    </Select.Root>
+                  </>
                 ) : (
                   <Input
                     {...register("value", { required: "value is required." })}
@@ -279,15 +339,40 @@ const EditProfileScript = ({ profilescript }: EditProfileScriptProps) => {
                 required
                 invalid={!!errors.action}
                 errorText={errors.action?.message}
-                label="action"
+                label="Action"
               >
-                <Input
+                <input
+                  type="hidden"
                   {...register("action", {
                     required: "action is required.",
                   })}
-                  placeholder="action"
-                  type="text"
                 />
+                <Select.Root
+                  collection={scriptActionCollection}
+                  size="sm"
+                  defaultValue={[profilescript.action || "permit"]}
+                  onValueChange={(selection) => {
+                    setValue("action", selection.value[0], {
+                      shouldValidate: true,
+                    })
+                  }}
+                >
+                  <Select.Trigger>
+                    <Select.ValueText placeholder="Select Action" />
+                  </Select.Trigger>
+                  <Select.Positioner>
+                    <Select.Content>
+                      <Select.ItemGroup>
+                        {scriptActionCollection.items.map((item) => (
+                          <Select.Item key={item.value} item={item.value}>
+                            {item.label}
+                            <Select.ItemIndicator />
+                          </Select.Item>
+                        ))}
+                      </Select.ItemGroup>
+                    </Select.Content>
+                  </Select.Positioner>
+                </Select.Root>
               </Field>
               <Field
                 invalid={!!errors.description}

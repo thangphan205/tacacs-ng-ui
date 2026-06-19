@@ -33,7 +33,30 @@ import {
 } from "../ui/dialog"
 import { Field } from "../ui/field"
 
-const AddRulesetScript = () => {
+const conditionCollection = createListCollection({
+  items: [
+    { label: "if", value: "if" },
+    { label: "elif", value: "elif" },
+    { label: "else", value: "else" },
+  ],
+})
+
+const scriptActionCollection = createListCollection({
+  items: [
+    { label: "permit", value: "permit" },
+    { label: "deny", value: "deny" },
+  ],
+})
+
+interface AddRulesetScriptProps {
+  rulesetId?: string
+  buttonElement?: React.ReactElement
+}
+
+const AddRulesetScript = ({
+  rulesetId,
+  buttonElement,
+}: AddRulesetScriptProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
@@ -48,6 +71,7 @@ const AddRulesetScript = () => {
     mode: "onBlur",
     criteriaMode: "all",
     defaultValues: {
+      ruleset_id: rulesetId || "",
       condition: "if",
       key: "group",
       value: "",
@@ -66,6 +90,7 @@ const AddRulesetScript = () => {
   }
   const { data: data_rulesets } = useQuery({
     ...getTacacsProfilesQueryOptions(),
+    enabled: !rulesetId,
   })
 
   function getTacacsGroupsQueryOptions() {
@@ -108,7 +133,14 @@ const AddRulesetScript = () => {
       RulesetscriptsService.createRulesetscript({ requestBody: data }),
     onSuccess: () => {
       showSuccessToast("RulesetScript created successfully.")
-      reset()
+      reset({
+        ruleset_id: rulesetId || "",
+        condition: "if",
+        key: "group",
+        value: "",
+        description: "",
+        action: "permit",
+      })
       setIsOpen(false)
     },
     onError: (err: ApiError) => {
@@ -131,10 +163,12 @@ const AddRulesetScript = () => {
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button value="add-item" my={4}>
-          <FaPlus fontSize="16px" />
-          Add RulesetScript
-        </Button>
+        {buttonElement || (
+          <Button value="add-item" my={4}>
+            <FaPlus fontSize="16px" />
+            Add RulesetScript
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -144,28 +178,83 @@ const AddRulesetScript = () => {
           <DialogBody>
             <Text mb={4}>Fill in the details to add a new item.</Text>
             <VStack gap={4}>
+              {rulesetId ? (
+                <input
+                  type="hidden"
+                  value={rulesetId}
+                  {...register("ruleset_id", { required: true })}
+                />
+              ) : (
+                <Field
+                  required
+                  invalid={!!errors.ruleset_id}
+                  errorText={errors.ruleset_id?.message}
+                  label="Ruleset Parent"
+                >
+                  <input
+                    type="hidden"
+                    {...register("ruleset_id", {
+                      required: "ruleset_id is required.",
+                    })}
+                  />
+                  <Select.Root
+                    collection={items_tacacs_rulesets}
+                    size="sm"
+                    onValueChange={(selection) => {
+                      setValue("ruleset_id", selection.value.toString(), {
+                        shouldValidate: true,
+                      })
+                    }}
+                  >
+                    <Select.Trigger>
+                      <Select.ValueText placeholder="Select Tacacs Profile" />
+                    </Select.Trigger>
+                    <Select.Positioner>
+                      <Select.Content>
+                        <Select.ItemGroup>
+                          {items_tacacs_rulesets.items.map((item) => (
+                            <Select.Item key={item.value} item={item.value}>
+                              {item.label} - {item.value}
+                              <Select.ItemIndicator />
+                            </Select.Item>
+                          ))}
+                        </Select.ItemGroup>
+                      </Select.Content>
+                    </Select.Positioner>
+                  </Select.Root>
+                </Field>
+              )}
               <Field
                 required
-                invalid={!!errors.ruleset_id}
-                errorText={errors.ruleset_id?.message}
-                label="Ruleset Parent"
+                invalid={!!errors.condition}
+                errorText={errors.condition?.message}
+                label="Condition"
               >
+                <input
+                  type="hidden"
+                  {...register("condition", {
+                    required: "condition is required.",
+                  })}
+                />
                 <Select.Root
-                  collection={items_tacacs_rulesets}
+                  collection={conditionCollection}
                   size="sm"
+                  defaultValue={["if"]}
                   onValueChange={(selection) => {
-                    setValue("ruleset_id", selection.value.toString())
+                    setValue("condition", selection.value[0], {
+                      shouldValidate: true,
+                    })
                   }}
                 >
                   <Select.Trigger>
-                    <Select.ValueText placeholder="Select Tacacs Profile" />
+                    <Select.ValueText placeholder="Select Condition" />
                   </Select.Trigger>
                   <Select.Positioner>
                     <Select.Content>
                       <Select.ItemGroup>
-                        {items_tacacs_rulesets.items.map((item) => (
+                        {conditionCollection.items.map((item) => (
                           <Select.Item key={item.value} item={item.value}>
-                            {item.label} - {item.value}
+                            {item.label}
                             <Select.ItemIndicator />
                           </Select.Item>
                         ))}
@@ -173,20 +262,6 @@ const AddRulesetScript = () => {
                     </Select.Content>
                   </Select.Positioner>
                 </Select.Root>
-              </Field>
-              <Field
-                required
-                invalid={!!errors.condition}
-                errorText={errors.condition?.message}
-                label="condition"
-              >
-                <Input
-                  {...register("condition", {
-                    required: "condition is required.",
-                  })}
-                  placeholder="condition"
-                  type="text"
-                />
               </Field>
               <Field
                 required
@@ -209,31 +284,37 @@ const AddRulesetScript = () => {
                 label="value"
               >
                 {keyField === "group" ? (
-                  <Select.Root
-                    collection={items_tacacs_groups}
-                    size="sm"
-                    onValueChange={(selection) => {
-                      setValue("value", selection.value.toString(), {
-                        shouldValidate: true,
-                      })
-                    }}
-                  >
-                    <Select.Trigger>
-                      <Select.ValueText placeholder="Select Tacacs Group" />
-                    </Select.Trigger>
-                    <Select.Positioner>
-                      <Select.Content>
-                        <Select.ItemGroup>
-                          {items_tacacs_groups.items.map((item) => (
-                            <Select.Item key={item.value} item={item.value}>
-                              {item.label}
-                              <Select.ItemIndicator />
-                            </Select.Item>
-                          ))}
-                        </Select.ItemGroup>
-                      </Select.Content>
-                    </Select.Positioner>
-                  </Select.Root>
+                  <>
+                    <input
+                      type="hidden"
+                      {...register("value", { required: "value is required." })}
+                    />
+                    <Select.Root
+                      collection={items_tacacs_groups}
+                      size="sm"
+                      onValueChange={(selection) => {
+                        setValue("value", selection.value.toString(), {
+                          shouldValidate: true,
+                        })
+                      }}
+                    >
+                      <Select.Trigger>
+                        <Select.ValueText placeholder="Select Tacacs Group" />
+                      </Select.Trigger>
+                      <Select.Positioner>
+                        <Select.Content>
+                          <Select.ItemGroup>
+                            {items_tacacs_groups.items.map((item) => (
+                              <Select.Item key={item.value} item={item.value}>
+                                {item.label}
+                                <Select.ItemIndicator />
+                              </Select.Item>
+                            ))}
+                          </Select.ItemGroup>
+                        </Select.Content>
+                      </Select.Positioner>
+                    </Select.Root>
+                  </>
                 ) : (
                   <Input
                     {...register("value", { required: "value is required." })}
@@ -246,15 +327,40 @@ const AddRulesetScript = () => {
                 required
                 invalid={!!errors.action}
                 errorText={errors.action?.message}
-                label="action"
+                label="Action"
               >
-                <Input
+                <input
+                  type="hidden"
                   {...register("action", {
                     required: "action is required.",
                   })}
-                  placeholder="action"
-                  type="text"
                 />
+                <Select.Root
+                  collection={scriptActionCollection}
+                  size="sm"
+                  defaultValue={["permit"]}
+                  onValueChange={(selection) => {
+                    setValue("action", selection.value[0], {
+                      shouldValidate: true,
+                    })
+                  }}
+                >
+                  <Select.Trigger>
+                    <Select.ValueText placeholder="Select Action" />
+                  </Select.Trigger>
+                  <Select.Positioner>
+                    <Select.Content>
+                      <Select.ItemGroup>
+                        {scriptActionCollection.items.map((item) => (
+                          <Select.Item key={item.value} item={item.value}>
+                            {item.label}
+                            <Select.ItemIndicator />
+                          </Select.Item>
+                        ))}
+                      </Select.ItemGroup>
+                    </Select.Content>
+                  </Select.Positioner>
+                </Select.Root>
               </Field>
               <Field
                 invalid={!!errors.description}

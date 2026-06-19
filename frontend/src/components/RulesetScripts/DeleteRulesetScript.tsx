@@ -17,11 +17,15 @@ import {
 } from "@/components/ui/dialog"
 import useCustomToast from "@/hooks/useCustomToast"
 
+interface DeleteRulesetScriptProps {
+  rulesetscript: RulesetScriptPublic
+  buttonElement?: React.ReactElement
+}
+
 const DeleteRulesetScript = ({
   rulesetscript,
-}: {
-  rulesetscript: RulesetScriptPublic
-}) => {
+  buttonElement,
+}: DeleteRulesetScriptProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
@@ -61,10 +65,12 @@ const DeleteRulesetScript = ({
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" colorPalette="red">
-          <FiTrash2 fontSize="16px" />
-          Delete RulesetScript
-        </Button>
+        {buttonElement || (
+          <Button variant="ghost" size="sm" colorPalette="red">
+            <FiTrash2 fontSize="16px" />
+            Delete RulesetScript
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent>
@@ -74,7 +80,7 @@ const DeleteRulesetScript = ({
             <DialogTitle>Delete RulesetScript</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Badge colorPalette="red" variant="solid">
+            <Badge colorPalette="red" variant="solid" mb={2}>
               {rulesetscript.key}=={rulesetscript.value}
             </Badge>
             <Text mb={4}>

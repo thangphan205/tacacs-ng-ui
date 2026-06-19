@@ -1,9 +1,11 @@
 import {
+  Badge,
   Container,
   EmptyState,
   Flex,
   Heading,
   Table,
+  Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
@@ -101,18 +103,21 @@ function ProfileScriptSetsTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Table.Root size={{ base: "sm", md: "md" }} mt={2}>
+          <Table.Root
+            size={{ base: "sm", md: "md" }}
+            mt={2}
+            tableLayout="fixed"
+            w="full"
+          >
             <Table.Header>
               <Table.Row>
-                <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Profile</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">
-                  Profile Script Condition
+                <Table.ColumnHeader w="30%">
+                  Profile / Condition
                 </Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Set Key</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Set Value</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Description</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
+                <Table.ColumnHeader w="15%">Set Key</Table.ColumnHeader>
+                <Table.ColumnHeader w="20%">Set Value</Table.ColumnHeader>
+                <Table.ColumnHeader w="27%">Description</Table.ColumnHeader>
+                <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -121,25 +126,24 @@ function ProfileScriptSetsTable() {
                   key={profilescriptset.id}
                   opacity={isPlaceholderData ? 0.5 : 1}
                 >
-                  <Table.Cell truncate maxW="sm">
-                    {profilescriptset.id}
+                  <Table.Cell>
+                    <Text fontWeight="medium" truncate>
+                      {profilescriptset.profile_name}
+                    </Text>
+                    <Badge
+                      variant="subtle"
+                      colorPalette="teal"
+                      mt={0.5}
+                      fontSize="xs"
+                    >
+                      {profilescriptset.profilescript_block}
+                    </Badge>
                   </Table.Cell>
-                  <Table.Cell truncate maxW="sm">
-                    {profilescriptset.profile_name}
-                  </Table.Cell>
-                  <Table.Cell truncate maxW="sm">
-                    {profilescriptset.profilescript_block}
-                  </Table.Cell>
-                  <Table.Cell truncate maxW="sm">
-                    {profilescriptset.key}
-                  </Table.Cell>
-                  <Table.Cell truncate maxW="sm">
-                    {profilescriptset.value}
-                  </Table.Cell>
+                  <Table.Cell truncate>{profilescriptset.key}</Table.Cell>
+                  <Table.Cell truncate>{profilescriptset.value}</Table.Cell>
                   <Table.Cell
                     color={!profilescriptset.description ? "gray" : "inherit"}
                     truncate
-                    maxW="30%"
                   >
                     {profilescriptset.description || "N/A"}
                   </Table.Cell>

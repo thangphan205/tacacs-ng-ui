@@ -17,11 +17,15 @@ import {
 } from "@/components/ui/dialog"
 import useCustomToast from "@/hooks/useCustomToast"
 
+interface DeleteProfileScriptProps {
+  profilescript: ProfileScriptPublic
+  buttonElement?: React.ReactElement
+}
+
 const DeleteProfileScript = ({
   profilescript,
-}: {
-  profilescript: ProfileScriptPublic
-}) => {
+  buttonElement,
+}: DeleteProfileScriptProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
@@ -61,10 +65,12 @@ const DeleteProfileScript = ({
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" colorPalette="red">
-          <FiTrash2 fontSize="16px" />
-          Delete ProfileScript
-        </Button>
+        {buttonElement || (
+          <Button variant="ghost" size="sm" colorPalette="red">
+            <FiTrash2 fontSize="16px" />
+            Delete ProfileScript
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent>
@@ -74,7 +80,7 @@ const DeleteProfileScript = ({
             <DialogTitle>Delete ProfileScript</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Badge colorPalette="red" variant="solid">
+            <Badge colorPalette="red" variant="solid" mb={2}>
               Profile Script: {profilescript.key}=={profilescript.value}{" "}
             </Badge>
             <Text mb={4}>

@@ -1,22 +1,46 @@
 import {
+  Badge,
+  Box,
+  Button,
   Container,
   EmptyState,
   Flex,
   Heading,
+  IconButton,
+  Link,
   Table,
+  Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
-import { FiSearch } from "react-icons/fi"
+import { Fragment, useState } from "react"
+import {
+  FiChevronDown,
+  FiChevronRight,
+  FiEdit,
+  FiExternalLink,
+  FiPlus,
+  FiSearch,
+  FiTrash2,
+} from "react-icons/fi"
 import { z } from "zod"
 
-import { ProfilesService } from "@/client"
+import {
+  ProfilescriptsetsService,
+  ProfilescriptsService,
+  ProfilesService,
+} from "@/client"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { ProfileActionsMenu } from "@/components/Common/ProfileActionsMenu"
 import { SearchBox } from "@/components/Common/SearchBox"
 import PendingProfiles from "@/components/Pending/PendingProfiles"
+import AddProfileScriptSet from "@/components/ProfileScriptSets/AddProfileScriptSet"
+import DeleteProfileScriptSet from "@/components/ProfileScriptSets/DeleteProfileScriptSet"
+import EditProfileScriptSet from "@/components/ProfileScriptSets/EditProfileScriptSet"
+import AddProfileScript from "@/components/ProfileScripts/AddProfileScript"
+import DeleteProfileScript from "@/components/ProfileScripts/DeleteProfileScript"
+import EditProfileScript from "@/components/ProfileScripts/EditProfileScript"
 import AddProfile from "@/components/Profiles/AddProfile"
 import PreviewProfile from "@/components/Profiles/PreviewProfile"
 import {
@@ -31,18 +55,22 @@ const profilesSearchSchema = z.object({
   search: z.string().optional(),
 })
 
-const DEFAULT_PER_PAGE = 5
+const DEFAULT_PER_PAGE = 10
 
-function getProfilesQueryOptions({
-  page,
-  search,
-  perPage,
-}: {
-  page: number
-  search?: string
-  perPage: number
-}) {
-  return {
+export const Route = createFileRoute("/_layout/profiles")({
+  component: Profiles,
+  validateSearch: (search) => profilesSearchSchema.parse(search),
+})
+
+// ── Profiles table list ───────────────────────────────────────────────────────
+
+function ProfilesTable() {
+  const navigate = useNavigate({ from: Route.fullPath })
+  const { page, search } = Route.useSearch()
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
+
+  const { data, isLoading, isPlaceholderData } = useQuery({
     queryFn: () =>
       ProfilesService.readProfiles({
         skip: (page - 1) * perPage,
@@ -50,86 +78,106 @@ function getProfilesQueryOptions({
         search,
       }),
     queryKey: ["profiles", { page, search, perPage }],
-  }
-}
-
-export const Route = createFileRoute("/_layout/profiles")({
-  component: Profiles,
-  validateSearch: (search) => profilesSearchSchema.parse(search),
-})
-
-function ProfilesTable() {
-  const navigate = useNavigate({ from: Route.fullPath })
-  const { page, search } = Route.useSearch()
-
-  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
-
-  const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getProfilesQueryOptions({ page, search, perPage }),
-    placeholderData: (prevData) => prevData,
+    placeholderData: (prev) => prev,
   })
 
-  const setPage = (page: number) => {
-    navigate({
-      to: "/profiles",
-      search: (prev) => ({ ...prev, page }),
-    })
+  // Fetch all scripts for nested visualization
+  const { data: scriptsData } = useQuery({
+    queryFn: () => ProfilescriptsService.readProfilescripts({ limit: 1000 }),
+    queryKey: ["profilescripts", "all"],
+  })
+
+  // Fetch all script sets for nested visualization
+  const { data: scriptSetsData } = useQuery({
+    queryFn: () =>
+      ProfilescriptsetsService.readProfilescriptsets({ limit: 1000 }),
+    queryKey: ["profilescriptsets", "all"],
+  })
+
+  const toggleRow = (id: string) => {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }))
   }
+
+  const setPage = (p: number) =>
+    navigate({ to: "/profiles", search: (prev) => ({ ...prev, page: p }) })
 
   const profiles = data?.data ?? []
   const count = data?.count ?? 0
 
+  if (isLoading) return <PendingProfiles />
+
+  if (profiles.length === 0)
+    return (
+      <EmptyState.Root>
+        <EmptyState.Content>
+          <EmptyState.Indicator>
+            <FiSearch />
+          </EmptyState.Indicator>
+          <VStack textAlign="center">
+            <EmptyState.Title>No profiles yet</EmptyState.Title>
+            <EmptyState.Description>
+              Add a new profile to get started
+            </EmptyState.Description>
+          </VStack>
+        </EmptyState.Content>
+      </EmptyState.Root>
+    )
+
   return (
     <>
-      {isLoading ? (
-        <PendingProfiles />
-      ) : profiles.length === 0 ? (
-        <EmptyState.Root>
-          <EmptyState.Content>
-            <EmptyState.Indicator>
-              <FiSearch />
-            </EmptyState.Indicator>
-            <VStack textAlign="center">
-              <EmptyState.Title>
-                You don't have any profiles yet
-              </EmptyState.Title>
-              <EmptyState.Description>
-                Add a new profile to get started
-              </EmptyState.Description>
-            </VStack>
-          </EmptyState.Content>
-        </EmptyState.Root>
-      ) : (
-        <>
-          <Table.Root size={{ base: "sm", md: "md" }} mt={2}>
-            <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Name</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Action</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Description</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {profiles?.map((profile) => (
-                <Table.Row
-                  key={profile.id}
-                  opacity={isPlaceholderData ? 0.5 : 1}
-                >
-                  <Table.Cell truncate maxW="sm">
-                    {profile.id}
+      <Table.Root
+        size={{ base: "sm", md: "md" }}
+        mt={2}
+        tableLayout="fixed"
+        w="full"
+      >
+        <Table.Header>
+          <Table.Row>
+            <Table.ColumnHeader w="6%" />
+            <Table.ColumnHeader w="30%">Name</Table.ColumnHeader>
+            <Table.ColumnHeader w="15%">Fallback Action</Table.ColumnHeader>
+            <Table.ColumnHeader w="41%">Description</Table.ColumnHeader>
+            <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {profiles.map((profile) => {
+            const isExpanded = !!expandedRows[profile.id]
+            const profileScripts =
+              scriptsData?.data.filter((s) => s.profile_id === profile.id) || []
+
+            return (
+              <Fragment key={profile.id}>
+                <Table.Row opacity={isPlaceholderData ? 0.5 : 1}>
+                  <Table.Cell>
+                    <IconButton
+                      variant="ghost"
+                      size="xs"
+                      onClick={() => toggleRow(profile.id)}
+                      aria-label="Expand profile scripts"
+                    >
+                      {isExpanded ? <FiChevronDown /> : <FiChevronRight />}
+                    </IconButton>
                   </Table.Cell>
-                  <Table.Cell truncate maxW="sm">
+                  <Table.Cell fontWeight="medium" truncate>
                     {profile.name}
                   </Table.Cell>
-                  <Table.Cell truncate maxW="sm">
-                    {profile.action}
+                  <Table.Cell>
+                    <Badge
+                      variant="subtle"
+                      colorPalette={
+                        profile.action === "permit" ? "green" : "orange"
+                      }
+                    >
+                      {profile.action}
+                    </Badge>
                   </Table.Cell>
                   <Table.Cell
                     color={!profile.description ? "gray" : "inherit"}
                     truncate
-                    maxW="30%"
                   >
                     {profile.description || "N/A"}
                   </Table.Cell>
@@ -137,40 +185,326 @@ function ProfilesTable() {
                     <ProfileActionsMenu profile={profile} />
                   </Table.Cell>
                 </Table.Row>
-              ))}
-            </Table.Body>
-          </Table.Root>
-          <Flex justifyContent="space-between" align="center" mt={4}>
-            <PageSizeSelect
-              value={perPage}
-              onChange={(n) => {
-                setPerPage(n)
-                setPage(1)
-              }}
-            />
-            <PaginationRoot
-              count={count}
-              pageSize={perPage}
-              onPageChange={({ page }) => setPage(page)}
-            >
-              <Flex>
-                <PaginationPrevTrigger />
-                <PaginationItems />
-                <PaginationNextTrigger />
-              </Flex>
-            </PaginationRoot>
+                {isExpanded && (
+                  <Table.Row>
+                    <Table.Cell
+                      colSpan={5}
+                      p={4}
+                      bg="bg.subtle"
+                      borderBottomWidth="1px"
+                      borderColor="border.subtle"
+                    >
+                      <Flex justify="space-between" align="center" mb={3}>
+                        <Heading
+                          size="xs"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
+                          color="teal.600"
+                        >
+                          Profile Script Structure ({profileScripts.length})
+                        </Heading>
+                        <AddProfileScript
+                          profileId={profile.id}
+                          buttonElement={
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              colorPalette="teal"
+                            >
+                              <FiPlus /> Add Script Block
+                            </Button>
+                          }
+                        />
+                      </Flex>
+                      {profileScripts.length === 0 ? (
+                        <Text fontSize="sm" color="fg.muted" py={2}>
+                          No scripts configured. Click "Add Script Block" to get
+                          started.
+                        </Text>
+                      ) : (
+                        <VStack align="stretch" gap={3} w="full">
+                          {profileScripts.map((script) => {
+                            const scriptSets =
+                              scriptSetsData?.data.filter(
+                                (ss) => ss.profilescript_id === script.id,
+                              ) || []
+                            return (
+                              <Box
+                                key={script.id}
+                                p={3}
+                                bg="bg.panel"
+                                borderWidth="1px"
+                                borderRadius="md"
+                                borderColor="border.subtle"
+                                position="relative"
+                              >
+                                <Flex
+                                  justify="space-between"
+                                  align="start"
+                                  mb={2}
+                                >
+                                  <Flex align="center" gap={2} wrap="wrap">
+                                    <Badge
+                                      colorPalette="teal"
+                                      variant="solid"
+                                      fontSize="xs"
+                                    >
+                                      {script.condition}
+                                    </Badge>
+                                    <Text
+                                      fontSize="sm"
+                                      fontWeight="semibold"
+                                      fontFamily="mono"
+                                    >
+                                      ({script.key} == "{script.value}")
+                                    </Text>
+                                    {script.description && (
+                                      <Text fontSize="xs" color="fg.muted">
+                                        — {script.description}
+                                      </Text>
+                                    )}
+                                  </Flex>
+                                  <Flex align="center" gap={1}>
+                                    <EditProfileScript
+                                      profilescript={script}
+                                      buttonElement={
+                                        <IconButton
+                                          size="xs"
+                                          variant="ghost"
+                                          aria-label="Edit script"
+                                        >
+                                          <FiEdit />
+                                        </IconButton>
+                                      }
+                                    />
+                                    <DeleteProfileScript
+                                      profilescript={script}
+                                      buttonElement={
+                                        <IconButton
+                                          size="xs"
+                                          variant="ghost"
+                                          colorPalette="red"
+                                          aria-label="Delete script"
+                                        >
+                                          <FiTrash2 />
+                                        </IconButton>
+                                      }
+                                    />
+                                  </Flex>
+                                </Flex>
+
+                                <Box
+                                  pl={4}
+                                  ml={2}
+                                  borderLeftWidth="2px"
+                                  borderColor="border.muted"
+                                  mb={2}
+                                >
+                                  {scriptSets.length === 0 ? (
+                                    <Text
+                                      fontSize="xs"
+                                      color="fg.muted"
+                                      fontStyle="italic"
+                                      mb={2}
+                                    >
+                                      No key-value assignments configured.
+                                    </Text>
+                                  ) : (
+                                    <VStack align="stretch" gap={1.5} mb={2}>
+                                      {scriptSets.map((set) => (
+                                        <Flex
+                                          key={set.id}
+                                          align="center"
+                                          justify="space-between"
+                                          bg="bg.subtle"
+                                          py={1}
+                                          px={2}
+                                          borderRadius="sm"
+                                          borderWidth="1px"
+                                          borderColor="border.subtle"
+                                        >
+                                          <Flex align="center" gap={2}>
+                                            <Badge
+                                              colorPalette="purple"
+                                              variant="outline"
+                                              size="sm"
+                                            >
+                                              set
+                                            </Badge>
+                                            <Text
+                                              fontSize="xs"
+                                              fontFamily="mono"
+                                              fontWeight="medium"
+                                            >
+                                              {set.key} = "{set.value}"
+                                            </Text>
+                                            {set.description && (
+                                              <Text
+                                                fontSize="2xs"
+                                                color="fg.muted"
+                                              >
+                                                ({set.description})
+                                              </Text>
+                                            )}
+                                          </Flex>
+                                          <Flex align="center" gap={0.5}>
+                                            <EditProfileScriptSet
+                                              profilescriptset={set}
+                                              buttonElement={
+                                                <IconButton
+                                                  size="2xs"
+                                                  variant="ghost"
+                                                  aria-label="Edit set"
+                                                >
+                                                  <FiEdit fontSize="10px" />
+                                                </IconButton>
+                                              }
+                                            />
+                                            <DeleteProfileScriptSet
+                                              profilescriptset={set}
+                                              buttonElement={
+                                                <IconButton
+                                                  size="2xs"
+                                                  variant="ghost"
+                                                  colorPalette="red"
+                                                  aria-label="Delete set"
+                                                >
+                                                  <FiTrash2 fontSize="10px" />
+                                                </IconButton>
+                                              }
+                                            />
+                                          </Flex>
+                                        </Flex>
+                                      ))}
+                                    </VStack>
+                                  )}
+                                  <AddProfileScriptSet
+                                    profilescriptId={script.id}
+                                    buttonElement={
+                                      <Button
+                                        size="xs"
+                                        variant="ghost"
+                                        colorPalette="teal"
+                                        height="6"
+                                        p="1"
+                                      >
+                                        <FiPlus fontSize="12px" /> Add Variable
+                                        Assignment
+                                      </Button>
+                                    }
+                                  />
+                                </Box>
+
+                                <Flex align="center" gap={1.5} pl={2}>
+                                  <Text
+                                    fontSize="xs"
+                                    fontWeight="bold"
+                                    color="fg.muted"
+                                  >
+                                    Result action:
+                                  </Text>
+                                  <Badge
+                                    colorPalette={
+                                      script.action === "permit"
+                                        ? "green"
+                                        : "orange"
+                                    }
+                                    variant="subtle"
+                                  >
+                                    {script.action}
+                                  </Badge>
+                                </Flex>
+                              </Box>
+                            )
+                          })}
+                        </VStack>
+                      )}
+                      <Box
+                        mt={4}
+                        pt={3}
+                        borderTopWidth="1px"
+                        borderColor="border.subtle"
+                      >
+                        <Flex align="center" gap={2}>
+                          <Text
+                            fontSize="xs"
+                            fontWeight="bold"
+                            color="fg.muted"
+                          >
+                            Fallback Action:
+                          </Text>
+                          <Badge
+                            colorPalette={
+                              profile.action === "permit" ? "green" : "orange"
+                            }
+                            variant="solid"
+                          >
+                            {profile.action}
+                          </Badge>
+                          <Text
+                            fontSize="xs"
+                            color="fg.muted"
+                            display="inline-flex"
+                            alignItems="center"
+                            gap={1}
+                          >
+                            (Applied if none of the script blocks above match
+                            the request. Learn more in the{" "}
+                            <Link
+                              href="https://projects.pro-bono-publico.de/event-driven-servers/doc/tac_plus-ng.html#_scripts"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              color="blue.500"
+                              display="inline-flex"
+                              alignItems="center"
+                              gap={0.5}
+                            >
+                              official documentation{" "}
+                              <FiExternalLink size="12px" />
+                            </Link>
+                            )
+                          </Text>
+                        </Flex>
+                      </Box>
+                    </Table.Cell>
+                  </Table.Row>
+                )}
+              </Fragment>
+            )
+          })}
+        </Table.Body>
+      </Table.Root>
+      <Flex justifyContent="space-between" align="center" mt={4}>
+        <PageSizeSelect
+          value={perPage}
+          onChange={(n) => {
+            setPerPage(n)
+            setPage(1)
+          }}
+        />
+        <PaginationRoot
+          count={count}
+          pageSize={perPage}
+          onPageChange={({ page }) => setPage(page)}
+        >
+          <Flex>
+            <PaginationPrevTrigger />
+            <PaginationItems />
+            <PaginationNextTrigger />
           </Flex>
-        </>
-      )}
+        </PaginationRoot>
+      </Flex>
     </>
   )
 }
+
+// ── Page root ─────────────────────────────────────────────────────────────────
 
 function Profiles() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { search } = Route.useSearch()
 
-  const handleSearch = (val: string) => {
+  const handleProfileSearch = (val: string) => {
     navigate({
       to: "/profiles",
       search: (prev) => ({ ...prev, page: 1, search: val || undefined }),
@@ -179,20 +513,26 @@ function Profiles() {
 
   return (
     <Container maxW="full">
-      <Heading size="md" pt={6}>
-        Profiles Management
-      </Heading>
-      <Flex mt={4} align="center" justify="space-between">
-        <Flex gap={2}>
+      <Flex
+        align="center"
+        justify="space-between"
+        pt={6}
+        pb={4}
+        wrap="wrap"
+        gap={4}
+      >
+        <Heading size="md">Profiles Management</Heading>
+        <Flex align="center" gap={3}>
+          <SearchBox
+            initialValue={search}
+            onSearch={handleProfileSearch}
+            placeholder="Search by name, action, description..."
+          />
           <AddProfile />
           <PreviewProfile />
         </Flex>
-        <SearchBox
-          initialValue={search}
-          onSearch={handleSearch}
-          placeholder="Search by name, action, description..."
-        />
       </Flex>
+
       <ProfilesTable />
     </Container>
   )

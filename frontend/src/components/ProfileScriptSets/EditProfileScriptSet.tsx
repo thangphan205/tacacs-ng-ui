@@ -37,6 +37,7 @@ import { Field } from "../ui/field"
 
 interface EditProfileScriptSetProps {
   profilescriptset: ProfileScriptSetPublic
+  buttonElement?: React.ReactElement
 }
 
 interface ProfileScriptSetUpdateForm {
@@ -48,6 +49,7 @@ interface ProfileScriptSetUpdateForm {
 
 const EditProfileScriptSet = ({
   profilescriptset,
+  buttonElement,
 }: EditProfileScriptSetProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [formKey, setFormKey] = useState(0)
@@ -134,10 +136,12 @@ const EditProfileScriptSet = ({
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost">
-          <FaExchangeAlt fontSize="16px" />
-          Edit ProfileScriptSet
-        </Button>
+        {buttonElement || (
+          <Button variant="ghost">
+            <FaExchangeAlt fontSize="16px" />
+            Edit ProfileScriptSet
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <form key={formKey} onSubmit={handleSubmit(onSubmit)}>
@@ -153,12 +157,20 @@ const EditProfileScriptSet = ({
                 errorText={errors.profilescript_id?.message}
                 label="ProfileScript Parent"
               >
+                <input
+                  type="hidden"
+                  {...register("profilescript_id", {
+                    required: "ProfileScript Parent is required.",
+                  })}
+                />
                 <Select.Root
                   collection={items_tacacs_profilescripts}
                   size="sm"
                   defaultValue={[profilescriptset.profilescript_id]}
                   onValueChange={(selection) => {
-                    setValue("profilescript_id", selection.value.toString())
+                    setValue("profilescript_id", selection.value.toString(), {
+                      shouldValidate: true,
+                    })
                   }}
                 >
                   <Select.Trigger>

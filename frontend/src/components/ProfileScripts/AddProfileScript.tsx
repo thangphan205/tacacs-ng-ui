@@ -33,7 +33,30 @@ import {
 } from "../ui/dialog"
 import { Field } from "../ui/field"
 
-const AddProfileScript = () => {
+const conditionCollection = createListCollection({
+  items: [
+    { label: "if", value: "if" },
+    { label: "elif", value: "elif" },
+    { label: "else", value: "else" },
+  ],
+})
+
+const scriptActionCollection = createListCollection({
+  items: [
+    { label: "permit", value: "permit" },
+    { label: "deny", value: "deny" },
+  ],
+})
+
+interface AddProfileScriptProps {
+  profileId?: string
+  buttonElement?: React.ReactElement
+}
+
+const AddProfileScript = ({
+  profileId,
+  buttonElement,
+}: AddProfileScriptProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
@@ -48,6 +71,7 @@ const AddProfileScript = () => {
     mode: "onBlur",
     criteriaMode: "all",
     defaultValues: {
+      profile_id: profileId || "",
       condition: "if",
       action: "permit",
       key: "service",
@@ -66,6 +90,7 @@ const AddProfileScript = () => {
   }
   const { data: data_profiles } = useQuery({
     ...getTacacsProfilesQueryOptions(),
+    enabled: !profileId, // No need to query if parent ID is fixed
   })
 
   function getTacacsServicesQueryOptions() {
@@ -109,7 +134,14 @@ const AddProfileScript = () => {
       ProfilescriptsService.createProfilescript({ requestBody: data }),
     onSuccess: () => {
       showSuccessToast("ProfileScript created successfully.")
-      reset()
+      reset({
+        profile_id: profileId || "",
+        condition: "if",
+        action: "permit",
+        key: "service",
+        value: "",
+        description: "",
+      })
       setIsOpen(false)
     },
     onError: (err: ApiError) => {
@@ -132,10 +164,12 @@ const AddProfileScript = () => {
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button value="add-item" my={4}>
-          <FaPlus fontSize="16px" />
-          Add ProfileScript
-        </Button>
+        {buttonElement || (
+          <Button value="add-item" my={4}>
+            <FaPlus fontSize="16px" />
+            Add ProfileScript
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -145,28 +179,83 @@ const AddProfileScript = () => {
           <DialogBody>
             <Text mb={4}>Fill in the details to add a new item.</Text>
             <VStack gap={4}>
+              {profileId ? (
+                <input
+                  type="hidden"
+                  value={profileId}
+                  {...register("profile_id", { required: true })}
+                />
+              ) : (
+                <Field
+                  required
+                  invalid={!!errors.profile_id}
+                  errorText={errors.profile_id?.message}
+                  label="Profile Parent"
+                >
+                  <input
+                    type="hidden"
+                    {...register("profile_id", {
+                      required: "Profile Parent is required.",
+                    })}
+                  />
+                  <Select.Root
+                    collection={items_tacacs_profiles}
+                    size="sm"
+                    onValueChange={(selection) => {
+                      setValue("profile_id", selection.value.toString(), {
+                        shouldValidate: true,
+                      })
+                    }}
+                  >
+                    <Select.Trigger>
+                      <Select.ValueText placeholder="Select Tacacs Profile" />
+                    </Select.Trigger>
+                    <Select.Positioner>
+                      <Select.Content>
+                        <Select.ItemGroup>
+                          {items_tacacs_profiles.items.map((item) => (
+                            <Select.Item key={item.value} item={item.value}>
+                              {item.label} - {item.value}
+                              <Select.ItemIndicator />
+                            </Select.Item>
+                          ))}
+                        </Select.ItemGroup>
+                      </Select.Content>
+                    </Select.Positioner>
+                  </Select.Root>
+                </Field>
+              )}
               <Field
                 required
-                invalid={!!errors.profile_id}
-                errorText={errors.profile_id?.message}
-                label="Profile Parent"
+                invalid={!!errors.condition}
+                errorText={errors.condition?.message}
+                label="Condition"
               >
+                <input
+                  type="hidden"
+                  {...register("condition", {
+                    required: "condition is required.",
+                  })}
+                />
                 <Select.Root
-                  collection={items_tacacs_profiles}
+                  collection={conditionCollection}
                   size="sm"
+                  defaultValue={["if"]}
                   onValueChange={(selection) => {
-                    setValue("profile_id", selection.value.toString())
+                    setValue("condition", selection.value[0], {
+                      shouldValidate: true,
+                    })
                   }}
                 >
                   <Select.Trigger>
-                    <Select.ValueText placeholder="Select Tacacs Profile" />
+                    <Select.ValueText placeholder="Select Condition" />
                   </Select.Trigger>
                   <Select.Positioner>
                     <Select.Content>
                       <Select.ItemGroup>
-                        {items_tacacs_profiles.items.map((item) => (
+                        {conditionCollection.items.map((item) => (
                           <Select.Item key={item.value} item={item.value}>
-                            {item.label} - {item.value}
+                            {item.label}
                             <Select.ItemIndicator />
                           </Select.Item>
                         ))}
@@ -174,20 +263,6 @@ const AddProfileScript = () => {
                     </Select.Content>
                   </Select.Positioner>
                 </Select.Root>
-              </Field>
-              <Field
-                required
-                invalid={!!errors.condition}
-                errorText={errors.condition?.message}
-                label="condition"
-              >
-                <Input
-                  {...register("condition", {
-                    required: "condition is required.",
-                  })}
-                  placeholder="condition"
-                  type="text"
-                />
               </Field>
               <Field
                 required
@@ -210,31 +285,37 @@ const AddProfileScript = () => {
                 label="value"
               >
                 {watchedKey === "service" ? (
-                  <Select.Root
-                    collection={items_tacacs_services}
-                    size="sm"
-                    onValueChange={(selection) => {
-                      setValue("value", selection.value.toString(), {
-                        shouldValidate: true,
-                      })
-                    }}
-                  >
-                    <Select.Trigger>
-                      <Select.ValueText placeholder="Select Tacacs Service" />
-                    </Select.Trigger>
-                    <Select.Positioner>
-                      <Select.Content>
-                        <Select.ItemGroup>
-                          {items_tacacs_services.items.map((item) => (
-                            <Select.Item key={item.value} item={item.value}>
-                              {item.label}
-                              <Select.ItemIndicator />
-                            </Select.Item>
-                          ))}
-                        </Select.ItemGroup>
-                      </Select.Content>
-                    </Select.Positioner>
-                  </Select.Root>
+                  <>
+                    <input
+                      type="hidden"
+                      {...register("value", { required: "value is required." })}
+                    />
+                    <Select.Root
+                      collection={items_tacacs_services}
+                      size="sm"
+                      onValueChange={(selection) => {
+                        setValue("value", selection.value.toString(), {
+                          shouldValidate: true,
+                        })
+                      }}
+                    >
+                      <Select.Trigger>
+                        <Select.ValueText placeholder="Select Tacacs Service" />
+                      </Select.Trigger>
+                      <Select.Positioner>
+                        <Select.Content>
+                          <Select.ItemGroup>
+                            {items_tacacs_services.items.map((item) => (
+                              <Select.Item key={item.value} item={item.value}>
+                                {item.label}
+                                <Select.ItemIndicator />
+                              </Select.Item>
+                            ))}
+                          </Select.ItemGroup>
+                        </Select.Content>
+                      </Select.Positioner>
+                    </Select.Root>
+                  </>
                 ) : (
                   <Input
                     {...register("value", { required: "value is required." })}
@@ -247,15 +328,40 @@ const AddProfileScript = () => {
                 required
                 invalid={!!errors.action}
                 errorText={errors.action?.message}
-                label="action"
+                label="Action"
               >
-                <Input
+                <input
+                  type="hidden"
                   {...register("action", {
                     required: "action is required.",
                   })}
-                  placeholder="action"
-                  type="text"
                 />
+                <Select.Root
+                  collection={scriptActionCollection}
+                  size="sm"
+                  defaultValue={["permit"]}
+                  onValueChange={(selection) => {
+                    setValue("action", selection.value[0], {
+                      shouldValidate: true,
+                    })
+                  }}
+                >
+                  <Select.Trigger>
+                    <Select.ValueText placeholder="Select Action" />
+                  </Select.Trigger>
+                  <Select.Positioner>
+                    <Select.Content>
+                      <Select.ItemGroup>
+                        {scriptActionCollection.items.map((item) => (
+                          <Select.Item key={item.value} item={item.value}>
+                            {item.label}
+                            <Select.ItemIndicator />
+                          </Select.Item>
+                        ))}
+                      </Select.ItemGroup>
+                    </Select.Content>
+                  </Select.Positioner>
+                </Select.Root>
               </Field>
               <Field
                 invalid={!!errors.description}

@@ -1,6 +1,11 @@
 # Release Notes
 
-## Latest Changes
+## v0.3.10
+
+### Features
+
+* ✨ **Unified visual configuration hierarchy for Profiles & Rulesets** — consolidated script blocks and key-value/variable assignments directly within expandable row details under Profiles and Rulesets tables, removing the need for separate flat tabs. Contextual add/edit forms now automatically resolve and prefill parent references. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Link reference to official scripting documentation** — added link reference directly in the fallback action helper text in Profiles and Rulesets visual editors. PR by [@thangphan205](https://github.com/thangphan205).
 
 ## v0.3.9
 

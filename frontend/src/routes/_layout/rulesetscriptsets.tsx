@@ -1,9 +1,11 @@
 import {
+  Badge,
   Container,
   EmptyState,
   Flex,
   Heading,
   Table,
+  Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
@@ -101,18 +103,21 @@ function RulesetScriptSetsTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Table.Root size={{ base: "sm", md: "md" }} mt={2}>
+          <Table.Root
+            size={{ base: "sm", md: "md" }}
+            mt={2}
+            tableLayout="fixed"
+            w="full"
+          >
             <Table.Header>
               <Table.Row>
-                <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Ruleset</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">
-                  Ruleset Script Block
+                <Table.ColumnHeader w="30%">
+                  Ruleset / Condition
                 </Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Set Key</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Set Value</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Description</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
+                <Table.ColumnHeader w="15%">Set Key</Table.ColumnHeader>
+                <Table.ColumnHeader w="20%">Set Value</Table.ColumnHeader>
+                <Table.ColumnHeader w="27%">Description</Table.ColumnHeader>
+                <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -121,25 +126,24 @@ function RulesetScriptSetsTable() {
                   key={rulesetscriptset.id}
                   opacity={isPlaceholderData ? 0.5 : 1}
                 >
-                  <Table.Cell truncate maxW="sm">
-                    {rulesetscriptset.id}
+                  <Table.Cell>
+                    <Text fontWeight="medium" truncate>
+                      {rulesetscriptset.ruleset_name}
+                    </Text>
+                    <Badge
+                      variant="subtle"
+                      colorPalette="teal"
+                      mt={0.5}
+                      fontSize="xs"
+                    >
+                      {rulesetscriptset.rulesetscript_block}
+                    </Badge>
                   </Table.Cell>
-                  <Table.Cell truncate maxW="sm">
-                    {rulesetscriptset.ruleset_name}
-                  </Table.Cell>
-                  <Table.Cell truncate maxW="sm">
-                    {rulesetscriptset.rulesetscript_block}
-                  </Table.Cell>
-                  <Table.Cell truncate maxW="sm">
-                    {rulesetscriptset.key}
-                  </Table.Cell>
-                  <Table.Cell truncate maxW="sm">
-                    {rulesetscriptset.value}
-                  </Table.Cell>
+                  <Table.Cell truncate>{rulesetscriptset.key}</Table.Cell>
+                  <Table.Cell truncate>{rulesetscriptset.value}</Table.Cell>
                   <Table.Cell
                     color={!rulesetscriptset.description ? "gray" : "inherit"}
                     truncate
-                    maxW="30%"
                   >
                     {rulesetscriptset.description || "N/A"}
                   </Table.Cell>

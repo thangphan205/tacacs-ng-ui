@@ -34,7 +34,15 @@ import {
 } from "../ui/dialog"
 import { Field } from "../ui/field"
 
-const AddProfileScriptSet = () => {
+interface AddProfileScriptSetProps {
+  profilescriptId?: string
+  buttonElement?: React.ReactElement
+}
+
+const AddProfileScriptSet = ({
+  profilescriptId,
+  buttonElement,
+}: AddProfileScriptSetProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
@@ -48,10 +56,13 @@ const AddProfileScriptSet = () => {
     mode: "onBlur",
     criteriaMode: "all",
     defaultValues: {
+      profilescript_id: profilescriptId || "",
       key: "",
+      value: "",
       description: "",
     },
   })
+
   function getTacacsProfileScriptsQueryOptions() {
     return {
       queryFn: () => ProfilescriptsService.readProfilescripts(),
@@ -60,6 +71,7 @@ const AddProfileScriptSet = () => {
   }
   const { data: data_profilescripts } = useQuery({
     ...getTacacsProfileScriptsQueryOptions(),
+    enabled: !profilescriptId, // Skip query if script ID is fixed
   })
 
   const items_tacacs_profilescripts = createListCollection<{
@@ -82,7 +94,12 @@ const AddProfileScriptSet = () => {
       ProfilescriptsetsService.createProfilescriptset({ requestBody: data }),
     onSuccess: () => {
       showSuccessToast("ProfileScriptSet created successfully.")
-      reset()
+      reset({
+        profilescript_id: profilescriptId || "",
+        key: "",
+        value: "",
+        description: "",
+      })
       setIsOpen(false)
     },
     onError: (err: ApiError) => {
@@ -105,10 +122,12 @@ const AddProfileScriptSet = () => {
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button value="add-item" my={4}>
-          <FaPlus fontSize="16px" />
-          Add ProfileScriptSet
-        </Button>
+        {buttonElement || (
+          <Button value="add-item" my={4}>
+            <FaPlus fontSize="16px" />
+            Add ProfileScriptSet
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -118,41 +137,57 @@ const AddProfileScriptSet = () => {
           <DialogBody>
             <Text mb={4}>Fill in the details to add a new item.</Text>
             <VStack gap={4}>
-              <Field
-                required
-                invalid={!!errors.profilescript_id}
-                errorText={errors.profilescript_id?.message}
-                label="ProfileScript Parent"
-              >
-                <Select.Root
-                  collection={items_tacacs_profilescripts}
-                  size="sm"
-                  onValueChange={(selection) => {
-                    setValue("profilescript_id", selection.value.toString())
-                  }}
+              {profilescriptId ? (
+                <input
+                  type="hidden"
+                  value={profilescriptId}
+                  {...register("profilescript_id", { required: true })}
+                />
+              ) : (
+                <Field
+                  required
+                  invalid={!!errors.profilescript_id}
+                  errorText={errors.profilescript_id?.message}
+                  label="ProfileScript Parent"
                 >
-                  <Select.Trigger>
-                    <Select.ValueText placeholder="Select Tacacs ProfileScript" />
-                  </Select.Trigger>
-                  <Select.Positioner>
-                    <Select.Content>
-                      <Select.ItemGroup>
-                        {items_tacacs_profilescripts.items.map((item) => (
-                          <Select.Item item={item} key={item.value}>
-                            <Stack gap="0">
-                              <Select.ItemText>{item.label}</Select.ItemText>
-                              <Span color="fg.muted" textStyle="xs">
-                                {item.description}
-                              </Span>
-                            </Stack>
-                            <Select.ItemIndicator />
-                          </Select.Item>
-                        ))}
-                      </Select.ItemGroup>
-                    </Select.Content>
-                  </Select.Positioner>
-                </Select.Root>
-              </Field>
+                  <input
+                    type="hidden"
+                    {...register("profilescript_id", {
+                      required: "profilescript_id is required.",
+                    })}
+                  />
+                  <Select.Root
+                    collection={items_tacacs_profilescripts}
+                    size="sm"
+                    onValueChange={(selection) => {
+                      setValue("profilescript_id", selection.value.toString(), {
+                        shouldValidate: true,
+                      })
+                    }}
+                  >
+                    <Select.Trigger>
+                      <Select.ValueText placeholder="Select Tacacs ProfileScript" />
+                    </Select.Trigger>
+                    <Select.Positioner>
+                      <Select.Content>
+                        <Select.ItemGroup>
+                          {items_tacacs_profilescripts.items.map((item) => (
+                            <Select.Item item={item} key={item.value}>
+                              <Stack gap="0">
+                                <Select.ItemText>{item.label}</Select.ItemText>
+                                <Span color="fg.muted" textStyle="xs">
+                                  {item.description}
+                                </Span>
+                              </Stack>
+                              <Select.ItemIndicator />
+                            </Select.Item>
+                          ))}
+                        </Select.ItemGroup>
+                      </Select.Content>
+                    </Select.Positioner>
+                  </Select.Root>
+                </Field>
+              )}
               <Field
                 required
                 invalid={!!errors.key}

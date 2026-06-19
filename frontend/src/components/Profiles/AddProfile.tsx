@@ -1,8 +1,10 @@
 import {
   Button,
+  createListCollection,
   DialogActionTrigger,
   DialogTitle,
   Input,
+  Select,
   Text,
   VStack,
 } from "@chakra-ui/react"
@@ -26,6 +28,13 @@ import {
 } from "../ui/dialog"
 import { Field } from "../ui/field"
 
+const actionCollection = createListCollection({
+  items: [
+    { label: "permit", value: "permit" },
+    { label: "deny", value: "deny" },
+  ],
+})
+
 const AddProfile = () => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -34,6 +43,7 @@ const AddProfile = () => {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isValid, isSubmitting },
   } = useForm<ProfileCreate>({
     mode: "onBlur",
@@ -104,15 +114,40 @@ const AddProfile = () => {
                 required
                 invalid={!!errors.action}
                 errorText={errors.action?.message}
-                label="action"
+                label="Action"
               >
-                <Input
+                <input
+                  type="hidden"
                   {...register("action", {
                     required: "action is required.",
                   })}
-                  placeholder="action"
-                  type="text"
                 />
+                <Select.Root
+                  collection={actionCollection}
+                  size="sm"
+                  defaultValue={["deny"]}
+                  onValueChange={(selection) => {
+                    setValue("action", selection.value[0], {
+                      shouldValidate: true,
+                    })
+                  }}
+                >
+                  <Select.Trigger>
+                    <Select.ValueText placeholder="Select Action" />
+                  </Select.Trigger>
+                  <Select.Positioner>
+                    <Select.Content>
+                      <Select.ItemGroup>
+                        {actionCollection.items.map((item) => (
+                          <Select.Item key={item.value} item={item.value}>
+                            {item.label}
+                            <Select.ItemIndicator />
+                          </Select.Item>
+                        ))}
+                      </Select.ItemGroup>
+                    </Select.Content>
+                  </Select.Positioner>
+                </Select.Root>
               </Field>
               <Field
                 invalid={!!errors.description}
