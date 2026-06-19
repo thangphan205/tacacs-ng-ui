@@ -148,7 +148,7 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
                 required
                 invalid={!!errors.username}
                 errorText={errors.username?.message}
-                label="username"
+                label="Username"
               >
                 <Input
                   {...register("username", {
@@ -163,7 +163,8 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
                 required
                 invalid={!!errors.password_type}
                 errorText={errors.password_type?.message}
-                label="password_type"
+                label="Password Type"
+                helperText="Recommended: Use 'crypt' to encrypt passwords securely on the server."
               >
                 <Select.Root
                   defaultValue={
@@ -202,7 +203,7 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
                   required
                   invalid={!!errors.password}
                   errorText={errors.password?.message}
-                  label="password"
+                  label="Password"
                 >
                   <Input
                     {...register("password", {
@@ -217,7 +218,7 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
                 required
                 invalid={!!errors.member}
                 errorText={errors.member?.message}
-                label="member"
+                label="Group Membership"
               >
                 <Select.Root
                   collection={items_tacacs_groups}

@@ -145,6 +145,7 @@ const AddTacacsUser = () => {
                 invalid={!!errors.password_type}
                 errorText={errors.password_type?.message}
                 label="Password Type"
+                helperText="Recommended: Use 'crypt' to encrypt passwords securely on the server."
               >
                 <input
                   type="hidden"
