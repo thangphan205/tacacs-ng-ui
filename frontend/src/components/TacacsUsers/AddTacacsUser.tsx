@@ -14,11 +14,11 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
-import { FiPlus } from "react-icons/fi"
 import {
   FiInfo,
   FiKey,
   FiLock,
+  FiPlus,
   FiSettings,
   FiType,
   FiUsers,
@@ -185,8 +185,8 @@ const AddTacacsUser = () => {
               <GridItem>
                 <Text mb={4} color="fg.muted" fontSize="sm">
                   Create a new user account. Local logins support secure hashing
-                  (crypt) or plaintext (clear), while mavis delegates auth to remote
-                  servers (LDAP/AD).
+                  (crypt) or plaintext (clear), while mavis delegates auth to
+                  remote servers (LDAP/AD).
                 </Text>
                 <VStack gap={4}>
                   <Field
@@ -248,8 +248,8 @@ const AddTacacsUser = () => {
                     <Alert.Root status="warning" borderRadius="md">
                       <Alert.Indicator />
                       <Alert.Description>
-                        Password will be stored in plaintext in the TACACS+ config
-                        file.
+                        Password will be stored in plaintext in the TACACS+
+                        config file.
                       </Alert.Description>
                     </Alert.Root>
                   )}
@@ -262,7 +262,9 @@ const AddTacacsUser = () => {
                     >
                       <Input
                         {...register("password", {
-                          required: isSelectMavis ? false : "Password is required.",
+                          required: isSelectMavis
+                            ? false
+                            : "Password is required.",
                         })}
                         placeholder="Password"
                         type="password"
@@ -326,7 +328,9 @@ const AddTacacsUser = () => {
                       <Field disabled={field.disabled} colorPalette="teal">
                         <Checkbox
                           checked={field.value}
-                          onCheckedChange={({ checked }) => field.onChange(checked)}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
                         >
                           Generate to TACACS+ Config
                         </Checkbox>

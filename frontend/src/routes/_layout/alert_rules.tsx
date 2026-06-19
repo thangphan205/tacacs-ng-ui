@@ -490,7 +490,14 @@ function AlertRulesTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            overflow="hidden"
+            bg="bg.panel"
+            mt={6}
+            shadow="sm"
+          >
             <Table.Root size="sm">
               <Table.Header bg="bg.muted">
                 <Table.Row>
@@ -505,72 +512,74 @@ function AlertRulesTable() {
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-              {data?.data.map((rule) => (
-                <Table.Row key={rule.id}>
-                  <Table.Cell fontWeight="medium">
-                    <Flex align="center" gap={2}>
-                      {rule.is_system && <FiLock size={12} color="gray" />}
-                      {rule.name}
-                    </Flex>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge
-                      colorPalette={
-                        SEVERITY_COLORS[rule.severity ?? ""] ?? "gray"
-                      }
-                    >
-                      {rule.severity}
-                    </Badge>
-                  </Table.Cell>
-                  <Table.Cell>{rule.log_type}</Table.Cell>
-                  <Table.Cell fontSize="xs" color="fg.muted">
-                    {rule.condition_field} {rule.condition_operator}{" "}
-                    {rule.threshold ?? "—"}
-                  </Table.Cell>
-                  <Table.Cell>{rule.time_window_minutes}m</Table.Cell>
-                  <Table.Cell fontSize="xs" color="fg.muted">
-                    {rule.last_fired_at
-                      ? new Date(rule.last_fired_at).toLocaleString("en-US", {
-                          hour12: false,
-                        })
-                      : "Never"}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge colorPalette={rule.enabled ? "green" : "gray"}>
-                      {rule.enabled ? "On" : "Off"}
-                    </Badge>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Flex gap={1}>
-                      <DialogRoot
-                        open={editRule?.id === rule.id}
-                        onOpenChange={(e) => setEditRule(e.open ? rule : null)}
+                {data?.data.map((rule) => (
+                  <Table.Row key={rule.id}>
+                    <Table.Cell fontWeight="medium">
+                      <Flex align="center" gap={2}>
+                        {rule.is_system && <FiLock size={12} color="gray" />}
+                        {rule.name}
+                      </Flex>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge
+                        colorPalette={
+                          SEVERITY_COLORS[rule.severity ?? ""] ?? "gray"
+                        }
                       >
-                        <DialogTrigger asChild>
-                          <Button size="xs" variant="ghost">
-                            Edit
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent maxW="2xl">
-                          <DialogHeader>
-                            <DialogTitle>Edit Alert Rule</DialogTitle>
-                          </DialogHeader>
-                          <DialogCloseTrigger />
-                          <DialogBody>
-                            <RuleDialog
-                              rule={rule}
-                              onClose={() => setEditRule(null)}
-                            />
-                          </DialogBody>
-                        </DialogContent>
-                      </DialogRoot>
-                      {!rule.is_system && <DeleteRuleButton rule={rule} />}
-                    </Flex>
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table.Root>
+                        {rule.severity}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell>{rule.log_type}</Table.Cell>
+                    <Table.Cell fontSize="xs" color="fg.muted">
+                      {rule.condition_field} {rule.condition_operator}{" "}
+                      {rule.threshold ?? "—"}
+                    </Table.Cell>
+                    <Table.Cell>{rule.time_window_minutes}m</Table.Cell>
+                    <Table.Cell fontSize="xs" color="fg.muted">
+                      {rule.last_fired_at
+                        ? new Date(rule.last_fired_at).toLocaleString("en-US", {
+                            hour12: false,
+                          })
+                        : "Never"}
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge colorPalette={rule.enabled ? "green" : "gray"}>
+                        {rule.enabled ? "On" : "Off"}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Flex gap={1}>
+                        <DialogRoot
+                          open={editRule?.id === rule.id}
+                          onOpenChange={(e) =>
+                            setEditRule(e.open ? rule : null)
+                          }
+                        >
+                          <DialogTrigger asChild>
+                            <Button size="xs" variant="ghost">
+                              Edit
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent maxW="2xl">
+                            <DialogHeader>
+                              <DialogTitle>Edit Alert Rule</DialogTitle>
+                            </DialogHeader>
+                            <DialogCloseTrigger />
+                            <DialogBody>
+                              <RuleDialog
+                                rule={rule}
+                                onClose={() => setEditRule(null)}
+                              />
+                            </DialogBody>
+                          </DialogContent>
+                        </DialogRoot>
+                        {!rule.is_system && <DeleteRuleButton rule={rule} />}
+                      </Flex>
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Root>
           </Box>
 
           <PaginationRoot

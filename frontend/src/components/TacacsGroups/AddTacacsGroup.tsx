@@ -116,9 +116,9 @@ const AddTacacsGroup = () => {
             <Grid templateColumns={{ base: "1fr", lg: "7fr 5fr" }} gap={6}>
               <GridItem>
                 <Text mb={4} color="fg.muted" fontSize="sm">
-                  A TACACS Group acts as a template for user authorization. Users
-                  assigned to a group inherit its profiles, permitted services, and
-                  command authorization rules.
+                  A TACACS Group acts as a template for user authorization.
+                  Users assigned to a group inherit its profiles, permitted
+                  services, and command authorization rules.
                 </Text>
                 <VStack gap={4}>
                   <Field
@@ -154,7 +154,9 @@ const AddTacacsGroup = () => {
                       <Field disabled={field.disabled} colorPalette="teal">
                         <Checkbox
                           checked={field.value}
-                          onCheckedChange={({ checked }) => field.onChange(checked)}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
                         >
                           Generate to TACACS+ Config
                         </Checkbox>

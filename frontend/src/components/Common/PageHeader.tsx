@@ -7,7 +7,11 @@ interface PageHeaderProps {
   icon: IconType
 }
 
-export const PageHeader = ({ title, description, icon: Icon }: PageHeaderProps) => {
+export const PageHeader = ({
+  title,
+  description,
+  icon: Icon,
+}: PageHeaderProps) => {
   return (
     <Flex direction="column" pt={6} gap={1}>
       <HStack gap={3}>

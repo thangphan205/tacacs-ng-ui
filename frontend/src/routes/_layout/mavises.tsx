@@ -14,7 +14,14 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { FiCheck, FiCopy, FiEye, FiEyeOff, FiKey, FiSearch } from "react-icons/fi"
+import {
+  FiCheck,
+  FiCopy,
+  FiEye,
+  FiEyeOff,
+  FiKey,
+  FiSearch,
+} from "react-icons/fi"
 import { z } from "zod"
 
 import { MavisesService } from "@/client"
@@ -85,12 +92,19 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-function ValueCell({ mavisKey, mavisValue }: { mavisKey: string; mavisValue: string }) {
+function ValueCell({
+  mavisKey,
+  mavisValue,
+}: {
+  mavisKey: string
+  mavisValue: string
+}) {
   const isSecret =
     mavisKey.toLowerCase().includes("passwd") ||
     mavisKey.toLowerCase().includes("password") ||
     mavisKey.toLowerCase().includes("secret") ||
-    (mavisKey.toLowerCase().includes("key") && !mavisKey.toUpperCase().endsWith("_KEY"))
+    (mavisKey.toLowerCase().includes("key") &&
+      !mavisKey.toUpperCase().endsWith("_KEY"))
   const [showSecret, setShowSecret] = useState(false)
 
   if (isSecret) {
@@ -163,14 +177,23 @@ function MavisesTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            overflow="hidden"
+            bg="bg.panel"
+            mt={6}
+            shadow="sm"
+          >
             <Table.Root size={{ base: "sm", md: "md" }}>
               <Table.Header bg="bg.muted">
                 <Table.Row>
                   <Table.ColumnHeader w="xs">ID</Table.ColumnHeader>
                   <Table.ColumnHeader w="sm">Key</Table.ColumnHeader>
                   <Table.ColumnHeader w="md">Value</Table.ColumnHeader>
-                  <Table.ColumnHeader w="20" textAlign="right">Actions</Table.ColumnHeader>
+                  <Table.ColumnHeader w="20" textAlign="right">
+                    Actions
+                  </Table.ColumnHeader>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -190,12 +213,22 @@ function MavisesTable() {
                       </HStack>
                     </Table.Cell>
                     <Table.Cell>
-                      <Badge variant="subtle" colorPalette="teal" fontFamily="mono" size="md" px={2} py={0.5}>
+                      <Badge
+                        variant="subtle"
+                        colorPalette="teal"
+                        fontFamily="mono"
+                        size="md"
+                        px={2}
+                        py={0.5}
+                      >
                         {mavis.mavis_key}
                       </Badge>
                     </Table.Cell>
                     <Table.Cell>
-                      <ValueCell mavisKey={mavis.mavis_key} mavisValue={mavis.mavis_value} />
+                      <ValueCell
+                        mavisKey={mavis.mavis_key}
+                        mavisValue={mavis.mavis_value}
+                      />
                     </Table.Cell>
                     <Table.Cell textAlign="right">
                       <MavisActionsMenu mavis={mavis} />
@@ -252,7 +285,9 @@ function Mavises() {
           <VStack align="start" gap={0}>
             <Heading size="md">Mavis Backend Configurations</Heading>
             <Text color="fg.muted" fontSize="xs">
-              Configure and map key-value environment variables for external authentication backends, such as LDAP, Active Directory, and custom MAVIS modules.
+              Configure and map key-value environment variables for external
+              authentication backends, such as LDAP, Active Directory, and
+              custom MAVIS modules.
             </Text>
           </VStack>
         </HStack>

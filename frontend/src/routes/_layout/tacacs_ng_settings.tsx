@@ -20,8 +20,8 @@ import {
   FiDatabase,
   FiFileText,
   FiSave,
-  FiSettings,
   FiServer,
+  FiSettings,
 } from "react-icons/fi"
 
 import {
@@ -136,10 +136,30 @@ function TacacsNgSettingsForm() {
   }
 
   const tabs = [
-    { id: "network", label: "Network & Listeners", icon: FiServer, desc: "Port mappings and network interfaces." },
-    { id: "performance", label: "Scaling & Performance", icon: FiCpu, desc: "Process scaling limits and run mode." },
-    { id: "backends", label: "Auth Backends", icon: FiDatabase, desc: "LDAP, AD, Mavis backend routing." },
-    { id: "logging", label: "Logging Paths", icon: FiFileText, desc: "Path destinations and timezone setup." },
+    {
+      id: "network",
+      label: "Network & Listeners",
+      icon: FiServer,
+      desc: "Port mappings and network interfaces.",
+    },
+    {
+      id: "performance",
+      label: "Scaling & Performance",
+      icon: FiCpu,
+      desc: "Process scaling limits and run mode.",
+    },
+    {
+      id: "backends",
+      label: "Auth Backends",
+      icon: FiDatabase,
+      desc: "LDAP, AD, Mavis backend routing.",
+    },
+    {
+      id: "logging",
+      label: "Logging Paths",
+      icon: FiFileText,
+      desc: "Path destinations and timezone setup.",
+    },
   ]
 
   return (
@@ -151,7 +171,12 @@ function TacacsNgSettingsForm() {
         }
       `}</style>
 
-      <Flex direction={{ base: "column", md: "row" }} gap={8} mt={6} align="stretch">
+      <Flex
+        direction={{ base: "column", md: "row" }}
+        gap={8}
+        mt={6}
+        align="stretch"
+      >
         {/* Left Side Tab Navigation */}
         <VStack
           w={{ base: "full", md: "260px" }}
@@ -185,12 +210,26 @@ function TacacsNgSettingsForm() {
                 pl={isActive ? "13px" : "4"}
               >
                 <HStack gap={3} w="full" align="start">
-                  <Icon style={{ marginTop: "3px", fontSize: "16px", flexShrink: 0 }} />
+                  <Icon
+                    style={{
+                      marginTop: "3px",
+                      fontSize: "16px",
+                      flexShrink: 0,
+                    }}
+                  />
                   <VStack align="start" gap={0} w="full">
-                    <Text fontSize="sm" fontWeight={isActive ? "bold" : "semibold"}>
+                    <Text
+                      fontSize="sm"
+                      fontWeight={isActive ? "bold" : "semibold"}
+                    >
                       {tab.label}
                     </Text>
-                    <Text fontSize="2xs" color="fg.muted" fontWeight="normal" textAlign="left">
+                    <Text
+                      fontSize="2xs"
+                      color="fg.muted"
+                      fontWeight="normal"
+                      textAlign="left"
+                    >
                       {tab.desc}
                     </Text>
                   </VStack>
@@ -213,9 +252,12 @@ function TacacsNgSettingsForm() {
           {activeTab === "network" && (
             <VStack gap={6} align="stretch">
               <Box>
-                <Heading size="sm" mb={1}>Network Listeners</Heading>
+                <Heading size="sm" mb={1}>
+                  Network Listeners
+                </Heading>
                 <Text fontSize="xs" color="fg.muted">
-                  Configure binding IP addresses and port options for IPv4 and IPv6 protocols.
+                  Configure binding IP addresses and port options for IPv4 and
+                  IPv6 protocols.
                 </Text>
               </Box>
 
@@ -229,14 +271,21 @@ function TacacsNgSettingsForm() {
                       <Field disabled={field.disabled} colorPalette="teal">
                         <Checkbox
                           checked={field.value}
-                          onCheckedChange={({ checked }) => field.onChange(checked)}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
                         >
                           Enable IPv4 Listener
                         </Checkbox>
                       </Field>
                     )}
                   />
-                  <SimpleGrid columns={{ base: 1, sm: 2 }} gap={4} opacity={watchIpv4Enabled ? 1 : 0.5} transition="opacity 0.2s">
+                  <SimpleGrid
+                    columns={{ base: 1, sm: 2 }}
+                    gap={4}
+                    opacity={watchIpv4Enabled ? 1 : 0.5}
+                    transition="opacity 0.2s"
+                  >
                     <Field
                       label="IPv4 Bind Address"
                       required={watchIpv4Enabled}
@@ -245,7 +294,9 @@ function TacacsNgSettingsForm() {
                     >
                       <Input
                         {...register("ipv4_address", {
-                          required: watchIpv4Enabled ? "IPv4 Address is required." : false,
+                          required: watchIpv4Enabled
+                            ? "IPv4 Address is required."
+                            : false,
                         })}
                         placeholder="0.0.0.0"
                         disabled={!watchIpv4Enabled}
@@ -259,7 +310,9 @@ function TacacsNgSettingsForm() {
                     >
                       <Input
                         {...register("ipv4_port", {
-                          required: watchIpv4Enabled ? "IPv4 Port is required." : false,
+                          required: watchIpv4Enabled
+                            ? "IPv4 Port is required."
+                            : false,
                           valueAsNumber: true,
                         })}
                         type="number"
@@ -281,14 +334,21 @@ function TacacsNgSettingsForm() {
                       <Field disabled={field.disabled} colorPalette="teal">
                         <Checkbox
                           checked={field.value}
-                          onCheckedChange={({ checked }) => field.onChange(checked)}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
                         >
                           Enable IPv6 Listener
                         </Checkbox>
                       </Field>
                     )}
                   />
-                  <SimpleGrid columns={{ base: 1, sm: 2 }} gap={4} opacity={watchIpv6Enabled ? 1 : 0.5} transition="opacity 0.2s">
+                  <SimpleGrid
+                    columns={{ base: 1, sm: 2 }}
+                    gap={4}
+                    opacity={watchIpv6Enabled ? 1 : 0.5}
+                    transition="opacity 0.2s"
+                  >
                     <Field
                       label="IPv6 Bind Address"
                       required={watchIpv6Enabled}
@@ -297,7 +357,9 @@ function TacacsNgSettingsForm() {
                     >
                       <Input
                         {...register("ipv6_address", {
-                          required: watchIpv6Enabled ? "IPv6 Address is required." : false,
+                          required: watchIpv6Enabled
+                            ? "IPv6 Address is required."
+                            : false,
                         })}
                         placeholder="::"
                         disabled={!watchIpv6Enabled}
@@ -310,7 +372,9 @@ function TacacsNgSettingsForm() {
                     >
                       <Input
                         {...register("ipv6_port", {
-                          required: watchIpv6Enabled ? "IPv6 Port is required." : false,
+                          required: watchIpv6Enabled
+                            ? "IPv6 Port is required."
+                            : false,
                           valueAsNumber: true,
                         })}
                         type="number"
@@ -327,9 +391,12 @@ function TacacsNgSettingsForm() {
           {activeTab === "performance" && (
             <VStack gap={6} align="stretch">
               <Box>
-                <Heading size="sm" mb={1}>Daemon Performance & Scaling</Heading>
+                <Heading size="sm" mb={1}>
+                  Daemon Performance & Scaling
+                </Heading>
                 <Text fontSize="xs" color="fg.muted">
-                  Configure pre-fork process thresholds and daemonization properties.
+                  Configure pre-fork process thresholds and daemonization
+                  properties.
                 </Text>
               </Box>
 
@@ -374,10 +441,16 @@ function TacacsNgSettingsForm() {
                   control={control}
                   name="background"
                   render={({ field }) => (
-                    <Field disabled={field.disabled} colorPalette="teal" helperText="If enabled, the TACACS+ process detaches and runs in background daemon mode.">
+                    <Field
+                      disabled={field.disabled}
+                      colorPalette="teal"
+                      helperText="If enabled, the TACACS+ process detaches and runs in background daemon mode."
+                    >
                       <Checkbox
                         checked={field.value === "yes"}
-                        onCheckedChange={({ checked }) => field.onChange(checked ? "yes" : "no")}
+                        onCheckedChange={({ checked }) =>
+                          field.onChange(checked ? "yes" : "no")
+                        }
                       >
                         Run in Background (Daemon mode)
                       </Checkbox>
@@ -391,9 +464,12 @@ function TacacsNgSettingsForm() {
           {activeTab === "backends" && (
             <VStack gap={6} align="stretch">
               <Box>
-                <Heading size="sm" mb={1}>Authentication Backends</Heading>
+                <Heading size="sm" mb={1}>
+                  Authentication Backends
+                </Heading>
                 <Text fontSize="xs" color="fg.muted">
-                  Specify external validation mechanisms to process client credentials.
+                  Specify external validation mechanisms to process client
+                  credentials.
                 </Text>
               </Box>
 
@@ -426,7 +502,9 @@ function TacacsNgSettingsForm() {
           {activeTab === "logging" && (
             <VStack gap={6} align="stretch">
               <Box>
-                <Heading size="sm" mb={1}>Logging Configuration</Heading>
+                <Heading size="sm" mb={1}>
+                  Logging Configuration
+                </Heading>
                 <Text fontSize="xs" color="fg.muted">
                   Set dynamic directory/file logging structures for AAA events.
                 </Text>
@@ -439,35 +517,55 @@ function TacacsNgSettingsForm() {
                 helperText="IANA timezone name for log date calculations (e.g. UTC, Asia/Ho_Chi_Minh)."
               >
                 <Input
-                  {...register("timezone", { required: "Timezone is required." })}
+                  {...register("timezone", {
+                    required: "Timezone is required.",
+                  })}
                   placeholder="UTC"
                 />
               </Field>
 
-              <VStack gap={4} p={4} borderWidth="1px" borderRadius="lg" bg="bg.subtle">
+              <VStack
+                gap={4}
+                p={4}
+                borderWidth="1px"
+                borderRadius="lg"
+                bg="bg.subtle"
+              >
                 <Field
                   label="Access Logs Destination"
                   errorText={errors.access_logfile_destination?.message}
                 >
-                  <Input {...register("access_logfile_destination")} placeholder="/var/log/tac_plus/access-%Y-%m-%d.log" />
+                  <Input
+                    {...register("access_logfile_destination")}
+                    placeholder="/var/log/tac_plus/access-%Y-%m-%d.log"
+                  />
                 </Field>
                 <Field
                   label="Authentication Logs Destination"
                   errorText={errors.authentication_logfile_destination?.message}
                 >
-                  <Input {...register("authentication_logfile_destination")} placeholder="/var/log/tac_plus/auth-%Y-%m-%d.log" />
+                  <Input
+                    {...register("authentication_logfile_destination")}
+                    placeholder="/var/log/tac_plus/auth-%Y-%m-%d.log"
+                  />
                 </Field>
                 <Field
                   label="Authorization Logs Destination"
                   errorText={errors.authorization_logfile_destination?.message}
                 >
-                  <Input {...register("authorization_logfile_destination")} placeholder="/var/log/tac_plus/authz-%Y-%m-%d.log" />
+                  <Input
+                    {...register("authorization_logfile_destination")}
+                    placeholder="/var/log/tac_plus/authz-%Y-%m-%d.log"
+                  />
                 </Field>
                 <Field
                   label="Accounting Logs Destination"
                   errorText={errors.accounting_logfile_destination?.message}
                 >
-                  <Input {...register("accounting_logfile_destination")} placeholder="/var/log/tac_plus/acct-%Y-%m-%d.log" />
+                  <Input
+                    {...register("accounting_logfile_destination")}
+                    placeholder="/var/log/tac_plus/acct-%Y-%m-%d.log"
+                  />
                 </Field>
               </VStack>
             </VStack>
@@ -497,7 +595,8 @@ function TacacsNgSettingsForm() {
                 Unsaved Changes Detected
               </Text>
               <Text fontSize="xs" color="fg.muted">
-                You have modified the server settings. Save to apply them to the config.
+                You have modified the server settings. Save to apply them to the
+                config.
               </Text>
             </VStack>
             <HStack gap={3}>
@@ -537,7 +636,8 @@ function TacacsNgSettings() {
           <VStack align="start" gap={0}>
             <Heading size="md">TACACS+ NG Server Settings</Heading>
             <Text color="fg.muted" fontSize="xs">
-              Manage system-wide listeners, scaling daemons, log storage locations, and local timezone.
+              Manage system-wide listeners, scaling daemons, log storage
+              locations, and local timezone.
             </Text>
           </VStack>
         </HStack>

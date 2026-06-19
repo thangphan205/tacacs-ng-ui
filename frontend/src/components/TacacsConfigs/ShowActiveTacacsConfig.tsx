@@ -68,10 +68,9 @@ const ShowActiveTacacsConfig = () => {
           <DialogTitle>
             Active TACACS+ Config, Created At:{" "}
             {activeConfigData?.created_at
-              ? new Date(activeConfigData.created_at).toLocaleString(
-                  "en-US",
-                  { hour12: false },
-                )
+              ? new Date(activeConfigData.created_at).toLocaleString("en-US", {
+                  hour12: false,
+                })
               : "N/A"}
           </DialogTitle>
         </DialogHeader>

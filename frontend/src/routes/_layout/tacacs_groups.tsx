@@ -103,7 +103,14 @@ function TacacsGroupsTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            overflow="hidden"
+            bg="bg.panel"
+            mt={6}
+            shadow="sm"
+          >
             <Table.Root
               size={{ base: "sm", md: "md" }}
               tableLayout="fixed"
@@ -135,7 +142,13 @@ function TacacsGroupsTable() {
                       </HStack>
                     </Table.Cell>
                     <Table.Cell>
-                      <Badge colorPalette={tacacs_group.generate_config ? "green" : "red"} variant="subtle" size="sm">
+                      <Badge
+                        colorPalette={
+                          tacacs_group.generate_config ? "green" : "red"
+                        }
+                        variant="subtle"
+                        size="sm"
+                      >
                         {tacacs_group.generate_config ? "Yes" : "No"}
                       </Badge>
                     </Table.Cell>

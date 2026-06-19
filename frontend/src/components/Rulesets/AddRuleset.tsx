@@ -140,8 +140,8 @@ const AddRuleset = () => {
             <Grid templateColumns={{ base: "1fr", lg: "7fr 5fr" }} gap={6}>
               <GridItem>
                 <Text mb={4} color="fg.muted" fontSize="sm">
-                  Create a new command authorization ruleset. Rulesets define which
-                  CLI commands users are permitted or denied.
+                  Create a new command authorization ruleset. Rulesets define
+                  which CLI commands users are permitted or denied.
                 </Text>
                 <VStack gap={4}>
                   <Field
@@ -215,7 +215,9 @@ const AddRuleset = () => {
                       <Field disabled={field.disabled} colorPalette="teal">
                         <Checkbox
                           checked={field.value}
-                          onCheckedChange={({ checked }) => field.onChange(checked)}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
                         >
                           Generate to TACACS+ Config
                         </Checkbox>

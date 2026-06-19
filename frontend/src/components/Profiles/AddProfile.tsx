@@ -13,13 +13,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
-import {
-  FiInfo,
-  FiPlus,
-  FiSettings,
-  FiShield,
-  FiType,
-} from "react-icons/fi"
+import { FiInfo, FiPlus, FiSettings, FiShield, FiType } from "react-icons/fi"
 
 import { type ProfileCreate, ProfilesService } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
@@ -139,8 +133,8 @@ const AddProfile = () => {
             <Grid templateColumns={{ base: "1fr", lg: "7fr 5fr" }} gap={6}>
               <GridItem>
                 <Text mb={4} color="fg.muted" fontSize="sm">
-                  Create a new authorization profile. Profiles define service-level
-                  attributes and are linked to TACACS groups.
+                  Create a new authorization profile. Profiles define
+                  service-level attributes and are linked to TACACS groups.
                 </Text>
                 <VStack gap={4}>
                   <Field
@@ -214,7 +208,9 @@ const AddProfile = () => {
                       <Field disabled={field.disabled} colorPalette="teal">
                         <Checkbox
                           checked={field.value}
-                          onCheckedChange={({ checked }) => field.onChange(checked)}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
                         >
                           Generate to TACACS+ Config
                         </Checkbox>

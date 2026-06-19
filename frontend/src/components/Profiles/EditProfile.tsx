@@ -13,11 +13,7 @@ import { useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
-import {
-  type ApiError,
-  type ProfilePublic,
-  ProfilesService,
-} from "@/client"
+import { type ApiError, type ProfilePublic, ProfilesService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import { Checkbox } from "../ui/checkbox"

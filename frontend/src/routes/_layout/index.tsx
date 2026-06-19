@@ -34,7 +34,6 @@ import {
   FiTrendingUp,
   FiUsers,
 } from "react-icons/fi"
-import { PageHeader } from "@/components/Common/PageHeader"
 import {
   CartesianGrid,
   LabelList,
@@ -64,6 +63,7 @@ import {
   TacacsLogsService,
   TacacsUsersService,
 } from "@/client"
+import { PageHeader } from "@/components/Common/PageHeader"
 
 export const Route = createFileRoute("/_layout/")({
   component: Dashboard,
@@ -236,14 +236,31 @@ function StatCard({ label, value, highlight = "none" }: StatCardProps) {
     >
       <Flex align="center" justify="space-between">
         <Stat.Root>
-          <Stat.Label fontSize="xs" fontWeight="semibold" textTransform="uppercase" letterSpacing="wider" color="fg.muted">
+          <Stat.Label
+            fontSize="xs"
+            fontWeight="semibold"
+            textTransform="uppercase"
+            letterSpacing="wider"
+            color="fg.muted"
+          >
             {label}
           </Stat.Label>
-          <Stat.ValueText fontSize="4xl" fontWeight="extrabold" mt={2} fontFamily="mono">
+          <Stat.ValueText
+            fontSize="4xl"
+            fontWeight="extrabold"
+            mt={2}
+            fontFamily="mono"
+          >
             {value ?? 0}
           </Stat.ValueText>
         </Stat.Root>
-        <Box p={3} bg={`${colorPalette}.muted`} color={`${colorPalette}.fg`} borderRadius="lg" shadow="xs">
+        <Box
+          p={3}
+          bg={`${colorPalette}.muted`}
+          color={`${colorPalette}.fg`}
+          borderRadius="lg"
+          shadow="xs"
+        >
           <Icon fontSize="22px" />
         </Box>
       </Flex>
@@ -255,7 +272,14 @@ function StatPie({ title, data }: { title: string; data: PieData[] }) {
   const chart = useChart({ data: data })
 
   return (
-    <Box p={5} bg="bg.panel" borderWidth="1px" borderRadius="xl" shadow="sm" h="100%">
+    <Box
+      p={5}
+      bg="bg.panel"
+      borderWidth="1px"
+      borderRadius="xl"
+      shadow="sm"
+      h="100%"
+    >
       <Heading size="sm" mb={4} fontWeight="bold">
         {title}
       </Heading>
@@ -420,7 +444,12 @@ function TodayLogSummary() {
         action={
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           <Link to={"/tacacs_logs" as any}>
-            <Text fontSize="sm" color="teal.500" fontWeight="semibold" _hover={{ color: "teal.600", textDecoration: "underline" }}>
+            <Text
+              fontSize="sm"
+              color="teal.500"
+              fontWeight="semibold"
+              _hover={{ color: "teal.600", textDecoration: "underline" }}
+            >
               View logs →
             </Text>
           </Link>
@@ -430,8 +459,22 @@ function TodayLogSummary() {
       </SectionHeading>
       <Grid templateColumns={{ base: "1fr", sm: "repeat(3, 1fr)" }} gap={4}>
         {cards.map(({ label, badges }) => (
-          <Box key={label} p={5} bg="bg.panel" borderWidth="1px" borderRadius="xl" shadow="sm">
-            <Text fontWeight="bold" mb={3} fontSize="xs" textTransform="uppercase" letterSpacing="wider" color="fg.muted">
+          <Box
+            key={label}
+            p={5}
+            bg="bg.panel"
+            borderWidth="1px"
+            borderRadius="xl"
+            shadow="sm"
+          >
+            <Text
+              fontWeight="bold"
+              mb={3}
+              fontSize="xs"
+              textTransform="uppercase"
+              letterSpacing="wider"
+              color="fg.muted"
+            >
               {label}
             </Text>
             {isLoading ? (
@@ -439,7 +482,13 @@ function TodayLogSummary() {
             ) : (
               <Flex gap={2.5} flexWrap="wrap">
                 {badges.map((b) => (
-                  <Badge key={b.label} colorPalette={b.color} size="md" variant="subtle" fontWeight="bold">
+                  <Badge
+                    key={b.label}
+                    colorPalette={b.color}
+                    size="md"
+                    variant="subtle"
+                    fontWeight="bold"
+                  >
                     {b.label}
                   </Badge>
                 ))}
@@ -514,10 +563,10 @@ function ConfigCountCard({ label, to, queryKey, fn, icon: Icon }: ConfigItem) {
         h="100%"
         cursor="pointer"
         transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
-        _hover={{ 
-          borderColor: "teal.500", 
-          shadow: "md", 
-          transform: "translateY(-4px)" 
+        _hover={{
+          borderColor: "teal.500",
+          shadow: "md",
+          transform: "translateY(-4px)",
         }}
       >
         <Flex justify="space-between" align="flex-start">
@@ -528,12 +577,23 @@ function ConfigCountCard({ label, to, queryKey, fn, icon: Icon }: ConfigItem) {
             {isLoading ? (
               <Skeleton height="36px" mt={2} />
             ) : (
-              <Stat.ValueText fontSize="3xl" fontWeight="extrabold" mt={1} fontFamily="mono">
+              <Stat.ValueText
+                fontSize="3xl"
+                fontWeight="extrabold"
+                mt={1}
+                fontFamily="mono"
+              >
                 {data?.count ?? 0}
               </Stat.ValueText>
             )}
           </Stat.Root>
-          <Box p={2.5} bg="bg.muted" color="fg.muted" borderRadius="lg" transition="all 0.2s">
+          <Box
+            p={2.5}
+            bg="bg.muted"
+            color="fg.muted"
+            borderRadius="lg"
+            transition="all 0.2s"
+          >
             <Icon fontSize="18px" />
           </Box>
         </Flex>
@@ -578,7 +638,12 @@ function RecentActivity() {
         action={
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           <Link to={"/audit_logs" as any}>
-            <Text fontSize="sm" color="teal.500" fontWeight="semibold" _hover={{ color: "teal.600", textDecoration: "underline" }}>
+            <Text
+              fontSize="sm"
+              color="teal.500"
+              fontWeight="semibold"
+              _hover={{ color: "teal.600", textDecoration: "underline" }}
+            >
               View all →
             </Text>
           </Link>
@@ -595,7 +660,13 @@ function RecentActivity() {
           No recent activity.
         </Text>
       ) : (
-        <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" shadow="sm">
+        <Box
+          borderWidth="1px"
+          borderRadius="xl"
+          overflow="hidden"
+          bg="bg.panel"
+          shadow="sm"
+        >
           <Table.Root size="sm" variant="line">
             <Table.Header bg="bg.muted">
               <Table.Row>
@@ -618,7 +689,12 @@ function RecentActivity() {
                       hour12: false,
                     })}
                   </Table.Cell>
-                  <Table.Cell fontSize="xs" maxW="32" truncate fontWeight="medium">
+                  <Table.Cell
+                    fontSize="xs"
+                    maxW="32"
+                    truncate
+                    fontWeight="medium"
+                  >
                     {log.user_email}
                   </Table.Cell>
                   <Table.Cell>
@@ -670,7 +746,12 @@ function LastTacacsLogs() {
         action={
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           <Link to={"/tacacs_logs" as any}>
-            <Text fontSize="sm" color="teal.500" fontWeight="semibold" _hover={{ color: "teal.600", textDecoration: "underline" }}>
+            <Text
+              fontSize="sm"
+              color="teal.500"
+              fontWeight="semibold"
+              _hover={{ color: "teal.600", textDecoration: "underline" }}
+            >
               View all →
             </Text>
           </Link>
@@ -687,7 +768,13 @@ function LastTacacsLogs() {
           No logs in the last 7 days.
         </Text>
       ) : (
-        <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" shadow="sm">
+        <Box
+          borderWidth="1px"
+          borderRadius="xl"
+          overflow="hidden"
+          bg="bg.panel"
+          shadow="sm"
+        >
           <Table.Root size="sm" variant="line">
             <Table.Header bg="bg.muted">
               <Table.Row>
@@ -721,7 +808,12 @@ function LastTacacsLogs() {
                       {log.log_type}
                     </Badge>
                   </Table.Cell>
-                  <Table.Cell fontSize="xs" maxW="28" truncate fontWeight="medium">
+                  <Table.Cell
+                    fontSize="xs"
+                    maxW="28"
+                    truncate
+                    fontWeight="medium"
+                  >
                     {log.username}
                   </Table.Cell>
                   <Table.Cell fontSize="xs" color="fg.muted" fontFamily="mono">
@@ -833,7 +925,13 @@ function Dashboard() {
 
   return (
     <Container maxW="full" py={8}>
-      <Flex justify="space-between" align="flex-start" mb={6} gap={4} wrap="wrap">
+      <Flex
+        justify="space-between"
+        align="flex-start"
+        mb={6}
+        gap={4}
+        wrap="wrap"
+      >
         <PageHeader
           title="Security & Analytics Dashboard"
           description="Real-time TACACS+ server metrics, access trends, configuration overview, and audit logs."
@@ -977,9 +1075,17 @@ function Dashboard() {
 
           {/* Trend chart */}
           <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
-            <Box p={5} bg="bg.panel" borderWidth="1px" borderRadius="xl" shadow="sm">
+            <Box
+              p={5}
+              bg="bg.panel"
+              borderWidth="1px"
+              borderRadius="xl"
+              shadow="sm"
+            >
               <Flex align="center" justify="space-between" mb={4}>
-                <Heading size="sm" fontWeight="bold">{TREND_LABEL[filterMode]}</Heading>
+                <Heading size="sm" fontWeight="bold">
+                  {TREND_LABEL[filterMode]}
+                </Heading>
               </Flex>
               {chartsLoading ? (
                 <Flex justify="center" py={8}>
@@ -993,7 +1099,12 @@ function Dashboard() {
                   h="220px"
                   gap={3}
                 >
-                  <Box p={3.5} bg="bg.muted" borderRadius="full" color="fg.subtle">
+                  <Box
+                    p={3.5}
+                    bg="bg.muted"
+                    borderRadius="full"
+                    color="fg.subtle"
+                  >
                     <FiTrendingUp fontSize="24px" />
                   </Box>
                   <Text color="fg.muted" fontSize="sm" fontWeight="semibold">

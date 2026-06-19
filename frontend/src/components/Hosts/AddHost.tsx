@@ -192,8 +192,8 @@ const AddHost = () => {
               {/* Left Column: Form inputs */}
               <GridItem>
                 <Text mb={4} color="fg.muted" fontSize="sm">
-                  Add a network device that will authenticate against the TACACS+
-                  server.
+                  Add a network device that will authenticate against the
+                  TACACS+ server.
                 </Text>
                 <VStack gap={4} as="section">
                   <Field
@@ -298,7 +298,9 @@ const AddHost = () => {
                       <Field disabled={field.disabled} colorPalette="teal">
                         <Checkbox
                           checked={field.value}
-                          onCheckedChange={({ checked }) => field.onChange(checked)}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
                         >
                           Generate to TACACS+ Config
                         </Checkbox>
@@ -345,7 +347,9 @@ const AddHost = () => {
                         </Field>
                         <Field
                           invalid={!!errors.failed_authentication_banner}
-                          errorText={errors.failed_authentication_banner?.message}
+                          errorText={
+                            errors.failed_authentication_banner?.message
+                          }
                           label="Failed Authentication Banner"
                         >
                           <Textarea

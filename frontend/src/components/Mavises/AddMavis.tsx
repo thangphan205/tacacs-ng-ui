@@ -108,8 +108,8 @@ const AddMavis = () => {
               <GridItem>
                 <Text mb={4} color="fg.muted" fontSize="sm">
                   Add a MAVIS (LDAP/AD backend) configuration setting. These
-                  key-value pairs configure how the TACACS+ server connects to your
-                  directory service for external authentication.
+                  key-value pairs configure how the TACACS+ server connects to
+                  your directory service for external authentication.
                 </Text>
                 <VStack gap={4}>
                   <Field

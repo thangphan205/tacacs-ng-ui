@@ -117,8 +117,9 @@ const AddTacacsService = () => {
               <GridItem>
                 <Text mb={4} color="fg.muted" fontSize="sm">
                   Create a new TACACS+ service definition. Services represent
-                  authorization contexts (such as 'exec' for shell sessions or 'ppp'
-                  for network access) configured on network client devices.
+                  authorization contexts (such as 'exec' for shell sessions or
+                  'ppp' for network access) configured on network client
+                  devices.
                 </Text>
                 <VStack gap={4}>
                   <Field
@@ -154,7 +155,9 @@ const AddTacacsService = () => {
                       <Field disabled={field.disabled} colorPalette="teal">
                         <Checkbox
                           checked={field.value}
-                          onCheckedChange={({ checked }) => field.onChange(checked)}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
                         >
                           Generate to TACACS+ Config
                         </Checkbox>

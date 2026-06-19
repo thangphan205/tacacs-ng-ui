@@ -360,7 +360,14 @@ function NotificationChannelsTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            overflow="hidden"
+            bg="bg.panel"
+            mt={6}
+            shadow="sm"
+          >
             <Table.Root size="sm">
               <Table.Header bg="bg.muted">
                 <Table.Row>
@@ -372,52 +379,54 @@ function NotificationChannelsTable() {
               </Table.Header>
               <Table.Body>
                 {data?.data.map((ch) => (
-                <Table.Row key={ch.id}>
-                  <Table.Cell fontWeight="medium">{ch.name}</Table.Cell>
-                  <Table.Cell>
-                    <Badge
-                      colorPalette={CHANNEL_COLORS[ch.channel_type] ?? "gray"}
-                    >
-                      {ch.channel_type}
-                    </Badge>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge colorPalette={ch.enabled ? "green" : "gray"}>
-                      {ch.enabled ? "On" : "Off"}
-                    </Badge>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Flex gap={1}>
-                      <TestButton channel={ch} />
-                      <DialogRoot
-                        open={editChannel?.id === ch.id}
-                        onOpenChange={(e) => setEditChannel(e.open ? ch : null)}
+                  <Table.Row key={ch.id}>
+                    <Table.Cell fontWeight="medium">{ch.name}</Table.Cell>
+                    <Table.Cell>
+                      <Badge
+                        colorPalette={CHANNEL_COLORS[ch.channel_type] ?? "gray"}
                       >
-                        <DialogTrigger asChild>
-                          <Button size="xs" variant="ghost">
-                            Edit
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent maxW="xl">
-                          <DialogHeader>
-                            <DialogTitle>Edit Channel</DialogTitle>
-                          </DialogHeader>
-                          <DialogCloseTrigger />
-                          <DialogBody>
-                            <ChannelDialog
-                              channel={ch}
-                              onClose={() => setEditChannel(null)}
-                            />
-                          </DialogBody>
-                        </DialogContent>
-                      </DialogRoot>
-                      <DeleteChannelButton channel={ch} />
-                    </Flex>
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table.Root>
+                        {ch.channel_type}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge colorPalette={ch.enabled ? "green" : "gray"}>
+                        {ch.enabled ? "On" : "Off"}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Flex gap={1}>
+                        <TestButton channel={ch} />
+                        <DialogRoot
+                          open={editChannel?.id === ch.id}
+                          onOpenChange={(e) =>
+                            setEditChannel(e.open ? ch : null)
+                          }
+                        >
+                          <DialogTrigger asChild>
+                            <Button size="xs" variant="ghost">
+                              Edit
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent maxW="xl">
+                            <DialogHeader>
+                              <DialogTitle>Edit Channel</DialogTitle>
+                            </DialogHeader>
+                            <DialogCloseTrigger />
+                            <DialogBody>
+                              <ChannelDialog
+                                channel={ch}
+                                onClose={() => setEditChannel(null)}
+                              />
+                            </DialogBody>
+                          </DialogContent>
+                        </DialogRoot>
+                        <DeleteChannelButton channel={ch} />
+                      </Flex>
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Root>
           </Box>
 
           <PaginationRoot

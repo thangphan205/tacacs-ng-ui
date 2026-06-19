@@ -101,7 +101,14 @@ function HostsTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            overflow="hidden"
+            bg="bg.panel"
+            mt={6}
+            shadow="sm"
+          >
             <Table.Root size={{ base: "sm", md: "md" }}>
               <Table.Header bg="bg.muted">
                 <Table.Row>
@@ -134,7 +141,11 @@ function HostsTable() {
                     </Table.Cell>
                     <Table.Cell>
                       {host.ipv6_address ? (
-                        <Badge colorPalette="purple" variant="outline" size="sm">
+                        <Badge
+                          colorPalette="purple"
+                          variant="outline"
+                          size="sm"
+                        >
                           {host.ipv6_address}
                         </Badge>
                       ) : (
@@ -145,7 +156,11 @@ function HostsTable() {
                       {host.parent || "—"}
                     </Table.Cell>
                     <Table.Cell>
-                      <Badge colorPalette={host.generate_config ? "green" : "red"} variant="subtle" size="sm">
+                      <Badge
+                        colorPalette={host.generate_config ? "green" : "red"}
+                        variant="subtle"
+                        size="sm"
+                      >
                         {host.generate_config ? "Yes" : "No"}
                       </Badge>
                     </Table.Cell>

@@ -14,13 +14,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
-import {
-  FiCode,
-  FiInfo,
-  FiPlus,
-  FiSliders,
-  FiType,
-} from "react-icons/fi"
+import { FiCode, FiInfo, FiPlus, FiSliders, FiType } from "react-icons/fi"
 
 import {
   type ConfigurationOptionCreate,
@@ -54,7 +48,7 @@ const fieldGuideItems: FieldGuideItem[] = [
     label: "Config Option",
     description:
       "The raw TACACS+ configuration text to inject. This is written verbatim into the daemon config file under the selected scope. Use tac_plus-ng syntax.",
-    example: "enable = crypt \"$6$hash...\"",
+    example: 'enable = crypt "$6$hash..."',
     required: true,
   },
   {

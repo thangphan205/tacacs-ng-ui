@@ -105,7 +105,14 @@ function TacacsServicesTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            overflow="hidden"
+            bg="bg.panel"
+            mt={6}
+            shadow="sm"
+          >
             <Table.Root
               size={{ base: "sm", md: "md" }}
               tableLayout="fixed"
@@ -137,7 +144,13 @@ function TacacsServicesTable() {
                       </HStack>
                     </Table.Cell>
                     <Table.Cell>
-                      <Badge colorPalette={tacacs_service.generate_config ? "green" : "red"} variant="subtle" size="sm">
+                      <Badge
+                        colorPalette={
+                          tacacs_service.generate_config ? "green" : "red"
+                        }
+                        variant="subtle"
+                        size="sm"
+                      >
                         {tacacs_service.generate_config ? "Yes" : "No"}
                       </Badge>
                     </Table.Cell>
@@ -156,7 +169,9 @@ function TacacsServicesTable() {
                       )}
                     </Table.Cell>
                     <Table.Cell>
-                      <TacacsServiceActionsMenu tacacs_service={tacacs_service} />
+                      <TacacsServiceActionsMenu
+                        tacacs_service={tacacs_service}
+                      />
                     </Table.Cell>
                   </Table.Row>
                 ))}

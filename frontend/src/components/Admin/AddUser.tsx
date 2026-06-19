@@ -181,8 +181,8 @@ const AddUser = () => {
             <Grid templateColumns={{ base: "1fr", lg: "7fr 5fr" }} gap={6}>
               <GridItem>
                 <Text mb={4} color="fg.muted" fontSize="sm">
-                  Create a new web management user. This account is for the admin
-                  interface — not for TACACS+ device authentication.
+                  Create a new web management user. This account is for the
+                  admin interface — not for TACACS+ device authentication.
                 </Text>
                 <VStack gap={4}>
                   <Field
@@ -224,7 +224,8 @@ const AddUser = () => {
                         required: "Password is required",
                         minLength: {
                           value: 12,
-                          message: "Password must be at least 12 characters long",
+                          message:
+                            "Password must be at least 12 characters long",
                         },
                         validate: {
                           hasLower: (value) =>
@@ -236,8 +237,9 @@ const AddUser = () => {
                           hasNumber: (value) =>
                             /[0-9]/.test(value) || "Must contain one number",
                           hasSpecial: (value) =>
-                            /[!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]/.test(value) ||
-                            "Must contain one special character",
+                            /[!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]/.test(
+                              value,
+                            ) || "Must contain one special character",
                         },
                       })}
                       placeholder="Password"
@@ -287,7 +289,9 @@ const AddUser = () => {
                       <Field disabled={field.disabled} colorPalette="teal">
                         <Checkbox
                           checked={field.value}
-                          onCheckedChange={({ checked }) => field.onChange(checked)}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
                         >
                           Is superuser?
                         </Checkbox>
@@ -301,7 +305,9 @@ const AddUser = () => {
                       <Field disabled={field.disabled} colorPalette="teal">
                         <Checkbox
                           checked={field.value}
-                          onCheckedChange={({ checked }) => field.onChange(checked)}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
                         >
                           Is active?
                         </Checkbox>
@@ -315,7 +321,9 @@ const AddUser = () => {
                       <Field disabled={field.disabled} colorPalette="teal">
                         <Checkbox
                           checked={field.value ?? false}
-                          onCheckedChange={({ checked }) => field.onChange(checked)}
+                          onCheckedChange={({ checked }) =>
+                            field.onChange(checked)
+                          }
                         >
                           Disable password login?
                         </Checkbox>

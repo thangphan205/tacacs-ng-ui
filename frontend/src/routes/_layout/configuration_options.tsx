@@ -14,7 +14,13 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { FiCheck, FiCopy, FiExternalLink, FiSearch, FiSliders } from "react-icons/fi"
+import {
+  FiCheck,
+  FiCopy,
+  FiExternalLink,
+  FiSearch,
+  FiSliders,
+} from "react-icons/fi"
 import { z } from "zod"
 
 import { ConfigurationOptionsService } from "@/client"
@@ -128,7 +134,14 @@ function ConfigurationOptionsTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            overflow="hidden"
+            bg="bg.panel"
+            mt={6}
+            shadow="sm"
+          >
             <Table.Root size={{ base: "sm", md: "md" }}>
               <Table.Header bg="bg.muted">
                 <Table.Row>
@@ -136,7 +149,9 @@ function ConfigurationOptionsTable() {
                   <Table.ColumnHeader w="sm">Name</Table.ColumnHeader>
                   <Table.ColumnHeader w="md">Config Option</Table.ColumnHeader>
                   <Table.ColumnHeader w="md">Description</Table.ColumnHeader>
-                  <Table.ColumnHeader w="24" textAlign="right">Actions</Table.ColumnHeader>
+                  <Table.ColumnHeader w="24" textAlign="right">
+                    Actions
+                  </Table.ColumnHeader>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -234,7 +249,10 @@ function ConfigurationOptions() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          official documentation <FiExternalLink style={{ display: "inline", verticalAlign: "middle" }} />
+          official documentation{" "}
+          <FiExternalLink
+            style={{ display: "inline", verticalAlign: "middle" }}
+          />
         </Link>
       </Box>
       <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">

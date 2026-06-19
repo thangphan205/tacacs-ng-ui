@@ -200,7 +200,9 @@ function FilesTab() {
                     </ShowTacacsLog>
                   </Table.Cell>
                   <Table.Cell truncate maxW="sm">
-                    {new Date(log.created_at).toLocaleString("en-US", { hour12: false })}
+                    {new Date(log.created_at).toLocaleString("en-US", {
+                      hour12: false,
+                    })}
                   </Table.Cell>
                 </Table.Row>
               ))}

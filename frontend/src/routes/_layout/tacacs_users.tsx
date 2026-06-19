@@ -106,7 +106,14 @@ function TacacsUsersTable() {
 
   return (
     <>
-      <Box borderWidth="1px" borderRadius="xl" overflow="hidden" bg="bg.panel" mt={6} shadow="sm">
+      <Box
+        borderWidth="1px"
+        borderRadius="xl"
+        overflow="hidden"
+        bg="bg.panel"
+        mt={6}
+        shadow="sm"
+      >
         <Table.Root
           size={{ base: "sm", md: "md" }}
           tableLayout="fixed"
@@ -172,7 +179,11 @@ function TacacsUsersTable() {
                   )}
                 </Table.Cell>
                 <Table.Cell>
-                  <Badge colorPalette={tacacs_user.generate_config ? "green" : "red"} variant="subtle" size="sm">
+                  <Badge
+                    colorPalette={tacacs_user.generate_config ? "green" : "red"}
+                    variant="subtle"
+                    size="sm"
+                  >
                     {tacacs_user.generate_config ? "Yes" : "No"}
                   </Badge>
                 </Table.Cell>
