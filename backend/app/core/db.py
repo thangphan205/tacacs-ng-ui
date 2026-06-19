@@ -347,180 +347,35 @@ def init_db(session: Session) -> None:
 
     # 1. Services to seed (needs to be first because scripts reference service names)
     services_to_seed = [
-        (
-            "shell",
-            "Standard shell service (Cisco, Huawei, Dell, Arista, HP, Checkpoint)",
-        ),
+        ("shell", "Shell service — Cisco, Arista, Huawei"),
         ("junos-exec", "Juniper Networks exec service"),
+        ("h3c_shell", "Huawei H3C shell service"),
         ("PaloAlto", "Palo Alto Networks service"),
         ("fortigate", "Fortinet FortiGate service"),
-        ("checkpoint", "Checkpoint Firewall service"),
-        ("aruba", "Aruba / HP Enterprise service"),
-        ("h3c_shell", "Huawei / H3C shell service"),
-        ("nas_admin", "Network Access Server Admin service"),
     ]
     for svc_name, svc_desc in services_to_seed:
         get_or_create_service(session, svc_name, svc_desc)
 
     # 2. Groups to seed
     groups_to_seed = [
-        # System/generic groups
-        ("tacacs_super_user", "demo super user group"),
-        ("tacacs_read_only", "demo read only group"),
-        ("tacacs_group_level1", "cisco privilege level 1"),
-        ("tacacs_group_level15", "cisco privilege level 15"),
-        # Vendor-specific admin/operator groups
-        ("cisco_admin", "Cisco administrator group (level 15)"),
-        ("cisco_operator", "Cisco operator group (level 1)"),
-        ("juniper_admin", "Juniper administrator group"),
-        ("juniper_operator", "Juniper operator group"),
-        ("huawei_admin", "Huawei administrator group (level 15)"),
-        ("huawei_operator", "Huawei operator group (level 1)"),
-        ("paloalto_admin", "Palo Alto firewall admin group"),
-        ("fortinet_admin", "Fortinet firewall admin group"),
-        ("checkpoint_admin", "Checkpoint firewall admin group"),
-        ("arista_admin", "Arista administrator group (level 15)"),
-        ("hp_admin", "HP/H3C administrator group (level 3)"),
-        ("dell_admin", "Dell administrator group (level 15)"),
-        ("aruba_admin", "Aruba administrator group"),
-        ("nas_admin", "Network Access Server Admin group"),
+        ("tacacs_super_user", "Super user group — full admin access, privilege level 15"),
+        ("tacacs_read_only", "Read-only group — view-only access, privilege level 1"),
     ]
     for grp_name, grp_desc in groups_to_seed:
         get_or_create_group(session, grp_name, grp_desc)
 
     # 3. Users to seed
     users_to_seed = [
-        # System / generic users
-        ("user_admin", "crypt", "change_this", "tacacs_super_user", "demo admin user"),
-        (
-            "user_read_only",
-            "crypt",
-            "change_this",
-            "tacacs_read_only",
-            "demo read only user",
-        ),
-        (
-            "user_level1",
-            "crypt",
-            "change_this",
-            "tacacs_group_level1",
-            "privilege level 1 user",
-        ),
-        (
-            "user_level15",
-            "crypt",
-            "change_this",
-            "tacacs_group_level15",
-            "privilege level 15 user",
-        ),
-        # Cisco users
-        (
-            "cisco15",
-            "crypt",
-            "Netconsole123",
-            "cisco_admin",
-            "Cisco level 15 admin user",
-        ),
-        (
-            "cisco1",
-            "crypt",
-            "Netconsole123",
-            "cisco_operator",
-            "Cisco level 1 operator user",
-        ),
-        # Juniper users
-        (
-            "juniper15",
-            "crypt",
-            "Netconsole123",
-            "juniper_admin",
-            "Juniper superuser admin user",
-        ),
-        (
-            "juniper1",
-            "crypt",
-            "Netconsole123",
-            "juniper_operator",
-            "Juniper operator user",
-        ),
-        # Huawei users
-        (
-            "huawei15",
-            "crypt",
-            "Netconsole123",
-            "huawei_admin",
-            "Huawei level 15 admin user",
-        ),
-        (
-            "huawei1",
-            "crypt",
-            "Netconsole123",
-            "huawei_operator",
-            "Huawei level 1 operator user",
-        ),
-        # Palo Alto users
-        (
-            "paloalto15",
-            "crypt",
-            "Netconsole123",
-            "paloalto_admin",
-            "Palo Alto superuser admin user",
-        ),
-        # Fortinet users
-        (
-            "fortinet15",
-            "crypt",
-            "Netconsole123",
-            "fortinet_admin",
-            "Fortinet super_admin user",
-        ),
-        # Checkpoint users
-        (
-            "checkpoint15",
-            "crypt",
-            "Netconsole123",
-            "checkpoint_admin",
-            "Checkpoint admin user",
-        ),
-        # Arista users
-        ("arista15", "crypt", "Netconsole123", "arista_admin", "Arista admin user"),
-        # HP users
-        ("hp15", "crypt", "Netconsole123", "hp_admin", "HP/H3C level 3 admin user"),
-        # Dell users
-        ("dell15", "crypt", "Netconsole123", "dell_admin", "Dell level 15 admin user"),
-        # Aruba users
-        ("aruba15", "crypt", "Netconsole123", "aruba_admin", "Aruba root admin user"),
-        # NAS users
-        ("nas15", "crypt", "Netconsole123", "nas_admin", "NAS admin user"),
+        ("user_admin", "crypt", "change_this", "tacacs_super_user", "Admin user — full access, privilege level 15"),
+        ("user_read_only", "crypt", "change_this", "tacacs_read_only", "Read-only user — view-only access, privilege level 1"),
     ]
     for username, pwd_type, pwd, member, desc in users_to_seed:
         get_or_create_user(session, username, pwd_type, pwd, member, desc)
 
     # 4. Profiles to seed
     profiles_to_seed = [
-        # System profiles
         ("tacacs_super_user_profile", "deny"),
         ("tacacs_read_only_profile", "deny"),
-        ("tacacs_cisco1_profile", "deny"),
-        ("tacacs_cisco15_profile", "deny"),
-        ("tacacs_huawei15_profile", "deny"),
-        ("tacacs_paloalto_profile", "deny"),
-        ("tacacs_fortinet_profile", "deny"),
-        # Vendor-specific profiles
-        ("cisco_admin_profile", "deny"),
-        ("cisco_operator_profile", "deny"),
-        ("juniper_admin_profile", "deny"),
-        ("juniper_operator_profile", "deny"),
-        ("huawei_admin_profile", "deny"),
-        ("huawei_operator_profile", "deny"),
-        ("paloalto_admin_profile", "deny"),
-        ("fortinet_admin_profile", "deny"),
-        ("checkpoint_admin_profile", "deny"),
-        ("arista_admin_profile", "deny"),
-        ("hp_admin_profile", "deny"),
-        ("dell_admin_profile", "deny"),
-        ("aruba_admin_profile", "deny"),
-        ("nas_admin_profile", "deny"),
     ]
     profile_objs = {}
     for prof_name, prof_action in profiles_to_seed:
@@ -558,319 +413,68 @@ def init_db(session: Session) -> None:
             profilescript_id=ps.id,
         )
 
-    # System/Legacy Profile rules
+    # tacacs_super_user_profile — privilege 15 across Cisco, Arista, Huawei, Juniper
     seed_profile_rule(
         "tacacs_super_user_profile",
-        "if",
-        "service",
-        "junos-exec",
-        "permit",
-        "Allow Juniper service",
-        "local-user-name",
-        "tacacs_super_user",
-        "set local user",
+        "if", "service", "shell", "permit",
+        "Cisco/Arista — privilege level 15",
+        "priv-lvl", "15", "Privilege level 15",
+    )
+    seed_profile_rule(
+        "tacacs_super_user_profile",
+        "if", "service", "junos-exec", "permit",
+        "Juniper — superuser local account",
+        "local-user-name", "tacacs_super_user", "Juniper local user",
+    )
+    seed_profile_rule(
+        "tacacs_super_user_profile",
+        "if", "service", "h3c_shell", "permit",
+        "Huawei H3C — privilege level 15",
+        "priv-lvl", "15", "Privilege level 15",
+    )
+    seed_profile_rule(
+        "tacacs_super_user_profile",
+        "if", "service", "PaloAlto", "permit",
+        "Palo Alto — superuser admin role",
+        "PaloAlto-Admin-Role", "superuser", "Palo Alto superuser",
+    )
+    seed_profile_rule(
+        "tacacs_super_user_profile",
+        "if", "service", "fortigate", "permit",
+        "Fortinet — super_admin profile",
+        "admin_prof", "super_admin", "Fortinet super_admin",
+    )
+
+    # tacacs_read_only_profile — privilege 1 across Cisco, Arista, Huawei, Juniper
+    seed_profile_rule(
+        "tacacs_read_only_profile",
+        "if", "service", "shell", "permit",
+        "Cisco/Arista — privilege level 1 (read-only)",
+        "priv-lvl", "1", "Privilege level 1",
     )
     seed_profile_rule(
         "tacacs_read_only_profile",
-        "if",
-        "service",
-        "junos-exec",
-        "permit",
-        "Allow Juniper service",
-        "local-user-name",
-        "tacacs_read_only",
-        "set local user",
+        "if", "service", "junos-exec", "permit",
+        "Juniper — read-only local account",
+        "local-user-name", "tacacs_read_only", "Juniper local user",
     )
     seed_profile_rule(
-        "tacacs_cisco15_profile",
-        "if",
-        "service",
-        "shell",
-        "permit",
-        "Allow privilege level 15",
-        "priv-lvl",
-        "15",
-        "Cisco privilege level 15",
+        "tacacs_read_only_profile",
+        "if", "service", "h3c_shell", "permit",
+        "Huawei H3C — privilege level 1 (read-only)",
+        "priv-lvl", "1", "Privilege level 1",
     )
     seed_profile_rule(
-        "tacacs_cisco1_profile",
-        "if",
-        "service",
-        "shell",
-        "permit",
-        "Allow privilege level 1",
-        "priv-lvl",
-        "1",
-        "Cisco privilege level 1",
+        "tacacs_read_only_profile",
+        "if", "service", "PaloAlto", "permit",
+        "Palo Alto — devicereader role",
+        "PaloAlto-Admin-Role", "devicereader", "Palo Alto read-only",
     )
     seed_profile_rule(
-        "tacacs_huawei15_profile",
-        "if",
-        "service",
-        "shell",
-        "permit",
-        "Allow privilege level 15",
-        "priv-lvl",
-        "15",
-        "Huawei privilege level 15",
-    )
-    seed_profile_rule(
-        "tacacs_paloalto_profile",
-        "if",
-        "service",
-        "PaloAlto",
-        "permit",
-        "Allow Palo Alto",
-        "PaloAlto-Admin-Role",
-        "superuser",
-        "Palo Alto Admin Role",
-    )
-    seed_profile_rule(
-        "tacacs_fortinet_profile",
-        "if",
-        "service",
-        "fortigate",
-        "permit",
-        "Allow Fortinet",
-        "admin_prof",
-        "super_admin",
-        "Fortinet Admin Profile",
-    )
-
-    # Cisco Admin
-    seed_profile_rule(
-        "cisco_admin_profile",
-        "if",
-        "service",
-        "shell",
-        "permit",
-        "Allow Cisco privilege level 15",
-        "priv-lvl",
-        "15",
-        "Cisco privilege level 15",
-    )
-    # Cisco Operator
-    seed_profile_rule(
-        "cisco_operator_profile",
-        "if",
-        "service",
-        "shell",
-        "permit",
-        "Allow Cisco privilege level 1",
-        "priv-lvl",
-        "1",
-        "Cisco privilege level 1",
-    )
-    # Juniper Admin
-    seed_profile_rule(
-        "juniper_admin_profile",
-        "if",
-        "service",
-        "junos-exec",
-        "permit",
-        "Allow Juniper superuser access",
-        "local-user-name",
-        "juniper_admin",
-        "Juniper admin local user",
-    )
-    # Juniper Operator
-    seed_profile_rule(
-        "juniper_operator_profile",
-        "if",
-        "service",
-        "junos-exec",
-        "permit",
-        "Allow Juniper operator access",
-        "local-user-name",
-        "juniper_read_only",
-        "Juniper read-only local user",
-    )
-    # Huawei Admin
-    seed_profile_rule(
-        "huawei_admin_profile",
-        "if",
-        "service",
-        "shell",
-        "permit",
-        "Allow Huawei privilege level 15",
-        "priv-lvl",
-        "15",
-        "Huawei privilege level 15",
-    )
-    # Huawei Operator
-    seed_profile_rule(
-        "huawei_operator_profile",
-        "if",
-        "service",
-        "shell",
-        "permit",
-        "Allow Huawei privilege level 1",
-        "priv-lvl",
-        "1",
-        "Huawei privilege level 1",
-    )
-    # Palo Alto Admin
-    seed_profile_rule(
-        "paloalto_admin_profile",
-        "if",
-        "service",
-        "PaloAlto",
-        "permit",
-        "Allow Palo Alto superuser access",
-        "PaloAlto-Admin-Role",
-        "superuser",
-        "Palo Alto Admin Role",
-    )
-    # Fortinet Admin
-    seed_profile_rule(
-        "fortinet_admin_profile",
-        "if",
-        "service",
-        "fortigate",
-        "permit",
-        "Allow Fortinet super_admin access",
-        "admin_prof",
-        "super_admin",
-        "Fortinet Admin Profile",
-    )
-    # Checkpoint Admin
-    seed_profile_rule(
-        "checkpoint_admin_profile",
-        "if",
-        "service",
-        "checkpoint",
-        "permit",
-        "Allow Checkpoint admin access",
-        "role",
-        "admin",
-        "Checkpoint admin role",
-    )
-    # Arista Admin
-    seed_profile_rule(
-        "arista_admin_profile",
-        "if",
-        "service",
-        "shell",
-        "permit",
-        "Allow Arista privilege level 15",
-        "priv-lvl",
-        "15",
-        "Arista privilege level 15",
-    )
-    # HP/H3C Admin
-    seed_profile_rule(
-        "hp_admin_profile",
-        "if",
-        "service",
-        "shell",
-        "permit",
-        "Allow HP/H3C privilege level 3",
-        "priv-lvl",
-        "3",
-        "HP/H3C privilege level 3",
-    )
-    # Dell Admin
-    seed_profile_rule(
-        "dell_admin_profile",
-        "if",
-        "service",
-        "shell",
-        "permit",
-        "Allow Dell privilege level 15",
-        "priv-lvl",
-        "15",
-        "Dell privilege level 15",
-    )
-    # Aruba Admin
-    seed_profile_rule(
-        "aruba_admin_profile",
-        "if",
-        "service",
-        "aruba",
-        "permit",
-        "Allow Aruba root role access",
-        "Aruba-User-Role",
-        "root",
-        "Aruba User Role",
-    )
-    # NAS Admin
-    seed_profile_rule(
-        "nas_admin_profile",
-        "if",
-        "service",
-        "nas_admin",
-        "permit",
-        "Allow NAS admin access",
-        "priv-lvl",
-        "15",
-        "NAS admin privilege level 15",
-    )
-
-    # Additional service scripts for Huawei/HP to support h3c_shell
-    def seed_additional_profile_rule(
-        prof_name: str,
-        condition: str,
-        key: str,
-        value: str,
-        action: str,
-        description: str,
-        set_key: str,
-        set_val: str,
-        set_desc: str,
-    ) -> None:
-        prof = profile_objs.get(prof_name)
-        if not prof:
-            return
-        ps = get_or_create_profile_script(
-            session=session,
-            condition=condition,
-            key=key,
-            value=value,
-            action=action,
-            description=description,
-            profile_id=prof.id,
-        )
-        get_or_create_profile_script_set(
-            session=session,
-            key=set_key,
-            value=set_val,
-            description=set_desc,
-            profilescript_id=ps.id,
-        )
-
-    # Seed if h3c_shell for Huawei and HP (since profile script blocks do not support elif in tac_plus-ng syntax)
-    seed_additional_profile_rule(
-        "huawei_admin_profile",
-        "if",
-        "service",
-        "h3c_shell",
-        "permit",
-        "Allow Huawei H3C shell service",
-        "priv-lvl",
-        "15",
-        "Huawei privilege level 15",
-    )
-    seed_additional_profile_rule(
-        "huawei_operator_profile",
-        "if",
-        "service",
-        "h3c_shell",
-        "permit",
-        "Allow Huawei H3C shell service operator",
-        "priv-lvl",
-        "1",
-        "Huawei privilege level 1",
-    )
-    seed_additional_profile_rule(
-        "hp_admin_profile",
-        "if",
-        "service",
-        "h3c_shell",
-        "permit",
-        "Allow HP/H3C shell service admin",
-        "priv-lvl",
-        "3",
-        "HP privilege level 3",
+        "tacacs_read_only_profile",
+        "if", "service", "fortigate", "permit",
+        "Fortinet — read-only admin profile",
+        "admin_prof", "read_only", "Fortinet read_only",
     )
 
     # 5. Ruleset
@@ -907,57 +511,8 @@ def init_db(session: Session) -> None:
         )
 
     # Seed ruleset mappings
-    seed_ruleset_mapping(
-        "if", "tacacs_super_user", "tacacs_super_user_profile", "Super user mapping"
-    )
-    seed_ruleset_mapping(
-        "if", "tacacs_read_only", "tacacs_read_only_profile", "Read-only mapping"
-    )
-    seed_ruleset_mapping(
-        "if",
-        "tacacs_group_level15",
-        "tacacs_huawei15_profile",
-        "Legacy level 15 mapping",
-    )
-    seed_ruleset_mapping(
-        "if", "tacacs_group_level1", "tacacs_cisco1_profile", "Legacy level 1 mapping"
-    )
-    seed_ruleset_mapping(
-        "if", "cisco_admin", "cisco_admin_profile", "Cisco Admin mapping"
-    )
-    seed_ruleset_mapping(
-        "if", "cisco_operator", "cisco_operator_profile", "Cisco Operator mapping"
-    )
-    seed_ruleset_mapping(
-        "if", "juniper_admin", "juniper_admin_profile", "Juniper Admin mapping"
-    )
-    seed_ruleset_mapping(
-        "if", "juniper_operator", "juniper_operator_profile", "Juniper Operator mapping"
-    )
-    seed_ruleset_mapping(
-        "if", "huawei_admin", "huawei_admin_profile", "Huawei Admin mapping"
-    )
-    seed_ruleset_mapping(
-        "if", "huawei_operator", "huawei_operator_profile", "Huawei Operator mapping"
-    )
-    seed_ruleset_mapping(
-        "if", "paloalto_admin", "paloalto_admin_profile", "Palo Alto Admin mapping"
-    )
-    seed_ruleset_mapping(
-        "if", "fortinet_admin", "fortinet_admin_profile", "Fortinet Admin mapping"
-    )
-    seed_ruleset_mapping(
-        "if", "checkpoint_admin", "checkpoint_admin_profile", "Checkpoint Admin mapping"
-    )
-    seed_ruleset_mapping(
-        "if", "arista_admin", "arista_admin_profile", "Arista Admin mapping"
-    )
-    seed_ruleset_mapping("if", "hp_admin", "hp_admin_profile", "HP/H3C Admin mapping")
-    seed_ruleset_mapping("if", "dell_admin", "dell_admin_profile", "Dell Admin mapping")
-    seed_ruleset_mapping(
-        "if", "aruba_admin", "aruba_admin_profile", "Aruba Admin mapping"
-    )
-    seed_ruleset_mapping("if", "nas_admin", "nas_admin_profile", "NAS Admin mapping")
+    seed_ruleset_mapping("if", "tacacs_super_user", "tacacs_super_user_profile", "Super user — full admin, privilege level 15")
+    seed_ruleset_mapping("if", "tacacs_read_only", "tacacs_read_only_profile", "Read-only — view-only access, privilege level 1")
 
     _seed_system_alert_rules(session)
     session.commit()
