@@ -45,8 +45,8 @@ const CONFIG_SECTIONS: NavSection[] = [
     items: [
       { icon: LuBoxes, title: "TACACS Configs", path: "/tacacs_configs" },
       { icon: FiServer, title: "Hosts", path: "/hosts" },
-      { icon: FiUser, title: "Users", path: "/tacacs_users" },
       { icon: FiUsers, title: "Groups", path: "/tacacs_groups" },
+      { icon: FiUser, title: "Users", path: "/tacacs_users" },
       { icon: FiGrid, title: "Services", path: "/tacacs_services" },
       { icon: FiFileText, title: "Profiles", path: "/profiles" },
       { icon: FiShield, title: "Rulesets", path: "/rulesets" },

@@ -1,15 +1,17 @@
 import {
+  Badge,
   Container,
   EmptyState,
   Flex,
   Heading,
   Table,
+  Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { FiSearch } from "react-icons/fi"
+import { FiSearch, FiUser } from "react-icons/fi"
 import { z } from "zod"
 
 import { TacacsUsersService } from "@/client"
@@ -21,6 +23,7 @@ import AddTacacsUser from "@/components/TacacsUsers/AddTacacsUser"
 import {
   PaginationItems,
   PaginationNextTrigger,
+  PaginationPageText,
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
@@ -102,15 +105,20 @@ function TacacsUsersTable() {
 
   return (
     <>
-      <Table.Root size="sm" mt={2}>
+      <Table.Root
+        size={{ base: "sm", md: "md" }}
+        mt={2}
+        tableLayout="fixed"
+        w="full"
+      >
         <Table.Header>
           <Table.Row>
-            <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Username</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Password Type</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Member</Table.ColumnHeader>
-            <Table.ColumnHeader>Description</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
+            <Table.ColumnHeader w="20%">Username</Table.ColumnHeader>
+            <Table.ColumnHeader w="15%">Password Type</Table.ColumnHeader>
+            <Table.ColumnHeader w="25%">Group Membership</Table.ColumnHeader>
+            <Table.ColumnHeader w="20%">Description</Table.ColumnHeader>
+            <Table.ColumnHeader w="12%">Last Updated</Table.ColumnHeader>
+            <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
           </Table.Row>
         </Table.Header>
         <Table.Body>
@@ -119,24 +127,56 @@ function TacacsUsersTable() {
               key={tacacs_user.id}
               opacity={isPlaceholderData ? 0.5 : 1}
             >
-              <Table.Cell truncate maxW="sm">
-                {tacacs_user.id}
+              <Table.Cell fontWeight="medium" truncate>
+                <Flex align="center" gap={2} truncate>
+                  <FiUser style={{ flexShrink: 0, color: "gray" }} />
+                  <Text as="span" truncate>
+                    {tacacs_user.username}
+                  </Text>
+                </Flex>
               </Table.Cell>
-              <Table.Cell truncate maxW="sm">
-                {tacacs_user.username}
+              <Table.Cell>
+                <Badge
+                  variant="subtle"
+                  colorPalette={
+                    tacacs_user.password_type === "crypt"
+                      ? "green"
+                      : tacacs_user.password_type === "mavis"
+                        ? "blue"
+                        : "orange"
+                  }
+                >
+                  {tacacs_user.password_type}
+                </Badge>
               </Table.Cell>
-              <Table.Cell truncate maxW="sm">
-                {tacacs_user.password_type}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm">
-                {tacacs_user.member}
+              <Table.Cell>
+                {tacacs_user.member ? (
+                  <Flex gap={1} wrap="wrap">
+                    {tacacs_user.member.split(",").map((group) => (
+                      <Badge
+                        key={group}
+                        variant="outline"
+                        colorPalette="purple"
+                        size="sm"
+                      >
+                        {group}
+                      </Badge>
+                    ))}
+                  </Flex>
+                ) : (
+                  <Text color="fg.muted">—</Text>
+                )}
               </Table.Cell>
               <Table.Cell
                 color={!tacacs_user.description ? "gray" : "inherit"}
                 truncate
-                maxW="30%"
               >
                 {tacacs_user.description || "N/A"}
+              </Table.Cell>
+              <Table.Cell fontSize="sm" color="fg.muted">
+                {new Date(tacacs_user.updated_at).toLocaleString(undefined, {
+                  hour12: false,
+                })}
               </Table.Cell>
               <Table.Cell>
                 <TacacsUserActionsMenu tacacs_user={tacacs_user} />
@@ -158,10 +198,13 @@ function TacacsUsersTable() {
           pageSize={perPage}
           onPageChange={({ page }) => setPage(page)}
         >
-          <Flex>
-            <PaginationPrevTrigger />
-            <PaginationItems />
-            <PaginationNextTrigger />
+          <Flex align="center" gap={4}>
+            <PaginationPageText format="long" color="fg.muted" fontSize="sm" />
+            <Flex>
+              <PaginationPrevTrigger />
+              <PaginationItems />
+              <PaginationNextTrigger />
+            </Flex>
           </Flex>
         </PaginationRoot>
       </Flex>

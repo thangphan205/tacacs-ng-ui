@@ -4,12 +4,13 @@ import {
   Flex,
   Heading,
   Table,
+  Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { FiSearch } from "react-icons/fi"
+import { FiSearch, FiUsers } from "react-icons/fi"
 import { z } from "zod"
 
 import { TacacsGroupsService } from "@/client"
@@ -21,6 +22,7 @@ import AddTacacsGroup from "@/components/TacacsGroups/AddTacacsGroup"
 import {
   PaginationItems,
   PaginationNextTrigger,
+  PaginationPageText,
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
@@ -98,13 +100,18 @@ function TacacsGroupsTable() {
         </EmptyState.Root>
       ) : (
         <>
-          <Table.Root size="sm" mt={2}>
+          <Table.Root
+            size={{ base: "sm", md: "md" }}
+            mt={2}
+            tableLayout="fixed"
+            w="full"
+          >
             <Table.Header>
               <Table.Row>
-                <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Group Name</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Description</Table.ColumnHeader>
-                <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
+                <Table.ColumnHeader w="35%">Group Name</Table.ColumnHeader>
+                <Table.ColumnHeader w="40%">Description</Table.ColumnHeader>
+                <Table.ColumnHeader w="17%">Last Updated</Table.ColumnHeader>
+                <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -113,18 +120,27 @@ function TacacsGroupsTable() {
                   key={tacacs_group.id}
                   opacity={isPlaceholderData ? 0.5 : 1}
                 >
-                  <Table.Cell truncate maxW="sm">
-                    {tacacs_group.id}
-                  </Table.Cell>
-                  <Table.Cell truncate maxW="sm">
-                    {tacacs_group.group_name}
+                  <Table.Cell fontWeight="medium" truncate>
+                    <Flex align="center" gap={2} truncate>
+                      <FiUsers style={{ flexShrink: 0, color: "gray" }} />
+                      <Text as="span" truncate>
+                        {tacacs_group.group_name}
+                      </Text>
+                    </Flex>
                   </Table.Cell>
                   <Table.Cell
                     color={!tacacs_group.description ? "gray" : "inherit"}
                     truncate
-                    maxW="30%"
                   >
                     {tacacs_group.description || "N/A"}
+                  </Table.Cell>
+                  <Table.Cell fontSize="sm" color="fg.muted">
+                    {new Date(tacacs_group.updated_at).toLocaleString(
+                      undefined,
+                      {
+                        hour12: false,
+                      },
+                    )}
                   </Table.Cell>
                   <Table.Cell>
                     <TacacsGroupActionsMenu tacacs_group={tacacs_group} />
@@ -146,10 +162,17 @@ function TacacsGroupsTable() {
               pageSize={perPage}
               onPageChange={({ page }) => setPage(page)}
             >
-              <Flex>
-                <PaginationPrevTrigger />
-                <PaginationItems />
-                <PaginationNextTrigger />
+              <Flex align="center" gap={4}>
+                <PaginationPageText
+                  format="long"
+                  color="fg.muted"
+                  fontSize="sm"
+                />
+                <Flex>
+                  <PaginationPrevTrigger />
+                  <PaginationItems />
+                  <PaginationNextTrigger />
+                </Flex>
               </Flex>
             </PaginationRoot>
           </Flex>
