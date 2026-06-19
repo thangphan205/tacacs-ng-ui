@@ -102,7 +102,7 @@ const AddMavis = () => {
               <Field
                 invalid={!!errors.mavis_value}
                 errorText={errors.mavis_value?.message}
-                label="Set Key"
+                label="Mavis Value"
               >
                 <Input
                   {...register("mavis_value")}

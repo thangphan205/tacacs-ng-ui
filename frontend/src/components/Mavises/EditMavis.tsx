@@ -99,7 +99,7 @@ const EditMavis = ({ mavis }: EditMavisProps) => {
                 required
                 invalid={!!errors.mavis_key}
                 errorText={errors.mavis_key?.message}
-                label="Set Key"
+                label="Mavis Key"
               >
                 <Input
                   {...register("mavis_key", {
@@ -112,7 +112,7 @@ const EditMavis = ({ mavis }: EditMavisProps) => {
               <Field
                 invalid={!!errors.mavis_value}
                 errorText={errors.mavis_value?.message}
-                label="Value"
+                label="Mavis Value"
               >
                 <Input
                   {...register("mavis_value")}
