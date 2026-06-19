@@ -124,13 +124,18 @@ const AddTacacsUser = () => {
             <DialogTitle>Add TACACS User</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Fill in the details to add a new item.</Text>
+            <Text mb={4} color="fg.muted" fontSize="sm">
+              Create a new user account. Local logins support secure hashing
+              (crypt) or plaintext (clear), while mavis delegates auth to remote
+              servers (LDAP/AD).
+            </Text>
             <VStack gap={4}>
               <Field
                 required
                 invalid={!!errors.username}
                 errorText={errors.username?.message}
                 label="Username"
+                helperText="The unique login username used to authenticate against the network client (NAS)."
               >
                 <Input
                   {...register("username", {
@@ -197,6 +202,7 @@ const AddTacacsUser = () => {
                   invalid={!!errors.password}
                   errorText={errors.password?.message}
                   label="Password"
+                  helperText="For 'crypt' type, this will be hashed with SHA-512 on the server. For 'clear', it is stored as plaintext."
                 >
                   <Input
                     {...register("password", {
@@ -212,6 +218,7 @@ const AddTacacsUser = () => {
                 invalid={!!errors.member}
                 errorText={errors.member?.message}
                 label="Group Membership"
+                helperText="Associate the user with one or more groups to inherit their command and service access profiles."
               >
                 <input
                   type="hidden"
@@ -250,6 +257,7 @@ const AddTacacsUser = () => {
                 invalid={!!errors.description}
                 errorText={errors.description?.message}
                 label="Description"
+                helperText="Optional descriptive notes (e.g. employee name or department)."
               >
                 <Input
                   {...register("description")}

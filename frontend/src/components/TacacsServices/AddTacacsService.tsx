@@ -74,28 +74,33 @@ const AddTacacsService = () => {
       <DialogTrigger asChild>
         <Button value="add-item" my={4}>
           <FaPlus fontSize="16px" />
-          Add TacacsService
+          Add TACACS Service
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Add TacacsService</DialogTitle>
+            <DialogTitle>Add TACACS Service</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Fill in the details to add a new item.</Text>
+            <Text mb={4} color="fg.muted" fontSize="sm">
+              Create a new TACACS+ service definition. Services represent
+              authorization contexts (such as 'exec' for shell sessions or 'ppp'
+              for network access) configured on network client devices.
+            </Text>
             <VStack gap={4}>
               <Field
                 required
                 invalid={!!errors.name}
                 errorText={errors.name?.message}
-                label="name"
+                label="Service Name"
+                helperText="A unique identifier for the service (e.g. 'exec', 'ppp', 'shell')."
               >
                 <Input
                   {...register("name", {
-                    required: "name is required.",
+                    required: "Service Name is required.",
                   })}
-                  placeholder="name"
+                  placeholder="Service Name"
                   type="text"
                 />
               </Field>
@@ -104,6 +109,7 @@ const AddTacacsService = () => {
                 invalid={!!errors.description}
                 errorText={errors.description?.message}
                 label="Description"
+                helperText="Optional description or notes detailing what authorization attributes this service governs."
               >
                 <Input
                   {...register("description")}

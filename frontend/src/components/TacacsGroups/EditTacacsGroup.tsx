@@ -90,28 +90,32 @@ const EditTacacsGroup = ({ tacacs_group }: EditTacacsGroupProps) => {
       <DialogTrigger asChild>
         <Button variant="ghost">
           <FaExchangeAlt fontSize="16px" />
-          Edit TacacsGroup
+          Edit TACACS Group
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Edit TacacsGroup</DialogTitle>
+            <DialogTitle>Edit TACACS Group</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Update the item details below.</Text>
+            <Text mb={4} color="fg.muted" fontSize="sm">
+              Update the TACACS group details. Users assigned to this group will
+              inherit these modified parameters.
+            </Text>
             <VStack gap={4}>
               <Field
                 required
                 invalid={!!errors.group_name}
                 errorText={errors.group_name?.message}
-                label="group_name"
+                label="Group Name"
+                helperText="A unique identifier for the TACACS group. Changing this will affect all users who are members of this group."
               >
                 <Input
                   {...register("group_name", {
-                    required: "Title is required",
+                    required: "Group Name is required.",
                   })}
-                  placeholder="group_name"
+                  placeholder="Group Name"
                   type="text"
                 />
               </Field>
@@ -120,6 +124,7 @@ const EditTacacsGroup = ({ tacacs_group }: EditTacacsGroupProps) => {
                 invalid={!!errors.description}
                 errorText={errors.description?.message}
                 label="Description"
+                helperText="Optional description or notes detailing the group's purpose or permission level."
               >
                 <Input
                   {...register("description")}

@@ -90,28 +90,32 @@ const EditTacacsService = ({ tacacs_service }: EditTacacsServiceProps) => {
       <DialogTrigger asChild>
         <Button variant="ghost">
           <FaExchangeAlt fontSize="16px" />
-          Edit TacacsService
+          Edit TACACS Service
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Edit TacacsService</DialogTitle>
+            <DialogTitle>Edit TACACS Service</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Update the item details below.</Text>
+            <Text mb={4} color="fg.muted" fontSize="sm">
+              Update the TACACS service details. Rules and scripts referencing
+              this service will inherit the updated parameters.
+            </Text>
             <VStack gap={4}>
               <Field
                 required
                 invalid={!!errors.name}
                 errorText={errors.name?.message}
-                label="name"
+                label="Service Name"
+                helperText="A unique identifier for the service. Changing this will impact all rules and scripts referring to this service."
               >
                 <Input
                   {...register("name", {
-                    required: "name is required",
+                    required: "Service Name is required.",
                   })}
-                  placeholder="name"
+                  placeholder="Service Name"
                   type="text"
                 />
               </Field>
@@ -119,6 +123,7 @@ const EditTacacsService = ({ tacacs_service }: EditTacacsServiceProps) => {
                 invalid={!!errors.description}
                 errorText={errors.description?.message}
                 label="Description"
+                helperText="Optional description or notes detailing what authorization attributes this service governs."
               >
                 <Input
                   {...register("description")}

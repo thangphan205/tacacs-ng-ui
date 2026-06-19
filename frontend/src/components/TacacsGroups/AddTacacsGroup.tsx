@@ -74,22 +74,27 @@ const AddTacacsGroup = () => {
       <DialogTrigger asChild>
         <Button value="add-item" my={4}>
           <FaPlus fontSize="16px" />
-          Add TacacsGroup
+          Add TACACS Group
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Add TacacsGroup</DialogTitle>
+            <DialogTitle>Add TACACS Group</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Fill in the details to add a new item.</Text>
+            <Text mb={4} color="fg.muted" fontSize="sm">
+              A TACACS Group acts as a template for user authorization. Users
+              assigned to a group inherit its profiles, permitted services, and
+              command authorization rules.
+            </Text>
             <VStack gap={4}>
               <Field
                 required
                 invalid={!!errors.group_name}
                 errorText={errors.group_name?.message}
                 label="Group Name"
+                helperText="A unique identifier for the TACACS group (e.g. 'admin', 'noc_operators')."
               >
                 <Input
                   {...register("group_name", {
@@ -104,6 +109,7 @@ const AddTacacsGroup = () => {
                 invalid={!!errors.description}
                 errorText={errors.description?.message}
                 label="Description"
+                helperText="Optional description or notes detailing the group's purpose or permission level."
               >
                 <Input
                   {...register("description")}
