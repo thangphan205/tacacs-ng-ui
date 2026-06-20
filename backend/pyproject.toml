@@ -20,7 +20,7 @@ dependencies = [
     "bcrypt==4.3.0",
     "pydantic-settings<3.0.0,>=2.2.1",
     "sentry-sdk[fastapi]>=1.40.6,<3.0.0",
-    "pyjwt<3.0.0,>=2.12.0",
+    "pyjwt>=2.13.0,<3.0.0",
     "authlib>=1.6.12",
     "webauthn>=2.2.0,<3.0.0",
     "cryptography>=48.0.1",
