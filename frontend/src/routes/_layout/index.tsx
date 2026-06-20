@@ -93,12 +93,13 @@ const LOG_TYPE_COLOR: Record<string, string> = {
 }
 
 const RESULT_COLOR: Record<string, string> = {
-  SUCCESS: "green",
-  PERMIT: "green",
-  FAILED: "red",
-  DENY: "red",
-  START: "teal",
-  STOP: "gray",
+  success: "green",
+  failed: "red",
+  permit: "teal",
+  deny: "orange",
+  start: "blue",
+  stop: "gray",
+  unknown: "gray",
 }
 
 const ACTION_COLOR: Record<string, string> = {
@@ -829,11 +830,13 @@ function LastTacacsLogs() {
                   </Table.Cell>
                   <Table.Cell>
                     <Badge
-                      colorPalette={RESULT_COLOR[log.result] ?? "gray"}
+                      colorPalette={
+                        RESULT_COLOR[log.result?.toLowerCase()] ?? "gray"
+                      }
                       size="sm"
                       variant="subtle"
                     >
-                      {log.result}
+                      {log.result?.toUpperCase()}
                     </Badge>
                   </Table.Cell>
                   <Table.Cell

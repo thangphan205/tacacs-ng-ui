@@ -33,17 +33,19 @@ test.describe("Capture screenshots for README", () => {
       await page.locator('button:has-text("Generate Config")').click()
       await page.waitForTimeout(1000)
       // Explicitly fill the filename input
-      await page.locator('input[placeholder="filename"]').fill('tac_plus-ng')
+      await page.locator('input[placeholder="filename"]').fill("tac_plus-ng")
       // Blur the input to trigger validation for mode: "onBlur"
       await page.locator('input[placeholder="filename"]').blur()
       await page.waitForTimeout(1000)
       await page.locator('button[type="submit"]:has-text("Generate")').click()
       // Wait for the modal dialog to close completely (detached) to avoid pointer intercept errors
-      await page.waitForSelector('text=Generate TACACS+ Config', { state: 'detached' })
+      await page.waitForSelector("text=Generate TACACS+ Config", {
+        state: "detached",
+      })
       await page.waitForTimeout(2000) // Additional timeout for table refresh and animations to settle
 
       // Click the filename button of the newly generated inactive config (first row)
-      const configButton = page.locator('tbody tr td button').first()
+      const configButton = page.locator("tbody tr td button").first()
       if (await configButton.isVisible()) {
         await configButton.click()
         await page.waitForTimeout(2000)
@@ -53,7 +55,9 @@ test.describe("Capture screenshots for README", () => {
         await page.keyboard.press("Escape")
         await page.waitForTimeout(1000)
       } else {
-        console.log("Could not find the filename button for Active Tacacs+ Config screenshot.")
+        console.log(
+          "Could not find the filename button for Active Tacacs+ Config screenshot.",
+        )
       }
     } catch (e) {
       console.error("Failed to capture Active Tacacs+ Config Dialog:", e)

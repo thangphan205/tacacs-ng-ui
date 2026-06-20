@@ -166,10 +166,12 @@ function EventDetailDrawer({
                 <Flex justify="space-between">
                   <Text color="fg.muted">Result</Text>
                   <Badge
-                    colorPalette={RESULT_COLORS[event.result] ?? "gray"}
+                    colorPalette={
+                      RESULT_COLORS[event.result?.toLowerCase()] ?? "gray"
+                    }
                     size="sm"
                   >
-                    {event.result.toUpperCase()}
+                    {event.result?.toUpperCase()}
                   </Badge>
                 </Flex>
                 <Flex justify="space-between">
@@ -320,11 +322,13 @@ function EventDetailDrawer({
                         )}
                       </VStack>
                       <Badge
-                        colorPalette={RESULT_COLORS[ev.result] ?? "gray"}
+                        colorPalette={
+                          RESULT_COLORS[ev.result?.toLowerCase()] ?? "gray"
+                        }
                         size="sm"
                         flex="none"
                       >
-                        {ev.result.toUpperCase()}
+                        {ev.result?.toUpperCase()}
                       </Badge>
                     </Flex>
                   ))}
@@ -659,10 +663,12 @@ export default function TacacsLogEventsTable() {
                     </Table.Cell>
                     <Table.Cell>
                       <Badge
-                        colorPalette={RESULT_COLORS[event.result] ?? "gray"}
+                        colorPalette={
+                          RESULT_COLORS[event.result?.toLowerCase()] ?? "gray"
+                        }
                         size="sm"
                       >
-                        {event.result.toUpperCase()}
+                        {event.result?.toUpperCase()}
                       </Badge>
                     </Table.Cell>
                   </Table.Row>
