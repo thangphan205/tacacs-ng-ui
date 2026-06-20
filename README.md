@@ -130,16 +130,16 @@ set system authentication-order tacplus
 set system authentication-order password
 
 # 3. Configure the TACACS+ server details
-set system tacplus-server <IP_TACACS_SERVER> port 49
-set system tacplus-server <IP_TACACS_SERVER> secret <TACACS_SECRET_KEY>
-set system tacplus-server <IP_TACACS_SERVER> source-address <DEVICE_SOURCE_IP>
+set system tacplus-server 192.168.139.3 port 49
+set system tacplus-server 192.168.139.3 secret change_this
+set system tacplus-server 192.168.139.3 source-address 172.20.20.3
 
 # 4. Configure accounting to send logs to the TACACS+ server
 set system accounting events login
 set system accounting events change-log
 set system accounting events interactive-commands
-set system accounting destination tacplus server <IP_TACACS_SERVER> secret <TACACS_SECRET_KEY>
-set system accounting destination tacplus server <IP_TACACS_SERVER> source-address <DEVICE_SOURCE_IP>
+set system accounting destination tacplus server 192.168.139.3 secret change_this
+set system accounting destination tacplus server 192.168.139.3 source-address 172.20.20.3
 ```
 
 ## Cisco Config
