@@ -8,9 +8,31 @@
 
 ---
 
-**tacacs-ng-ui** is a modern, full-stack web application that provides a user-friendly graphical interface for managing TACACS+ server configurations. It simplifies the administration of network device authentication, authorization, and accounting (AAA) by offering a clean and intuitive web-based dashboard.
+<p align="center">
+  <img src="img/dashboard.png" alt="TACACS-NG-UI Dashboard" width="800px" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
+</p>
 
-Built with a powerful and modern technology stack, the application features a FastAPI backend and a React frontend. This combination ensures a high-performance, scalable, and maintainable solution for network administrators.
+<div align="center">
+
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev)
+[![Chakra UI](https://img.shields.io/badge/Chakra--UI-319795?style=for-the-badge&logo=chakra-ui)](https://chakra-ui.com)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+
+</div>
+
+---
+
+### What is TACACS-NG-UI?
+
+**tacacs-ng-ui** is a next-generation full-stack web application designed to simplify the administration and management of [tac_plus-ng](https://github.com/MarcJHuber/event-driven-servers), the modern event-driven TACACS+ daemon. 
+
+Historically, managing TACACS+ servers required manually editing complex configuration files, leading to human errors, auditing challenges, and security loopholes. **tacacs-ng-ui** bridges this gap by providing:
+1. **Dynamic Web Management**: Manage TACACS+ users, groups, profiles, hosts, and authorization policies through a responsive, premium UI built with React and Chakra UI.
+2. **Versioned Config Engine**: Compile and validate configuration snapshots directly from the UI. Features side-by-side diff comparisons, error syntax checking, and safe version rollbacks.
+3. **Observability & Log Auditing**: Monitor authentication, authorization, and accounting (AAA) stats in real-time, complete with a timeline view of auditing logs and user command histories.
+4. **Automated Threat Alerting**: Real-time alert rule evaluations paired with Machine Learning (IsolationForest) anomaly detection to secure infrastructure against abnormal activities.
 
 ## Table of Contents
 
