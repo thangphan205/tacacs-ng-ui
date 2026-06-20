@@ -363,9 +363,9 @@ This includes using Docker Compose, custom local domains, `.env` configurations,
 
 [![TACACS Config](img/dashboard-tacacs-config.png)](https://github.com/thangphan205/tacacs-ng-ui)
 
-### TACACS+ Config File (inline edit)
+### Active Tacacs Config
 
-[![TACACS Config File](img/tacacs_config.png)](https://github.com/thangphan205/tacacs-ng-ui)
+[![Active Tacacs Config](img/tacacs_config.png)](https://github.com/thangphan205/tacacs-ng-ui)
 
 ### Log Events Viewer
 
