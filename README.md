@@ -39,9 +39,10 @@ Historically, managing TACACS+ servers required manually editing complex configu
 - [Key Features](#key-features)
 - [Live Demo](#live-demo)
 - [Device Configuration Examples](#device-configuration-examples)
-  - [Juniper Config](#juniper-config)
-  - [Cisco Config](#cisco-config)
-  - [Arista Config](#arista-config)
+  - [Juniper Config (Junos)](docs/config-examples/juniper.md)
+  - [Cisco Config (IOS/XE)](docs/config-examples/cisco.md)
+  - [Arista Config (EOS)](docs/config-examples/arista.md)
+  - [Huawei Config (VRP)](docs/config-examples/huawei.md)
 - [Technology Stack](#technology-stack-and-features)
 - [How To Use It](#how-to-use-it)
 - Deployment
@@ -109,6 +110,17 @@ ping dashboard.tacacs.9ping.cloud
   - **Username:** `user_read_only`
   - **Password:** `change_this`
 
+## Device Configuration Examples
+
+Below are quick configuration examples for common network vendors. For detailed step-by-step integration guides including user/group mapping, AAA schemes, and full reference configuration dumps, see:
+
+* 🇯🇳 **Juniper Junos**: [docs/config-examples/juniper.md](docs/config-examples/juniper.md)
+* 🇨🇸 **Cisco IOS/XE**: [docs/config-examples/cisco.md](docs/config-examples/cisco.md)
+* 🇦🇷 **Arista EOS**: [docs/config-examples/arista.md](docs/config-examples/arista.md)
+* 🇭🇼 **Huawei VRP**: [docs/config-examples/huawei.md](docs/config-examples/huawei.md)
+
+---
+
 ## Juniper Config
 
 ```bash
@@ -130,16 +142,16 @@ set system authentication-order tacplus
 set system authentication-order password
 
 # 3. Configure the TACACS+ server details
-set system tacplus-server 192.168.139.3 port 49
-set system tacplus-server 192.168.139.3 secret change_this
-set system tacplus-server 192.168.139.3 source-address 172.20.20.3
+set system tacplus-server <IP_TACACS_SERVER> port 49
+set system tacplus-server <IP_TACACS_SERVER> secret <TACACS_SECRET_KEY>
+set system tacplus-server <IP_TACACS_SERVER> source-address <DEVICE_SOURCE_IP>
 
 # 4. Configure accounting to send logs to the TACACS+ server
 set system accounting events login
 set system accounting events change-log
 set system accounting events interactive-commands
-set system accounting destination tacplus server 192.168.139.3 secret change_this
-set system accounting destination tacplus server 192.168.139.3 source-address 172.20.20.3
+set system accounting destination tacplus server <IP_TACACS_SERVER> secret <TACACS_SECRET_KEY>
+set system accounting destination tacplus server <IP_TACACS_SERVER> source-address <DEVICE_SOURCE_IP>
 ```
 
 ## Cisco Config
