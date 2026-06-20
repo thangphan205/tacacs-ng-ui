@@ -44,15 +44,18 @@ Historically, managing TACACS+ servers required manually editing complex configu
   - [Arista Config](#arista-config)
 - [Technology Stack](#technology-stack-and-features)
 - [How To Use It](#how-to-use-it)
-- [Deployment](#deploy-on-a-localhost)
+- Deployment
   - [Deploy on localhost](#deploy-on-a-localhost)
   - [Deploy on remote server](#deploy-on-a-remote-server)
   - [Deploy with domain name](#deploy-on-a-remote-server-with-domain-name)
-  - [High Availability (HA)](#high-availability-ha-deployment)
+- [Configuration](#configuration)
+  - [Generate Secret Keys](#generate-secret-keys)
+  - [Google OAuth](#google-oauth-optional)
+- [High Availability (HA)](#high-availability-ha-deployment)
 - [User Guide](#user-guide)
 - [Development](#backend-development)
 - [Screenshots](#screenshots)
-- [Roadmap](#future-works--research-roadmap)
+- [Implemented Features](#implemented-features)
 - [Release Notes](#release-notes)
 - [License](#license)
 
@@ -78,7 +81,7 @@ Historically, managing TACACS+ servers required manually editing complex configu
 
 ## Live Demo
 
-Video Demo: [English - Demo tacacs-ng-iu - Setup for Juniper Devices](https://youtu.be/MUGusXOFJBI)
+Video Demo: [English - Demo tacacs-ng-ui - Setup for Juniper Devices](https://youtu.be/MUGusXOFJBI)
 
 Video Tiếng Việt:[tacacs-ng-ui - Demo - Cấu hình chứng thực tập trung với thiết bị Juniper](https://youtu.be/vnuZMcHxpH4)
 
@@ -86,7 +89,7 @@ Telegram Group: <https://t.me/+v1eAXg-BhotlODY1>
 
 Reddit Community: <https://www.reddit.com/r/tacacs_ng_ui/>
 
-You can signup an account and use this tacacs server to test with your simulator lab.
+You can sign up and use this tacacs server to test with your simulator lab.
 
 - **Dashboard:** <https://dashboard.tacacs.9ping.cloud>
 - **IP TACACS Server:** Ping dashboard.tacacs.9ping.cloud to get IP TACACS Server.
@@ -139,7 +142,7 @@ set system accounting destination tacplus server <IP_TACACS_SERVER> secret <TACA
 set system accounting destination tacplus server <IP_TACACS_SERVER> source-address <DEVICE_SOURCE_IP>
 ```
 
-## Cisco config
+## Cisco Config
 
 ```bash
 # 1. Enable AAA (Authentication, Authorization, and Accounting)
@@ -266,8 +269,7 @@ cd tacacs-ng-ui
 cp .env.example .env   # then edit .env with your IP, secrets, and passwords
 ```
 
-Change IP API Servers:
-```vi docker-compose.override.yml```
+Edit `docker-compose.override.yml`:
 
 ```bash
   frontend:
@@ -281,11 +283,11 @@ Change IP API Servers:
         - NODE_ENV=development
 ```
 
-Add your server to  BACKEND_CORS_ORIGINS:
+Add your server to `BACKEND_CORS_ORIGINS` in `.env`:
 
-```vi .env```
-
-```BACKEND_CORS_ORIGINS="http://192.168.8.8:5173,..."```
+```bash
+BACKEND_CORS_ORIGINS="http://192.168.8.8:5173,..."
+```
 
 Run server:
 
@@ -298,7 +300,7 @@ Username: admin@example.com   # FIRST_SUPERUSER in .env
 Password: <FIRST_SUPERUSER_PASSWORD in .env>
 ```
 
-Notes: run "docker compose build" whenever you change configure/code
+> **Note:** Run `docker compose build` after any config or code changes.
 
 ```bash
 docker compose build
@@ -309,25 +311,27 @@ docker compose up -d
 
 please see [deployment.md](./deployment.md)
 
-## High Availability (HA) Deployment
+## Configuration
 
-### High Availability (HA) Deployment & Backend Authentication with Mavis Settings
-
-[![High Availability (HA) Deployment](img/tacacs-ng-ui-high-availability.svg)](https://github.com/thangphan205/tacacs-ng-ui)
-
-### Configure
-
-You can then update configs in the `.env` files to customize your configurations.
-
-Before deploying it, make sure you change at least the values for:
+Before deploying, change at least these values in `.env`:
 
 - `SECRET_KEY`
 - `FIRST_SUPERUSER_PASSWORD`
 - `POSTGRES_PASSWORD`
 
-You can (and should) pass these as environment variables from secrets.
+Pass these as environment variables from secrets. See [deployment.md](./deployment.md) for details.
 
-Read the [deployment.md](./deployment.md) docs for more details.
+### Generate Secret Keys
+
+Some environment variables in the `.env` file have a default value of `changethis`.
+
+To generate a secure key:
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Run again to generate another key.
 
 ### Google OAuth (optional)
 
@@ -341,17 +345,9 @@ GOOGLE_REDIRECT_URI=http://<your-host>:8000/api/v1/oauth/google/callback
 
 Also add `GOOGLE_REDIRECT_URI` as an **Authorized Redirect URI** in Google Console. If Google OAuth is not configured, the "Sign in with Google" button shows an error and email/password login continues to work normally.
 
-### Generate Secret Keys
+## High Availability (HA) Deployment
 
-Some environment variables in the `.env` file have a default value of `changethis`.
-
-You have to change them with a secret key, to generate secret keys you can run the following command:
-
-```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-```
-
-Copy the content and use that as password / secret key. And run that again to generate another secure key.
+[![High Availability (HA) Deployment](img/tacacs-ng-ui-high-availability.svg)](https://github.com/thangphan205/tacacs-ng-ui)
 
 ## User Guide
 
@@ -453,7 +449,7 @@ This includes using Docker Compose, custom local domains, `.env` configurations,
 
 [![Adminer](img/adminer.png)](https://github.com/thangphan205/tacacs-ng-ui)
 
-## Future Works & Research Roadmap
+## Implemented Features
 
 To further enhance the security and utility of tacacs-ng-ui, the following roadmap has been established:
 
