@@ -8,43 +8,49 @@ This guide details how to integrate a Huawei device running VRP (Versatile Routi
 
 To configure `tacacs-ng-ui` to match your active server configuration, define the following components in the dashboard.
 
+> [!NOTE]
+> The profiles, groups, users, and ruleset below are pre-seeded by `init_db` on first startup. No manual creation is needed unless you removed them.
+
 ### A. Profiles
-Configure the authorization profiles under **Profiles** → **Add Profile**:
+These profiles are pre-created under **Profiles**:
 
-1. **`tacacs_huawei1_profile` (Level 1)**
-   - **Action**: `deny` (Default action, then permit via scripts)
+1. **`tacacs_super_user_profile` (Level 15 — full admin)**
+   - **Default Action**: `deny`
    - **Profile Scripts**:
-     - Condition: `$service == "nas_admin"` → Key: `priv-lvl`, Value: `1`, Action: `set` (Action: `permit`)
-     - Condition: `$service == "shell"` → Key: `priv-lvl`, Value: `1`, Action: `set` (Action: `permit`)
+     - Condition: `if`, Key: `service`, Value: `shell` → Action: `permit`, Set: `priv-lvl = 15` *(Cisco/Arista/Huawei VRP)*
+     - Condition: `if`, Key: `service`, Value: `h3c_shell` → Action: `permit`, Set: `priv-lvl = 15` *(Huawei H3C)*
 
-2. **`tacacs_huawei15_profile` (Level 15)**
-   - **Action**: `deny` (Default action, then permit via scripts)
+2. **`tacacs_read_only_profile` (Level 1 — read-only)**
+   - **Default Action**: `deny`
    - **Profile Scripts**:
-     - Condition: `$service == "nas_admin"` → Key: `priv-lvl`, Value: `15`, Action: `set` (Action: `permit`)
-     - Condition: `$service == "shell"` → Key: `priv-lvl`, Value: `15`, Action: `set` (Action: `permit`)
+     - Condition: `if`, Key: `service`, Value: `shell` → Action: `permit`, Set: `priv-lvl = 1` *(Cisco/Arista/Huawei VRP)*
+     - Condition: `if`, Key: `service`, Value: `h3c_shell` → Action: `permit`, Set: `priv-lvl = 1` *(Huawei H3C)*
 
 ### B. Groups & Users
-Set up the groups and users in their respective sections:
+Pre-seeded groups and users:
 
-#### Groups (**TACACS Groups** → **Add Group**)
-- **`huawei_user_level1`** — For operator/view-only privilege.
-- **`huawei_user_level15`** — For full administrator privilege.
+#### Groups (**TACACS Groups**)
+- **`tacacs_super_user`** — Full administrator privilege (level 15).
+- **`tacacs_read_only`** — View-only operator privilege (level 1).
 
-#### Users (**TACACS Users** → **Add User**)
-- **`huawei1`**
-  - **Password Type**: `crypt` (or `pap`)
-  - **Group**: `huawei_user_level1`
-- **`huawei15`**
-  - **Password Type**: `crypt` (or `pap`)
-  - **Group**: `huawei_user_level15`
+#### Users (**TACACS Users**)
+- **`user_admin`**
+  - **Password Type**: `crypt`, default password: `change_this`
+  - **Group**: `tacacs_super_user`
+- **`user_read_only`**
+  - **Password Type**: `crypt`, default password: `change_this`
+  - **Group**: `tacacs_read_only`
+
+> [!WARNING]
+> Change passwords for `user_admin` and `user_read_only` immediately after first login.
 
 ### C. Rulesets
-Map groups to their profiles under **Rulesets** → **Add Ruleset**:
+Pre-seeded ruleset under **Rulesets**:
 
 - **Ruleset Name**: `default_ruleset`
 - **Ruleset Scripts**:
-  - **Rule for Level 1**: Condition: `$group == "huawei_user_level1"` → Action: `permit` → Profile: `tacacs_huawei1_profile`
-  - **Rule for Level 15**: Condition: `$group == "huawei_user_level15"` → Action: `permit` → Profile: `tacacs_huawei15_profile`
+  - **Admin rule**: Condition: `if`, Key: `group`, Value: `tacacs_super_user` → Action: `permit`, Profile: `tacacs_super_user_profile`
+  - **Read-only rule**: Condition: `if`, Key: `group`, Value: `tacacs_read_only` → Action: `permit`, Profile: `tacacs_read_only_profile`
 
 > [!IMPORTANT]
 > Remember to go to **TACACS Configs** → **Generate Config** → **Activate** the configuration for these changes to take effect on the daemon.

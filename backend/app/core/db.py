@@ -358,7 +358,10 @@ def init_db(session: Session) -> None:
 
     # 2. Groups to seed
     groups_to_seed = [
-        ("tacacs_super_user", "Super user group — full admin access, privilege level 15"),
+        (
+            "tacacs_super_user",
+            "Super user group — full admin access, privilege level 15",
+        ),
         ("tacacs_read_only", "Read-only group — view-only access, privilege level 1"),
     ]
     for grp_name, grp_desc in groups_to_seed:
@@ -366,8 +369,20 @@ def init_db(session: Session) -> None:
 
     # 3. Users to seed
     users_to_seed = [
-        ("user_admin", "crypt", "change_this", "tacacs_super_user", "Admin user — full access, privilege level 15"),
-        ("user_read_only", "crypt", "change_this", "tacacs_read_only", "Read-only user — view-only access, privilege level 1"),
+        (
+            "user_admin",
+            "crypt",
+            "change_this",
+            "tacacs_super_user",
+            "Admin user — full access, privilege level 15",
+        ),
+        (
+            "user_read_only",
+            "crypt",
+            "change_this",
+            "tacacs_read_only",
+            "Read-only user — view-only access, privilege level 1",
+        ),
     ]
     for username, pwd_type, pwd, member, desc in users_to_seed:
         get_or_create_user(session, username, pwd_type, pwd, member, desc)
@@ -416,65 +431,115 @@ def init_db(session: Session) -> None:
     # tacacs_super_user_profile — privilege 15 across Cisco, Arista, Huawei, Juniper
     seed_profile_rule(
         "tacacs_super_user_profile",
-        "if", "service", "shell", "permit",
+        "if",
+        "service",
+        "shell",
+        "permit",
         "Cisco/Arista — privilege level 15",
-        "priv-lvl", "15", "Privilege level 15",
+        "priv-lvl",
+        "15",
+        "Privilege level 15",
     )
     seed_profile_rule(
         "tacacs_super_user_profile",
-        "if", "service", "junos-exec", "permit",
+        "if",
+        "service",
+        "junos-exec",
+        "permit",
         "Juniper — superuser local account",
-        "local-user-name", "tacacs_super_user", "Juniper local user",
+        "local-user-name",
+        "tacacs_super_user",
+        "Juniper local user",
     )
     seed_profile_rule(
         "tacacs_super_user_profile",
-        "if", "service", "h3c_shell", "permit",
+        "if",
+        "service",
+        "h3c_shell",
+        "permit",
         "Huawei H3C — privilege level 15",
-        "priv-lvl", "15", "Privilege level 15",
+        "priv-lvl",
+        "15",
+        "Privilege level 15",
     )
     seed_profile_rule(
         "tacacs_super_user_profile",
-        "if", "service", "PaloAlto", "permit",
+        "if",
+        "service",
+        "PaloAlto",
+        "permit",
         "Palo Alto — superuser admin role",
-        "PaloAlto-Admin-Role", "superuser", "Palo Alto superuser",
+        "PaloAlto-Admin-Role",
+        "superuser",
+        "Palo Alto superuser",
     )
     seed_profile_rule(
         "tacacs_super_user_profile",
-        "if", "service", "fortigate", "permit",
+        "if",
+        "service",
+        "fortigate",
+        "permit",
         "Fortinet — super_admin profile",
-        "admin_prof", "super_admin", "Fortinet super_admin",
+        "admin_prof",
+        "super_admin",
+        "Fortinet super_admin",
     )
 
     # tacacs_read_only_profile — privilege 1 across Cisco, Arista, Huawei, Juniper
     seed_profile_rule(
         "tacacs_read_only_profile",
-        "if", "service", "shell", "permit",
+        "if",
+        "service",
+        "shell",
+        "permit",
         "Cisco/Arista — privilege level 1 (read-only)",
-        "priv-lvl", "1", "Privilege level 1",
+        "priv-lvl",
+        "1",
+        "Privilege level 1",
     )
     seed_profile_rule(
         "tacacs_read_only_profile",
-        "if", "service", "junos-exec", "permit",
+        "if",
+        "service",
+        "junos-exec",
+        "permit",
         "Juniper — read-only local account",
-        "local-user-name", "tacacs_read_only", "Juniper local user",
+        "local-user-name",
+        "tacacs_read_only",
+        "Juniper local user",
     )
     seed_profile_rule(
         "tacacs_read_only_profile",
-        "if", "service", "h3c_shell", "permit",
+        "if",
+        "service",
+        "h3c_shell",
+        "permit",
         "Huawei H3C — privilege level 1 (read-only)",
-        "priv-lvl", "1", "Privilege level 1",
+        "priv-lvl",
+        "1",
+        "Privilege level 1",
     )
     seed_profile_rule(
         "tacacs_read_only_profile",
-        "if", "service", "PaloAlto", "permit",
+        "if",
+        "service",
+        "PaloAlto",
+        "permit",
         "Palo Alto — devicereader role",
-        "PaloAlto-Admin-Role", "devicereader", "Palo Alto read-only",
+        "PaloAlto-Admin-Role",
+        "devicereader",
+        "Palo Alto read-only",
     )
     seed_profile_rule(
         "tacacs_read_only_profile",
-        "if", "service", "fortigate", "permit",
+        "if",
+        "service",
+        "fortigate",
+        "permit",
         "Fortinet — read-only admin profile",
-        "admin_prof", "read_only", "Fortinet read_only",
+        "admin_prof",
+        "read_only",
+        "Fortinet read_only",
     )
 
     # 5. Ruleset
@@ -511,8 +576,18 @@ def init_db(session: Session) -> None:
         )
 
     # Seed ruleset mappings
-    seed_ruleset_mapping("if", "tacacs_super_user", "tacacs_super_user_profile", "Super user — full admin, privilege level 15")
-    seed_ruleset_mapping("if", "tacacs_read_only", "tacacs_read_only_profile", "Read-only — view-only access, privilege level 1")
+    seed_ruleset_mapping(
+        "if",
+        "tacacs_super_user",
+        "tacacs_super_user_profile",
+        "Super user — full admin, privilege level 15",
+    )
+    seed_ruleset_mapping(
+        "if",
+        "tacacs_read_only",
+        "tacacs_read_only_profile",
+        "Read-only — view-only access, privilege level 1",
+    )
 
     _seed_system_alert_rules(session)
     session.commit()
