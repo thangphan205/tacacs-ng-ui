@@ -114,10 +114,10 @@ ping dashboard.tacacs.9ping.cloud
 
 Below are quick configuration examples for common network vendors. For detailed step-by-step integration guides including user/group mapping, AAA schemes, and full reference configuration dumps, see:
 
-* 🇯🇳 **Juniper Junos**: [docs/config-examples/juniper.md](docs/config-examples/juniper.md)
-* 🇨🇸 **Cisco IOS/XE**: [docs/config-examples/cisco.md](docs/config-examples/cisco.md)
-* 🇦🇷 **Arista EOS**: [docs/config-examples/arista.md](docs/config-examples/arista.md)
-* 🇭🇼 **Huawei VRP**: [docs/config-examples/huawei.md](docs/config-examples/huawei.md)
+* **Juniper Junos**: [docs/config-examples/juniper.md](docs/config-examples/juniper.md)
+* **Cisco IOS/XE**: [docs/config-examples/cisco.md](docs/config-examples/cisco.md)
+* **Arista EOS**: [docs/config-examples/arista.md](docs/config-examples/arista.md)
+* **Huawei VRP**: [docs/config-examples/huawei.md](docs/config-examples/huawei.md)
 
 ---
 
