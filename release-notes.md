@@ -1,5 +1,25 @@
 # Release Notes
 
+## v0.4.1
+
+### Dependencies
+
+* ⬆️ **pyjwt 2.10.1 → 2.13.0** — security patch. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **cryptography 48.0.0 → 48.0.1** — security patch. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **starlette 1.0.1 → 1.3.1**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **requests 2.32.5 → 2.34.2** — security patch. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **sentry-sdk 2.59.0 → 2.62.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **numpy 2.4.4 → 2.4.6**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **pydantic-core 2.46.4 → 2.47.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **js-yaml 4.1.1 → 4.2.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@biomejs/biome 2.4.15 → 2.5.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **esbuild** — patch bump. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Documentation
+
+* 📖 **Juniper configuration guide** — added step-by-step TACACS+ configuration example for Juniper devices. PR by [@thangphan205](https://github.com/thangphan205).
+* 📖 **Vietnamese configuration guides** — added Vietnamese translations for all vendor config guides. PR by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.4.0
 
 ### Features
