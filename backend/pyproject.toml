@@ -25,7 +25,7 @@ dependencies = [
     "webauthn>=2.2.0,<3.0.0",
     "cryptography>=48.0.1",
     "scikit-learn>=1.4.0,<2.0.0",
-    "numpy>=1.26.0,<3.0.0",
+    "numpy>=2.4.6,<3.0.0",
 ]
 
 [dependency-groups]
