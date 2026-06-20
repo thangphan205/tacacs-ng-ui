@@ -121,6 +121,17 @@ set system accounting destination tacplus server 192.168.139.3 source-address 17
 
 ## 3. Full Reference Configuration
 
+Software version details:
+
+```text
+root@juniper1> show version 
+Hostname: juniper1
+Model: cRPD
+Family: junos
+Junos: 25.2R1.9
+cRPD package version : 25.2R1.9 built by builder on 2025-06-24 15:29:28 UTC
+```
+
 Below is the complete CLI command set to copy and paste into your Juniper configuration mode (`configure`):
 
 ```text
