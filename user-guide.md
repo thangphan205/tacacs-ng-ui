@@ -673,7 +673,7 @@ Select a custom date range to view aggregated statistics.
 
 **Path:** Sidebar → Authentication Statistics
 
-![Authentication Statistics](img/authentication-statistics.png)
+![Authentication Statistics](img/aaa-statistics.png)
 
 Per-user, per-device breakdown of authentication events (success/failure counts).
 
@@ -681,7 +681,7 @@ Per-user, per-device breakdown of authentication events (success/failure counts)
 
 **Path:** Sidebar → Authorization Statistics
 
-![Authorization Statistics](img/authorization-statistics.png)
+![Authorization Statistics](img/aaa-statistics.png)
 
 Per-user breakdown of authorization decisions (permit/deny counts).
 
@@ -689,7 +689,7 @@ Per-user breakdown of authorization decisions (permit/deny counts).
 
 **Path:** Sidebar → Accounting Statistics
 
-![Accounting Statistics](img/accounting-statistics.png)
+![Accounting Statistics](img/aaa-statistics.png)
 
 Per-user session accounting (start/stop event counts).
 
