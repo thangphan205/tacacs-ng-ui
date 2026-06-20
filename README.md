@@ -123,6 +123,9 @@ Below are quick configuration examples for common network vendors. For detailed 
 
 ## Juniper Config
 
+<details>
+<summary>Show Config Commands</summary>
+
 ```bash
 # Example Juniper configuration for TACACS+
 
@@ -153,8 +156,12 @@ set system accounting events interactive-commands
 set system accounting destination tacplus server <IP_TACACS_SERVER> secret <TACACS_SECRET_KEY>
 set system accounting destination tacplus server <IP_TACACS_SERVER> source-address <DEVICE_SOURCE_IP>
 ```
+</details>
 
 ## Cisco Config
+
+<details>
+<summary>Show Config Commands</summary>
 
 ```bash
 # 1. Enable AAA (Authentication, Authorization, and Accounting)
@@ -188,8 +195,12 @@ line vty 0 4
   login authentication default
 exit
 ```
+</details>
 
 ## Arista Config
+
+<details>
+<summary>Show Config Commands</summary>
 
 ```bash
 # 1. Define the TACACS+ server and shared key
@@ -213,6 +224,7 @@ aaa accounting exec default start-stop group TACACS_GROUP
 # 4. (Optional) Specify the source interface for TACACS+ traffic.
 ip tacacs source-interface Management0
 ```
+</details>
 
 ## Technology Stack and Features
 

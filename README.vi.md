@@ -17,9 +17,10 @@
 - [Tính Năng Nổi Bật](#tính-năng-nổi-bật)
 - [Demo Trực Tuyến](#demo-trực-tuyến)
 - [Cấu Hình Thiết Bị](#cấu-hình-thiết-bị)
-  - [Juniper](#cấu-hình-juniper)
-  - [Cisco](#cấu-hình-cisco)
-  - [Arista](#cấu-hình-arista)
+  - [Cấu hình Juniper (Junos)](docs/config-examples/juniper.md)
+  - [Cấu hình Cisco (IOS/XE)](docs/config-examples/cisco.md)
+  - [Cấu hình Arista (EOS)](docs/config-examples/arista.md)
+  - [Cấu hình Huawei (VRP)](docs/config-examples/huawei.md)
 - [Công Nghệ Sử Dụng](#công-nghệ-sử-dụng)
 - [Hướng Dẫn Sử Dụng](#hướng-dẫn-sử-dụng)
 - [Triển Khai](#triển-khai-trên-localhost)
@@ -83,7 +84,19 @@ ping dashboard.tacacs.9ping.cloud
 
 ## Cấu Hình Thiết Bị
 
+Dưới đây là các ví dụ cấu hình nhanh cho các nhà sản xuất thiết bị mạng phổ biến. Để xem hướng dẫn tích hợp chi tiết từng bước bao gồm ánh xạ user/group, AAA scheme và bản dump cấu hình tham chiếu đầy đủ, vui lòng xem:
+
+* **Juniper Junos**: [docs/config-examples/juniper.md](docs/config-examples/juniper.md)
+* **Cisco IOS/XE**: [docs/config-examples/cisco.md](docs/config-examples/cisco.md)
+* **Arista EOS**: [docs/config-examples/arista.md](docs/config-examples/arista.md)
+* **Huawei VRP**: [docs/config-examples/huawei.md](docs/config-examples/huawei.md)
+
+---
+
 ### Cấu Hình Juniper
+
+<details>
+<summary>Hiển thị câu lệnh cấu hình</summary>
 
 ```bash
 # Ví dụ cấu hình Juniper cho TACACS+
@@ -115,8 +128,12 @@ set system accounting events interactive-commands
 set system accounting destination tacplus server <IP_TACACS_SERVER> secret <TACACS_SECRET_KEY>
 set system accounting destination tacplus server <IP_TACACS_SERVER> source-address <DEVICE_SOURCE_IP>
 ```
+</details>
 
 ### Cấu Hình Cisco
+
+<details>
+<summary>Hiển thị câu lệnh cấu hình</summary>
 
 ```bash
 # 1. Kích hoạt AAA
@@ -144,8 +161,12 @@ line vty 0 4
   login authentication default
 exit
 ```
+</details>
 
 ### Cấu Hình Arista
+
+<details>
+<summary>Hiển thị câu lệnh cấu hình</summary>
 
 ```bash
 # 1. Định nghĩa TACACS+ server và shared key
@@ -164,6 +185,7 @@ aaa accounting exec default start-stop group TACACS_GROUP
 # 4. (Tùy chọn) Chỉ định interface nguồn cho TACACS+
 ip tacacs source-interface Management0
 ```
+</details>
 
 ## Công Nghệ Sử Dụng
 
