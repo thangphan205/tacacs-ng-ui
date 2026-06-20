@@ -29,7 +29,7 @@ Built with a powerful and modern technology stack, the application features a Fa
   - [High Availability (HA)](#high-availability-ha-deployment)
 - [User Guide](#user-guide)
 - [Development](#backend-development)
-- [Screenshots](#dashboard)
+- [Screenshots](#screenshots)
 - [Roadmap](#future-works--research-roadmap)
 - [Release Notes](#release-notes)
 - [License](#license)
@@ -38,15 +38,17 @@ Built with a powerful and modern technology stack, the application features a Fa
 
 ## Key Features
 
-- **Intuitive Web Interface**: Manage TACACS+ users, groups, and policies through a clean and responsive UI built with React and Chakra UI.
+- **Intuitive Web Interface**: Manage TACACS+ users, groups, and policies through a clean and responsive UI built with React and Chakra UI. Every management table has a unified premium layout with live search, sort, and pagination.
 - **TACACS+ Server**: Utilizes [tac_plus-ng](https://github.com/MarcJHuber/event-driven-servers) as the backend TACACS+ server, a modern and actively maintained implementation.
-- **Versioned Config Management**: Generate, preview, and activate TACACS+ configuration snapshots — each version is stored, can be rolled back, and compared with a built-in diff viewer.
+- **Versioned Config Management**: Generate, preview, and activate TACACS+ configuration snapshots — each version is stored, can be rolled back, and compared with a built-in diff viewer. Supports inline editing of the config file directly in the browser.
+- **Multi-Vendor Seed Data**: First startup automatically creates ready-to-use groups (`tacacs_super_user`, `tacacs_read_only`), users (`user_admin`, `user_read_only`), and authorization profiles covering **Cisco, Arista, Huawei (VRP + H3C), Juniper, Palo Alto, and Fortinet** — no manual setup required to test with real devices.
+- **Interactive Field Guides**: Every Add/Edit dialog includes a contextual Field Guide panel explaining each field, accepted values, and examples — no need to consult external docs while configuring.
 - **Observability Dashboard**: Today's log summary (auth/authz/acct counts), config entity overview cards, recent user activity, and Top 5 & trend charts with Last 7 Days / Last 30 Days / Date Range filter.
-- **Structured Log Events Viewer**: Browse TACACS+ log events with date picker, type/result/username filters, clickable username drill-down, command column, port/TTY column, and a detail drawer with session timeline for auditing command sequences.
+- **Structured Log Events Viewer**: Browse TACACS+ log events with date picker, type/result/username filters, clickable username drill-down, command column with tooltips, port/TTY column, and a detail drawer with interactive session timeline for auditing full command sequences.
 - **SIEM Integration**: Forward TACACS+ log events in real-time via HTTP webhook (Splunk HEC format) and/or syslog (UDP/TCP).
 - **Global Search**: Every management table (Hosts, Users, Groups, Profiles, Rulesets, and more) has a live search box with debounced, case-insensitive, server-side filtering.
 - **Comprehensive Audit Logging**: Every UI action is recorded with actor, IP, entity snapshot (before/after), and timestamp. Superuser-only table with search, date-range filter, and CSV export.
-- **Real-Time Alert Rules**: Define rules (auth failure spikes, new usernames/IPs, config changes, activations) with configurable windows, thresholds, cooldowns, and severity. Notifications dispatched via Telegram, Slack, Discord, Teams, or generic webhook — evaluated every 5 minutes from live log files, no daily cron dependency.
+- **Real-Time Alert Rules**: Define rules (auth failure spikes, new usernames/IPs, config changes, activations) with configurable windows, thresholds, cooldowns, and severity. Notifications dispatched via Telegram, Slack, Discord, Teams, Google Chat, Email, or generic webhook — evaluated every 5 minutes from live log files, no daily cron dependency.
 - **ML Anomaly Detection**: IsolationForest model scores every user daily across four behavioral features (avg/stddev auth failures, unique IPs, deny ratio). Results classified normal/low/medium/high/critical and displayed in a dedicated UI page.
 - **Multi-Factor Auth**: Google OAuth, Keycloak OIDC, and Passkeys (WebAuthn) in addition to email/password.
 - **Secure by Design**: PCI DSS-compliant password policy, JWT authentication, and email-based password recovery.
@@ -351,25 +353,59 @@ General development docs: [development.md](./development.md).
 
 This includes using Docker Compose, custom local domains, `.env` configurations, etc.
 
+## Screenshots
+
 ### Dashboard
 
-[![API docs](img/dashboard.png)](https://github.com/thangphan205/tacacs-ng-ui)
+[![Dashboard](img/dashboard.png)](https://github.com/thangphan205/tacacs-ng-ui)
 
-### Docs API
+### TACACS+ Config Generator
 
-[![API docs](img/api.png)](https://github.com/thangphan205/tacacs-ng-ui)
+[![TACACS Config](img/dashboard-tacacs-config.png)](https://github.com/thangphan205/tacacs-ng-ui)
 
-### Tacacs Config File Generator
+### TACACS+ Config File (inline edit)
 
-[![API docs](img/dashboard-tacacs-config.png)](https://github.com/thangphan205/tacacs-ng-ui)
+[![TACACS Config File](img/tacacs_config.png)](https://github.com/thangphan205/tacacs-ng-ui)
 
-### Traefik
+### Log Events Viewer
 
-[![API docs](img/traefik.png)](https://github.com/thangphan205/tacacs-ng-ui)
+[![TACACS Logs](img/tacacs-logs.png)](https://github.com/thangphan205/tacacs-ng-ui)
 
-### adminer
+### AAA Statistics
 
-[![API docs](img/adminer.png)](https://github.com/thangphan205/tacacs-ng-ui)
+[![AAA Statistics](img/aaa-statistics.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+### Users Management
+
+[![Users Management](img/tacacs-users.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+### Groups
+
+[![Groups](img/tacacs-groups.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+### Profiles
+
+[![Profiles](img/profiles.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+### Rulesets
+
+[![Rulesets](img/rulesets.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+### Hosts
+
+[![Hosts](img/hosts.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+### Services
+
+[![Services](img/tacacs-services.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+### Mavis (LDAP/AD Backend)
+
+[![Mavis](img/mavises.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+### TACACS+ NG Settings
+
+[![TACACS NG Settings](img/tacacs-ng-settings.png)](https://github.com/thangphan205/tacacs-ng-ui)
 
 ### Audit Logs
 
@@ -378,6 +414,22 @@ This includes using Docker Compose, custom local domains, `.env` configurations,
 ### Auth Providers
 
 [![Auth Providers](img/auth-providers.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+### Configuration Options
+
+[![Configuration Options](img/configuration-options.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+### Docs API
+
+[![API docs](img/api.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+### Traefik
+
+[![Traefik](img/traefik.png)](https://github.com/thangphan205/tacacs-ng-ui)
+
+### Adminer
+
+[![Adminer](img/adminer.png)](https://github.com/thangphan205/tacacs-ng-ui)
 
 ## Future Works & Research Roadmap
 
@@ -388,6 +440,7 @@ To further enhance the security and utility of tacacs-ng-ui, the following roadm
 3. **Advanced Observability Dashboard**: ✅ Today's log summary, config overview cards, recent user activity, Top 5 pie charts (users/IPs) with Last 7 Days / Last 30 Days / Date Range filter, and AAA trend line chart — all shipped in v0.3.0. Structured TACACS log events viewer with date/type/result/username filters added in v0.3.0. Enhanced in v0.3.2 with clickable username drill-down, command/port columns, row-click detail drawer, and session timeline for auditing full command sequences.
 4. **SIEM Integration**: ✅ Real-time forwarding of TACACS+ log events via HTTP webhook (Splunk HEC format) and syslog (UDP/TCP) shipped in v0.3.0.
 5. **Proactive Abnormal Access Detection & Alerting**: ✅ Real-time alert rules engine with multi-channel notifications (Telegram, Slack, Discord, Teams, Google Chat, Email/SMTP, webhook) and ML-based anomaly detection (IsolationForest) shipped in v0.3.5–v0.3.6. Alerts evaluated every 5 minutes from live log files with configurable windows, thresholds, cooldowns, and severity levels. Rich per-channel formatting with severity emojis and structured layouts added in v0.3.6.
+6. **Improved UX / Zero-Config Start**: ✅ Shipped in v0.4.0 — interactive Field Guide panels in every Add/Edit dialog, premium UI redesign across all management tables, multi-vendor seed data (Cisco, Arista, Huawei, Juniper, Palo Alto, Fortinet) pre-loaded on first startup, inline TACACS+ config file editing, command tooltips and interactive event selection in session timeline, and unified 24-hour datetime formatting.
 
 ## Release Notes
 
