@@ -17,10 +17,10 @@
 - [Tính Năng Nổi Bật](#tính-năng-nổi-bật)
 - [Demo Trực Tuyến](#demo-trực-tuyến)
 - [Cấu Hình Thiết Bị](#cấu-hình-thiết-bị)
-  - [Cấu hình Juniper (Junos)](docs/config-examples/juniper.vi.md)
-  - [Cấu hình Cisco (IOS/XE)](docs/config-examples/cisco.md)
-  - [Cấu hình Arista (EOS)](docs/config-examples/arista.md)
-  - [Cấu hình Huawei (VRP)](docs/config-examples/huawei.vi.md)
+  - [Cấu hình Juniper (Junos)](docs/vi/config-examples/juniper.md)
+  - [Cấu hình Cisco (IOS/XE)](docs/vi/config-examples/cisco.md)
+  - [Cấu hình Arista (EOS)](docs/vi/config-examples/arista.md)
+  - [Cấu hình Huawei (VRP)](docs/vi/config-examples/huawei.md)
 - [Công Nghệ Sử Dụng](#công-nghệ-sử-dụng)
 - [Hướng Dẫn Sử Dụng](#hướng-dẫn-sử-dụng)
 - [Triển Khai](#triển-khai-trên-localhost)
@@ -86,10 +86,10 @@ ping dashboard.tacacs.9ping.cloud
 
 Dưới đây là các ví dụ cấu hình nhanh cho các nhà sản xuất thiết bị mạng phổ biến. Để xem hướng dẫn tích hợp chi tiết từng bước bao gồm ánh xạ user/group, AAA scheme và bản dump cấu hình tham chiếu đầy đủ, vui lòng xem:
 
-* **Juniper Junos**: [docs/config-examples/juniper.vi.md](docs/config-examples/juniper.vi.md)
-* **Cisco IOS/XE**: [docs/config-examples/cisco.md](docs/config-examples/cisco.md)
-* **Arista EOS**: [docs/config-examples/arista.md](docs/config-examples/arista.md)
-* **Huawei VRP**: [docs/config-examples/huawei.vi.md](docs/config-examples/huawei.vi.md)
+* **Juniper Junos**: [docs/vi/config-examples/juniper.md](docs/vi/config-examples/juniper.md)
+* **Cisco IOS/XE**: [docs/vi/config-examples/cisco.md](docs/vi/config-examples/cisco.md)
+* **Arista EOS**: [docs/vi/config-examples/arista.md](docs/vi/config-examples/arista.md)
+* **Huawei VRP**: [docs/vi/config-examples/huawei.md](docs/vi/config-examples/huawei.md)
 
 ---
 
@@ -210,7 +210,7 @@ ip tacacs source-interface Management0
 
 ## Hướng Dẫn Sử Dụng
 
-Xem hướng dẫn đầy đủ tại **[User Guide](./user-guide.md)** (song ngữ English / Tiếng Việt).
+Xem hướng dẫn đầy đủ tại **[User Guide](docs/vi/user-guide.md)** (song ngữ English / Tiếng Việt).
 
 ## Triển Khai Trên Localhost
 
@@ -286,13 +286,25 @@ docker compose up -d
 
 ## Triển Khai Với Tên Miền
 
-Xem [deployment.md](./deployment.md).
+Xem [deployment.vi.md](docs/vi/deployment.md).
 
 ## Triển Khai High Availability (HA)
 
-### Sơ Đồ Triển Khai HA & Xác Thực Backend với Mavis Settings
+tacacs-ng-ui hỗ trợ hai mô hình triển khai HA để chạy hai TACACS+ server ở các vùng khác nhau:
 
-[![High Availability (HA) Deployment](img/tacacs-ng-ui-high-availability.svg)](https://github.com/thangphan205/tacacs-ng-ui)
+| Mô hình | Mô tả |
+|---------|-------|
+| **Độc lập** | Hai stack hoàn toàn tách biệt — không đồng bộ, mỗi vùng quản lý độc lập |
+| **Primary–Standby** | Zone B sao chép từ Zone A qua PostgreSQL streaming replication; cấu hình đồng bộ tự động hoặc theo yêu cầu |
+
+<p align="center">
+  <img src="img/high-availability-model-a.svg" alt="Mô hình A — Độc lập" width="49%" />
+  <img src="img/high-availability-model-b.svg" alt="Mô hình B — Primary–Standby" width="49%" />
+</p>
+
+Cả hai mô hình đều hỗ trợ cấu hình LDAP riêng theo vùng qua biến `MAVIS_OVERRIDE_*`.
+
+**Hướng dẫn đầy đủ:** [docs/vi/high-availability.md](docs/vi/high-availability.md)
 
 ### Cấu Hình
 
@@ -302,7 +314,7 @@ Cập nhật các giá trị trong file `.env` trước khi triển khai. Tối 
 - `FIRST_SUPERUSER_PASSWORD`
 - `POSTGRES_PASSWORD`
 
-Xem [deployment.md](./deployment.md) để biết thêm chi tiết.
+Xem [deployment.vi.md](docs/vi/deployment.md) để biết thêm chi tiết.
 
 ### Google OAuth (tùy chọn)
 
@@ -332,11 +344,11 @@ Tài liệu frontend: [frontend/README.md](./frontend/README.md).
 
 ## Tài Liệu Triển Khai
 
-Xem [deployment.md](./deployment.md).
+Xem [deployment.vi.md](docs/vi/deployment.md).
 
 ## Tài Liệu Phát Triển
 
-Xem [development.md](./development.md).
+Xem [development.vi.md](docs/vi/development.md).
 
 Bao gồm Docker Compose, custom local domains, cấu hình `.env`, v.v.
 
@@ -378,7 +390,7 @@ Bao gồm Docker Compose, custom local domains, cấu hình `.env`, v.v.
 
 ## Release Notes
 
-Xem file [release-notes.md](./release-notes.md).
+Xem file [release-notes.md](docs/en/release-notes.md).
 
 ## Giấy Phép
 

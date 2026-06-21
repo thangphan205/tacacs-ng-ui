@@ -39,10 +39,10 @@ Historically, managing TACACS+ servers required manually editing complex configu
 - [Key Features](#key-features)
 - [Live Demo](#live-demo)
 - [Device Configuration Examples](#device-configuration-examples)
-  - [Juniper Config (Junos)](docs/config-examples/juniper.md)
-  - [Cisco Config (IOS/XE)](docs/config-examples/cisco.md)
-  - [Arista Config (EOS)](docs/config-examples/arista.md)
-  - [Huawei Config (VRP)](docs/config-examples/huawei.md)
+  - [Juniper Config (Junos)](docs/en/config-examples/juniper.md)
+  - [Cisco Config (IOS/XE)](docs/en/config-examples/cisco.md)
+  - [Arista Config (EOS)](docs/en/config-examples/arista.md)
+  - [Huawei Config (VRP)](docs/en/config-examples/huawei.md)
 - [Technology Stack](#technology-stack-and-features)
 - [How To Use It](#how-to-use-it)
 - Deployment
@@ -114,10 +114,10 @@ ping dashboard.tacacs.9ping.cloud
 
 Below are quick configuration examples for common network vendors. For detailed step-by-step integration guides including user/group mapping, AAA schemes, and full reference configuration dumps, see:
 
-* **Juniper Junos**: [docs/config-examples/juniper.md](docs/config-examples/juniper.md)
-* **Cisco IOS/XE**: [docs/config-examples/cisco.md](docs/config-examples/cisco.md)
-* **Arista EOS**: [docs/config-examples/arista.md](docs/config-examples/arista.md)
-* **Huawei VRP**: [docs/config-examples/huawei.md](docs/config-examples/huawei.md)
+* **Juniper Junos**: [docs/en/config-examples/juniper.md](docs/en/config-examples/juniper.md)
+* **Cisco IOS/XE**: [docs/en/config-examples/cisco.md](docs/en/config-examples/cisco.md)
+* **Arista EOS**: [docs/en/config-examples/arista.md](docs/en/config-examples/arista.md)
+* **Huawei VRP**: [docs/en/config-examples/huawei.md](docs/en/config-examples/huawei.md)
 
 ---
 
@@ -249,7 +249,7 @@ ip tacacs source-interface Management0
 
 ## How To Use It
 
-For a full walkthrough of all features, see the **[User Guide](./user-guide.md)** (bilingual English / Tiếng Việt).
+For a full walkthrough of all features, see the **[User Guide](docs/en/user-guide.md)** (bilingual English / Tiếng Việt).
 
 ## Deploy on a localhost
 
@@ -333,7 +333,7 @@ docker compose up -d
 
 ## Deploy on a remote server: with domain name
 
-please see [deployment.md](./deployment.md)
+please see [docs/en/deployment.md](docs/en/deployment.md)
 
 ## Configuration
 
@@ -343,7 +343,7 @@ Before deploying, change at least these values in `.env`:
 - `FIRST_SUPERUSER_PASSWORD`
 - `POSTGRES_PASSWORD`
 
-Pass these as environment variables from secrets. See [deployment.md](./deployment.md) for details.
+Pass these as environment variables from secrets. See [docs/en/deployment.md](docs/en/deployment.md) for details.
 
 ### Generate Secret Keys
 
@@ -371,11 +371,25 @@ Also add `GOOGLE_REDIRECT_URI` as an **Authorized Redirect URI** in Google Conso
 
 ## High Availability (HA) Deployment
 
-[![High Availability (HA) Deployment](img/tacacs-ng-ui-high-availability.svg)](https://github.com/thangphan205/tacacs-ng-ui)
+tacacs-ng-ui supports two HA deployment models for running two TACACS+ servers across different zones:
+
+| Model | Description |
+|-------|-------------|
+| **Independent** | Two fully separate stacks — no sync, each zone managed independently |
+| **Primary–Standby** | Zone B replicates from Zone A via PostgreSQL streaming replication; config syncs automatically or on-demand |
+
+<p align="center">
+  <img src="img/high-availability-model-a.svg" alt="Model A — Independent" width="49%" />
+  <img src="img/high-availability-model-b.svg" alt="Model B — Primary–Standby" width="49%" />
+</p>
+
+Both models support per-zone LDAP server configuration via `MAVIS_OVERRIDE_*` env vars.
+
+**Full guide:** [docs/en/high-availability.md](docs/en/high-availability.md)
 
 ## User Guide
 
-Full usage guide (managing users, hosts, profiles, rulesets, generating configs, monitoring): [user-guide.md](./user-guide.md).
+Full usage guide (managing users, hosts, profiles, rulesets, generating configs, monitoring): [docs/en/user-guide.md](docs/en/user-guide.md).
 
 ## Backend Development
 
@@ -387,11 +401,11 @@ Frontend docs: [frontend/README.md](./frontend/README.md).
 
 ## Deployment
 
-Deployment docs: [deployment.md](./deployment.md).
+Deployment docs: [docs/en/deployment.md](docs/en/deployment.md).
 
 ## Development
 
-General development docs: [development.md](./development.md).
+General development docs: [docs/en/development.md](docs/en/development.md).
 
 This includes using Docker Compose, custom local domains, `.env` configurations, etc.
 
@@ -486,7 +500,7 @@ To further enhance the security and utility of tacacs-ng-ui, the following roadm
 
 ## Release Notes
 
-Check the file [release-notes.md](./release-notes.md).
+Check the file [docs/en/release-notes.md](docs/en/release-notes.md).
 
 ## License
 

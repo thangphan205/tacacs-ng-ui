@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+import httpx
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
@@ -34,7 +35,9 @@ def generate_tacacs_mavis_setting(*, session: Session) -> Any:
     mavises_db = session.exec(statement).all()
     mavis_template = ""
     for mavis in mavises_db:
-        mavis_template += f"""setenv {mavis.mavis_key}="{mavis.mavis_value}"
+        # MAVIS_OVERRIDE_<KEY> env var takes precedence — allows per-zone LDAP server config
+        value = os.environ.get(f"MAVIS_OVERRIDE_{mavis.mavis_key}", mavis.mavis_value)
+        mavis_template += f"""setenv {mavis.mavis_key}="{value}"
         """
 
     mavises_template = f"""mavis module = external {{
@@ -43,6 +46,33 @@ def generate_tacacs_mavis_setting(*, session: Session) -> Any:
         exec = /usr/local/lib/mavis/mavis_tacplus-ng_ldap.pl
     }}"""
     return mavises_template
+
+
+def reload_active_config_from_db(*, session: Session) -> None:
+    """Regenerate tac_plus-ng.cfg from DB state and reload the daemon.
+
+    Used by HA standby auto-sync watcher and the manual sync endpoint.
+    """
+    config_text = generate_tacacs_ng_config(session=session)
+    try:
+        os.makedirs(CONFIG_PATH, exist_ok=True)
+        with open(CONFIG_FILE_PATH, "w") as f:
+            f.write(config_text)
+    except OSError as e:
+        log.error("Failed to write config file during HA sync: %s", e)
+        raise
+
+    try:
+        result = subprocess.run(
+            ["supervisorctl", "-c", "/etc/supervisor/conf.d/supervisord.conf", "restart", "tacacs"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode != 0:
+            log.warning("supervisorctl restart failed during HA sync: %s", result.stderr or result.stdout)
+        else:
+            log.info("tac_plus-ng reloaded via HA sync.")
+    except Exception as e:
+        log.warning("Failed to reload tac_plus-ng during HA sync: %s", e)
 
 
 def generate_tacacs_ng_config(*, session: Session) -> Any:
@@ -219,6 +249,27 @@ id = tac_plus-ng {{
     return config_file_template
 
 
+def _notify_peer_reload() -> None:
+    """Fire-and-forget call to peer node's internal reload endpoint (auto-sync mode only)."""
+    from app.core.config import settings  # local import avoids circular dep
+
+    if settings.NODE_ROLE != "primary" or settings.SYNC_MODE != "auto":
+        return
+    if not settings.PEER_BACKEND_URL or not settings.INTERNAL_SYNC_TOKEN:
+        return
+
+    url = f"{settings.PEER_BACKEND_URL.rstrip('/')}/api/v1/sync/internal/reload-config"
+    try:
+        with httpx.Client(timeout=10) as client:
+            r = client.post(url, headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN})
+        if r.status_code != 200:
+            log.warning("Peer reload returned HTTP %s: %s", r.status_code, r.text)
+        else:
+            log.info("Peer node reloaded config successfully.")
+    except Exception as e:
+        log.warning("Failed to notify peer node for config reload: %s", e)
+
+
 def get_tacacs_config_by_name(*, session: Session, name: str) -> TacacsConfig | None:
     statement = select(TacacsConfig).where(TacacsConfig.filename == name)
     session_tacacs_config = session.exec(statement).first()
@@ -351,6 +402,9 @@ def update_tacacs_config(
                 log.info("tac_plus-ng reloaded via supervisorctl.")
         except Exception as e:
             log.warning(f"Failed to reload tac_plus-ng via supervisorctl: {e}")
+
+        # 4. Notify peer (standby) node to sync config if auto-sync is enabled
+        _notify_peer_reload()
 
         # 4. Set all other configs to inactive
         statement = select(TacacsConfig).where(TacacsConfig.id != db_tacacs_config.id)

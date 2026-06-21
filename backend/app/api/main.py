@@ -1,38 +1,39 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
+    aaa_statistics,
+    accounting_statistics,
     admin_auth,
+    alert_events,
+    alert_rules,
+    anomaly_detection,
     audit_logs,
+    authentication_statistics,
+    authorization_statistics,
+    configuration_options,
+    hosts,
     items,
     login,
+    mavises,
+    notification_channels,
     oauth,
     passkeys,
     private,
-    users,
-    utils,
-    tacacs_ng_settings,
-    tacacs_configs,
-    tacacs_users,
-    tacacs_groups,
-    tacacs_services,
     profiles,
-    mavises,
     profilescripts,
     profilescriptsets,
-    hosts,
     rulesets,
     rulesetscripts,
     rulesetscriptsets,
+    sync,
+    tacacs_configs,
+    tacacs_groups,
     tacacs_logs,
-    configuration_options,
-    authentication_statistics,
-    authorization_statistics,
-    accounting_statistics,
-    aaa_statistics,
-    alert_rules,
-    notification_channels,
-    alert_events,
-    anomaly_detection,
+    tacacs_ng_settings,
+    tacacs_services,
+    tacacs_users,
+    users,
+    utils,
 )
 from app.core.config import settings
 
@@ -69,6 +70,7 @@ api_router.include_router(alert_rules.router)
 api_router.include_router(notification_channels.router)
 api_router.include_router(alert_events.router)
 api_router.include_router(anomaly_detection.router)
+api_router.include_router(sync.router)
 
 
 if settings.ENVIRONMENT == "local":

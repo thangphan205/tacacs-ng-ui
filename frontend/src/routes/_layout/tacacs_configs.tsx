@@ -27,6 +27,7 @@ import CompareConfigs from "@/components/TacacsConfigs/CompareConfigs"
 import PreviewTacacsConfig from "@/components/TacacsConfigs/PreviewTacacsConfig"
 import ShowActiveTacacsConfig from "@/components/TacacsConfigs/ShowActiveTacacsConfig"
 import ShowTacacsConfig from "@/components/TacacsConfigs/ShowTacacsConfig"
+import { SyncToStandby } from "@/components/TacacsConfigs/SyncToStandby"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -236,6 +237,7 @@ function TacacsConfigs() {
           <PreviewTacacsConfig />
           <ShowActiveTacacsConfig />
           <CompareConfigs />
+          <SyncToStandby />
         </Flex>
         <SearchBox
           initialValue={search}

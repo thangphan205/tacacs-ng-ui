@@ -60,6 +60,14 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
 SuperUser = Annotated[User, Depends(get_current_active_superuser)]
 
 
+def require_primary_node() -> None:
+    if settings.NODE_ROLE == "standby":
+        raise HTTPException(
+            status_code=403,
+            detail="This node is in standby (read-only) mode. Make changes on the primary node.",
+        )
+
+
 def get_client_ip(request: Request) -> str | None:
     forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:
