@@ -195,6 +195,13 @@ class Settings(BaseSettings):
     def KEYCLOAK_USERINFO_URL(self) -> str:
         return f"{self.KEYCLOAK_SERVER_URL}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/userinfo"
 
+    # High Availability
+    NODE_ROLE: Literal["primary", "standby"] = "primary"
+    SCHEDULER_ENABLED: bool = True
+    SYNC_MODE: Literal["auto", "manual"] = "auto"
+    PEER_BACKEND_URL: str = ""
+    INTERNAL_SYNC_TOKEN: str = ""
+
     # WebAuthn / Passkeys
     @computed_field  # type: ignore[prop-decorator]
     @property

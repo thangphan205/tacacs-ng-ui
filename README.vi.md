@@ -210,7 +210,7 @@ ip tacacs source-interface Management0
 
 ## Hướng Dẫn Sử Dụng
 
-Xem hướng dẫn đầy đủ tại **[User Guide](./user-guide.md)** (song ngữ English / Tiếng Việt).
+Xem hướng dẫn đầy đủ tại **[User Guide](docs/user-guide.md)** (song ngữ English / Tiếng Việt).
 
 ## Triển Khai Trên Localhost
 
@@ -286,7 +286,7 @@ docker compose up -d
 
 ## Triển Khai Với Tên Miền
 
-Xem [deployment.md](./deployment.md).
+Xem [deployment.md](docs/deployment.md).
 
 ## Triển Khai High Availability (HA)
 
@@ -302,7 +302,7 @@ Cập nhật các giá trị trong file `.env` trước khi triển khai. Tối 
 - `FIRST_SUPERUSER_PASSWORD`
 - `POSTGRES_PASSWORD`
 
-Xem [deployment.md](./deployment.md) để biết thêm chi tiết.
+Xem [deployment.md](docs/deployment.md) để biết thêm chi tiết.
 
 ### Google OAuth (tùy chọn)
 
@@ -332,11 +332,11 @@ Tài liệu frontend: [frontend/README.md](./frontend/README.md).
 
 ## Tài Liệu Triển Khai
 
-Xem [deployment.md](./deployment.md).
+Xem [deployment.md](docs/deployment.md).
 
 ## Tài Liệu Phát Triển
 
-Xem [development.md](./development.md).
+Xem [development.md](docs/development.md).
 
 Bao gồm Docker Compose, custom local domains, cấu hình `.env`, v.v.
 
@@ -378,7 +378,7 @@ Bao gồm Docker Compose, custom local domains, cấu hình `.env`, v.v.
 
 ## Release Notes
 
-Xem file [release-notes.md](./release-notes.md).
+Xem file [release-notes.md](docs/release-notes.md).
 
 ## Giấy Phép
 

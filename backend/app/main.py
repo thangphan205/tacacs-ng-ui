@@ -58,13 +58,16 @@ async def _ml_scoring_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
-    t1 = asyncio.create_task(_audit_purge_loop())
-    t2 = asyncio.create_task(_alert_evaluation_loop())
-    t3 = asyncio.create_task(_ml_scoring_loop())
+    tasks = []
+    if settings.SCHEDULER_ENABLED:
+        tasks = [
+            asyncio.create_task(_audit_purge_loop()),
+            asyncio.create_task(_alert_evaluation_loop()),
+            asyncio.create_task(_ml_scoring_loop()),
+        ]
     yield
-    t1.cancel()
-    t2.cancel()
-    t3.cancel()
+    for t in tasks:
+        t.cancel()
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:

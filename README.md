@@ -249,7 +249,7 @@ ip tacacs source-interface Management0
 
 ## How To Use It
 
-For a full walkthrough of all features, see the **[User Guide](./user-guide.md)** (bilingual English / Tiếng Việt).
+For a full walkthrough of all features, see the **[User Guide](docs/user-guide.md)** (bilingual English / Tiếng Việt).
 
 ## Deploy on a localhost
 
@@ -333,7 +333,7 @@ docker compose up -d
 
 ## Deploy on a remote server: with domain name
 
-please see [deployment.md](./deployment.md)
+please see [docs/deployment.md](docs/deployment.md)
 
 ## Configuration
 
@@ -343,7 +343,7 @@ Before deploying, change at least these values in `.env`:
 - `FIRST_SUPERUSER_PASSWORD`
 - `POSTGRES_PASSWORD`
 
-Pass these as environment variables from secrets. See [deployment.md](./deployment.md) for details.
+Pass these as environment variables from secrets. See [docs/deployment.md](docs/deployment.md) for details.
 
 ### Generate Secret Keys
 
@@ -371,11 +371,24 @@ Also add `GOOGLE_REDIRECT_URI` as an **Authorized Redirect URI** in Google Conso
 
 ## High Availability (HA) Deployment
 
-[![High Availability (HA) Deployment](img/tacacs-ng-ui-high-availability.svg)](https://github.com/thangphan205/tacacs-ng-ui)
+<p align="center">
+  <img src="img/tacacs-ng-ui-high-availability.svg" alt="HA Architecture" width="800px" />
+</p>
+
+tacacs-ng-ui supports two HA deployment models for running two TACACS+ servers across different zones:
+
+| Model | Description |
+|-------|-------------|
+| **Independent** | Two fully separate stacks — no sync, each zone managed independently |
+| **Primary–Standby** | Zone B replicates from Zone A via PostgreSQL streaming replication; config syncs automatically or on-demand |
+
+Both models support per-zone LDAP server configuration via `MAVIS_OVERRIDE_*` env vars.
+
+**Full guide:** [docs/high-availability.md](docs/high-availability.md)
 
 ## User Guide
 
-Full usage guide (managing users, hosts, profiles, rulesets, generating configs, monitoring): [user-guide.md](./user-guide.md).
+Full usage guide (managing users, hosts, profiles, rulesets, generating configs, monitoring): [docs/user-guide.md](docs/user-guide.md).
 
 ## Backend Development
 
@@ -387,11 +400,11 @@ Frontend docs: [frontend/README.md](./frontend/README.md).
 
 ## Deployment
 
-Deployment docs: [deployment.md](./deployment.md).
+Deployment docs: [docs/deployment.md](docs/deployment.md).
 
 ## Development
 
-General development docs: [development.md](./development.md).
+General development docs: [docs/development.md](docs/development.md).
 
 This includes using Docker Compose, custom local domains, `.env` configurations, etc.
 
@@ -486,7 +499,7 @@ To further enhance the security and utility of tacacs-ng-ui, the following roadm
 
 ## Release Notes
 
-Check the file [release-notes.md](./release-notes.md).
+Check the file [docs/release-notes.md](docs/release-notes.md).
 
 ## License
 
