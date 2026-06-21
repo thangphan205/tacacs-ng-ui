@@ -371,16 +371,17 @@ Also add `GOOGLE_REDIRECT_URI` as an **Authorized Redirect URI** in Google Conso
 
 ## High Availability (HA) Deployment
 
-<p align="center">
-  <img src="img/tacacs-ng-ui-high-availability.svg" alt="HA Architecture" width="800px" />
-</p>
-
 tacacs-ng-ui supports two HA deployment models for running two TACACS+ servers across different zones:
 
 | Model | Description |
 |-------|-------------|
 | **Independent** | Two fully separate stacks — no sync, each zone managed independently |
 | **Primary–Standby** | Zone B replicates from Zone A via PostgreSQL streaming replication; config syncs automatically or on-demand |
+
+<p align="center">
+  <img src="img/high-availability-model-a.svg" alt="Model A — Independent" width="49%" />
+  <img src="img/high-availability-model-b.svg" alt="Model B — Primary–Standby" width="49%" />
+</p>
 
 Both models support per-zone LDAP server configuration via `MAVIS_OVERRIDE_*` env vars.
 

@@ -1,9 +1,5 @@
 # High Availability (HA) Deployment Guide
 
-<p align="center">
-  <img src="../img/tacacs-ng-ui-high-availability.svg" alt="HA Architecture Diagram" width="800px" />
-</p>
-
 This guide explains how to run two tacacs-ng-ui instances across different zones so network devices always have a reachable TACACS+ server.
 
 ---
@@ -23,6 +19,10 @@ Both models require no changes to existing deployments — Model A needs zero co
 ---
 
 ## Model A — Independent (No Sync)
+
+<p align="center">
+  <img src="../img/high-availability-model-a.svg" alt="Model A — Independent Deployment" width="800px" />
+</p>
 
 Two completely separate stacks. No connection between zones.
 
@@ -49,6 +49,10 @@ Each zone has its own admin dashboard. Config changes must be applied on both zo
 ---
 
 ## Model B — Primary–Standby (Synced)
+
+<p align="center">
+  <img src="../img/high-availability-model-b.svg" alt="Model B — Primary–Standby Deployment" width="800px" />
+</p>
 
 Zone A is the primary (all writes). Zone B is a hot standby — its PostgreSQL replicates from Zone A automatically. When config changes on Zone A, Zone B picks it up via [auto-sync or manual sync](#config-sync-modes).
 
