@@ -286,13 +286,25 @@ docker compose up -d
 
 ## Triển Khai Với Tên Miền
 
-Xem [deployment.md](docs/deployment.md).
+Xem [deployment.vi.md](docs/deployment.vi.md).
 
 ## Triển Khai High Availability (HA)
 
-### Sơ Đồ Triển Khai HA & Xác Thực Backend với Mavis Settings
+tacacs-ng-ui hỗ trợ hai mô hình triển khai HA để chạy hai TACACS+ server ở các vùng khác nhau:
 
-[![High Availability (HA) Deployment](img/tacacs-ng-ui-high-availability.svg)](https://github.com/thangphan205/tacacs-ng-ui)
+| Mô hình | Mô tả |
+|---------|-------|
+| **Độc lập** | Hai stack hoàn toàn tách biệt — không đồng bộ, mỗi vùng quản lý độc lập |
+| **Primary–Standby** | Zone B sao chép từ Zone A qua PostgreSQL streaming replication; cấu hình đồng bộ tự động hoặc theo yêu cầu |
+
+<p align="center">
+  <img src="img/high-availability-model-a.svg" alt="Mô hình A — Độc lập" width="49%" />
+  <img src="img/high-availability-model-b.svg" alt="Mô hình B — Primary–Standby" width="49%" />
+</p>
+
+Cả hai mô hình đều hỗ trợ cấu hình LDAP riêng theo vùng qua biến `MAVIS_OVERRIDE_*`.
+
+**Hướng dẫn đầy đủ:** [docs/high-availability.vi.md](docs/high-availability.vi.md)
 
 ### Cấu Hình
 
@@ -302,7 +314,7 @@ Cập nhật các giá trị trong file `.env` trước khi triển khai. Tối 
 - `FIRST_SUPERUSER_PASSWORD`
 - `POSTGRES_PASSWORD`
 
-Xem [deployment.md](docs/deployment.md) để biết thêm chi tiết.
+Xem [deployment.vi.md](docs/deployment.vi.md) để biết thêm chi tiết.
 
 ### Google OAuth (tùy chọn)
 
@@ -332,11 +344,11 @@ Tài liệu frontend: [frontend/README.md](./frontend/README.md).
 
 ## Tài Liệu Triển Khai
 
-Xem [deployment.md](docs/deployment.md).
+Xem [deployment.vi.md](docs/deployment.vi.md).
 
 ## Tài Liệu Phát Triển
 
-Xem [development.md](docs/development.md).
+Xem [development.vi.md](docs/development.vi.md).
 
 Bao gồm Docker Compose, custom local domains, cấu hình `.env`, v.v.
 
