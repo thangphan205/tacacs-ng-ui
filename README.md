@@ -39,10 +39,10 @@ Historically, managing TACACS+ servers required manually editing complex configu
 - [Key Features](#key-features)
 - [Live Demo](#live-demo)
 - [Device Configuration Examples](#device-configuration-examples)
-  - [Juniper Config (Junos)](docs/config-examples/juniper.md)
-  - [Cisco Config (IOS/XE)](docs/config-examples/cisco.md)
-  - [Arista Config (EOS)](docs/config-examples/arista.md)
-  - [Huawei Config (VRP)](docs/config-examples/huawei.md)
+  - [Juniper Config (Junos)](docs/en/config-examples/juniper.md)
+  - [Cisco Config (IOS/XE)](docs/en/config-examples/cisco.md)
+  - [Arista Config (EOS)](docs/en/config-examples/arista.md)
+  - [Huawei Config (VRP)](docs/en/config-examples/huawei.md)
 - [Technology Stack](#technology-stack-and-features)
 - [How To Use It](#how-to-use-it)
 - Deployment
@@ -114,10 +114,10 @@ ping dashboard.tacacs.9ping.cloud
 
 Below are quick configuration examples for common network vendors. For detailed step-by-step integration guides including user/group mapping, AAA schemes, and full reference configuration dumps, see:
 
-* **Juniper Junos**: [docs/config-examples/juniper.md](docs/config-examples/juniper.md)
-* **Cisco IOS/XE**: [docs/config-examples/cisco.md](docs/config-examples/cisco.md)
-* **Arista EOS**: [docs/config-examples/arista.md](docs/config-examples/arista.md)
-* **Huawei VRP**: [docs/config-examples/huawei.md](docs/config-examples/huawei.md)
+* **Juniper Junos**: [docs/en/config-examples/juniper.md](docs/en/config-examples/juniper.md)
+* **Cisco IOS/XE**: [docs/en/config-examples/cisco.md](docs/en/config-examples/cisco.md)
+* **Arista EOS**: [docs/en/config-examples/arista.md](docs/en/config-examples/arista.md)
+* **Huawei VRP**: [docs/en/config-examples/huawei.md](docs/en/config-examples/huawei.md)
 
 ---
 
@@ -249,7 +249,7 @@ ip tacacs source-interface Management0
 
 ## How To Use It
 
-For a full walkthrough of all features, see the **[User Guide](docs/user-guide.md)** (bilingual English / Tiếng Việt).
+For a full walkthrough of all features, see the **[User Guide](docs/en/user-guide.md)** (bilingual English / Tiếng Việt).
 
 ## Deploy on a localhost
 
@@ -333,7 +333,7 @@ docker compose up -d
 
 ## Deploy on a remote server: with domain name
 
-please see [docs/deployment.md](docs/deployment.md)
+please see [docs/en/deployment.md](docs/en/deployment.md)
 
 ## Configuration
 
@@ -343,7 +343,7 @@ Before deploying, change at least these values in `.env`:
 - `FIRST_SUPERUSER_PASSWORD`
 - `POSTGRES_PASSWORD`
 
-Pass these as environment variables from secrets. See [docs/deployment.md](docs/deployment.md) for details.
+Pass these as environment variables from secrets. See [docs/en/deployment.md](docs/en/deployment.md) for details.
 
 ### Generate Secret Keys
 
@@ -385,11 +385,11 @@ tacacs-ng-ui supports two HA deployment models for running two TACACS+ servers a
 
 Both models support per-zone LDAP server configuration via `MAVIS_OVERRIDE_*` env vars.
 
-**Full guide:** [docs/high-availability.md](docs/high-availability.md)
+**Full guide:** [docs/en/high-availability.md](docs/en/high-availability.md)
 
 ## User Guide
 
-Full usage guide (managing users, hosts, profiles, rulesets, generating configs, monitoring): [docs/user-guide.md](docs/user-guide.md).
+Full usage guide (managing users, hosts, profiles, rulesets, generating configs, monitoring): [docs/en/user-guide.md](docs/en/user-guide.md).
 
 ## Backend Development
 
@@ -401,11 +401,11 @@ Frontend docs: [frontend/README.md](./frontend/README.md).
 
 ## Deployment
 
-Deployment docs: [docs/deployment.md](docs/deployment.md).
+Deployment docs: [docs/en/deployment.md](docs/en/deployment.md).
 
 ## Development
 
-General development docs: [docs/development.md](docs/development.md).
+General development docs: [docs/en/development.md](docs/en/development.md).
 
 This includes using Docker Compose, custom local domains, `.env` configurations, etc.
 
@@ -500,7 +500,7 @@ To further enhance the security and utility of tacacs-ng-ui, the following roadm
 
 ## Release Notes
 
-Check the file [docs/release-notes.md](docs/release-notes.md).
+Check the file [docs/en/release-notes.md](docs/en/release-notes.md).
 
 ## License
 

@@ -21,7 +21,7 @@ Cả hai mô hình đều không cần thay đổi các triển khai hiện có 
 ## Mô Hình A — Độc Lập (Không Đồng Bộ)
 
 <p align="center">
-  <img src="../img/high-availability-model-a.svg" alt="Mô hình A — Triển khai độc lập" width="800px" />
+  <img src="../../img/high-availability-model-a.svg" alt="Mô hình A — Triển khai độc lập" width="800px" />
 </p>
 
 Hai stack hoàn toàn tách biệt. Không có kết nối giữa hai vùng.
@@ -51,7 +51,7 @@ Mỗi vùng có dashboard quản trị riêng. Thay đổi cấu hình phải á
 ## Mô Hình B — Primary–Standby (Có Đồng Bộ)
 
 <p align="center">
-  <img src="../img/high-availability-model-b.svg" alt="Mô hình B — Triển khai Primary–Standby" width="800px" />
+  <img src="../../img/high-availability-model-b.svg" alt="Mô hình B — Triển khai Primary–Standby" width="800px" />
 </p>
 
 Zone A là primary (nhận toàn bộ ghi). Zone B là hot standby — PostgreSQL tự động sao chép từ Zone A. Khi cấu hình thay đổi trên Zone A, Zone B nhận qua [auto-sync hoặc manual sync](#chế-độ-đồng-bộ-cấu-hình).

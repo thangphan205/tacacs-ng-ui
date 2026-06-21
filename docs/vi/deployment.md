@@ -259,7 +259,7 @@ Tất cả biến với giá trị mặc định (từ `.env.example`):
 | `AUDIT_LOG_RETENTION_DAYS` | `90` | Xóa audit log cũ hơn N ngày (0 = giữ mãi) |
 | `AUDIT_LOG_MAX_ROWS` | `0` | Chỉ giữ N dòng gần nhất (0 = không giới hạn) |
 
-Các biến **High Availability** (`NODE_ROLE`, `SCHEDULER_ENABLED`, `SYNC_MODE`, v.v.) xem tại [high-availability.vi.md](high-availability.vi.md).
+Các biến **High Availability** (`NODE_ROLE`, `SCHEDULER_ENABLED`, `SYNC_MODE`, v.v.) xem tại [high-availability.md](high-availability.md).
 
 ---
 
