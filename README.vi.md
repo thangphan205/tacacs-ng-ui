@@ -17,6 +17,7 @@
 - [Tính Năng Nổi Bật](#tính-năng-nổi-bật)
 - [Demo Trực Tuyến](#demo-trực-tuyến)
 - [Cấu Hình Thiết Bị](#cấu-hình-thiết-bị)
+  - [Thiết bị đã kiểm thử (GitHub Discussions)](https://github.com/thangphan205/tacacs-ng-ui/discussions)
   - [Cấu hình Juniper (Junos)](docs/vi/config-examples/juniper.md)
   - [Cấu hình Cisco (IOS/XE)](docs/vi/config-examples/cisco.md)
   - [Cấu hình Arista (EOS)](docs/vi/config-examples/arista.md)
@@ -83,6 +84,9 @@ ping dashboard.tacacs.9ping.cloud
   - **Password:** `change_this`
 
 ## Cấu Hình Thiết Bị
+
+> [!TIP]
+> **Thiết bị đã kiểm thử**: Bạn đang tìm kiếm danh sách các thiết bị tương thích đã được cộng đồng kiểm thử hoặc muốn báo cáo thiết bị bạn đã thử nghiệm? Hãy truy cập [Danh sách thiết bị tương thích trên GitHub Discussions](https://github.com/thangphan205/tacacs-ng-ui/discussions).
 
 Dưới đây là các ví dụ cấu hình nhanh cho các nhà sản xuất thiết bị mạng phổ biến. Để xem hướng dẫn tích hợp chi tiết từng bước bao gồm ánh xạ user/group, AAA scheme và bản dump cấu hình tham chiếu đầy đủ, vui lòng xem:
 
