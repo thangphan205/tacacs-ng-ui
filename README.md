@@ -39,7 +39,7 @@ Historically, managing TACACS+ servers required manually editing complex configu
 - [Key Features](#key-features)
 - [Live Demo](#live-demo)
 - [Device Configuration Examples](#device-configuration-examples)
-  - [Tested Devices (GitHub Discussions)](https://github.com/thangphan205/tacacs-ng-ui/discussions)
+  - [Tested Devices (GitHub Discussions)](https://github.com/thangphan205/tacacs-ng-ui/discussions/185)
   - [Juniper Config (Junos)](docs/en/config-examples/juniper.md)
   - [Cisco Config (IOS/XE)](docs/en/config-examples/cisco.md)
   - [Arista Config (EOS)](docs/en/config-examples/arista.md)
@@ -114,7 +114,7 @@ ping dashboard.tacacs.9ping.cloud
 ## Device Configuration Examples
 
 > [!TIP]
-> **Tested Devices**: Looking for a list of compatible devices tested by the community or want to report a device you've tested? Visit our [GitHub Discussions Compatibility List](https://github.com/thangphan205/tacacs-ng-ui/discussions).
+> **Tested Devices**: Looking for a list of compatible devices tested by the community or want to report a device you've tested? Visit our [GitHub Discussions Compatibility List](https://github.com/thangphan205/tacacs-ng-ui/discussions/185).
 
 Below are quick configuration examples for common network vendors. For detailed step-by-step integration guides including user/group mapping, AAA schemes, and full reference configuration dumps, see:
 
