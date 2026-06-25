@@ -1,9 +1,9 @@
 import { Button, Spinner } from "@chakra-ui/react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { FiRefreshCw } from "react-icons/fi"
-import { type HaInfo, fetchWithAuth } from "@/haApi"
-import useCustomToast from "@/hooks/useCustomToast"
 import { Tooltip } from "@/components/ui/tooltip"
+import { fetchWithAuth, type HaInfo } from "@/haApi"
+import useCustomToast from "@/hooks/useCustomToast"
 
 export function SyncToStandby() {
   const { showSuccessToast, showErrorToast } = useCustomToast()
@@ -17,9 +17,12 @@ export function SyncToStandby() {
 
   const mutation = useMutation({
     mutationFn: () =>
-      fetchWithAuth<{ status: string; peer: string }>("/api/v1/sync/push-config", {
-        method: "POST",
-      }),
+      fetchWithAuth<{ status: string; peer: string }>(
+        "/api/v1/sync/push-config",
+        {
+          method: "POST",
+        },
+      ),
     onSuccess: (data) => {
       showSuccessToast(`Config pushed to ${data.peer} successfully.`)
     },
@@ -31,7 +34,11 @@ export function SyncToStandby() {
   if (isLoading) return <Spinner size="sm" />
 
   // Show button only on primary node with manual sync mode
-  if (!haInfo || haInfo.node_role !== "primary" || haInfo.sync_mode !== "manual") {
+  if (
+    !haInfo ||
+    haInfo.node_role !== "primary" ||
+    haInfo.sync_mode !== "manual"
+  ) {
     return null
   }
 

@@ -25,9 +25,9 @@ import {
   FiWifiOff,
   FiXCircle,
 } from "react-icons/fi"
-import { type HaInfo, fetchWithAuth } from "@/haApi"
 import { SyncToStandby } from "@/components/TacacsConfigs/SyncToStandby"
 import { Tooltip } from "@/components/ui/tooltip"
+import { fetchWithAuth, type HaInfo } from "@/haApi"
 
 export const Route = createFileRoute("/_layout/high_availability")({
   component: HighAvailabilityPage,
@@ -60,7 +60,12 @@ interface StatCardProps {
   children: React.ReactNode
 }
 
-function StatCard({ label, colorPalette, icon: IconComp, children }: StatCardProps) {
+function StatCard({
+  label,
+  colorPalette,
+  icon: IconComp,
+  children,
+}: StatCardProps) {
   return (
     <Box
       p={5}
@@ -144,7 +149,9 @@ function HighAvailabilityPage() {
             <EmptyState.Indicator>
               <FiGitMerge />
             </EmptyState.Indicator>
-            <EmptyState.Title>High Availability not configured</EmptyState.Title>
+            <EmptyState.Title>
+              High Availability not configured
+            </EmptyState.Title>
             <EmptyState.Description>
               Set <Text as="code">PEER_BACKEND_URL</Text> and{" "}
               <Text as="code">INTERNAL_SYNC_TOKEN</Text> in the environment to
@@ -233,7 +240,12 @@ function HighAvailabilityPage() {
               colorPalette={haInfo?.sync_mode === "auto" ? "teal" : "orange"}
               icon={FiSettings}
             >
-              <Text fontSize="2xl" fontWeight="extrabold" fontFamily="mono" textTransform="capitalize">
+              <Text
+                fontSize="2xl"
+                fontWeight="extrabold"
+                fontFamily="mono"
+                textTransform="capitalize"
+              >
                 {haInfo?.sync_mode ?? "—"}
               </Text>
             </StatCard>
