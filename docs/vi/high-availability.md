@@ -80,9 +80,11 @@ Thêm các biến HA vào `.env` của Zone A:
 NODE_ROLE=primary
 SCHEDULER_ENABLED=true
 SYNC_MODE=auto            # hoặc: manual
-PEER_BACKEND_URL=https://api-b.yourdomain.com   # URL API nội bộ của Zone B
+PEER_BACKEND_URL=https://api-b.yourdomain.com   # URL API nội bộ của Zone B — bắt buộc có http:// hoặc https://
 INTERNAL_SYNC_TOKEN=<tạo bằng: openssl rand -hex 32>
 ```
+
+> **`PEER_BACKEND_URL` bắt buộc phải có scheme.** Dùng `http://172.25.x.x:8000` cho kết nối IP trực tiếp hoặc `https://api-b.yourdomain.com` cho domain. Bỏ scheme (ví dụ `172.25.x.x:8000`) khiến httpx fail và peer health check luôn báo unreachable.
 
 Triển khai bình thường:
 
@@ -127,9 +129,9 @@ cp .env.example .env
 NODE_ROLE=standby
 SCHEDULER_ENABLED=false           # alert, ML scoring, cron chạy trên Zone A
 SYNC_MODE=auto                    # hoặc: manual
-PEER_BACKEND_URL=https://api-a.yourdomain.com   # URL Zone A
+PEER_BACKEND_URL=https://api-a.yourdomain.com   # URL Zone A — bắt buộc có http:// hoặc https://
 INTERNAL_SYNC_TOKEN=<cùng giá trị với zone-a>
-PRIMARY_DB_HOST=<ZONE_A_IP>
+PRIMARY_DB_HOST=<ZONE_A_IP>       # Chỉ IP, không có port (ví dụ 172.25.245.214)
 REPLICATION_PASSWORD=your-replication-password
 
 # Trỏ Zone B đến LDAP server cục bộ (xem phần MAVIS bên dưới)
@@ -193,6 +195,33 @@ Zone B **không** tự động reload. DB vẫn replicate liên tục (users, po
   ```
 
 Dùng manual mode khi muốn kiểm tra cấu hình trên Zone A trước khi áp dụng lên Zone B.
+
+---
+
+## Hành Vi Của Standby Node
+
+Khi `NODE_ROLE=standby`, backend hoạt động khác để bảo vệ DB read-only replica:
+
+| Tính năng | Primary | Standby |
+|-----------|---------|---------|
+| Ghi vào DB (users, configs, policies) | ✅ | ❌ HTTP 403 |
+| Đọc từ DB (dashboard, logs, stats) | ✅ | ✅ |
+| Ghi audit log | ✅ | ⏭ Bỏ qua (replicate từ primary) |
+| Chạy DB migration khi khởi động | ✅ | ⏭ Bỏ qua (schema đến qua replication) |
+| Alert evaluation / ML scoring / cron | ✅ | ❌ Tắt (`SCHEDULER_ENABLED=false`) |
+| Xác thực TACACS+ (cổng 49) | ✅ | ✅ |
+| Dashboard — xem | ✅ | ✅ |
+| Dashboard — chỉnh sửa | ✅ | ❌ Chặn với thông báo "read-only mode" |
+
+### Dashboard Trạng Thái HA
+
+Sidebar có trang **High Availability** (dưới Monitoring) hiển thị trạng thái đồng bộ real-time của cả hai node. Tự refresh mỗi 30 giây, hiển thị:
+
+- Node role (Primary / Standby)
+- Trạng thái kết nối peer (Connected / Unreachable)
+- Chế độ đồng bộ (Auto / Manual)
+- Thời điểm sync cấu hình lần cuối
+- Nút sync thủ công (chỉ hiện khi primary + manual mode)
 
 ---
 
@@ -319,6 +348,7 @@ docker compose exec db psql -U $POSTGRES_USER -c \
 
 ```bash
 # Trên server Zone B
+export $(grep -v '^#' .env | xargs)
 docker compose exec db psql -U $POSTGRES_USER -c "SELECT pg_promote();"
 
 # Cập nhật .env Zone B:
@@ -381,7 +411,8 @@ Kết quả:
   "sync_mode": "manual",
   "scheduler_enabled": true,
   "peer_backend_url": "https://api-b.yourdomain.com",
-  "peer_available": true
+  "peer_available": true,
+  "last_sync_at": "2026-06-25T08:12:34.567890+00:00"
 }
 ```
 

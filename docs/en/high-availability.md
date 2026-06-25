@@ -80,9 +80,11 @@ Add HA variables to Zone A's `.env`:
 NODE_ROLE=primary
 SCHEDULER_ENABLED=true
 SYNC_MODE=auto            # or: manual
-PEER_BACKEND_URL=https://api-b.yourdomain.com   # Zone B internal API URL
+PEER_BACKEND_URL=https://api-b.yourdomain.com   # Zone B internal API URL — must include http:// or https://
 INTERNAL_SYNC_TOKEN=<generate-with: openssl rand -hex 32>
 ```
+
+> **`PEER_BACKEND_URL` must include the scheme.** Use `http://172.25.x.x:8000` for direct IP access or `https://api-b.yourdomain.com` for domain-based setups. Omitting the scheme (e.g. `172.25.x.x:8000`) causes httpx to fail silently and peer health checks to always return unreachable.
 
 Deploy normally:
 
@@ -127,9 +129,9 @@ Zone B `.env` — same base settings as Zone A, plus:
 NODE_ROLE=standby
 SCHEDULER_ENABLED=false           # alerts, ML scoring, cron run on Zone A only
 SYNC_MODE=auto                    # or: manual
-PEER_BACKEND_URL=https://api-a.yourdomain.com   # Zone A URL
+PEER_BACKEND_URL=https://api-a.yourdomain.com   # Zone A URL — must include http:// or https://
 INTERNAL_SYNC_TOKEN=<same-value-as-zone-a>
-PRIMARY_DB_HOST=<ZONE_A_IP>
+PRIMARY_DB_HOST=<ZONE_A_IP>       # IP only, no port (e.g. 172.25.245.214)
 REPLICATION_PASSWORD=your-replication-password
 
 # Point Zone B to its own local LDAP server (see MAVIS section below)
@@ -193,6 +195,33 @@ Zone B does **not** auto-reload. The DB replicates continuously (users, policies
   ```
 
 Use manual mode when you want to validate config on Zone A first before it reaches Zone B.
+
+---
+
+## Standby Node Behavior
+
+When `NODE_ROLE=standby`, the backend behaves differently to protect the read-only replica DB:
+
+| Feature | Primary | Standby |
+|---------|---------|---------|
+| Write to DB (users, configs, policies) | ✅ | ❌ HTTP 403 |
+| Read from DB (dashboard, logs, stats) | ✅ | ✅ |
+| Audit log writes | ✅ | ⏭ Silently skipped (replicated from primary) |
+| DB migrations on startup | ✅ | ⏭ Skipped (schema arrives via replication) |
+| Alert evaluation / ML scoring / cron | ✅ | ❌ Disabled (`SCHEDULER_ENABLED=false`) |
+| TACACS+ authentication (port 49) | ✅ | ✅ |
+| Dashboard — view | ✅ | ✅ |
+| Dashboard — edit | ✅ | ❌ Blocked with "read-only mode" message |
+
+### HA Status Dashboard
+
+The sidebar includes a **High Availability** page (under Monitoring) that shows real-time sync status for both nodes. It auto-refreshes every 30 seconds and displays:
+
+- Node role (Primary / Standby)
+- Peer connection status (Connected / Unreachable)
+- Sync mode (Auto / Manual)
+- Last config sync timestamp
+- Manual sync button (primary + manual mode only)
 
 ---
 
@@ -319,6 +348,7 @@ docker compose exec db psql -U $POSTGRES_USER -c \
 
 ```bash
 # On Zone B server
+export $(grep -v '^#' .env | xargs)
 docker compose exec db psql -U $POSTGRES_USER -c "SELECT pg_promote();"
 
 # Update Zone B .env:
@@ -381,7 +411,8 @@ Response:
   "sync_mode": "manual",
   "scheduler_enabled": true,
   "peer_backend_url": "https://api-b.yourdomain.com",
-  "peer_available": true
+  "peer_available": true,
+  "last_sync_at": "2026-06-25T08:12:34.567890+00:00"
 }
 ```
 
