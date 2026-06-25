@@ -61,13 +61,15 @@ if [[ -z "$PG_DATA_VOLUME" ]]; then
   PG_DATA_VOLUME="app-db-data"
 fi
 
-# Run pg_basebackup inside a temporary postgres container that shares the DB volume
+# Run pg_basebackup inside a temporary postgres container that shares the DB volume.
+# Mount the volume at the same path the db service uses (/var/lib/postgresql/data/pgdata)
+# so pg_basebackup writes PG files directly into the volume root — not a subdirectory.
 docker run --rm \
   -e PGPASSWORD="$REPLICATION_PASSWORD" \
-  -v "${STACK_NAME:-tacacs-ng-ui}_app-db-data:/var/lib/postgresql/data" \
+  -v "${STACK_NAME:-tacacs-ng-ui}_app-db-data:/var/lib/postgresql/data/pgdata" \
   postgres:18 \
   bash -c "
-    rm -rf /var/lib/postgresql/data/pgdata
+    find /var/lib/postgresql/data/pgdata -mindepth 1 -delete 2>/dev/null || true
     pg_basebackup \
       -h $PRIMARY_DB_HOST \
       -p $POSTGRES_PORT \
@@ -78,8 +80,7 @@ docker run --rm \
 
 echo "[3/5] Writing standby replication config..."
 docker run --rm \
-  -e PGPASSWORD="$REPLICATION_PASSWORD" \
-  -v "${STACK_NAME:-tacacs-ng-ui}_app-db-data:/var/lib/postgresql/data" \
+  -v "${STACK_NAME:-tacacs-ng-ui}_app-db-data:/var/lib/postgresql/data/pgdata" \
   postgres:18 \
   bash -c "
     cat >> /var/lib/postgresql/data/pgdata/postgresql.auto.conf <<EOF
