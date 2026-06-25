@@ -99,8 +99,11 @@ docker compose exec db psql -U $POSTGRES_USER -c \
   "CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD 'your-replication-password';"
 
 # Allow Zone B IP to connect for replication
+# ↓ Replace with your actual Zone B IP address
+ZONE_B_IP=192.168.1.100
+
 docker compose exec db bash -c \
-  "echo 'host replication replicator <ZONE_B_IP>/32 md5' >> \$PGDATA/pg_hba.conf"
+  "echo 'host replication replicator ${ZONE_B_IP}/32 md5' >> \$PGDATA/pg_hba.conf"
 
 # Reload PostgreSQL config (no restart needed)
 docker compose kill -s HUP db
