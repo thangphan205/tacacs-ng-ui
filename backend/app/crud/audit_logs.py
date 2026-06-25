@@ -19,7 +19,9 @@ def create_audit_log(
     user_id: uuid.UUID | None,
     user_email: str,
     ip_address: str | None,
-) -> AuditLog:
+) -> AuditLog | None:
+    if settings.NODE_ROLE == "standby":
+        return None
     db_obj = AuditLog(
         **audit_log_in.model_dump(),
         user_id=user_id,
