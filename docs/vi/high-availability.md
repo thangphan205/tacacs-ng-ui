@@ -271,6 +271,48 @@ aaa group server tacacs+ TACACS_HA
 
 ---
 
+## Nâng Cấp Lên Phiên Bản Mới
+
+> **Cơ chế:** Migration DB chạy trên Zone A. PostgreSQL replication tự động đồng bộ schema sang Zone B trước khi Zone B restart — standby không chạy migration.
+
+### Rolling upgrade (không gián đoạn TACACS)
+
+```bash
+# ── Trên CẢ HAI zone ───────────────────────────────────────────
+git pull origin main
+
+# ── Zone A trước ───────────────────────────────────────────────
+# Thiết bị tự failover sang Zone B trong lúc Zone A restart (~5 giây)
+docker compose up -d --build backend
+
+# Chờ Zone A healthy và migration đã replicate sang Zone B
+docker compose logs -f backend | grep "Application startup complete"
+
+# ── Zone B sau ─────────────────────────────────────────────────
+# Thiết bị tự failover về Zone A trong lúc Zone B restart (~5 giây)
+docker compose up -d --build backend
+```
+
+Xác thực TACACS không bị gián đoạn — thiết bị luôn dùng zone còn lại trong lúc mỗi backend restart.
+
+### Nếu migration thêm cột NOT NULL mới
+
+Các migration trong project này luôn có `server_default` trên cột NOT NULL nên áp dụng online không cần lock. Không cần bước thêm.
+
+### Kiểm tra sau nâng cấp
+
+```bash
+# Zone A — xác nhận version mới đang chạy
+docker compose exec backend python -c "import app; print('ok')"
+
+# Zone B — xác nhận replication lag thấp
+export $(grep -v '^#' .env | xargs)
+docker compose exec db psql -U $POSTGRES_USER -c \
+  "SELECT now() - pg_last_xact_replay_timestamp() AS replication_lag;"
+```
+
+---
+
 ## Quy Trình Failover (Zone A gặp sự cố)
 
 **Nâng cấp Zone B thành primary:**

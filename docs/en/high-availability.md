@@ -271,6 +271,48 @@ aaa group server tacacs+ TACACS_HA
 
 ---
 
+## Upgrading to a New Version
+
+> **How it works:** DB schema migrations run on Zone A only. PostgreSQL replication delivers the schema change to Zone B automatically before Zone B restarts — no migration runs on the standby.
+
+### Rolling upgrade (zero TACACS downtime)
+
+```bash
+# ── On BOTH zones ──────────────────────────────────────────────
+git pull origin main
+
+# ── Zone A first ───────────────────────────────────────────────
+# Devices fail over to Zone B during Zone A restart (~5 s)
+docker compose up -d --build backend
+
+# Wait until Zone A is healthy and migration has replicated to Zone B
+docker compose logs -f backend | grep "Application startup complete"
+
+# ── Zone B second ──────────────────────────────────────────────
+# Devices fail over to Zone A during Zone B restart (~5 s)
+docker compose up -d --build backend
+```
+
+That's it. TACACS authentication is never interrupted — devices use the other zone while each backend restarts.
+
+### If a migration adds a new NOT NULL column
+
+Alembic migrations in this project always include `server_default` on NOT NULL columns so they apply online without locking. No extra steps needed.
+
+### Verify after upgrade
+
+```bash
+# Zone A — confirm new version running
+docker compose exec backend python -c "import app; print('ok')"
+
+# Zone B — confirm replication lag is low
+export $(grep -v '^#' .env | xargs)
+docker compose exec db psql -U $POSTGRES_USER -c \
+  "SELECT now() - pg_last_xact_replay_timestamp() AS replication_lag;"
+```
+
+---
+
 ## Failover Procedure (Zone A dies)
 
 **Promote Zone B to primary:**
