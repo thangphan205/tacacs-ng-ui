@@ -93,7 +93,8 @@ docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
 Bật PostgreSQL replication (chạy một lần sau khi Zone A hoạt động ổn định):
 
 ```bash
-# Tạo replication role
+# Tạo replication role (load các biến môi trường từ .env trước để resolve $POSTGRES_USER)
+export $(grep -v '^#' .env | xargs)
 docker compose exec db psql -U $POSTGRES_USER -c \
   "CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD 'your-replication-password';"
 

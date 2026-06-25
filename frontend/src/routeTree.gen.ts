@@ -33,6 +33,7 @@ import { Route as LayoutNotification_channelsRouteImport } from './routes/_layou
 import { Route as LayoutMavisesRouteImport } from './routes/_layout/mavises'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutHostsRouteImport } from './routes/_layout/hosts'
+import { Route as LayoutHigh_availabilityRouteImport } from './routes/_layout/high_availability'
 import { Route as LayoutConfiguration_optionsRouteImport } from './routes/_layout/configuration_options'
 import { Route as LayoutAudit_logsRouteImport } from './routes/_layout/audit_logs'
 import { Route as LayoutAnomaly_detectionRouteImport } from './routes/_layout/anomaly_detection'
@@ -165,6 +166,11 @@ const LayoutHostsRoute = LayoutHostsRouteImport.update({
   path: '/hosts',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutHigh_availabilityRoute = LayoutHigh_availabilityRouteImport.update({
+  id: '/high_availability',
+  path: '/high_availability',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutConfiguration_optionsRoute =
   LayoutConfiguration_optionsRouteImport.update({
     id: '/configuration_options',
@@ -234,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/anomaly_detection': typeof LayoutAnomaly_detectionRoute
   '/audit_logs': typeof LayoutAudit_logsRoute
   '/configuration_options': typeof LayoutConfiguration_optionsRoute
+  '/high_availability': typeof LayoutHigh_availabilityRoute
   '/hosts': typeof LayoutHostsRoute
   '/items': typeof LayoutItemsRoute
   '/mavises': typeof LayoutMavisesRoute
@@ -269,6 +276,7 @@ export interface FileRoutesByTo {
   '/anomaly_detection': typeof LayoutAnomaly_detectionRoute
   '/audit_logs': typeof LayoutAudit_logsRoute
   '/configuration_options': typeof LayoutConfiguration_optionsRoute
+  '/high_availability': typeof LayoutHigh_availabilityRoute
   '/hosts': typeof LayoutHostsRoute
   '/items': typeof LayoutItemsRoute
   '/mavises': typeof LayoutMavisesRoute
@@ -306,6 +314,7 @@ export interface FileRoutesById {
   '/_layout/anomaly_detection': typeof LayoutAnomaly_detectionRoute
   '/_layout/audit_logs': typeof LayoutAudit_logsRoute
   '/_layout/configuration_options': typeof LayoutConfiguration_optionsRoute
+  '/_layout/high_availability': typeof LayoutHigh_availabilityRoute
   '/_layout/hosts': typeof LayoutHostsRoute
   '/_layout/items': typeof LayoutItemsRoute
   '/_layout/mavises': typeof LayoutMavisesRoute
@@ -343,6 +352,7 @@ export interface FileRouteTypes {
     | '/anomaly_detection'
     | '/audit_logs'
     | '/configuration_options'
+    | '/high_availability'
     | '/hosts'
     | '/items'
     | '/mavises'
@@ -378,6 +388,7 @@ export interface FileRouteTypes {
     | '/anomaly_detection'
     | '/audit_logs'
     | '/configuration_options'
+    | '/high_availability'
     | '/hosts'
     | '/items'
     | '/mavises'
@@ -414,6 +425,7 @@ export interface FileRouteTypes {
     | '/_layout/anomaly_detection'
     | '/_layout/audit_logs'
     | '/_layout/configuration_options'
+    | '/_layout/high_availability'
     | '/_layout/hosts'
     | '/_layout/items'
     | '/_layout/mavises'
@@ -615,6 +627,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutHostsRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/high_availability': {
+      id: '/_layout/high_availability'
+      path: '/high_availability'
+      fullPath: '/high_availability'
+      preLoaderRoute: typeof LayoutHigh_availabilityRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/configuration_options': {
       id: '/_layout/configuration_options'
       path: '/configuration_options'
@@ -711,6 +730,7 @@ interface LayoutRouteChildren {
   LayoutAnomaly_detectionRoute: typeof LayoutAnomaly_detectionRoute
   LayoutAudit_logsRoute: typeof LayoutAudit_logsRoute
   LayoutConfiguration_optionsRoute: typeof LayoutConfiguration_optionsRoute
+  LayoutHigh_availabilityRoute: typeof LayoutHigh_availabilityRoute
   LayoutHostsRoute: typeof LayoutHostsRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
   LayoutMavisesRoute: typeof LayoutMavisesRoute
@@ -740,6 +760,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAnomaly_detectionRoute: LayoutAnomaly_detectionRoute,
   LayoutAudit_logsRoute: LayoutAudit_logsRoute,
   LayoutConfiguration_optionsRoute: LayoutConfiguration_optionsRoute,
+  LayoutHigh_availabilityRoute: LayoutHigh_availabilityRoute,
   LayoutHostsRoute: LayoutHostsRoute,
   LayoutItemsRoute: LayoutItemsRoute,
   LayoutMavisesRoute: LayoutMavisesRoute,

@@ -93,7 +93,8 @@ docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
 Enable PostgreSQL replication (run once after Zone A is healthy):
 
 ```bash
-# Create replication role
+# Create replication role (load .env variables first to resolve $POSTGRES_USER)
+export $(grep -v '^#' .env | xargs)
 docker compose exec db psql -U $POSTGRES_USER -c \
   "CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD 'your-replication-password';"
 

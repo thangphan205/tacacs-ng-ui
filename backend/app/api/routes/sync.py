@@ -2,10 +2,12 @@ import logging
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request
+from sqlmodel import col, select
 
 from app.api.deps import CurrentUser, SessionDep
 from app.core.config import settings
 from app.crud.tacacs_configs import reload_active_config_from_db
+from app.models import TacacsConfig
 
 log = logging.getLogger(__name__)
 
@@ -13,7 +15,7 @@ router = APIRouter(prefix="/sync", tags=["sync"])
 
 
 @router.get("/ha-info")
-def get_ha_info(_: CurrentUser) -> dict:
+def get_ha_info(_: CurrentUser, session: SessionDep) -> dict:
     """Return HA configuration for this node."""
     peer_available: bool | None = None
     if settings.PEER_BACKEND_URL and settings.INTERNAL_SYNC_TOKEN:
@@ -25,12 +27,20 @@ def get_ha_info(_: CurrentUser) -> dict:
         except Exception:
             peer_available = False
 
+    active_cfg = session.exec(
+        select(TacacsConfig)
+        .where(TacacsConfig.active == True)  # noqa: E712
+        .order_by(col(TacacsConfig.updated_at).desc())
+    ).first()
+    last_sync_at = active_cfg.updated_at.isoformat() if active_cfg else None
+
     return {
         "node_role": settings.NODE_ROLE,
         "sync_mode": settings.SYNC_MODE,
         "scheduler_enabled": settings.SCHEDULER_ENABLED,
         "peer_backend_url": settings.PEER_BACKEND_URL or None,
         "peer_available": peer_available,
+        "last_sync_at": last_sync_at,
     }
 
 

@@ -1,36 +1,9 @@
 import { Button, Spinner } from "@chakra-ui/react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { FiRefreshCw } from "react-icons/fi"
-import { OpenAPI } from "@/client"
+import { type HaInfo, fetchWithAuth } from "@/haApi"
 import useCustomToast from "@/hooks/useCustomToast"
 import { Tooltip } from "@/components/ui/tooltip"
-
-interface HaInfo {
-  node_role: "primary" | "standby"
-  sync_mode: "auto" | "manual"
-  scheduler_enabled: boolean
-  peer_backend_url: string | null
-  peer_available: boolean | null
-}
-
-async function fetchWithAuth<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = await (typeof OpenAPI.TOKEN === "function"
-    ? OpenAPI.TOKEN({} as never)
-    : Promise.resolve(OpenAPI.TOKEN ?? ""))
-  const res = await fetch(`${OpenAPI.BASE}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(options?.headers ?? {}),
-    },
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText)
-    throw new Error(`HTTP ${res.status}: ${text}`)
-  }
-  return res.json() as Promise<T>
-}
 
 export function SyncToStandby() {
   const { showSuccessToast, showErrorToast } = useCustomToast()

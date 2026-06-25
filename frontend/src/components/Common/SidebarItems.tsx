@@ -7,6 +7,7 @@ import {
   FiCpu,
   FiDatabase,
   FiFileText,
+  FiGitMerge,
   FiGrid,
   FiHome,
   FiList,
@@ -72,6 +73,11 @@ const CONFIG_SECTIONS: NavSection[] = [
       { icon: FiAlertCircle, title: "Alert Events", path: "/alert_events" },
       { icon: FiCpu, title: "Anomaly Detection", path: "/anomaly_detection" },
       { icon: FiActivity, title: "Audit Logs", path: "/audit_logs" },
+      {
+        icon: FiGitMerge,
+        title: "High Availability",
+        path: "/high_availability",
+      },
     ],
   },
 ]
