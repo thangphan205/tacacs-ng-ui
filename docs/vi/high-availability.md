@@ -152,6 +152,9 @@ Script thực hiện:
 **Kiểm tra replication:**
 
 ```bash
+# Load biến .env vào shell hiện tại trước
+export $(grep -v '^#' .env | xargs)
+
 # Trên Zone B — kết quả phải là: t (true = đang ở chế độ standby)
 docker compose exec db psql -U $POSTGRES_USER -c "SELECT pg_is_in_recovery();"
 

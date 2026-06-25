@@ -152,6 +152,9 @@ The script:
 **Verify replication is working:**
 
 ```bash
+# Load .env variables into current shell first
+export $(grep -v '^#' .env | xargs)
+
 # On Zone B — should return: t (true = standby mode)
 docker compose exec db psql -U $POSTGRES_USER -c "SELECT pg_is_in_recovery();"
 
