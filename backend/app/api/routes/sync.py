@@ -1,10 +1,12 @@
 import logging
+import time
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import Integer, cast, func
 from sqlmodel import col, select
 
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
 from app.core.config import settings
 from app.crud.tacacs_configs import reload_active_config_from_db
 from app.models import TacacsConfig
@@ -13,19 +15,32 @@ log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 
+_peer_cache: dict = {"available": None, "ts": 0.0}
+_PEER_CACHE_TTL = 30  # seconds
+
+
+def _check_peer_available() -> bool | None:
+    if not (settings.PEER_BACKEND_URL and settings.INTERNAL_SYNC_TOKEN):
+        return None
+    now = time.monotonic()
+    if now - _peer_cache["ts"] < _PEER_CACHE_TTL:
+        return _peer_cache["available"]
+    try:
+        url = f"{settings.PEER_BACKEND_URL.rstrip('/')}/api/v1/utils/health-check/"
+        with httpx.Client(timeout=5) as client:
+            r = client.get(url)
+        result: bool | None = r.status_code == 200
+    except Exception:
+        result = False
+    _peer_cache["available"] = result
+    _peer_cache["ts"] = now
+    return result
+
 
 @router.get("/ha-info")
 def get_ha_info(_: CurrentUser, session: SessionDep) -> dict:
     """Return HA configuration for this node."""
-    peer_available: bool | None = None
-    if settings.PEER_BACKEND_URL and settings.INTERNAL_SYNC_TOKEN:
-        try:
-            url = f"{settings.PEER_BACKEND_URL.rstrip('/')}/api/v1/utils/health-check/"
-            with httpx.Client(timeout=5) as client:
-                r = client.get(url)
-            peer_available = r.status_code == 200
-        except Exception:
-            peer_available = False
+    peer_available = _check_peer_available()
 
     active_cfg = session.exec(
         select(TacacsConfig)
@@ -72,6 +87,48 @@ def push_config_to_standby(_: CurrentUser) -> dict:
 
     log.info("Config pushed to peer node %s successfully.", settings.PEER_BACKEND_URL)
     return {"status": "ok", "peer": settings.PEER_BACKEND_URL}
+
+
+@router.post("/promote")
+def promote_to_primary(
+    _: CurrentUser,
+    session: SessionDep,
+    __: bool = Depends(get_current_active_superuser),
+) -> dict:
+    """Promote this standby node to primary via pg_promote().
+
+    Superuser only. Only valid on NODE_ROLE=standby.
+    After success, update .env (NODE_ROLE=primary, SCHEDULER_ENABLED=true) and restart backend.
+    """
+    if settings.NODE_ROLE != "standby":
+        raise HTTPException(status_code=400, detail="Only standby nodes can be promoted.")
+
+    try:
+        lag_col = cast(
+            func.extract("epoch", func.now() - func.pg_last_xact_replay_timestamp()),
+            Integer,
+        )
+        lag_val = session.exec(select(lag_col)).one_or_none()
+        lag_seconds = int(lag_val) if lag_val is not None else None
+    except Exception:
+        lag_seconds = None
+
+    try:
+        session.exec(select(func.pg_promote()))
+        session.commit()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"pg_promote() failed: {e}")
+
+    log.info("Node promoted to primary via API.")
+    return {
+        "status": "promoted",
+        "replication_lag_seconds": lag_seconds,
+        "next_steps": [
+            "Update .env: NODE_ROLE=primary",
+            "Update .env: SCHEDULER_ENABLED=true",
+            "Run: docker compose up -d backend",
+        ],
+    }
 
 
 @router.post("/internal/reload-config")

@@ -10,6 +10,7 @@ from app.api.deps import (
     SuperUser,
     get_client_ip,
     get_current_user,
+    require_primary_node,
 )
 from app.crud import audit_logs as audit_logs_crud
 from app.crud import rulesets
@@ -80,7 +81,7 @@ def preview_rulesets(
 
 @router.post(
     "/",
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(get_current_user), Depends(require_primary_node)],
     response_model=RulesetPublic,
 )
 def create_ruleset(
@@ -126,6 +127,7 @@ def read_ruleset_by_id(
 
 @router.put(
     "/{id}",
+    dependencies=[Depends(require_primary_node)],
     response_model=RulesetPublic,
 )
 def update_ruleset(
@@ -164,6 +166,7 @@ def update_ruleset(
 
 @router.delete(
     "/{id}",
+    dependencies=[Depends(require_primary_node)],
 )
 def delete_ruleset(
     session: SessionDep, current_user: SuperUser, request: Request, id: uuid.UUID

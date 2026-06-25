@@ -9,6 +9,12 @@ export interface HaInfo {
   last_sync_at: string | null
 }
 
+export interface PromoteResult {
+  status: string
+  replication_lag_seconds: number | null
+  next_steps: string[]
+}
+
 export async function fetchWithAuth<T>(
   path: string,
   options?: RequestInit,

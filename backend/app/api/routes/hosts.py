@@ -9,6 +9,7 @@ from app.api.deps import (
     SuperUser,
     get_client_ip,
     get_current_user,
+    require_primary_node,
 )
 from app.crud import audit_logs as audit_logs_crud
 from app.crud import hosts
@@ -50,6 +51,7 @@ def read_hosts(session: SessionDep, skip: int = 0, limit: int = 100, search: str
 
 @router.post(
     "/",
+    dependencies=[Depends(require_primary_node)],
     response_model=HostPublic,
 )
 def create_host(
@@ -95,6 +97,7 @@ def read_host_by_id(
 
 @router.put(
     "/{id}",
+    dependencies=[Depends(require_primary_node)],
     response_model=HostPublic,
 )
 def update_host(
@@ -130,6 +133,7 @@ def update_host(
 
 @router.delete(
     "/{id}",
+    dependencies=[Depends(require_primary_node)],
 )
 def delete_host(
     session: SessionDep, current_user: SuperUser, request: Request, id: uuid.UUID

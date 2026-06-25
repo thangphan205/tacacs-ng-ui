@@ -1,21 +1,25 @@
+import React from "react"
 import {
   Alert,
   Badge,
   Box,
+  Button,
   Container,
   EmptyState,
   Flex,
   Grid,
   Heading,
   Icon,
+  List,
   Spinner,
   Stat,
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import {
+  FiAlertTriangle,
   FiCheckCircle,
   FiGitMerge,
   FiInfo,
@@ -24,10 +28,12 @@ import {
   FiWifi,
   FiWifiOff,
   FiXCircle,
+  FiZap,
 } from "react-icons/fi"
 import { SyncToStandby } from "@/components/TacacsConfigs/SyncToStandby"
 import { Tooltip } from "@/components/ui/tooltip"
-import { fetchWithAuth, type HaInfo } from "@/haApi"
+import useAuth from "@/hooks/useAuth"
+import { fetchWithAuth, type HaInfo, type PromoteResult } from "@/haApi"
 
 export const Route = createFileRoute("/_layout/high_availability")({
   component: HighAvailabilityPage,
@@ -106,12 +112,27 @@ function StatCard({
 }
 
 function HighAvailabilityPage() {
+  const { user } = useAuth()
+  const isSuperuser = user?.is_superuser ?? false
+
   const { data: haInfo, isLoading } = useQuery<HaInfo>({
     queryKey: ["ha-info"],
     queryFn: () => fetchWithAuth<HaInfo>("/api/v1/sync/ha-info"),
     refetchInterval: 30_000,
     staleTime: 30_000,
     retry: false,
+  })
+
+  const [promoteResult, setPromoteResult] = React.useState<PromoteResult | null>(null)
+  const [confirmPromote, setConfirmPromote] = React.useState(false)
+
+  const promoteMutation = useMutation({
+    mutationFn: () =>
+      fetchWithAuth<PromoteResult>("/api/v1/sync/promote", { method: "POST" }),
+    onSuccess: (data) => {
+      setPromoteResult(data)
+      setConfirmPromote(false)
+    },
   })
 
   if (isLoading) {
@@ -316,6 +337,103 @@ function HighAvailabilityPage() {
             <Flex justify="flex-end">
               <SyncToStandby />
             </Flex>
+          )}
+
+          {/* Promote to Primary — standby + superuser only */}
+          {haInfo?.node_role === "standby" && isSuperuser && (
+            <Box
+              p={5}
+              bg="bg.panel"
+              borderWidth="1px"
+              borderLeftWidth="4px"
+              borderLeftColor="red.500"
+              borderRadius="xl"
+              shadow="sm"
+            >
+              <Heading size="sm" mb={2} color="red.500">
+                Failover — Promote to Primary
+              </Heading>
+              <Text fontSize="sm" color="fg.muted" mb={4}>
+                Run <Text as="code">pg_promote()</Text> on this node's database to make it accept writes.
+                After promotion, update <Text as="code">.env</Text> and restart the backend.
+              </Text>
+
+              {promoteResult ? (
+                <VStack align="stretch" gap={3}>
+                  <Alert.Root status="success" borderRadius="lg">
+                    <Alert.Indicator />
+                    <Alert.Content>
+                      <Alert.Title>Promoted successfully</Alert.Title>
+                      {promoteResult.replication_lag_seconds !== null && (
+                        <Alert.Description>
+                          Replication lag at promotion: {promoteResult.replication_lag_seconds}s
+                        </Alert.Description>
+                      )}
+                    </Alert.Content>
+                  </Alert.Root>
+                  <Box>
+                    <Text fontSize="sm" fontWeight="semibold" mb={2}>
+                      Complete these steps to finish failover:
+                    </Text>
+                    <List.Root gap={1}>
+                      {promoteResult.next_steps.map((step) => (
+                        <List.Item key={step} fontSize="sm" fontFamily="mono">
+                          {step}
+                        </List.Item>
+                      ))}
+                    </List.Root>
+                  </Box>
+                </VStack>
+              ) : confirmPromote ? (
+                <VStack align="stretch" gap={3}>
+                  <Alert.Root status="warning" borderRadius="lg">
+                    <Alert.Indicator>
+                      <FiAlertTriangle />
+                    </Alert.Indicator>
+                    <Alert.Content>
+                      <Alert.Title>Confirm promotion</Alert.Title>
+                      <Alert.Description>
+                        This will break replication from the old primary. Proceed only if Zone A is down.
+                      </Alert.Description>
+                    </Alert.Content>
+                  </Alert.Root>
+                  <Flex gap={3}>
+                    <Button
+                      colorPalette="red"
+                      size="sm"
+                      onClick={() => promoteMutation.mutate()}
+                      loading={promoteMutation.isPending}
+                    >
+                      <FiZap />
+                      Confirm — Promote Now
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setConfirmPromote(false)}
+                      disabled={promoteMutation.isPending}
+                    >
+                      Cancel
+                    </Button>
+                  </Flex>
+                  {promoteMutation.isError && (
+                    <Text fontSize="sm" color="red.500">
+                      {(promoteMutation.error as Error).message}
+                    </Text>
+                  )}
+                </VStack>
+              ) : (
+                <Button
+                  colorPalette="red"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmPromote(true)}
+                >
+                  <FiZap />
+                  Promote to Primary
+                </Button>
+              )}
+            </Box>
           )}
         </VStack>
       )}

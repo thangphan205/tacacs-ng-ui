@@ -1,9 +1,9 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import CurrentUser, SessionDep, require_primary_node
 from app.crud import alert_rules as crud_alert_rules
 from app.models import AlertRule, AlertRuleCreate, AlertRulePublic, AlertRulesPublic, AlertRuleUpdate
 
@@ -21,7 +21,7 @@ def read_alert_rules(
     return AlertRulesPublic(data=rules, count=count)
 
 
-@router.post("/", response_model=AlertRulePublic)
+@router.post("/", dependencies=[Depends(require_primary_node)], response_model=AlertRulePublic)
 def create_alert_rule(
     *,
     session: SessionDep,
@@ -43,7 +43,7 @@ def read_alert_rule_by_id(
     return rule
 
 
-@router.patch("/{id}", response_model=AlertRulePublic)
+@router.patch("/{id}", dependencies=[Depends(require_primary_node)], response_model=AlertRulePublic)
 def update_alert_rule(
     *,
     id: uuid.UUID,
@@ -57,7 +57,7 @@ def update_alert_rule(
     return crud_alert_rules.update_alert_rule(session=session, db_rule=db_rule, rule_in=rule_in)
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", dependencies=[Depends(require_primary_node)])
 def delete_alert_rule(
     *,
     id: uuid.UUID,

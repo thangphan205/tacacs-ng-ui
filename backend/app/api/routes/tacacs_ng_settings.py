@@ -7,6 +7,7 @@ from app.api.deps import (
     SuperUser,
     get_client_ip,
     get_current_user,
+    require_primary_node,
 )
 from app.crud import audit_logs as audit_logs_crud
 from app.crud import tacacs_ng_settings
@@ -41,6 +42,7 @@ def read_tacacs_ng_settings(
 
 @router.put(
     "/",
+    dependencies=[Depends(require_primary_node)],
     response_model=TacacsNgSettingPublic,
 )
 def update_tacacs_ng_settings(

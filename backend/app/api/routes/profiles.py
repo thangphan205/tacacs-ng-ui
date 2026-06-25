@@ -9,6 +9,7 @@ from app.api.deps import (
     SuperUser,
     get_client_ip,
     get_current_user,
+    require_primary_node,
 )
 from app.crud import audit_logs as audit_logs_crud
 from app.crud import profiles
@@ -77,6 +78,7 @@ def preview_profiles(session: SessionDep) -> Any:
 
 @router.post(
     "/",
+    dependencies=[Depends(require_primary_node)],
     response_model=ProfilePublic,
 )
 def create_profile(
@@ -124,6 +126,7 @@ def read_profile_by_id(
 
 @router.put(
     "/{id}",
+    dependencies=[Depends(require_primary_node)],
     response_model=ProfilePublic,
 )
 def update_profile(
@@ -163,6 +166,7 @@ def update_profile(
 
 @router.delete(
     "/{id}",
+    dependencies=[Depends(require_primary_node)],
 )
 def delete_profile(
     session: SessionDep, current_user: SuperUser, request: Request, id: uuid.UUID

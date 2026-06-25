@@ -1,9 +1,9 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import CurrentUser, SessionDep, require_primary_node
 from app.crud import notification_channels as crud_channels
 from app.models import (
     NotificationChannel,
@@ -27,7 +27,7 @@ def read_notification_channels(
     return NotificationChannelsPublic(data=channels, count=count)
 
 
-@router.post("/", response_model=NotificationChannelPublic)
+@router.post("/", dependencies=[Depends(require_primary_node)], response_model=NotificationChannelPublic)
 def create_notification_channel(
     *,
     session: SessionDep,
@@ -49,7 +49,7 @@ def read_notification_channel_by_id(
     return channel
 
 
-@router.patch("/{id}", response_model=NotificationChannelPublic)
+@router.patch("/{id}", dependencies=[Depends(require_primary_node)], response_model=NotificationChannelPublic)
 def update_notification_channel(
     *,
     id: uuid.UUID,
@@ -65,7 +65,7 @@ def update_notification_channel(
     )
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", dependencies=[Depends(require_primary_node)])
 def delete_notification_channel(
     *,
     id: uuid.UUID,

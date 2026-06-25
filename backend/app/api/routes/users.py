@@ -11,6 +11,7 @@ from app.api.deps import (
     SuperUser,
     get_client_ip,
     get_current_active_superuser,
+    require_primary_node,
 )
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
@@ -88,7 +89,7 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100, search: str
     return UsersPublic(data=users, count=count)
 
 
-@router.post("/", response_model=UserPublic)
+@router.post("/", dependencies=[Depends(require_primary_node)], response_model=UserPublic)
 def create_user(
     *, session: SessionDep, current_user: SuperUser, request: Request, user_in: UserCreate
 ) -> Any:
@@ -125,7 +126,7 @@ def create_user(
     return user
 
 
-@router.patch("/me", response_model=UserPublic)
+@router.patch("/me", dependencies=[Depends(require_primary_node)], response_model=UserPublic)
 def update_user_me(
     *, session: SessionDep, request: Request, user_in: UserUpdateMe, current_user: CurrentUser
 ) -> Any:
@@ -151,7 +152,7 @@ def update_user_me(
     return current_user
 
 
-@router.patch("/me/password", response_model=Message)
+@router.patch("/me/password", dependencies=[Depends(require_primary_node)], response_model=Message)
 def update_password_me(
     *, session: SessionDep, request: Request, body: UpdatePassword, current_user: CurrentUser
 ) -> Any:
@@ -190,7 +191,7 @@ def read_user_me(current_user: CurrentUser) -> Any:
 
 
 
-@router.post("/signup", response_model=UserPublic)
+@router.post("/signup", dependencies=[Depends(require_primary_node)], response_model=UserPublic)
 def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     """
     Create new user without the need to be logged in.
@@ -233,6 +234,7 @@ def read_user_by_id(
 
 @router.patch(
     "/{user_id}",
+    dependencies=[Depends(require_primary_node)],
     response_model=UserPublic,
 )
 def update_user(
@@ -277,7 +279,7 @@ def update_user(
     return db_user
 
 
-@router.delete("/{user_id}", dependencies=[Depends(get_current_active_superuser)])
+@router.delete("/{user_id}", dependencies=[Depends(get_current_active_superuser), Depends(require_primary_node)])
 def delete_user(
     session: SessionDep, request: Request, current_user: CurrentUser, user_id: uuid.UUID
 ) -> Message:

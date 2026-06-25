@@ -9,6 +9,7 @@ from app.api.deps import (
     SuperUser,
     get_client_ip,
     get_current_user,
+    require_primary_node,
 )
 from app.crud import audit_logs as audit_logs_crud
 from app.crud import tacacs_groups
@@ -50,6 +51,7 @@ def read_tacacs_groups(session: SessionDep, skip: int = 0, limit: int = 100, sea
 
 @router.post(
     "/",
+    dependencies=[Depends(require_primary_node)],
     response_model=TacacsGroupPublic,
 )
 def create_tacacs_group(
@@ -99,6 +101,7 @@ def read_tacacs_group_by_id(
 
 @router.put(
     "/{id}",
+    dependencies=[Depends(require_primary_node)],
     response_model=TacacsGroupPublic,
 )
 def update_tacacs_group(
@@ -138,6 +141,7 @@ def update_tacacs_group(
 
 @router.delete(
     "/{id}",
+    dependencies=[Depends(require_primary_node)],
 )
 def delete_tacacs_group(
     session: SessionDep, current_user: SuperUser, request: Request, id: uuid.UUID
