@@ -209,6 +209,15 @@ class Settings(BaseSettings):
         30  # how often to collect today's AAA stats into DB (0 = disable)
     )
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def peer_urls(self) -> list[str]:
+        """Peer backend URLs from PEER_NODES (comma-separated) or PEER_BACKEND_URL fallback."""
+        urls = [u.strip() for u in self.PEER_NODES.split(",") if u.strip()]
+        if not urls and self.PEER_BACKEND_URL:
+            urls = [self.PEER_BACKEND_URL]
+        return urls
+
     # WebAuthn / Passkeys
     @computed_field  # type: ignore[prop-decorator]
     @property

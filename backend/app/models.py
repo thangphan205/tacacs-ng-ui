@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from typing import Literal
 
 import sqlalchemy as sa
 from pydantic import EmailStr
@@ -1339,3 +1340,76 @@ class HaState(SQLModel, table=True):
     id: int = Field(default=1, primary_key=True)
     last_push_at: datetime | None = Field(default=None, nullable=True)
     last_received_at: datetime | None = Field(default=None, nullable=True)
+
+
+# --- Multi-Node HA Config ---
+
+
+class HaConfigBase(SQLModel):
+    node_name: str = Field(default="primary", max_length=100)
+    sync_mode: str = Field(default="auto", max_length=10)
+    scheduler_enabled: bool = Field(default=True)
+    stats_interval_minutes: int = Field(default=30)
+
+
+class HaConfig(HaConfigBase, TimestampModel, table=True):
+    """Singleton row (id=1). Written only on primary; replicated to standbys."""
+
+    id: int = Field(default=1, primary_key=True)
+
+
+class HaConfigUpdate(SQLModel):
+    node_name: str | None = None
+    sync_mode: Literal["auto", "manual"] | None = None
+    scheduler_enabled: bool | None = None
+    stats_interval_minutes: int | None = None
+
+
+class HaConfigPublic(HaConfigBase):
+    id: int
+    updated_at: datetime
+
+
+class HaPeerNodeBase(SQLModel):
+    name: str = Field(max_length=100)
+    url: str = Field(max_length=500)
+    enabled: bool = Field(default=True)
+
+
+class HaPeerNode(HaPeerNodeBase, TimestampModel, table=True):
+    """One row per standby peer. Written only on primary."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
+
+class HaPeerNodeCreate(HaPeerNodeBase):
+    pass
+
+
+class HaPeerNodeUpdate(SQLModel):
+    name: str | None = None
+    url: str | None = None
+    enabled: bool | None = None
+
+
+class HaPeerNodePublic(HaPeerNodeBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class HaPeerNodesPublic(SQLModel):
+    data: list[HaPeerNodePublic]
+    count: int
+
+
+class HaNodeState(SQLModel, table=True):
+    """Per-peer sync state written only by the primary after each push."""
+
+    peer_id: uuid.UUID = Field(
+        primary_key=True,
+        foreign_key="hapeernode.id",
+        ondelete="CASCADE",
+    )
+    last_push_at: datetime | None = Field(default=None, nullable=True)
+    last_available: bool | None = Field(default=None, nullable=True)

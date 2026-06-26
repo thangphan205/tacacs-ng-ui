@@ -9,7 +9,7 @@ from datetime import date
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
-from sqlmodel import Session
+from sqlmodel import Session, select
 from starlette.middleware.cors import CORSMiddleware
 
 from app.api.main import api_router
@@ -18,12 +18,35 @@ from app.core.db import engine
 from app.crud.alert_evaluator import evaluate_all_rules
 from app.crud.audit_logs import purge_old_audit_logs
 from app.crud.ml_anomaly_scorer import run_daily_anomaly_scoring
+from app.models import HaConfig, HaPeerNode
 
 logger = logging.getLogger(__name__)
 
 _PURGE_INTERVAL_SECONDS = 24 * 60 * 60  # 24 hours
 _ALERT_EVAL_INTERVAL_SECONDS = 5 * 60  # 5 minutes
 _ML_SCORING_INTERVAL_SECONDS = 24 * 60 * 60  # 24 hours
+
+
+def _seed_ha_config(session: Session) -> None:
+    """Seed HaConfig and HaPeerNode from env vars on first primary startup."""
+    if settings.NODE_ROLE == "standby":
+        return  # replica DB is read-only; replication delivers the config
+    if not session.get(HaConfig, 1):
+        session.add(
+            HaConfig(
+                id=1,
+                node_name=settings.NODE_NAME,
+                sync_mode=settings.SYNC_MODE,
+                scheduler_enabled=settings.SCHEDULER_ENABLED,
+                stats_interval_minutes=settings.STATS_INTERVAL_MINUTES,
+            )
+        )
+        session.commit()
+    if not session.exec(select(HaPeerNode)).first():
+        for url in settings.peer_urls:
+            session.add(HaPeerNode(name=url, url=url))
+        if settings.peer_urls:
+            session.commit()
 
 
 async def _audit_purge_loop() -> None:
@@ -60,9 +83,14 @@ async def _ml_scoring_loop() -> None:
 
 
 async def _stats_collection_loop() -> None:
-    interval = settings.STATS_INTERVAL_MINUTES * 60
     await asyncio.sleep(30)  # brief startup delay
     while True:
+        with Session(engine) as s:
+            cfg = s.get(HaConfig, 1)
+        interval = (cfg.stats_interval_minutes if cfg else settings.STATS_INTERVAL_MINUTES) * 60
+        if interval <= 0:
+            await asyncio.sleep(60)
+            continue
         today_str = date.today().isoformat()
         scripts = [
             "/app/scripts/tacacs_logs_authentication.py",
@@ -102,14 +130,23 @@ async def _stats_collection_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
+    with Session(engine) as session:
+        _seed_ha_config(session)
+
+    cfg: HaConfig | None
+    with Session(engine) as session:
+        cfg = session.get(HaConfig, 1)
+    scheduler_on = cfg.scheduler_enabled if cfg else settings.SCHEDULER_ENABLED
+    stats_interval = (cfg.stats_interval_minutes if cfg else settings.STATS_INTERVAL_MINUTES)
+
     tasks = []
-    if settings.SCHEDULER_ENABLED:
+    if scheduler_on:
         tasks = [
             asyncio.create_task(_audit_purge_loop()),
             asyncio.create_task(_alert_evaluation_loop()),
             asyncio.create_task(_ml_scoring_loop()),
         ]
-        if settings.STATS_INTERVAL_MINUTES > 0:
+        if stats_interval > 0:
             tasks.append(asyncio.create_task(_stats_collection_loop()))
     yield
     for t in tasks:

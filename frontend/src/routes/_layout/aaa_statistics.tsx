@@ -664,30 +664,34 @@ function RangeStatsTab() {
             </NativeSelect.Field>
             <NativeSelect.Indicator />
           </NativeSelect.Root>
-          <Text fontSize="sm" color="fg.muted">
-            From
-          </Text>
-          <Input
-            size="sm"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            maxW="150px"
-            borderRadius="md"
-          />
-          <Text fontSize="sm" color="fg.muted">
-            To
-          </Text>
-          <Input
-            size="sm"
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            maxW="150px"
-            borderRadius="md"
-            min={startDate}
-            max={getISODateString(yesterday)}
-          />
+          <Flex align="center" gap={2}>
+            <Text fontSize="sm" color="fg.muted" whiteSpace="nowrap">
+              From
+            </Text>
+            <Input
+              size="sm"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              maxW="150px"
+              borderRadius="md"
+            />
+          </Flex>
+          <Flex align="center" gap={2}>
+            <Text fontSize="sm" color="fg.muted" whiteSpace="nowrap">
+              To
+            </Text>
+            <Input
+              size="sm"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              maxW="150px"
+              borderRadius="md"
+              min={startDate}
+              max={getISODateString(yesterday)}
+            />
+          </Flex>
         </Flex>
       </Flex>
 
@@ -1295,30 +1299,44 @@ function NodeStatsTab() {
           Node Comparison
         </Heading>
         <Flex align="center" gap={3} wrap="wrap">
-          <Text fontSize="sm" fontWeight="medium" color="fg.muted">
-            From
-          </Text>
-          <Input
-            size="sm"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            maxW="150px"
-            borderRadius="md"
-          />
-          <Text fontSize="sm" fontWeight="medium" color="fg.muted">
-            To
-          </Text>
-          <Input
-            size="sm"
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            maxW="150px"
-            borderRadius="md"
-            min={startDate}
-            max={getISODateString(yesterday)}
-          />
+          <Flex align="center" gap={2}>
+            <Text
+              fontSize="sm"
+              fontWeight="medium"
+              color="fg.muted"
+              whiteSpace="nowrap"
+            >
+              From
+            </Text>
+            <Input
+              size="sm"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              maxW="150px"
+              borderRadius="md"
+            />
+          </Flex>
+          <Flex align="center" gap={2}>
+            <Text
+              fontSize="sm"
+              fontWeight="medium"
+              color="fg.muted"
+              whiteSpace="nowrap"
+            >
+              To
+            </Text>
+            <Input
+              size="sm"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              maxW="150px"
+              borderRadius="md"
+              min={startDate}
+              max={getISODateString(yesterday)}
+            />
+          </Flex>
         </Flex>
       </Flex>
 

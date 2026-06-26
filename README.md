@@ -289,51 +289,38 @@ MailCatcher: <http://localhost:1080>
 
 ## Deploy on a remote server
 
-For example, you deploy tacacs-ng-ui on the server: 192.168.8.8
+For example, deploying on server `192.168.8.8`. Only `.env` needs to change — no edits to any compose file.
 
 ```bash
 git clone https://github.com/thangphan205/tacacs-ng-ui
 cd tacacs-ng-ui
-cp .env.example .env   # then edit .env with your IP, secrets, and passwords
+cp .env.example .env
 ```
 
-Edit `docker-compose.override.yml`:
+Edit `.env` — change these 4 values:
 
 ```bash
-  frontend:
-    restart: "no"
-    ports:
-      - "5173:80"
-    build:
-      context: ./frontend
-      args:
-        - VITE_API_URL=http://192.168.8.8:8000
-        - NODE_ENV=development
+DOMAIN=192.168.8.8
+FRONTEND_HOST=http://192.168.8.8:5173
+VITE_API_URL=http://192.168.8.8:8000
+SECRET_KEY=<run: openssl rand -hex 32>
 ```
 
-Add your server to `BACKEND_CORS_ORIGINS` in `.env`:
+Then build and start:
 
 ```bash
-BACKEND_CORS_ORIGINS="http://192.168.8.8:5173,..."
+docker compose build
+docker compose up -d
 ```
 
-Run server:
-
-```docker compose up -d```
-
-Access: <http://192.168.8.8:5173> with the credentials you set in `.env`:
+Access: <http://192.168.8.8:5173> with the credentials set in `.env`:
 
 ```bash
 Username: admin@example.com   # FIRST_SUPERUSER in .env
 Password: <FIRST_SUPERUSER_PASSWORD in .env>
 ```
 
-> **Note:** Run `docker compose build` after any config or code changes.
-
-```bash
-docker compose build
-docker compose up -d
-```
+> **Note:** `FRONTEND_HOST` is automatically added to the CORS allow-list — no need to edit `BACKEND_CORS_ORIGINS` separately.
 
 ## Deploy on a remote server: with domain name
 
@@ -375,19 +362,20 @@ Also add `GOOGLE_REDIRECT_URI` as an **Authorized Redirect URI** in Google Conso
 
 ## High Availability (HA) Deployment
 
-tacacs-ng-ui supports two HA deployment models for running two TACACS+ servers across different zones:
+tacacs-ng-ui supports three HA deployment models:
 
 | Model | Description |
 |-------|-------------|
-| **Independent** | Two fully separate stacks — no sync, each zone managed independently |
-| **Primary–Standby** | Zone B replicates from Zone A via PostgreSQL streaming replication; config syncs automatically or on-demand |
+| **A — Independent** | Two fully separate stacks — no sync, each zone managed independently |
+| **B — Primary–Standby** | Zone B replicates from Zone A via PostgreSQL streaming replication; config syncs automatically or on-demand |
+| **C — Multi-Node** | One primary + N standbys; config fan-out to all peers; peers managed via UI without restart |
 
 <p align="center">
   <img src="img/high-availability-model-a.svg" alt="Model A — Independent" width="49%" />
   <img src="img/high-availability-model-b.svg" alt="Model B — Primary–Standby" width="49%" />
 </p>
 
-Both models support per-zone LDAP server configuration via `MAVIS_OVERRIDE_*` env vars.
+All models support per-zone LDAP server configuration via `MAVIS_OVERRIDE_*` env vars.
 
 **Full guide:** [docs/en/high-availability.md](docs/en/high-availability.md)
 

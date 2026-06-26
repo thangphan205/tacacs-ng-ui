@@ -163,6 +163,24 @@ Records CREATE/UPDATE/DELETE/ACTIVATE actions on entities with user_id, email, I
 - **Keycloak OIDC** — `keycloak_id` column on User; HMAC-state validation
 - **WebAuthn / Passkeys** — `WebAuthnCredential` + `WebAuthnChallenge` tables; `passkeys.py` CRUD
 
+### High Availability (`backend/app/api/routes/sync.py`)
+
+Multi-node active-passive HA via PostgreSQL streaming replication + config fan-out. See `docs/en/high-availability.md` for full setup guide.
+
+**Env-only settings** (require restart):
+- `NODE_ROLE` — `primary` or `standby`; controls DB write access and `require_primary_node()` dep
+- `INTERNAL_SYNC_TOKEN` — shared secret for inter-node API calls
+
+**All other HA settings** are DB-driven (`HaConfig` table, id=1) and editable via the HA UI without restart: `node_name`, `sync_mode`, `scheduler_enabled`, `stats_interval_minutes`.
+
+**Peer management:** `HaPeerNode` table (CRUD via `GET/POST/PATCH/DELETE /api/v1/sync/peers`). On first primary startup, `PEER_BACKEND_URL`/`PEER_NODES` env vars are seeded into `HaPeerNode` automatically. Config sync fans out to all enabled peers.
+
+**Key files:**
+- `backend/app/api/routes/sync.py` — all HA API routes
+- `backend/app/crud/tacacs_configs.py` — `_notify_peer_reload()` (auto-sync fan-out)
+- `backend/scripts/config_sync_watcher.py` — standby auto-sync watcher (polls DB every 10s)
+- `backend/app/models.py` — `HaConfig`, `HaPeerNode`, `HaNodeState`, `HaState`
+
 ## Code Conventions
 
 ### Python

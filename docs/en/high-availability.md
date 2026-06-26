@@ -6,15 +6,15 @@ This guide explains how to run two tacacs-ng-ui instances across different zones
 
 ## Choose Your Deployment Model
 
-| | **Model A — Independent** | **Model B — Primary–Standby** |
-|-|--------------------------|-------------------------------|
-| Database | Each zone has its own DB | Zone B replicates from Zone A |
-| Config sync | Manual (admin manages both) | Automatic or one-click |
-| Complexity | Low | Medium |
-| Failover | Devices switch server automatically | Promote standby with one command |
-| Best for | Zones serve different device populations, or full isolation needed | Single admin team, consistent config across zones |
+| | **Model A — Independent** | **Model B — Primary–Standby** | **Model C — Multi-Node** |
+|-|--------------------------|-------------------------------|--------------------------|
+| Database | Each zone has its own DB | Zone B replicates from Zone A | N standbys replicate from primary |
+| Config sync | Manual (admin manages both) | Automatic or one-click | Fan-out to all standbys |
+| Complexity | Low | Medium | Medium |
+| Failover | Devices switch server automatically | Promote standby with one command | Promote any standby |
+| Best for | Zones serve different device populations, or full isolation needed | Single admin team, consistent config across zones | Multi-datacenter, >2 zones |
 
-Both models require no changes to existing deployments — Model A needs zero code changes.
+All models require no changes to existing deployments — Model A needs zero code changes.
 
 ---
 
@@ -435,37 +435,112 @@ docker compose exec db psql -U $POSTGRES_USER -c \
 
 ---
 
-## Failover Procedure (Zone A dies)
+## Model C — Multi-Node (N Standbys)
 
-**Promote Zone B to primary:**
+For deployments with more than two zones (e.g. DC1 primary + DC2 + DC3 standbys).
+
+The architecture is identical to Model B, with one primary and N standbys. Config sync fans out to all enabled peer nodes automatically.
+
+### Adding a Third (or More) Standby
+
+1. Set up PostgreSQL streaming replication from primary DB to new standby DB (same as Zone B setup above)
+2. Start the new standby with `NODE_ROLE=standby` and the same `INTERNAL_SYNC_TOKEN`
+3. On the primary UI → **High Availability → Peers → Add Peer** (enter a name and the new standby's internal URL)
+4. Config syncs to the new node within 10 seconds (auto mode) or on next manual push — no restart needed
+
+> **No env var changes required.** Peer management is done entirely via the UI. `PEER_NODES` / `PEER_BACKEND_URL` env vars are still supported as a fallback and are automatically imported into the DB on first startup.
+
+### HA Configuration via UI
+
+All HA settings except `NODE_ROLE` and `INTERNAL_SYNC_TOKEN` are now editable via the **High Availability → HA Settings** panel on the primary node — no restart needed:
+
+| Setting | Description |
+|---------|-------------|
+| Node name | Human-readable label (e.g. "DC1-Primary") |
+| Sync mode | `auto` or `manual` |
+| Scheduler enabled | Enable/disable alert evaluation, ML scoring, audit purge |
+| Stats interval | AAA stats collection interval in minutes (0 = disable) |
+
+### Multi-Node Status
+
+`GET /api/v1/sync/ha-info` returns a `peers` array with per-node status:
+
+```json
+{
+  "node_role": "primary",
+  "node_name": "DC1-Primary",
+  "sync_mode": "auto",
+  "peers": [
+    {"id": "...", "name": "DC2-Standby", "url": "http://dc2:8000", "available": true, "last_push_at": "2026-06-26T14:00:00Z"},
+    {"id": "...", "name": "DC3-Standby", "url": "http://dc3:8000", "available": true, "last_push_at": "2026-06-26T14:00:00Z"}
+  ]
+}
+```
+
+### Peer Management API (superuser only)
 
 ```bash
-# On Zone B server
+# List peers
+curl -H "Authorization: Bearer <token>" https://api-a.yourdomain.com/api/v1/sync/peers
+
+# Add a peer
+curl -X POST -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+  -d '{"name": "DC3-Standby", "url": "http://dc3:8000", "enabled": true}' \
+  https://api-a.yourdomain.com/api/v1/sync/peers
+
+# Disable a peer (temporarily exclude from sync)
+curl -X PATCH -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+  -d '{"enabled": false}' \
+  https://api-a.yourdomain.com/api/v1/sync/peers/<peer-id>
+
+# Remove a peer
+curl -X DELETE -H "Authorization: Bearer <token>" \
+  https://api-a.yourdomain.com/api/v1/sync/peers/<peer-id>
+```
+
+---
+
+## Failover Procedure (Zone A dies)
+
+**Promote a standby to primary (via UI — recommended):**
+
+On the standby UI → **High Availability → Promote to Primary**. The UI runs `pg_promote()`, sets `scheduler_enabled=true` in the DB, and shows the remaining manual steps.
+
+**Promote via CLI:**
+
+```bash
+# On the standby server
 export $(grep -v '^#' .env | xargs)
 docker compose exec db psql -U $POSTGRES_USER -c "SELECT pg_promote();"
 
-# Update Zone B .env:
+# Update .env — only NODE_ROLE needs changing (scheduler_enabled is DB-driven now):
 #   NODE_ROLE=primary
-#   SCHEDULER_ENABLED=true
 
 docker compose up -d backend
 ```
 
 Zone B now accepts all writes. Network devices were already pointed at Zone B, so TACACS authentication continues without change.
 
-**When Zone A recovers:**
+**After promotion — clean up peers:**
 
-Re-join Zone A as the new standby:
+1. Open the promoted node's HA dashboard
+2. Remove the old primary from the Peers table (it's now unreachable)
+3. For each remaining standby: repoint PostgreSQL replication to the new primary (`pg_rewind` or `pg_basebackup`)
+
+**When the old primary recovers:**
+
+Re-join as a new standby:
 
 ```bash
-# On Zone A server
+# On the old primary server
 # Update .env:
 #   NODE_ROLE=standby
-#   SCHEDULER_ENABLED=false
-#   PRIMARY_DB_HOST=<ZONE_B_IP>
+#   PRIMARY_DB_HOST=<NEW_PRIMARY_IP>
 
 bash backend/scripts/setup-standby.sh
 ```
+
+Then add it back as a peer via the new primary's HA UI.
 
 ---
 
@@ -473,20 +548,22 @@ bash backend/scripts/setup-standby.sh
 
 All HA variables are optional. Defaults run as a standard single-node deployment.
 
+> **Note:** `NODE_NAME`, `SCHEDULER_ENABLED`, `SYNC_MODE`, `PEER_BACKEND_URL`, `PEER_NODES`, and `STATS_INTERVAL_MINUTES` are seeded into the database on first primary startup and can then be changed via the HA UI without a restart. `NODE_ROLE` and `INTERNAL_SYNC_TOKEN` always require a restart to change.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NODE_ROLE` | `primary` | `primary` or `standby`. Controls write access and scheduler. |
-| `NODE_NAME` | `primary` | Human-readable node identifier used to tag AAA statistics (e.g. `dc1-primary`, `dc2-standby`). Must be unique per node. |
-| `SCHEDULER_ENABLED` | `true` | Set `false` on standby — disables alert evaluation, ML scoring, audit purge loops. |
-| `SYNC_MODE` | `auto` | `auto` = standby daemon watches DB and auto-reloads. `manual` = admin-triggered push. |
-| `PEER_BACKEND_URL` | _(empty)_ | Internal API URL of the other zone for config sync (e.g. `https://api-b.yourdomain.com`). |
-| `PEER_NODES` | _(empty)_ | Comma-separated internal API URLs of all peer nodes for AAA statistics collection (e.g. `http://dc2:8000,http://dc3:8000`). Set on primary only. |
-| `INTERNAL_SYNC_TOKEN` | _(empty)_ | Shared secret for inter-node calls (config reload + stats collection). Must match on all nodes. Generate with `openssl rand -hex 32`. |
-| `STATS_INTERVAL_MINUTES` | `30` | How often (minutes) the primary collects today's AAA stats into the DB. Set `0` to disable and rely on nightly cron only. |
-| `PRIMARY_DB_HOST` | _(empty)_ | Zone A's DB host IP. Only needed on Zone B during `setup-standby.sh`. |
-| `REPLICATION_PASSWORD` | _(empty)_ | Password for the `replicator` PostgreSQL role. Only needed on Zone B. |
+| `NODE_ROLE` | `primary` | **Env-only.** `primary` or `standby`. Controls write access and `require_primary_node()` guard. Requires restart. |
+| `INTERNAL_SYNC_TOKEN` | _(empty)_ | **Env-only.** Shared secret for inter-node calls. Must match on all nodes. Generate with `openssl rand -hex 32`. Requires restart. |
+| `NODE_NAME` | `primary` | Seeded into DB on first startup. Human-readable node label (e.g. `dc1-primary`). Edit via HA UI after first start. |
+| `SCHEDULER_ENABLED` | `true` | Seeded into DB on first startup. Set `false` on standby to disable alerts/ML/audit loops. Edit via HA UI after promotion. |
+| `SYNC_MODE` | `auto` | Seeded into DB on first startup. `auto` = standby polls DB every 10 s. `manual` = admin-triggered. Edit via HA UI. |
+| `PEER_BACKEND_URL` | _(empty)_ | Seeded as first peer entry on first primary startup. Use HA UI to manage peers after that. |
+| `PEER_NODES` | _(empty)_ | Seeded as multiple peer entries on first primary startup (comma-separated URLs). Use HA UI to manage after that. |
+| `STATS_INTERVAL_MINUTES` | `30` | Seeded into DB on first startup. Minutes between primary AAA stats collection cycles. `0` = nightly cron only. Edit via HA UI. |
+| `PRIMARY_DB_HOST` | _(empty)_ | Zone A's DB host IP. Only needed on standby during `setup-standby.sh`. |
+| `REPLICATION_PASSWORD` | _(empty)_ | Password for the `replicator` PostgreSQL role. Only needed on standby. |
 | `MAVIS_OVERRIDE_<KEY>` | _(empty)_ | Override any MAVIS key per zone (e.g. `MAVIS_OVERRIDE_LDAP_HOSTS`). |
-| `SYNC_WATCHER_INTERVAL` | `10` | Seconds between config change polls (auto-sync watcher, Zone B only). |
+| `SYNC_WATCHER_INTERVAL` | `10` | Seconds between config change polls (auto-sync watcher, standby only). |
 
 ---
 
@@ -504,19 +581,44 @@ Response:
 ```json
 {
   "node_role": "primary",
+  "node_name": "DC1-Primary",
   "sync_mode": "manual",
   "scheduler_enabled": true,
+  "stats_interval_minutes": 30,
+  "peers": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "DC2-Standby",
+      "url": "https://api-b.yourdomain.com",
+      "enabled": true,
+      "available": true,
+      "last_push_at": "2026-06-25T08:12:34.567890+00:00"
+    }
+  ],
   "peer_backend_url": "https://api-b.yourdomain.com",
   "peer_available": true,
   "last_sync_at": "2026-06-25T08:12:34.567890+00:00"
 }
 ```
 
-**Manually push config to standby (manual sync mode):**
+> `peer_backend_url` and `peer_available` are kept for backward compatibility. Prefer the `peers` array for multi-node deployments.
+
+**Manually push config to all standbys (manual sync mode):**
 
 ```bash
 curl -X POST -H "Authorization: Bearer <token>" \
   https://api-a.yourdomain.com/api/v1/sync/push-config
+```
+
+Response shows per-peer result:
+
+```json
+{
+  "results": [
+    {"peer": "DC2-Standby", "url": "https://api-b.yourdomain.com", "status": "ok"},
+    {"peer": "DC3-Standby", "url": "https://api-c.yourdomain.com", "status": "error"}
+  ]
+}
 ```
 
 ---

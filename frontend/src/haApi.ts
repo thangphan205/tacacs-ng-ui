@@ -1,12 +1,42 @@
 import { OpenAPI } from "@/client"
 
+export interface HaPeer {
+  id: string
+  name: string
+  url: string
+  enabled: boolean
+  available: boolean | null
+  last_push_at: string | null
+}
+
 export interface HaInfo {
   node_role: "primary" | "standby"
+  node_name: string
   sync_mode: "auto" | "manual"
   scheduler_enabled: boolean
+  stats_interval_minutes: number
+  peers: HaPeer[]
+  // backward-compat single-peer fields
   peer_backend_url: string | null
   peer_available: boolean | null
   last_sync_at: string | null
+}
+
+export interface HaConfigUpdate {
+  node_name?: string
+  sync_mode?: "auto" | "manual"
+  scheduler_enabled?: boolean
+  stats_interval_minutes?: number
+}
+
+export interface HaPeerCreate {
+  name: string
+  url: string
+  enabled: boolean
+}
+
+export interface PushResult {
+  results: Array<{ peer: string; url: string; status: "ok" | "error" }>
 }
 
 export interface PromoteResult {

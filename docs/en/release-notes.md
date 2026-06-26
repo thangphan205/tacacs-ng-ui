@@ -1,5 +1,27 @@
 # Release Notes
 
+## v0.5.0
+
+### Features
+
+* ✨ **Multi-Node HA (Model C)** — support for one primary + N standby nodes. Config sync fans out to all enabled peers simultaneously. Add, remove, enable, or disable peer nodes via the High Availability UI without restarting any service.
+* ✨ **DB-Driven HA Configuration** — all HA settings except `NODE_ROLE` and `INTERNAL_SYNC_TOKEN` are now stored in the database and editable live via the HA UI: node name, sync mode, scheduler toggle, stats collection interval.
+* ✨ **Per-Peer Sync State Tracking** — `HaNodeState` table records last push timestamp and availability per peer. Push results shown per-peer in the UI and API response.
+* ✨ **Promote-to-Primary DB Integration** — promoting a standby via the UI now writes `scheduler_enabled=true` directly to the database immediately after `pg_promote()`. No longer requires `SCHEDULER_ENABLED=true` in `.env` after promotion.
+* ✨ **Simplified Remote Deployment** — deploying to an IP-based server now requires changing only `.env` (4 values: `DOMAIN`, `FRONTEND_HOST`, `VITE_API_URL`, `SECRET_KEY`). No edits to docker-compose files needed.
+
+### Documentation
+
+* 📖 **High Availability guide (EN + VI)** — added Model C section covering multi-node setup, peer management API, updated failover procedure, and updated env var reference table distinguishing env-only vs DB-seeded settings.
+* 📖 **`.env.example`** — full inline documentation for every environment variable with examples, generation commands, and a quick-start block for IP-based deployments.
+* 📖 **README (EN + VI)** — updated remote deployment section (single `.env` change), added Model C to HA comparison table.
+
+### Migrations
+
+* 🗄️ **`haconfig` table** — singleton (id=1) storing DB-driven HA settings: `node_name`, `sync_mode`, `scheduler_enabled`, `stats_interval_minutes`. Seeded from env vars on first primary startup.
+* 🗄️ **`hapeernode` table** — one row per standby peer (`name`, `url`, `enabled`). Seeded from `PEER_NODES` / `PEER_BACKEND_URL` env vars on first primary startup.
+* 🗄️ **`hanodestate` table** — per-peer sync tracking (`last_push_at`, `last_available`). Cascades on peer deletion.
+
 ## v0.4.1
 
 ### Dependencies

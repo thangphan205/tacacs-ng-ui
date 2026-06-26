@@ -261,35 +261,54 @@ id = tac_plus-ng {{
 
 
 def _notify_peer_reload() -> None:
-    """Fire-and-forget call to peer node's internal reload endpoint (auto-sync mode only)."""
+    """Fire-and-forget fan-out to all enabled peer nodes (auto-sync mode only)."""
     from datetime import datetime, timezone
 
     from app.core.config import settings  # local import avoids circular dep
     from app.core.db import engine
-    from app.models import HaState
+    from app.models import HaConfig, HaNodeState, HaPeerNode
 
-    if settings.NODE_ROLE != "primary" or settings.SYNC_MODE != "auto":
-        return
-    if not settings.PEER_BACKEND_URL or not settings.INTERNAL_SYNC_TOKEN:
+    if settings.NODE_ROLE != "primary" or not settings.INTERNAL_SYNC_TOKEN:
         return
 
-    url = f"{settings.PEER_BACKEND_URL.rstrip('/')}/api/v1/sync/internal/reload-config"
-    try:
-        with httpx.Client(timeout=10) as client:
-            r = client.post(
-                url, headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN}
-            )
-        if r.status_code != 200:
-            log.warning("Peer reload returned HTTP %s: %s", r.status_code, r.text)
-        else:
-            log.info("Peer node reloaded config successfully.")
+    with Session(engine) as session:
+        cfg = session.get(HaConfig, 1)
+        sync_mode = cfg.sync_mode if cfg else settings.SYNC_MODE
+        if sync_mode != "auto":
+            return
+        from sqlmodel import select as _select
+        peers = list(session.exec(
+            _select(HaPeerNode).where(HaPeerNode.enabled == True)
+        ).all())
+
+    peer_urls = [p.url for p in peers] if peers else settings.peer_urls
+    if not peer_urls:
+        return
+
+    now = datetime.now(timezone.utc)
+    for peer_url in peer_urls:
+        url = f"{peer_url.rstrip('/')}/api/v1/sync/internal/reload-config"
+        ok = False
+        try:
+            with httpx.Client(timeout=10) as client:
+                r = client.post(url, headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN})
+            ok = r.status_code == 200
+            if ok:
+                log.info("Peer %s reloaded config successfully.", peer_url)
+            else:
+                log.warning("Peer %s reload returned HTTP %s: %s", peer_url, r.status_code, r.text)
+        except Exception as e:
+            log.warning("Failed to notify peer %s for config reload: %s", peer_url, e)
+
+        # update per-peer sync state
+        peer_obj = next((p for p in peers if p.url == peer_url), None)
+        if peer_obj is not None:
             with Session(engine) as session:
-                state = session.get(HaState, 1) or HaState(id=1)
-                state.last_push_at = datetime.now(timezone.utc)
+                state = session.get(HaNodeState, peer_obj.id) or HaNodeState(peer_id=peer_obj.id)
+                state.last_push_at = now
+                state.last_available = ok
                 session.add(state)
                 session.commit()
-    except Exception as e:
-        log.warning("Failed to notify peer node for config reload: %s", e)
 
 
 def get_tacacs_config_by_name(*, session: Session, name: str) -> TacacsConfig | None:

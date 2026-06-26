@@ -6,15 +6,15 @@ Hướng dẫn này giải thích cách chạy hai phiên bản tacacs-ng-ui ở
 
 ## Chọn Mô Hình Triển Khai
 
-| | **Mô hình A — Độc lập** | **Mô hình B — Primary–Standby** |
-|-|------------------------|----------------------------------|
-| Database | Mỗi vùng có DB riêng | Zone B sao chép từ Zone A |
-| Đồng bộ cấu hình | Thủ công (admin quản lý cả hai) | Tự động hoặc một thao tác |
-| Độ phức tạp | Thấp | Trung bình |
-| Failover | Thiết bị tự chuyển sang server kia | Nâng cấp standby bằng một lệnh |
-| Phù hợp | Hai vùng phục vụ nhóm thiết bị khác nhau, hoặc cần cô lập hoàn toàn | Một nhóm admin, cấu hình đồng nhất giữa hai vùng |
+| | **Mô hình A — Độc lập** | **Mô hình B — Primary–Standby** | **Mô hình C — Đa Node** |
+|-|------------------------|----------------------------------|--------------------------|
+| Database | Mỗi vùng có DB riêng | Zone B sao chép từ Zone A | N standby sao chép từ primary |
+| Đồng bộ cấu hình | Thủ công (admin quản lý cả hai) | Tự động hoặc một thao tác | Fan-out đến tất cả standby |
+| Độ phức tạp | Thấp | Trung bình | Trung bình |
+| Failover | Thiết bị tự chuyển sang server kia | Nâng cấp standby bằng một lệnh | Nâng cấp bất kỳ standby nào |
+| Phù hợp | Hai vùng phục vụ nhóm thiết bị khác nhau, hoặc cần cô lập hoàn toàn | Một nhóm admin, cấu hình đồng nhất giữa hai vùng | Đa datacenter, hơn 2 vùng |
 
-Cả hai mô hình đều không cần thay đổi các triển khai hiện có — Mô hình A không cần thay đổi code.
+Tất cả mô hình đều không cần thay đổi các triển khai hiện có — Mô hình A không cần thay đổi code.
 
 ---
 
@@ -425,23 +425,97 @@ docker compose exec db psql -U $POSTGRES_USER -c \
 
 ---
 
-## Quy Trình Failover (Zone A gặp sự cố)
+## Mô Hình C — Đa Node (N Standby)
 
-**Nâng cấp Zone B thành primary:**
+Dành cho triển khai hơn hai vùng (ví dụ DC1 primary + DC2 + DC3 standby).
+
+Kiến trúc giống Mô hình B, một primary và N standby. Đồng bộ cấu hình tự động fan-out đến tất cả peer node đang bật.
+
+### Thêm Standby Thứ Ba (hoặc Nhiều Hơn)
+
+1. Thiết lập PostgreSQL streaming replication từ DB primary đến DB standby mới (giống thiết lập Zone B)
+2. Khởi động standby mới với `NODE_ROLE=standby` và cùng `INTERNAL_SYNC_TOKEN`
+3. Trên UI primary → **High Availability → Peers → Add Peer** (nhập tên và URL nội bộ của standby mới)
+4. Cấu hình đồng bộ đến node mới trong 10 giây (chế độ auto) hoặc lần push thủ công tiếp theo — không cần restart
+
+> **Không cần thay đổi biến môi trường.** Quản lý peer hoàn toàn qua UI. Biến `PEER_NODES` / `PEER_BACKEND_URL` vẫn được hỗ trợ như fallback và tự động import vào DB khi khởi động lần đầu.
+
+### Cấu Hình HA Qua UI
+
+Tất cả cài đặt HA trừ `NODE_ROLE` và `INTERNAL_SYNC_TOKEN` có thể chỉnh sửa qua panel **High Availability → HA Settings** trên primary — không cần restart:
+
+| Cài đặt | Mô tả |
+|---------|-------|
+| Node name | Nhãn dễ đọc (ví dụ "DC1-Primary") |
+| Sync mode | `auto` hoặc `manual` |
+| Scheduler enabled | Bật/tắt đánh giá alert, ML scoring, audit purge |
+| Stats interval | Chu kỳ thu thập thống kê AAA (phút), 0 = tắt |
+
+### Trạng Thái Đa Node
+
+`GET /api/v1/sync/ha-info` trả về mảng `peers` với trạng thái từng node:
+
+```json
+{
+  "node_role": "primary",
+  "node_name": "DC1-Primary",
+  "sync_mode": "auto",
+  "peers": [
+    {"id": "...", "name": "DC2-Standby", "url": "http://dc2:8000", "available": true, "last_push_at": "2026-06-26T14:00:00Z"},
+    {"id": "...", "name": "DC3-Standby", "url": "http://dc3:8000", "available": true, "last_push_at": "2026-06-26T14:00:00Z"}
+  ]
+}
+```
+
+### API Quản Lý Peer (chỉ superuser)
 
 ```bash
-# Trên server Zone B
+# Liệt kê peer
+curl -H "Authorization: Bearer <token>" https://api-a.yourdomain.com/api/v1/sync/peers
+
+# Thêm peer
+curl -X POST -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+  -d '{"name": "DC3-Standby", "url": "http://dc3:8000", "enabled": true}' \
+  https://api-a.yourdomain.com/api/v1/sync/peers
+
+# Tắt tạm thời một peer
+curl -X PATCH -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+  -d '{"enabled": false}' \
+  https://api-a.yourdomain.com/api/v1/sync/peers/<peer-id>
+
+# Xóa peer
+curl -X DELETE -H "Authorization: Bearer <token>" \
+  https://api-a.yourdomain.com/api/v1/sync/peers/<peer-id>
+```
+
+---
+
+## Quy Trình Failover (Zone A gặp sự cố)
+
+**Nâng cấp standby thành primary qua UI (khuyến nghị):**
+
+Trên UI standby → **High Availability → Promote to Primary**. UI chạy `pg_promote()`, tự đặt `scheduler_enabled=true` trong DB, và hiển thị các bước thủ công còn lại.
+
+**Nâng cấp qua CLI:**
+
+```bash
+# Trên server standby
 export $(grep -v '^#' .env | xargs)
 docker compose exec db psql -U $POSTGRES_USER -c "SELECT pg_promote();"
 
-# Cập nhật .env Zone B:
+# Chỉ cần thay đổi NODE_ROLE (scheduler_enabled đã được DB quản lý):
 #   NODE_ROLE=primary
-#   SCHEDULER_ENABLED=true
 
 docker compose up -d backend
 ```
 
 Zone B giờ nhận toàn bộ ghi. Thiết bị mạng đã trỏ sẵn đến Zone B nên xác thực TACACS tiếp tục không gián đoạn.
+
+**Sau khi nâng cấp — dọn dẹp peer:**
+
+1. Mở dashboard HA của node vừa được nâng cấp
+2. Xóa primary cũ khỏi bảng Peers (đã không hoạt động)
+3. Với mỗi standby còn lại: trỏ lại PostgreSQL replication về primary mới (`pg_rewind` hoặc `pg_basebackup`)
 
 **Khi Zone A phục hồi:**
 
@@ -451,11 +525,12 @@ Gia nhập lại Zone A như standby mới:
 # Trên server Zone A
 # Cập nhật .env:
 #   NODE_ROLE=standby
-#   SCHEDULER_ENABLED=false
 #   PRIMARY_DB_HOST=<ZONE_B_IP>
 
 bash backend/scripts/setup-standby.sh
 ```
+
+Sau đó thêm lại Zone A như peer qua UI HA của primary mới.
 
 ---
 
@@ -463,20 +538,22 @@ bash backend/scripts/setup-standby.sh
 
 Tất cả biến HA đều tùy chọn. Mặc định chạy như triển khai single-node bình thường.
 
+> **Lưu ý:** `NODE_NAME`, `SCHEDULER_ENABLED`, `SYNC_MODE`, `PEER_BACKEND_URL`, `PEER_NODES`, và `STATS_INTERVAL_MINUTES` được seed vào database khi primary khởi động lần đầu và có thể thay đổi qua HA UI mà không cần restart. `NODE_ROLE` và `INTERNAL_SYNC_TOKEN` luôn cần restart khi thay đổi.
+
 | Biến | Mặc định | Mô tả |
 |------|----------|-------|
-| `NODE_ROLE` | `primary` | `primary` hoặc `standby`. Kiểm soát quyền ghi và scheduler. |
-| `NODE_NAME` | `primary` | Tên định danh node dùng để gắn nhãn thống kê AAA (ví dụ `dc1-primary`, `dc2-standby`). Phải duy nhất trên mỗi node. |
-| `SCHEDULER_ENABLED` | `true` | Đặt `false` trên standby — tắt vòng lặp đánh giá alert, ML scoring, audit purge. |
-| `SYNC_MODE` | `auto` | `auto` = daemon standby theo dõi DB và tự reload. `manual` = admin chủ động push. |
-| `PEER_BACKEND_URL` | _(trống)_ | URL API nội bộ của vùng còn lại dùng cho đồng bộ cấu hình (ví dụ `https://api-b.yourdomain.com`). |
-| `PEER_NODES` | _(trống)_ | Danh sách URL API nội bộ của tất cả peer node để thu thập thống kê AAA, phân cách bằng dấu phẩy (ví dụ `http://dc2:8000,http://dc3:8000`). Chỉ cần đặt trên primary. |
-| `INTERNAL_SYNC_TOKEN` | _(trống)_ | Shared secret cho các lệnh gọi giữa node (reload cấu hình + thu thập thống kê). Phải khớp trên tất cả node. Tạo bằng `openssl rand -hex 32`. |
-| `STATS_INTERVAL_MINUTES` | `30` | Chu kỳ (phút) primary thu thập thống kê AAA hôm nay vào DB. Đặt `0` để tắt và chỉ dùng cron hàng đêm. |
-| `PRIMARY_DB_HOST` | _(trống)_ | IP DB host của Zone A. Chỉ cần trên Zone B khi chạy `setup-standby.sh`. |
-| `REPLICATION_PASSWORD` | _(trống)_ | Mật khẩu cho PostgreSQL role `replicator`. Chỉ cần trên Zone B. |
+| `NODE_ROLE` | `primary` | **Chỉ env.** `primary` hoặc `standby`. Kiểm soát quyền ghi DB. Cần restart khi thay đổi. |
+| `INTERNAL_SYNC_TOKEN` | _(trống)_ | **Chỉ env.** Shared secret cho các lệnh gọi giữa node. Phải khớp trên tất cả node. Tạo bằng `openssl rand -hex 32`. Cần restart. |
+| `NODE_NAME` | `primary` | Seed vào DB khi khởi động lần đầu. Nhãn node dễ đọc (ví dụ `dc1-primary`). Chỉnh qua HA UI sau đó. |
+| `SCHEDULER_ENABLED` | `true` | Seed vào DB khi khởi động lần đầu. Đặt `false` trên standby. Tự đặt `true` sau khi promote qua UI. |
+| `SYNC_MODE` | `auto` | Seed vào DB khi khởi động lần đầu. `auto` = standby tự reload. `manual` = admin push. Chỉnh qua HA UI. |
+| `PEER_BACKEND_URL` | _(trống)_ | Seed như peer đầu tiên khi primary khởi động lần đầu. Dùng HA UI để quản lý peer sau đó. |
+| `PEER_NODES` | _(trống)_ | Seed như nhiều peer khi primary khởi động lần đầu (URL phân cách bằng dấu phẩy). Dùng HA UI để quản lý sau đó. |
+| `STATS_INTERVAL_MINUTES` | `30` | Seed vào DB khi khởi động lần đầu. Chu kỳ (phút) thu thập thống kê AAA. `0` = chỉ dùng cron hàng đêm. Chỉnh qua HA UI. |
+| `PRIMARY_DB_HOST` | _(trống)_ | IP DB host của Zone A. Chỉ cần trên standby khi chạy `setup-standby.sh`. |
+| `REPLICATION_PASSWORD` | _(trống)_ | Mật khẩu cho PostgreSQL role `replicator`. Chỉ cần trên standby. |
 | `MAVIS_OVERRIDE_<KEY>` | _(trống)_ | Override bất kỳ MAVIS key nào theo vùng (ví dụ `MAVIS_OVERRIDE_LDAP_HOSTS`). |
-| `SYNC_WATCHER_INTERVAL` | `10` | Giây giữa các lần kiểm tra thay đổi cấu hình (auto-sync watcher, chỉ Zone B). |
+| `SYNC_WATCHER_INTERVAL` | `10` | Giây giữa các lần kiểm tra thay đổi cấu hình (auto-sync watcher, chỉ standby). |
 
 ---
 
@@ -494,19 +571,44 @@ Kết quả:
 ```json
 {
   "node_role": "primary",
+  "node_name": "DC1-Primary",
   "sync_mode": "manual",
   "scheduler_enabled": true,
+  "stats_interval_minutes": 30,
+  "peers": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "DC2-Standby",
+      "url": "https://api-b.yourdomain.com",
+      "enabled": true,
+      "available": true,
+      "last_push_at": "2026-06-25T08:12:34.567890+00:00"
+    }
+  ],
   "peer_backend_url": "https://api-b.yourdomain.com",
   "peer_available": true,
   "last_sync_at": "2026-06-25T08:12:34.567890+00:00"
 }
 ```
 
-**Đẩy cấu hình thủ công đến standby (manual sync mode):**
+> `peer_backend_url` và `peer_available` giữ lại để tương thích ngược. Dùng mảng `peers` cho triển khai đa node.
+
+**Đẩy cấu hình thủ công đến tất cả standby (manual sync mode):**
 
 ```bash
 curl -X POST -H "Authorization: Bearer <token>" \
   https://api-a.yourdomain.com/api/v1/sync/push-config
+```
+
+Kết quả hiển thị từng peer:
+
+```json
+{
+  "results": [
+    {"peer": "DC2-Standby", "url": "https://api-b.yourdomain.com", "status": "ok"},
+    {"peer": "DC3-Standby", "url": "https://api-c.yourdomain.com", "status": "error"}
+  ]
+}
 ```
 
 ---

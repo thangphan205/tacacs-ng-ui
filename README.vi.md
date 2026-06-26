@@ -246,47 +246,33 @@ URL phát triển cục bộ:
 
 ## Triển Khai Trên Remote Server
 
-Ví dụ, triển khai tacacs-ng-ui trên server: 192.168.8.8
+Ví dụ, triển khai tacacs-ng-ui trên server `192.168.8.8`. Chỉ cần chỉnh sửa `.env` — không cần thay đổi bất kỳ file compose nào.
 
 ```bash
 git clone https://github.com/thangphan205/tacacs-ng-ui
 cd tacacs-ng-ui
-cp .env.example .env   # chỉnh sửa .env với IP, secrets và mật khẩu của bạn
+cp .env.example .env
 ```
 
-Thay đổi IP API Server:
-```vi docker-compose.override.yml```
+Chỉnh sửa `.env` — thay 4 giá trị sau:
 
 ```bash
-  frontend:
-    restart: "no"
-    ports:
-      - "5173:80"
-    build:
-      context: ./frontend
-      args:
-        - VITE_API_URL=http://192.168.8.8:8000
-        - NODE_ENV=development
+DOMAIN=192.168.8.8
+FRONTEND_HOST=http://192.168.8.8:5173
+VITE_API_URL=http://192.168.8.8:8000
+SECRET_KEY=<chạy: openssl rand -hex 32>
 ```
 
-Thêm server vào BACKEND_CORS_ORIGINS:
-
-```vi .env```
-
-```BACKEND_CORS_ORIGINS="http://192.168.8.8:5173,..."```
-
-Khởi động server:
-
-```docker compose up -d```
-
-Truy cập: <http://192.168.8.8:5173> với thông tin đăng nhập trong `.env`.
-
-Lưu ý: chạy `docker compose build` khi thay đổi cấu hình/code.
+Build và khởi động:
 
 ```bash
 docker compose build
 docker compose up -d
 ```
+
+Truy cập: <http://192.168.8.8:5173> với thông tin đăng nhập trong `.env`.
+
+> **Lưu ý:** `FRONTEND_HOST` được tự động thêm vào danh sách CORS — không cần chỉnh sửa `BACKEND_CORS_ORIGINS` riêng.
 
 ## Triển Khai Với Tên Miền
 
@@ -294,19 +280,20 @@ Xem [deployment.vi.md](docs/vi/deployment.md).
 
 ## Triển Khai High Availability (HA)
 
-tacacs-ng-ui hỗ trợ hai mô hình triển khai HA để chạy hai TACACS+ server ở các vùng khác nhau:
+tacacs-ng-ui hỗ trợ ba mô hình triển khai HA:
 
 | Mô hình | Mô tả |
 |---------|-------|
-| **Độc lập** | Hai stack hoàn toàn tách biệt — không đồng bộ, mỗi vùng quản lý độc lập |
-| **Primary–Standby** | Zone B sao chép từ Zone A qua PostgreSQL streaming replication; cấu hình đồng bộ tự động hoặc theo yêu cầu |
+| **A — Độc lập** | Hai stack hoàn toàn tách biệt — không đồng bộ, mỗi vùng quản lý độc lập |
+| **B — Primary–Standby** | Zone B sao chép từ Zone A qua PostgreSQL streaming replication; cấu hình đồng bộ tự động hoặc theo yêu cầu |
+| **C — Đa Node** | Một primary + N standby; đồng bộ cấu hình fan-out đến tất cả peer; quản lý peer qua UI không cần restart |
 
 <p align="center">
   <img src="img/high-availability-model-a.svg" alt="Mô hình A — Độc lập" width="49%" />
   <img src="img/high-availability-model-b.svg" alt="Mô hình B — Primary–Standby" width="49%" />
 </p>
 
-Cả hai mô hình đều hỗ trợ cấu hình LDAP riêng theo vùng qua biến `MAVIS_OVERRIDE_*`.
+Tất cả mô hình đều hỗ trợ cấu hình LDAP riêng theo vùng qua biến `MAVIS_OVERRIDE_*`.
 
 **Hướng dẫn đầy đủ:** [docs/vi/high-availability.md](docs/vi/high-availability.md)
 
