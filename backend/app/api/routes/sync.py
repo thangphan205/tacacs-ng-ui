@@ -37,6 +37,8 @@ _peers_cache: dict[str, dict] = {}  # url -> {"available": bool|None, "ts": floa
 def _get_or_create_ha_state(session: SessionDep) -> HaState:
     state = session.get(HaState, 1)
     if state is None:
+        if settings.NODE_ROLE == "standby":
+            return HaState(id=1)
         state = HaState(id=1)
         session.add(state)
         session.commit()
