@@ -456,7 +456,22 @@ aaa group server tacacs+ TACACS_HA
 
 ## Upgrading to a New Version
 
-> **How it works:** DB schema migrations run on Zone A only. PostgreSQL replication delivers the schema change to Zone B automatically before Zone B restarts — no migration runs on the standby.
+> **How migrations work:** The `prestart` container runs `alembic upgrade head` on Zone A automatically. PostgreSQL streaming replication delivers the schema change to Zone B before Zone B restarts — no migration runs on the standby. Do **not** run migrations manually.
+
+### Pre-upgrade checklist
+
+1. Read [release-notes.md](release-notes.md) — check for breaking changes, new required env vars, or explicit manual steps
+2. Back up Zone A's database before starting:
+   ```bash
+   export $(grep -v '^#' .env | xargs)
+   docker compose exec db pg_dump -U $POSTGRES_USER $POSTGRES_DB \
+     > backup_$(date +%Y%m%d_%H%M).sql
+   ```
+3. Confirm replication lag is near-zero before upgrading:
+   ```bash
+   # On Zone A
+   docker compose exec db psql -U $POSTGRES_USER -c "SELECT * FROM pg_stat_replication;"
+   ```
 
 ### Rolling upgrade (zero TACACS downtime)
 
@@ -465,34 +480,67 @@ aaa group server tacacs+ TACACS_HA
 git pull origin main
 
 # ── Zone A first ───────────────────────────────────────────────
-# Devices fail over to Zone B during Zone A restart (~5 s)
-docker compose up -d --build backend
+# Devices fail over to Zone B during Zone A restart (~5–10 s)
+docker compose build backend frontend
+docker compose up -d
 
 # Wait until Zone A is healthy and migration has replicated to Zone B
 docker compose logs -f backend | grep "Application startup complete"
 
+# Verify replication delivered schema to Zone B before restarting it
+# On Zone B:
+export $(grep -v '^#' .env | xargs)
+docker compose exec db psql -U $POSTGRES_USER -c \
+  "SELECT now() - pg_last_xact_replay_timestamp() AS lag;"
+
 # ── Zone B second ──────────────────────────────────────────────
-# Devices fail over to Zone A during Zone B restart (~5 s)
-docker compose up -d --build backend
+# Devices fail over to Zone A during Zone B restart (~5–10 s)
+docker compose build backend frontend
+docker compose up -d
 ```
 
-That's it. TACACS authentication is never interrupted — devices use the other zone while each backend restarts.
-
-### If a migration adds a new NOT NULL column
-
-Alembic migrations in this project always include `server_default` on NOT NULL columns so they apply online without locking. No extra steps needed.
+TACACS authentication is never interrupted — devices use the other zone while each backend restarts.
 
 ### Verify after upgrade
 
 ```bash
-# Zone A — confirm new version running
-docker compose exec backend python -c "import app; print('ok')"
+# Both zones — confirm backend started cleanly
+docker compose logs --tail=20 backend
 
-# Zone B — confirm replication lag is low
+# Zone A — confirm migration applied
 export $(grep -v '^#' .env | xargs)
+docker compose exec db psql -U $POSTGRES_USER $POSTGRES_DB -c \
+  "SELECT version_num FROM alembic_version;"
+
+# Zone A — confirm API is healthy
+curl -s http://localhost:8000/api/v1/utils/health-check/ | grep '"status"'
+
+# Zone B — confirm replication lag is low after upgrade
 docker compose exec db psql -U $POSTGRES_USER -c \
   "SELECT now() - pg_last_xact_replay_timestamp() AS replication_lag;"
 ```
+
+### Rollback
+
+If the new version has a critical issue:
+
+1. Restore Zone A's DB backup (this also rolls back the schema):
+   ```bash
+   # On Zone A — this replaces all data; ensure backup is current
+   cat backup_<YYYYMMDD_HHMM>.sql | \
+     docker compose exec -T db psql -U $POSTGRES_USER $POSTGRES_DB
+   ```
+2. Check out the previous version on both zones:
+   ```bash
+   git checkout <previous-tag-or-commit>
+   ```
+3. Rebuild and restart Zone A first, then Zone B (same order as upgrade):
+   ```bash
+   docker compose build backend frontend
+   docker compose up -d
+   ```
+
+> Zone B will re-replicate the rolled-back schema automatically after Zone A restarts.
 
 ---
 

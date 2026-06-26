@@ -263,21 +263,86 @@ For **High Availability** variables (`NODE_ROLE`, `SCHEDULER_ENABLED`, `SYNC_MOD
 
 ---
 
-## Updating
+## Upgrading to a New Version
+
+> **How migrations work:** The `prestart` container runs `alembic upgrade head` automatically before the backend starts. Do **not** run migrations manually — let Docker Compose handle the sequence.
+
+### Step 1 — Backup (always do this first)
 
 ```bash
-# Pull latest code
-git pull
+export $(grep -v '^#' .env | xargs)
 
-# Rebuild images
-docker compose -f docker-compose.yml build
+# Database
+docker compose exec db pg_dump -U $POSTGRES_USER $POSTGRES_DB > backup_$(date +%Y%m%d_%H%M).sql
 
-# Apply migrations (if any)
-docker compose -f docker-compose.yml exec backend alembic upgrade head
+# TACACS+ config files
+tar -czf tacacs_config_backup_$(date +%Y%m%d_%H%M).tar.gz backend/tacacs_config/
+```
 
-# Restart with new images
+### Step 2 — Check release notes
+
+Read [release-notes.md](release-notes.md) for the target version. Look for:
+- **Breaking changes** — env vars renamed or removed
+- **New required env vars** — add them to `.env` before restarting
+- **Manual migration notes** — rare, but called out explicitly when needed
+
+### Step 3 — Pull and rebuild
+
+```bash
+git pull origin main
+
+docker compose -f docker-compose.yml build backend frontend
+```
+
+### Step 4 — Restart
+
+```bash
 docker compose -f docker-compose.yml up -d
 ```
+
+Docker Compose restarts services in dependency order:
+1. `db` — PostgreSQL (no change)
+2. `prestart` — runs `alembic upgrade head` automatically
+3. `backend` — starts only after `prestart` exits successfully
+4. `frontend` — serves new static assets
+
+TACACS+ authentication is interrupted for ~5–10 seconds during backend restart.
+
+### Step 5 — Verify
+
+```bash
+# Confirm backend started cleanly
+docker compose logs --tail=20 backend
+
+# Confirm DB migration applied
+export $(grep -v '^#' .env | xargs)
+docker compose exec db psql -U $POSTGRES_USER -c \
+  "SELECT version_num, is_current FROM alembic_version_view;" 2>/dev/null \
+  || docker compose exec db psql -U $POSTGRES_USER $POSTGRES_DB -c \
+       "SELECT version_num FROM alembic_version;"
+
+# Confirm API is healthy
+curl -s http://localhost:8000/api/v1/utils/health-check/ | grep '"status"'
+```
+
+### Rollback
+
+If the new version has a critical issue:
+
+```bash
+# 1. Restore DB backup (replaces all data — ensure backup is current)
+cat backup_<YYYYMMDD_HHMM>.sql | \
+  docker compose exec -T db psql -U $POSTGRES_USER $POSTGRES_DB
+
+# 2. Check out previous version
+git checkout <previous-tag-or-commit>
+
+# 3. Rebuild and restart
+docker compose -f docker-compose.yml build backend frontend
+docker compose -f docker-compose.yml up -d
+```
+
+> **For HA deployments:** See [high-availability.md — Upgrading](high-availability.md#upgrading-to-a-new-version) for the zero-downtime rolling upgrade procedure.
 
 ---
 

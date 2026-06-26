@@ -446,7 +446,22 @@ aaa group server tacacs+ TACACS_HA
 
 ## Nâng Cấp Lên Phiên Bản Mới
 
-> **Cơ chế:** Migration DB chạy trên Zone A. PostgreSQL replication tự động đồng bộ schema sang Zone B trước khi Zone B restart — standby không chạy migration.
+> **Cơ chế migration:** Container `prestart` tự động chạy `alembic upgrade head` trên Zone A. PostgreSQL streaming replication đồng bộ schema sang Zone B trước khi Zone B restart — standby không chạy migration. **Không** chạy migration thủ công.
+
+### Checklist trước khi nâng cấp
+
+1. Đọc [release-notes.md](release-notes.md) — kiểm tra breaking changes, biến env mới bắt buộc, hoặc bước thủ công được ghi rõ
+2. Backup DB Zone A trước khi bắt đầu:
+   ```bash
+   export $(grep -v '^#' .env | xargs)
+   docker compose exec db pg_dump -U $POSTGRES_USER $POSTGRES_DB \
+     > backup_$(date +%Y%m%d_%H%M).sql
+   ```
+3. Xác nhận replication lag gần bằng 0 trước khi nâng cấp:
+   ```bash
+   # Trên Zone A
+   docker compose exec db psql -U $POSTGRES_USER -c "SELECT * FROM pg_stat_replication;"
+   ```
 
 ### Rolling upgrade (không gián đoạn TACACS)
 
@@ -455,34 +470,67 @@ aaa group server tacacs+ TACACS_HA
 git pull origin main
 
 # ── Zone A trước ───────────────────────────────────────────────
-# Thiết bị tự failover sang Zone B trong lúc Zone A restart (~5 giây)
-docker compose up -d --build backend
+# Thiết bị tự failover sang Zone B trong lúc Zone A restart (~5–10 giây)
+docker compose build backend frontend
+docker compose up -d
 
 # Chờ Zone A healthy và migration đã replicate sang Zone B
 docker compose logs -f backend | grep "Application startup complete"
 
+# Xác nhận replication đã đồng bộ schema sang Zone B trước khi restart Zone B
+# Trên Zone B:
+export $(grep -v '^#' .env | xargs)
+docker compose exec db psql -U $POSTGRES_USER -c \
+  "SELECT now() - pg_last_xact_replay_timestamp() AS lag;"
+
 # ── Zone B sau ─────────────────────────────────────────────────
-# Thiết bị tự failover về Zone A trong lúc Zone B restart (~5 giây)
-docker compose up -d --build backend
+# Thiết bị tự failover về Zone A trong lúc Zone B restart (~5–10 giây)
+docker compose build backend frontend
+docker compose up -d
 ```
 
 Xác thực TACACS không bị gián đoạn — thiết bị luôn dùng zone còn lại trong lúc mỗi backend restart.
 
-### Nếu migration thêm cột NOT NULL mới
-
-Các migration trong project này luôn có `server_default` trên cột NOT NULL nên áp dụng online không cần lock. Không cần bước thêm.
-
 ### Kiểm tra sau nâng cấp
 
 ```bash
-# Zone A — xác nhận version mới đang chạy
-docker compose exec backend python -c "import app; print('ok')"
+# Cả hai zone — xác nhận backend khởi động sạch
+docker compose logs --tail=20 backend
 
-# Zone B — xác nhận replication lag thấp
+# Zone A — xác nhận migration đã áp dụng
 export $(grep -v '^#' .env | xargs)
+docker compose exec db psql -U $POSTGRES_USER $POSTGRES_DB -c \
+  "SELECT version_num FROM alembic_version;"
+
+# Zone A — xác nhận API healthy
+curl -s http://localhost:8000/api/v1/utils/health-check/ | grep '"status"'
+
+# Zone B — xác nhận replication lag thấp sau nâng cấp
 docker compose exec db psql -U $POSTGRES_USER -c \
   "SELECT now() - pg_last_xact_replay_timestamp() AS replication_lag;"
 ```
+
+### Rollback
+
+Nếu phiên bản mới có lỗi nghiêm trọng:
+
+1. Khôi phục DB backup Zone A (cũng rollback schema):
+   ```bash
+   # Trên Zone A — thay toàn bộ dữ liệu; đảm bảo backup còn mới
+   cat backup_<YYYYMMDD_HHMM>.sql | \
+     docker compose exec -T db psql -U $POSTGRES_USER $POSTGRES_DB
+   ```
+2. Checkout phiên bản cũ trên cả hai zone:
+   ```bash
+   git checkout <tag-hoặc-commit-cũ>
+   ```
+3. Rebuild và restart Zone A trước, rồi Zone B (cùng thứ tự như nâng cấp):
+   ```bash
+   docker compose build backend frontend
+   docker compose up -d
+   ```
+
+> Zone B sẽ tự replicate lại schema đã rollback sau khi Zone A restart.
 
 ---
 

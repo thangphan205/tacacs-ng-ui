@@ -263,21 +263,84 @@ Các biến **High Availability** (`NODE_ROLE`, `SCHEDULER_ENABLED`, `SYNC_MODE`
 
 ---
 
-## Cập Nhật
+## Nâng Cấp Lên Phiên Bản Mới
+
+> **Cơ chế migration:** Container `prestart` tự động chạy `alembic upgrade head` trước khi backend khởi động. **Không** chạy migration thủ công — để Docker Compose xử lý thứ tự.
+
+### Bước 1 — Backup (luôn làm trước)
 
 ```bash
-# Pull code mới nhất
-git pull
+export $(grep -v '^#' .env | xargs)
 
-# Rebuild images
-docker compose -f docker-compose.yml build
+# Database
+docker compose exec db pg_dump -U $POSTGRES_USER $POSTGRES_DB > backup_$(date +%Y%m%d_%H%M).sql
 
-# Áp dụng migrations (nếu có)
-docker compose -f docker-compose.yml exec backend alembic upgrade head
+# File cấu hình TACACS+
+tar -czf tacacs_config_backup_$(date +%Y%m%d_%H%M).tar.gz backend/tacacs_config/
+```
 
-# Restart với images mới
+### Bước 2 — Kiểm tra release notes
+
+Đọc [release-notes.md](release-notes.md) cho phiên bản mục tiêu. Chú ý:
+- **Breaking changes** — biến env đổi tên hoặc bị xóa
+- **Biến env mới bắt buộc** — thêm vào `.env` trước khi restart
+- **Bước migration thủ công** — hiếm gặp, được ghi rõ khi cần
+
+### Bước 3 — Pull và rebuild
+
+```bash
+git pull origin main
+
+docker compose -f docker-compose.yml build backend frontend
+```
+
+### Bước 4 — Restart
+
+```bash
 docker compose -f docker-compose.yml up -d
 ```
+
+Docker Compose restart theo thứ tự phụ thuộc:
+1. `db` — PostgreSQL (không thay đổi)
+2. `prestart` — tự động chạy `alembic upgrade head`
+3. `backend` — chỉ khởi động sau khi `prestart` thành công
+4. `frontend` — phục vụ static assets mới
+
+TACACS+ bị gián đoạn ~5–10 giây trong lúc backend restart.
+
+### Bước 5 — Kiểm tra
+
+```bash
+# Xác nhận backend khởi động sạch
+docker compose logs --tail=20 backend
+
+# Xác nhận migration đã áp dụng
+export $(grep -v '^#' .env | xargs)
+docker compose exec db psql -U $POSTGRES_USER $POSTGRES_DB -c \
+  "SELECT version_num FROM alembic_version;"
+
+# Xác nhận API healthy
+curl -s http://localhost:8000/api/v1/utils/health-check/ | grep '"status"'
+```
+
+### Rollback
+
+Nếu phiên bản mới có lỗi nghiêm trọng:
+
+```bash
+# 1. Khôi phục DB backup (thay toàn bộ dữ liệu — đảm bảo backup còn mới)
+cat backup_<YYYYMMDD_HHMM>.sql | \
+  docker compose exec -T db psql -U $POSTGRES_USER $POSTGRES_DB
+
+# 2. Checkout phiên bản cũ
+git checkout <tag-hoặc-commit-cũ>
+
+# 3. Rebuild và restart
+docker compose -f docker-compose.yml build backend frontend
+docker compose -f docker-compose.yml up -d
+```
+
+> **Triển khai HA:** Xem [high-availability.md — Nâng Cấp](high-availability.md#nâng-cấp-lên-phiên-bản-mới) để biết quy trình rolling upgrade không gián đoạn.
 
 ---
 
