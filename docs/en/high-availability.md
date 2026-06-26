@@ -86,15 +86,25 @@ INTERNAL_SYNC_TOKEN=<generate-with: openssl rand -hex 32>
 
 > **`PEER_BACKEND_URL` must include the scheme.** Use `http://172.25.x.x:8000` for direct IP access or `https://api-b.yourdomain.com` for domain-based setups. Omitting the scheme (e.g. `172.25.x.x:8000`) causes httpx to fail silently and peer health checks to always return unreachable.
 
-Deploy normally:
+Run the one-click setup script (handles stack startup + replication config):
+
+```bash
+bash setup-ha.sh
+```
+
+The script:
+1. Starts `docker compose up -d`
+2. Waits for PostgreSQL to be ready
+3. Creates the `replicator` role (idempotent — skips if already exists)
+4. Resolves Zone B IP from `PEER_BACKEND_URL` and adds it to `pg_hba.conf`
+5. Reloads PostgreSQL config (no restart needed)
+
+<details>
+<summary>Manual alternative (if you prefer step-by-step)</summary>
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
-```
 
-Enable PostgreSQL replication (run once after Zone A is healthy):
-
-```bash
 # Create replication role (load .env variables first to resolve $POSTGRES_USER)
 export $(grep -v '^#' .env | xargs)
 docker compose exec db psql -U $POSTGRES_USER -c \
@@ -110,6 +120,8 @@ docker compose exec db bash -c \
 # Reload PostgreSQL config (no restart needed)
 docker compose kill -s HUP db
 ```
+
+</details>
 
 ---
 
@@ -138,10 +150,10 @@ REPLICATION_PASSWORD=your-replication-password
 MAVIS_OVERRIDE_LDAP_HOSTS=ldaps://ldap-zone-b.yourdomain.com:636
 ```
 
-Run the standby bootstrap script (does pg_basebackup + starts all services):
+Run the one-click setup script (does pg_basebackup + starts all services):
 
 ```bash
-bash backend/scripts/setup-standby.sh
+bash setup-ha.sh
 ```
 
 The script:
@@ -441,6 +453,14 @@ For deployments with more than two zones (e.g. DC1 primary + DC2 + DC3 standbys)
 
 The architecture is identical to Model B, with one primary and N standbys. Config sync fans out to all enabled peer nodes automatically.
 
+### Step 1 — Deploy the Primary Node
+
+Follow [Model B Step 1](#step-1--deploy-zone-a-primary) exactly — configure `.env` with `NODE_ROLE=primary` and run `bash setup-ha.sh` on the primary server. No additional steps needed for multi-node; peer standbys are added via the UI after they come up.
+
+### Step 2 — Deploy Each Standby Node
+
+For each standby, follow [Model B Step 2](#step-2--deploy-zone-b-standby) — configure `.env` with `NODE_ROLE=standby`, unique `NODE_NAME`, and `PRIMARY_DB_HOST` pointing to the primary, then run `bash setup-ha.sh`.
+
 ### Adding a Third (or More) Standby
 
 1. Set up PostgreSQL streaming replication from primary DB to new standby DB (same as Zone B setup above)
@@ -537,7 +557,7 @@ Re-join as a new standby:
 #   NODE_ROLE=standby
 #   PRIMARY_DB_HOST=<NEW_PRIMARY_IP>
 
-bash backend/scripts/setup-standby.sh
+bash setup-ha.sh
 ```
 
 Then add it back as a peer via the new primary's HA UI.

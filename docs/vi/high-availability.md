@@ -86,15 +86,25 @@ INTERNAL_SYNC_TOKEN=<tạo bằng: openssl rand -hex 32>
 
 > **`PEER_BACKEND_URL` bắt buộc phải có scheme.** Dùng `http://172.25.x.x:8000` cho kết nối IP trực tiếp hoặc `https://api-b.yourdomain.com` cho domain. Bỏ scheme (ví dụ `172.25.x.x:8000`) khiến httpx fail và peer health check luôn báo unreachable.
 
-Triển khai bình thường:
+Chạy script setup một lệnh (tự động khởi động stack + cấu hình replication):
+
+```bash
+bash setup-ha.sh
+```
+
+Script thực hiện:
+1. Khởi động `docker compose up -d`
+2. Chờ PostgreSQL sẵn sàng
+3. Tạo role `replicator` (idempotent — bỏ qua nếu đã tồn tại)
+4. Tự resolve IP Zone B từ `PEER_BACKEND_URL` và thêm vào `pg_hba.conf`
+5. Reload cấu hình PostgreSQL (không cần restart)
+
+<details>
+<summary>Thay thế thủ công (nếu muốn thực hiện từng bước)</summary>
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
-```
 
-Bật PostgreSQL replication (chạy một lần sau khi Zone A hoạt động ổn định):
-
-```bash
 # Tạo replication role (load các biến môi trường từ .env trước để resolve $POSTGRES_USER)
 export $(grep -v '^#' .env | xargs)
 docker compose exec db psql -U $POSTGRES_USER -c \
@@ -110,6 +120,8 @@ docker compose exec db bash -c \
 # Reload cấu hình PostgreSQL (không cần restart)
 docker compose kill -s HUP db
 ```
+
+</details>
 
 ---
 
@@ -138,10 +150,10 @@ REPLICATION_PASSWORD=your-replication-password
 MAVIS_OVERRIDE_LDAP_HOSTS=ldaps://ldap-zone-b.yourdomain.com:636
 ```
 
-Chạy script bootstrap standby (thực hiện pg_basebackup + khởi động tất cả service):
+Chạy script setup một lệnh (thực hiện pg_basebackup + khởi động tất cả service):
 
 ```bash
-bash backend/scripts/setup-standby.sh
+bash setup-ha.sh
 ```
 
 Script thực hiện:
@@ -431,6 +443,14 @@ Dành cho triển khai hơn hai vùng (ví dụ DC1 primary + DC2 + DC3 standby)
 
 Kiến trúc giống Mô hình B, một primary và N standby. Đồng bộ cấu hình tự động fan-out đến tất cả peer node đang bật.
 
+### Bước 1 — Triển Khai Node Primary
+
+Làm theo [Mô hình B Bước 1](#bước-1--triển-khai-zone-a-primary) — cấu hình `.env` với `NODE_ROLE=primary` và chạy `bash setup-ha.sh` trên server primary. Không cần bước thêm cho multi-node; các standby peer được thêm qua UI sau khi chúng khởi động.
+
+### Bước 2 — Triển Khai Từng Node Standby
+
+Với mỗi standby, làm theo [Mô hình B Bước 2](#bước-2--triển-khai-zone-b-standby) — cấu hình `.env` với `NODE_ROLE=standby`, `NODE_NAME` duy nhất, và `PRIMARY_DB_HOST` trỏ về primary, rồi chạy `bash setup-ha.sh`.
+
 ### Thêm Standby Thứ Ba (hoặc Nhiều Hơn)
 
 1. Thiết lập PostgreSQL streaming replication từ DB primary đến DB standby mới (giống thiết lập Zone B)
@@ -527,7 +547,7 @@ Gia nhập lại Zone A như standby mới:
 #   NODE_ROLE=standby
 #   PRIMARY_DB_HOST=<ZONE_B_IP>
 
-bash backend/scripts/setup-standby.sh
+bash setup-ha.sh
 ```
 
 Sau đó thêm lại Zone A như peer qua UI HA của primary mới.
