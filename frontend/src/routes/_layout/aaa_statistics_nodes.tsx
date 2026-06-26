@@ -59,6 +59,7 @@ function NodeCard({ nodeName, startDate, endDate }: NodeCardProps) {
         rangeDate: `${startDate},${endDate}`,
         nodeName,
       }),
+    refetchInterval: 5 * 60 * 1000, // refresh every 5 minutes
   })
 
   const trendData =

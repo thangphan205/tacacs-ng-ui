@@ -233,6 +233,7 @@ Authentication uses the shared `INTERNAL_SYNC_TOKEN` header (`X-Internal-Token`)
 NODE_NAME=dc1-primary          # identifies this node in stats
 PEER_NODES=http://dc2-standby:8000,http://dc3-standby:8000   # comma-separated
 INTERNAL_SYNC_TOKEN=<same-secret-as-standbys>
+STATS_INTERVAL_MINUTES=30      # collect today's stats every 30 minutes (0 = disable)
 ```
 
 **Each Standby `.env`:**
@@ -242,6 +243,21 @@ NODE_NAME=dc2-standby          # must be unique per node
 INTERNAL_SYNC_TOKEN=<same-secret-as-primary>
 # PEER_NODES not required on standbys (only primary orchestrates)
 ```
+
+### Near Real-Time Stats Collection
+
+The primary backend runs a background loop that collects today's statistics on a configurable interval. This keeps the range and node comparison pages fresh without waiting for the 1 AM nightly cron.
+
+| Setting | Default | Effect |
+|---------|---------|--------|
+| `STATS_INTERVAL_MINUTES=30` | 30 | Collect today's stats every 30 minutes |
+| `STATS_INTERVAL_MINUTES=5` | — | Near real-time (higher CPU/DB load) |
+| `STATS_INTERVAL_MINUTES=1` | — | Real-time (only if log files are small) |
+| `STATS_INTERVAL_MINUTES=0` | — | Disable background loop (nightly cron only) |
+
+The loop also calls all peers in `PEER_NODES` on the same interval, so standby stats stay current.
+
+**Dashboard auto-refresh:** All three stats pages (Today, Range, Node Comparison) automatically re-fetch data from the backend every 5 minutes while the browser tab is open.
 
 ### Dashboard Features
 
@@ -466,6 +482,7 @@ All HA variables are optional. Defaults run as a standard single-node deployment
 | `PEER_BACKEND_URL` | _(empty)_ | Internal API URL of the other zone for config sync (e.g. `https://api-b.yourdomain.com`). |
 | `PEER_NODES` | _(empty)_ | Comma-separated internal API URLs of all peer nodes for AAA statistics collection (e.g. `http://dc2:8000,http://dc3:8000`). Set on primary only. |
 | `INTERNAL_SYNC_TOKEN` | _(empty)_ | Shared secret for inter-node calls (config reload + stats collection). Must match on all nodes. Generate with `openssl rand -hex 32`. |
+| `STATS_INTERVAL_MINUTES` | `30` | How often (minutes) the primary collects today's AAA stats into the DB. Set `0` to disable and rely on nightly cron only. |
 | `PRIMARY_DB_HOST` | _(empty)_ | Zone A's DB host IP. Only needed on Zone B during `setup-standby.sh`. |
 | `REPLICATION_PASSWORD` | _(empty)_ | Password for the `replicator` PostgreSQL role. Only needed on Zone B. |
 | `MAVIS_OVERRIDE_<KEY>` | _(empty)_ | Override any MAVIS key per zone (e.g. `MAVIS_OVERRIDE_LDAP_HOSTS`). |

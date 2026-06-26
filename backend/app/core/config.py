@@ -203,6 +203,7 @@ class Settings(BaseSettings):
     PEER_BACKEND_URL: str = ""
     PEER_NODES: str = ""  # comma-separated peer backend URLs for stats collection
     INTERNAL_SYNC_TOKEN: str = ""
+    STATS_INTERVAL_MINUTES: int = 30  # how often to collect today's AAA stats into DB (0 = disable)
 
     # WebAuthn / Passkeys
     @computed_field  # type: ignore[prop-decorator]

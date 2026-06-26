@@ -233,6 +233,7 @@ Xác thực dùng header `X-Internal-Token` với `INTERNAL_SYNC_TOKEN` dùng ch
 NODE_NAME=dc1-primary          # định danh node này trong thống kê
 PEER_NODES=http://dc2-standby:8000,http://dc3-standby:8000   # danh sách peer, phân cách bằng dấu phẩy
 INTERNAL_SYNC_TOKEN=<secret-dùng-chung-với-standby>
+STATS_INTERVAL_MINUTES=30      # thu thập thống kê hôm nay mỗi 30 phút (0 = tắt)
 ```
 
 **Mỗi Standby `.env`:**
@@ -242,6 +243,21 @@ NODE_NAME=dc2-standby          # phải duy nhất trên mỗi node
 INTERNAL_SYNC_TOKEN=<secret-dùng-chung-với-primary>
 # PEER_NODES không cần trên standby (chỉ primary điều phối thu thập)
 ```
+
+### Thu Thập Thống Kê Gần Thời Gian Thực
+
+Primary backend chạy vòng lặp nền thu thập thống kê hôm nay theo chu kỳ cấu hình được. Giúp các trang Range và Node Comparison luôn cập nhật mà không cần đợi đến cron 1 giờ sáng.
+
+| Cấu hình | Mặc định | Hiệu quả |
+|----------|----------|----------|
+| `STATS_INTERVAL_MINUTES=30` | 30 | Thu thập mỗi 30 phút |
+| `STATS_INTERVAL_MINUTES=5` | — | Gần thời gian thực (tải CPU/DB cao hơn) |
+| `STATS_INTERVAL_MINUTES=1` | — | Thời gian thực (chỉ nếu log file nhỏ) |
+| `STATS_INTERVAL_MINUTES=0` | — | Tắt vòng lặp nền (chỉ dùng cron hàng đêm) |
+
+Vòng lặp cũng gọi tất cả peer trong `PEER_NODES` cùng chu kỳ, giúp thống kê standby luôn cập nhật.
+
+**Tự động làm mới dashboard:** Tất cả ba trang thống kê (Today, Range, Node Comparison) tự động tải lại dữ liệu từ backend mỗi 5 phút khi tab trình duyệt đang mở.
 
 ### Tính Năng Dashboard
 
@@ -456,6 +472,7 @@ Tất cả biến HA đều tùy chọn. Mặc định chạy như triển khai 
 | `PEER_BACKEND_URL` | _(trống)_ | URL API nội bộ của vùng còn lại dùng cho đồng bộ cấu hình (ví dụ `https://api-b.yourdomain.com`). |
 | `PEER_NODES` | _(trống)_ | Danh sách URL API nội bộ của tất cả peer node để thu thập thống kê AAA, phân cách bằng dấu phẩy (ví dụ `http://dc2:8000,http://dc3:8000`). Chỉ cần đặt trên primary. |
 | `INTERNAL_SYNC_TOKEN` | _(trống)_ | Shared secret cho các lệnh gọi giữa node (reload cấu hình + thu thập thống kê). Phải khớp trên tất cả node. Tạo bằng `openssl rand -hex 32`. |
+| `STATS_INTERVAL_MINUTES` | `30` | Chu kỳ (phút) primary thu thập thống kê AAA hôm nay vào DB. Đặt `0` để tắt và chỉ dùng cron hàng đêm. |
 | `PRIMARY_DB_HOST` | _(trống)_ | IP DB host của Zone A. Chỉ cần trên Zone B khi chạy `setup-standby.sh`. |
 | `REPLICATION_PASSWORD` | _(trống)_ | Mật khẩu cho PostgreSQL role `replicator`. Chỉ cần trên Zone B. |
 | `MAVIS_OVERRIDE_<KEY>` | _(trống)_ | Override bất kỳ MAVIS key nào theo vùng (ví dụ `MAVIS_OVERRIDE_LDAP_HOSTS`). |

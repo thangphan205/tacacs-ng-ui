@@ -58,6 +58,7 @@ export function AaaStatistics() {
       AaaStatisticsService.readAaaStatistics({
         nodeName: selectedNode || undefined,
       }),
+    refetchInterval: 5 * 60 * 1000, // refresh every 5 minutes
   })
 
   const runMutation = useMutation({

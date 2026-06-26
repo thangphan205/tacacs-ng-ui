@@ -66,6 +66,7 @@ export function AaaStatisticsRange() {
         rangeDate: `${startDate},${endDate}`,
         nodeName: selectedNode || undefined,
       }),
+    refetchInterval: 5 * 60 * 1000, // refresh every 5 minutes
   })
 
   const handleStartDateChange = (

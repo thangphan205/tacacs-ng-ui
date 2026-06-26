@@ -1,6 +1,9 @@
 import asyncio
 import logging
+import subprocess
+import sys
 from contextlib import asynccontextmanager
+from datetime import date
 from typing import AsyncGenerator
 
 import sentry_sdk
@@ -56,6 +59,41 @@ async def _ml_scoring_loop() -> None:
         await asyncio.sleep(_ML_SCORING_INTERVAL_SECONDS)
 
 
+async def _stats_collection_loop() -> None:
+    interval = settings.STATS_INTERVAL_MINUTES * 60
+    await asyncio.sleep(30)  # brief startup delay
+    while True:
+        today_str = date.today().isoformat()
+        scripts = [
+            "/app/scripts/tacacs_logs_authentication.py",
+            "/app/scripts/tacacs_logs_authorization.py",
+            "/app/scripts/tacacs_logs_accounting.py",
+        ]
+        for script in scripts:
+            try:
+                proc = subprocess.run(
+                    [sys.executable, script, today_str],
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                if proc.returncode != 0:
+                    logger.warning("Stats script %s exited %s: %s", script, proc.returncode, proc.stderr[-500:])
+            except subprocess.TimeoutExpired:
+                logger.warning("Stats script %s timed out", script)
+            except Exception:
+                logger.exception("Stats script %s failed", script)
+
+        # collect from peer nodes
+        try:
+            from app.api.routes.aaa_statistics import _collect_from_peers
+            _collect_from_peers(today_str)
+        except Exception:
+            logger.exception("Peer stats collection failed")
+
+        await asyncio.sleep(interval)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     tasks = []
@@ -65,6 +103,8 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
             asyncio.create_task(_alert_evaluation_loop()),
             asyncio.create_task(_ml_scoring_loop()),
         ]
+        if settings.STATS_INTERVAL_MINUTES > 0:
+            tasks.append(asyncio.create_task(_stats_collection_loop()))
     yield
     for t in tasks:
         t.cancel()
