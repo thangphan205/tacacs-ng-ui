@@ -30,11 +30,11 @@ import {
   FiShieldOff,
 } from "react-icons/fi"
 import {
-  Area,
-  AreaChart,
   CartesianGrid,
   LabelList,
   Legend,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   Sector,
@@ -477,7 +477,7 @@ function TodayStatsTab() {
                 Last 7 Days AAA Statistics
               </Heading>
               <Chart.Root chart={chart_last_7_days} height="350px">
-                <AreaChart
+                <LineChart
                   width={800}
                   height={350}
                   data={last_7_days_data}
@@ -488,43 +488,49 @@ function TodayStatsTab() {
                   <Legend />
                   <XAxis dataKey="date" />
                   <YAxis />
-                  <Area
+                  <Line
                     dataKey="Auth Success"
                     type="monotone"
-                    fill="var(--chakra-colors-green-500)"
-                    stroke="var(--chakra-colors-green-600)"
+                    stroke="var(--chakra-colors-green-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                  <Area
+                  <Line
                     dataKey="Auth Fail"
                     type="monotone"
-                    fill="var(--chakra-colors-red-500)"
-                    stroke="var(--chakra-colors-red-600)"
+                    stroke="var(--chakra-colors-red-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                  <Area
+                  <Line
                     dataKey="Authz Permit"
                     type="monotone"
-                    fill="var(--chakra-colors-blue-500)"
-                    stroke="var(--chakra-colors-blue-600)"
+                    stroke="var(--chakra-colors-blue-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                  <Area
+                  <Line
                     dataKey="Authz Deny"
                     type="monotone"
-                    fill="var(--chakra-colors-orange-500)"
-                    stroke="var(--chakra-colors-orange-600)"
+                    stroke="var(--chakra-colors-orange-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                  <Area
+                  <Line
                     dataKey="Acct Start"
                     type="monotone"
-                    fill="var(--chakra-colors-purple-500)"
-                    stroke="var(--chakra-colors-purple-600)"
+                    stroke="var(--chakra-colors-purple-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                  <Area
+                  <Line
                     dataKey="Acct Stop"
                     type="monotone"
-                    fill="var(--chakra-colors-gray-500)"
-                    stroke="var(--chakra-colors-gray-600)"
+                    stroke="var(--chakra-colors-gray-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                </AreaChart>
+                </LineChart>
               </Chart.Root>
             </Box>
           </GridItem>
@@ -785,7 +791,7 @@ function RangeStatsTab() {
                 AAA Statistics From {startDate} to {endDate}
               </Heading>
               <Chart.Root chart={chart_last_range_days} height="350px">
-                <AreaChart
+                <LineChart
                   width={800}
                   height={350}
                   data={last_range_days_data}
@@ -796,43 +802,49 @@ function RangeStatsTab() {
                   <Legend />
                   <XAxis dataKey="date" />
                   <YAxis />
-                  <Area
+                  <Line
                     dataKey="Auth Success"
                     type="monotone"
-                    fill="var(--chakra-colors-green-500)"
-                    stroke="var(--chakra-colors-green-600)"
+                    stroke="var(--chakra-colors-green-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                  <Area
+                  <Line
                     dataKey="Auth Fail"
                     type="monotone"
-                    fill="var(--chakra-colors-red-500)"
-                    stroke="var(--chakra-colors-red-600)"
+                    stroke="var(--chakra-colors-red-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                  <Area
+                  <Line
                     dataKey="Authz Permit"
                     type="monotone"
-                    fill="var(--chakra-colors-blue-500)"
-                    stroke="var(--chakra-colors-blue-600)"
+                    stroke="var(--chakra-colors-blue-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                  <Area
+                  <Line
                     dataKey="Authz Deny"
                     type="monotone"
-                    fill="var(--chakra-colors-orange-500)"
-                    stroke="var(--chakra-colors-orange-600)"
+                    stroke="var(--chakra-colors-orange-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                  <Area
+                  <Line
                     dataKey="Acct Start"
                     type="monotone"
-                    fill="var(--chakra-colors-purple-500)"
-                    stroke="var(--chakra-colors-purple-600)"
+                    stroke="var(--chakra-colors-purple-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                  <Area
+                  <Line
                     dataKey="Acct Stop"
                     type="monotone"
-                    fill="var(--chakra-colors-gray-500)"
-                    stroke="var(--chakra-colors-gray-600)"
+                    stroke="var(--chakra-colors-gray-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                </AreaChart>
+                </LineChart>
               </Chart.Root>
             </Box>
           </GridItem>
@@ -1076,7 +1088,7 @@ function NodeCard({
               </Flex>
             ) : (
               <Chart.Root chart={chart} height="180px">
-                <AreaChart
+                <LineChart
                   data={trendData}
                   margin={{ top: 4, right: 8, left: -25, bottom: 0 }}
                 >
@@ -1085,35 +1097,35 @@ function NodeCard({
                   <YAxis tick={{ fontSize: 9 }} />
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 9, marginTop: 8 }} />
-                  <Area
+                  <Line
                     dataKey="Auth Success"
                     type="monotone"
-                    fill="var(--chakra-colors-green-500)"
-                    stroke="var(--chakra-colors-green-600)"
-                    fillOpacity={0.15}
+                    stroke="var(--chakra-colors-green-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                  <Area
+                  <Line
                     dataKey="Auth Fail"
                     type="monotone"
-                    fill="var(--chakra-colors-red-500)"
-                    stroke="var(--chakra-colors-red-600)"
-                    fillOpacity={0.15}
+                    stroke="var(--chakra-colors-red-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                  <Area
+                  <Line
                     dataKey="Authz Permit"
                     type="monotone"
-                    fill="var(--chakra-colors-blue-500)"
-                    stroke="var(--chakra-colors-blue-600)"
-                    fillOpacity={0.15}
+                    stroke="var(--chakra-colors-blue-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                  <Area
+                  <Line
                     dataKey="Authz Deny"
                     type="monotone"
-                    fill="var(--chakra-colors-orange-500)"
-                    stroke="var(--chakra-colors-orange-600)"
-                    fillOpacity={0.15}
+                    stroke="var(--chakra-colors-orange-500)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
-                </AreaChart>
+                </LineChart>
               </Chart.Root>
             )}
           </Box>
