@@ -92,6 +92,7 @@ export type AaaStatisticsTodayPublic = {
 };
 
 export type AccountingStatisticPublic = {
+    node_name?: string;
     username: string;
     nas_ip: string;
     user_source_ip: string;
@@ -235,6 +236,7 @@ export type AuditLogsPublic = {
 };
 
 export type AuthenticationStatisticPublic = {
+    node_name?: string;
     username: string;
     nas_ip: string;
     user_source_ip: string;
@@ -251,6 +253,7 @@ export type AuthenticationStatisticsPublic = {
 };
 
 export type AuthorizationStatisticPublic = {
+    node_name?: string;
     username: string;
     nas_ip: string;
     user_source_ip: string;
@@ -982,15 +985,17 @@ export type WebAuthnCredentialsPublic = {
     count: number;
 };
 
+export type AaaStatisticsListAaaNodesResponse = (Array<(string)>);
+
 export type AaaStatisticsReadAaaStatisticsData = {
-    limit?: number;
-    skip?: number;
+    nodeName?: (string | null);
 };
 
 export type AaaStatisticsReadAaaStatisticsResponse = (AaaStatisticsTodayPublic);
 
 export type AaaStatisticsReadAaaStatisticsRangeData = {
     limit?: number;
+    nodeName?: (string | null);
     rangeDate?: (string | null);
     skip?: number;
 };
@@ -1007,6 +1012,7 @@ export type AccountingStatisticsReadAccountingStatisticsData = {
     dateFrom?: (string | null);
     dateTo?: (string | null);
     limit?: number;
+    nodeName?: (string | null);
     skip?: number;
     sortBy?: string;
     sortOrder?: string;
@@ -1110,6 +1116,7 @@ export type AuthenticationStatisticsReadAuthenticationStatisticsData = {
     dateFrom?: (string | null);
     dateTo?: (string | null);
     limit?: number;
+    nodeName?: (string | null);
     skip?: number;
     sortBy?: string;
     sortOrder?: string;
@@ -1121,6 +1128,7 @@ export type AuthorizationStatisticsReadAuthorizationStatisticsData = {
     dateFrom?: (string | null);
     dateTo?: (string | null);
     limit?: number;
+    nodeName?: (string | null);
     skip?: number;
     sortBy?: string;
     sortOrder?: string;
@@ -1587,6 +1595,30 @@ export type RulesetscriptsetsDeleteRulesetscriptsetData = {
 };
 
 export type RulesetscriptsetsDeleteRulesetscriptsetResponse = (Message);
+
+export type SyncGetHaInfoResponse = ({
+    [key: string]: unknown;
+});
+
+export type SyncPushConfigToStandbyResponse = ({
+    [key: string]: unknown;
+});
+
+export type SyncPromoteToPrimaryResponse = ({
+    [key: string]: unknown;
+});
+
+export type SyncInternalCollectStatsData = {
+    date?: string;
+};
+
+export type SyncInternalCollectStatsResponse = ({
+    [key: string]: unknown;
+});
+
+export type SyncInternalReloadConfigResponse = ({
+    [key: string]: unknown;
+});
 
 export type TacacsConfigsReadTacacsConfigsData = {
     limit?: number;

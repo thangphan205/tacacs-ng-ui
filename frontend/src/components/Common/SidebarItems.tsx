@@ -4,6 +4,7 @@ import {
   FiActivity,
   FiAlertCircle,
   FiBell,
+  FiBarChart2,
   FiCpu,
   FiDatabase,
   FiFileText,
@@ -73,6 +74,23 @@ const CONFIG_SECTIONS: NavSection[] = [
       { icon: FiAlertCircle, title: "Alert Events", path: "/alert_events" },
       { icon: FiCpu, title: "Anomaly Detection", path: "/anomaly_detection" },
       { icon: FiActivity, title: "Audit Logs", path: "/audit_logs" },
+      {
+        icon: FiBarChart2,
+        title: "AAA Statistics",
+        path: "/aaa_statistics",
+      },
+      {
+        icon: FiBarChart2,
+        title: "AAA Range Stats",
+        path: "/aaa_statistics_range",
+        indent: true,
+      },
+      {
+        icon: FiBarChart2,
+        title: "Node Comparison",
+        path: "/aaa_statistics_nodes",
+        indent: true,
+      },
       {
         icon: FiGitMerge,
         title: "High Availability",

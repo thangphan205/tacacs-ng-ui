@@ -819,6 +819,7 @@ class ConfigurationOptionsPublic(SQLModel):
 
 # -- Authentication Statistics Table ---
 class AuthenticationStatisticsBase(SQLModel):
+    node_name: str = Field(default="primary", index=True, max_length=255)
     username: str = Field(index=True, max_length=255)
     nas_ip: str = Field(index=True, max_length=1024)
     user_source_ip: str = Field(index=True, max_length=1024)
@@ -839,7 +840,7 @@ class AuthenticationStatisticsUpdate(AuthenticationStatisticsBase):
 class AuthenticationStatistics(
     AuthenticationStatisticsBase, TimestampModel, table=True
 ):
-    __table_args__ = (UniqueConstraint("username", "nas_ip", "user_source_ip", "log_date"),)
+    __table_args__ = (UniqueConstraint("username", "nas_ip", "user_source_ip", "log_date", "node_name", name="uq_authenticationstatistics_username_nas_ip_src_ip_log_date_nod"),)
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
 
@@ -856,6 +857,7 @@ class AuthenticationStatisticsPublic(SQLModel):
 
 # -- Authrorization Statistics Table ---
 class AuthorizationStatisticsBase(SQLModel):
+    node_name: str = Field(default="primary", index=True, max_length=255)
     username: str = Field(index=True, max_length=255)
     nas_ip: str = Field(index=True, max_length=1024)
     user_source_ip: str = Field(index=True, max_length=1024)
@@ -874,7 +876,7 @@ class AuthorizationStatisticsUpdate(AuthorizationStatisticsBase):
 
 # Database model, database table inferred from class name
 class AuthorizationStatistics(AuthorizationStatisticsBase, TimestampModel, table=True):
-    __table_args__ = (UniqueConstraint("username", "nas_ip", "user_source_ip", "log_date"),)
+    __table_args__ = (UniqueConstraint("username", "nas_ip", "user_source_ip", "log_date", "node_name", name="uq_authorizationstatistics_username_nas_ip_src_ip_log_date_node"),)
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
 
@@ -891,6 +893,7 @@ class AuthorizationStatisticsPublic(SQLModel):
 
 # --- Accounting Statistics Table ---
 class AccountingStatisticsBase(SQLModel):
+    node_name: str = Field(default="primary", index=True, max_length=255)
     username: str = Field(index=True, max_length=255)
     nas_ip: str = Field(index=True, max_length=1024)
     user_source_ip: str = Field(index=True, max_length=1024)
@@ -909,7 +912,7 @@ class AccountingStatisticsUpdate(AccountingStatisticsBase):
 
 # Database model, database table inferred from class name
 class AccountingStatistics(AccountingStatisticsBase, TimestampModel, table=True):
-    __table_args__ = (UniqueConstraint("username", "nas_ip", "user_source_ip", "log_date"),)
+    __table_args__ = (UniqueConstraint("username", "nas_ip", "user_source_ip", "log_date", "node_name", name="uq_accountingstatistics_username_nas_ip_src_ip_log_date_node"),)
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
 

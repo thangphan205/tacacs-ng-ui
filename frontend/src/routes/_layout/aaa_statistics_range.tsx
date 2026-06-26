@@ -7,6 +7,7 @@ import {
   GridItem,
   Heading,
   Input,
+  NativeSelect,
   Spinner,
   Text,
 } from "@chakra-ui/react"
@@ -47,16 +48,23 @@ export function AaaStatisticsRange() {
     getISODateString(sevenDaysAgo),
   )
   const [endDate, setEndDate] = useState<string>(getISODateString(yesterday))
+  const [selectedNode, setSelectedNode] = useState<string>("")
+
+  const { data: nodes } = useQuery({
+    queryKey: ["aaa_nodes"],
+    queryFn: () => AaaStatisticsService.listAaaNodes(),
+  })
 
   const {
     data: stats,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["aaa_statistics_range", startDate, endDate],
+    queryKey: ["aaa_statistics_range", startDate, endDate, selectedNode],
     queryFn: () =>
       AaaStatisticsService.readAaaStatisticsRange({
         rangeDate: `${startDate},${endDate}`,
+        nodeName: selectedNode || undefined,
       }),
   })
 
@@ -174,7 +182,22 @@ export function AaaStatisticsRange() {
               <Heading size="md">
                 TACACS+ Authencation Statistics From {startDate} to {endDate}
               </Heading>
-              <Flex gap={4}>
+              <Flex gap={4} align="center" wrap="wrap">
+                <Text>Node</Text>
+                <NativeSelect.Root size="sm" width="140px">
+                  <NativeSelect.Field
+                    value={selectedNode}
+                    onChange={(e) => setSelectedNode(e.target.value)}
+                  >
+                    <option value="">All Nodes</option>
+                    {(nodes ?? []).map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </NativeSelect.Field>
+                  <NativeSelect.Indicator />
+                </NativeSelect.Root>
                 <Text>From</Text>
                 <Input
                   placeholder="Start Date"

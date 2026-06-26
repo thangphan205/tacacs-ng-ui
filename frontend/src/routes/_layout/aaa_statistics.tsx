@@ -7,12 +7,14 @@ import {
   Grid,
   GridItem,
   Heading,
+  NativeSelect,
   Spinner,
   Stat,
   Text,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { useState } from "react"
 import {
   Area,
   AreaChart,
@@ -39,13 +41,23 @@ export const Route = createFileRoute("/_layout/aaa_statistics")({
 export function AaaStatistics() {
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
+  const [selectedNode, setSelectedNode] = useState<string>("")
+
+  const { data: nodes } = useQuery({
+    queryKey: ["aaa_nodes"],
+    queryFn: () => AaaStatisticsService.listAaaNodes(),
+  })
+
   const {
     data: stats,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["aaa_statistics"],
-    queryFn: () => AaaStatisticsService.readAaaStatistics(),
+    queryKey: ["aaa_statistics", selectedNode],
+    queryFn: () =>
+      AaaStatisticsService.readAaaStatistics({
+        nodeName: selectedNode || undefined,
+      }),
   })
 
   const runMutation = useMutation({
@@ -143,18 +155,34 @@ export function AaaStatistics() {
 
   return (
     <Container maxW="full" py={8}>
-      <Flex justify="space-between" align="center" mb={6}>
+      <Flex justify="space-between" align="center" mb={6} gap={4} wrap="wrap">
         <Heading size="md">
           TACACS+ Today Authentication Statistics:{" "}
           {new Date().toISOString().split("T")[0]}
         </Heading>
-        <Button
-          size="sm"
-          onClick={() => runMutation.mutate()}
-          loading={runMutation.isPending}
-        >
-          Run Statistics Now
-        </Button>
+        <Flex gap={3} align="center">
+          <NativeSelect.Root size="sm" width="160px">
+            <NativeSelect.Field
+              value={selectedNode}
+              onChange={(e) => setSelectedNode(e.target.value)}
+            >
+              <option value="">All Nodes</option>
+              {(nodes ?? []).map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </NativeSelect.Field>
+            <NativeSelect.Indicator />
+          </NativeSelect.Root>
+          <Button
+            size="sm"
+            onClick={() => runMutation.mutate()}
+            loading={runMutation.isPending}
+          >
+            Run Statistics Now
+          </Button>
+        </Flex>
       </Flex>
       {isLoading ? (
         <Flex justify="center" align="center" height="50vh">

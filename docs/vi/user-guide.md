@@ -445,9 +445,26 @@ Hiển thị tổng số ngày hôm nay:
 - Sự kiện accounting start/stop
 - Biểu đồ xu hướng 7 ngày
 
+Trong triển khai multi-node HA, dropdown **Node** xuất hiện ở góc trên bên phải. Chọn node cụ thể để xem thống kê riêng của node đó, hoặc để **All Nodes** để xem tổng hợp.
+
 ### Thống Kê Theo Khoảng Thời Gian
 
-**Đường dẫn:** Sidebar → AAA Statistics Range — chọn khoảng thời gian tùy chỉnh.
+**Đường dẫn:** Sidebar → AAA Range Stats — chọn khoảng thời gian tùy chỉnh. Trong triển khai multi-node, dropdown **Node** lọc biểu đồ theo từng node.
+
+### So Sánh Node (Node Comparison)
+
+**Đường dẫn:** Sidebar → Node Comparison
+
+So sánh song song tất cả TACACS-NG node theo khoảng thời gian đã chọn. Mỗi node hiện dưới dạng card riêng:
+- Tổng số xác thực thành công / thất bại
+- Tổng số authorization cho phép / từ chối
+- Tổng sự kiện accounting start / stop
+- Biểu đồ xu hướng theo thời gian
+- Top 3 người dùng theo thành công và thất bại
+
+Bộ chọn khoảng thời gian ở trên áp dụng cho tất cả card đồng thời.
+
+> **Yêu cầu cấu hình multi-node.** Trang này hiện "No node statistics found" trên triển khai single-node cho đến khi thống kê được thu thập. Gọi `POST /api/v1/aaa_statistics/run/` hoặc chờ cron job hàng đêm.
 
 ### Thống Kê Xác Thực / Authorization / Accounting
 

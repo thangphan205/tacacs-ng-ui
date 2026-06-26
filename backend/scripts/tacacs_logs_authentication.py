@@ -10,56 +10,31 @@ from app.core.config import settings
 from app.core.db import engine
 from app.crud.tacacs_siem import forward_tacacs_event_to_siem
 from app.models import AuthenticationStatistics
-from scripts._log_stats_base import AUTH_LOG_REGEX, get_target_date, to_log_datetime, build_log_file_path
+from scripts._log_stats_base import (
+    get_target_date,
+    to_log_datetime,
+    parse_authentication_logs,
+)
 
 
-def process_authentication_logs():
+def process_authentication_logs(node_name: str | None = None) -> None:
     """
     Parses authentication logs for a specific date, aggregates the data per
     user/IP, and stores the results in the AuthenticationStatistics table.
     """
+    if node_name is None:
+        node_name = settings.NODE_NAME
+
     summary_date = get_target_date()
     target_date_str = summary_date.strftime("%Y-%m-%d")
-    log_file_path = build_log_file_path(summary_date, "authentication", settings.TACACS_LOG_DIRECTORY)
 
-    if not os.path.exists(log_file_path):
-        print(f"Log file not found for date {target_date_str}: {log_file_path}")
-        return
+    print(f"Processing authentication log file for date {target_date_str} (node: {node_name})")
 
-    print(f"Processing log file for date {target_date_str}: {log_file_path}")
+    successful_logins, failed_logins = parse_authentication_logs(
+        summary_date, settings.TACACS_LOG_DIRECTORY
+    )
 
-    successful_logins = Counter()
-    failed_logins = Counter()
-
-    try:
-        with open(log_file_path, "r", errors="ignore") as f:
-            for line in f:
-                if not line.startswith(target_date_str):
-                    continue
-
-                match = AUTH_LOG_REGEX.search(line)
-                if not match:
-                    continue
-
-                log_data = match.groupdict()
-                message = log_data["message"]
-
-                if "login" in message:
-                    username = log_data["username"]
-                    nas_ip = log_data["nas_ip"]
-                    # client_ip absent in some formats (e.g. PAP); fall back to NAS IP
-                    client_ip = log_data["client_ip"] or nas_ip
-                    key = (username, nas_ip, client_ip)
-                    if "succeeded" in message:
-                        successful_logins[key] += 1
-                    else:  # Covers "failed" and "denied"
-                        failed_logins[key] += 1
-    except IOError as e:
-        print(f"Error reading file {log_file_path}: {e}")
-
-    successful_auths = sum(successful_logins.values())
-    failed_auths = sum(failed_logins.values())
-    total_events = successful_auths + failed_auths
+    total_events = sum(successful_logins.values()) + sum(failed_logins.values())
 
     if total_events == 0:
         print(f"\nNo authentication log entries found for date {target_date_str}.")
@@ -67,28 +42,31 @@ def process_authentication_logs():
 
     all_keys = set(successful_logins.keys()) | set(failed_logins.keys())
 
-    # --- Print Statistics ---
-    print(f"\n--- Authentication Summary for {summary_date} ---")
+    print(f"\n--- Authentication Summary for {summary_date} (node: {node_name}) ---")
     print(f"Total Authentication Events: {total_events}")
-    print(f"  - Successful: {successful_auths}")
-    print(f"  - Failed:     {failed_auths}")
+    print(f"  - Successful: {sum(successful_logins.values())}")
+    print(f"  - Failed:     {sum(failed_logins.values())}")
     print(f"Unique User/NAS/Client combinations: {len(all_keys)}")
     print("--------------------------------------------------")
     for username, nas_ip, user_source_ip in sorted(all_keys):
         key = (username, nas_ip, user_source_ip)
-        success_count = successful_logins.get(key, 0)
-        fail_count = failed_logins.get(key, 0)
         print(
             f"User: {username}, NAS IP: {nas_ip}, Client IP: {user_source_ip} "
-            f"=> Success: {success_count}, Fail: {fail_count}"
+            f"=> Success: {successful_logins.get(key, 0)}, Fail: {failed_logins.get(key, 0)}"
         )
 
-    save_statistics_to_db(summary_date, all_keys, successful_logins, failed_logins)
+    save_statistics_to_db(summary_date, all_keys, successful_logins, failed_logins, node_name)
 
 
-def save_statistics_to_db(summary_date, all_keys, successful_logins, failed_logins):
+def save_statistics_to_db(
+    summary_date,
+    all_keys,
+    successful_logins: Counter,
+    failed_logins: Counter,
+    node_name: str,
+) -> None:
     """
-    Inserts or updates authentication statistics in the database for a given date.
+    Inserts or updates authentication statistics in the database for a given date and node.
     """
     log_dt = to_log_datetime(summary_date)
     print("\nSaving authentication statistics to the database...")
@@ -103,6 +81,7 @@ def save_statistics_to_db(summary_date, all_keys, successful_logins, failed_logi
                 AuthenticationStatistics.nas_ip == nas_ip,
                 AuthenticationStatistics.user_source_ip == user_source_ip,
                 AuthenticationStatistics.log_date == log_dt,
+                AuthenticationStatistics.node_name == node_name,
             )
             db_stat = session.exec(statement).first()
 
@@ -119,6 +98,7 @@ def save_statistics_to_db(summary_date, all_keys, successful_logins, failed_logi
                     success_count=success_count,
                     fail_count=fail_count,
                     log_date=log_dt,
+                    node_name=node_name,
                 )
             session.add(db_stat)
 

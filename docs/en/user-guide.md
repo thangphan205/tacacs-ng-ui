@@ -661,11 +661,28 @@ Shows today's totals:
 - Accounting start/stop events
 - 7-day trend charts
 
+In a multi-node HA deployment a **Node** dropdown appears at the top right. Select a specific node to view only that node's statistics, or leave it on **All Nodes** to see aggregated totals across all nodes.
+
 ### AAA Statistics Range
 
-**Path:** Sidebar → AAA Statistics Range
+**Path:** Sidebar → AAA Range Stats
 
-Select a custom date range to view aggregated statistics.
+Select a custom date range to view aggregated statistics. In multi-node deployments a **Node** dropdown filters the charts to a single node.
+
+### Node Comparison
+
+**Path:** Sidebar → Node Comparison
+
+Side-by-side comparison of all TACACS-NG nodes over a selected date range. Each node appears as a card showing:
+- Authentication success / failure totals
+- Authorization permit / deny totals
+- Accounting start / stop totals
+- Per-node trend chart (AreaChart)
+- Top 3 users by success and by failure
+
+The date range picker at the top applies to all node cards simultaneously. Cards load in parallel — each node's data is fetched independently.
+
+> **Multi-node setup required.** This page shows "No node statistics found" on a single-node deployment until statistics have been collected. Run `POST /api/v1/aaa_statistics/run/` or wait for the nightly cron job.
 
 ### Authentication Statistics
 

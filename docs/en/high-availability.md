@@ -198,6 +198,83 @@ Use manual mode when you want to validate config on Zone A first before it reach
 
 ---
 
+## Per-Node AAA Statistics
+
+In a multi-node deployment each TACACS-NG node serves its own traffic and writes its own local log files. The primary node collects statistics from all peers and stores them tagged with each node's `NODE_NAME`, so the dashboard can show per-node breakdowns and side-by-side comparisons.
+
+### How It Works
+
+```
+Primary                     Standby(s)
+  │                              │
+  │  POST /internal/collect-stats│
+  │ ─────────────────────────────►
+  │                              │
+  │  { node_name, auth, authz,   │
+  │    accounting stats (JSON) } │
+  │ ◄─────────────────────────── │
+  │                              │
+  upsert rows tagged with        │
+  standby's NODE_NAME into DB    │
+```
+
+1. **Primary** runs its own cron scripts (saves stats with its `NODE_NAME`)
+2. **Primary** calls `POST /api/v1/sync/internal/collect-stats?date=YYYY-MM-DD` on each peer listed in `PEER_NODES`
+3. **Standby** parses its local log files and returns raw JSON — it does **not** write to its read-only DB
+4. **Primary** upserts the received stats into the primary DB, tagged with the standby's `NODE_NAME`
+
+Authentication uses the shared `INTERNAL_SYNC_TOKEN` header (`X-Internal-Token`).
+
+### Configuration
+
+**Primary `.env`:**
+
+```bash
+NODE_NAME=dc1-primary          # identifies this node in stats
+PEER_NODES=http://dc2-standby:8000,http://dc3-standby:8000   # comma-separated
+INTERNAL_SYNC_TOKEN=<same-secret-as-standbys>
+```
+
+**Each Standby `.env`:**
+
+```bash
+NODE_NAME=dc2-standby          # must be unique per node
+INTERNAL_SYNC_TOKEN=<same-secret-as-primary>
+# PEER_NODES not required on standbys (only primary orchestrates)
+```
+
+### Dashboard Features
+
+| Page | Path | Description |
+|------|------|-------------|
+| AAA Statistics (Today) | Sidebar → AAA Statistics | Node filter dropdown — filter today's stats by node |
+| AAA Statistics Range | Sidebar → AAA Range Stats | Node filter dropdown — filter date-range stats by node |
+| Node Comparison | Sidebar → Node Comparison | Side-by-side cards: one per node, showing stat totals + trend chart |
+
+### Trigger Collection Manually
+
+```bash
+# Force-collect stats for today across all nodes
+curl -X POST -H "Authorization: Bearer <token>" \
+  https://api-a.yourdomain.com/api/v1/aaa_statistics/run/
+
+# Collect for a specific date
+curl -X POST -H "Authorization: Bearer <token>" \
+  "https://api-a.yourdomain.com/api/v1/aaa_statistics/run/?date=2026-06-25"
+```
+
+The endpoint runs own-node scripts and then calls each peer in `PEER_NODES`.
+
+### List Available Nodes
+
+```bash
+curl -H "Authorization: Bearer <token>" \
+  https://api-a.yourdomain.com/api/v1/aaa_statistics/nodes/
+# ["dc1-primary", "dc2-standby", "dc3-standby"]
+```
+
+---
+
 ## Standby Node Behavior
 
 When `NODE_ROLE=standby`, the backend behaves differently to protect the read-only replica DB:
@@ -383,10 +460,12 @@ All HA variables are optional. Defaults run as a standard single-node deployment
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NODE_ROLE` | `primary` | `primary` or `standby`. Controls write access and scheduler. |
+| `NODE_NAME` | `primary` | Human-readable node identifier used to tag AAA statistics (e.g. `dc1-primary`, `dc2-standby`). Must be unique per node. |
 | `SCHEDULER_ENABLED` | `true` | Set `false` on standby — disables alert evaluation, ML scoring, audit purge loops. |
 | `SYNC_MODE` | `auto` | `auto` = standby daemon watches DB and auto-reloads. `manual` = admin-triggered push. |
-| `PEER_BACKEND_URL` | _(empty)_ | Internal API URL of the other zone (e.g. `https://api-b.yourdomain.com`). |
-| `INTERNAL_SYNC_TOKEN` | _(empty)_ | Shared secret for inter-node reload calls. Must match on both zones. Generate with `openssl rand -hex 32`. |
+| `PEER_BACKEND_URL` | _(empty)_ | Internal API URL of the other zone for config sync (e.g. `https://api-b.yourdomain.com`). |
+| `PEER_NODES` | _(empty)_ | Comma-separated internal API URLs of all peer nodes for AAA statistics collection (e.g. `http://dc2:8000,http://dc3:8000`). Set on primary only. |
+| `INTERNAL_SYNC_TOKEN` | _(empty)_ | Shared secret for inter-node calls (config reload + stats collection). Must match on all nodes. Generate with `openssl rand -hex 32`. |
 | `PRIMARY_DB_HOST` | _(empty)_ | Zone A's DB host IP. Only needed on Zone B during `setup-standby.sh`. |
 | `REPLICATION_PASSWORD` | _(empty)_ | Password for the `replicator` PostgreSQL role. Only needed on Zone B. |
 | `MAVIS_OVERRIDE_<KEY>` | _(empty)_ | Override any MAVIS key per zone (e.g. `MAVIS_OVERRIDE_LDAP_HOSTS`). |

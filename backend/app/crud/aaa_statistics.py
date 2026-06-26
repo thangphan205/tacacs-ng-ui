@@ -138,8 +138,30 @@ def fill_missing_acct_dates(
     ]
 
 
+def get_distinct_node_names(session: Session) -> list[str]:
+    """Return sorted list of all known node_names across the three stats tables."""
+    from sqlalchemy import union_all, literal_column
+    from sqlmodel import text
+
+    auth_nodes = session.exec(
+        select(AuthenticationStatistics.node_name).distinct()
+    ).all()
+    authz_nodes = session.exec(
+        select(AuthorizationStatistics.node_name).distinct()
+    ).all()
+    acct_nodes = session.exec(
+        select(AccountingStatistics.node_name).distinct()
+    ).all()
+    all_nodes = set(auth_nodes) | set(authz_nodes) | set(acct_nodes)
+    return sorted(all_nodes)
+
+
 def _get_range_statistics(
-    session: Session, start_date: date, end_date: date, key_prefix: str
+    session: Session,
+    start_date: date,
+    end_date: date,
+    key_prefix: str,
+    node_name: str | None = None,
 ) -> dict[str, Any]:
     """
     Retrieve and format statistics for a given date range.
@@ -186,6 +208,11 @@ def _get_range_statistics(
         .order_by(AccountingStatistics.log_date)
     )
 
+    if node_name:
+        auth_daily_stmt = auth_daily_stmt.where(AuthenticationStatistics.node_name == node_name)
+        authz_daily_stmt = authz_daily_stmt.where(AuthorizationStatistics.node_name == node_name)
+        acct_daily_stmt = acct_daily_stmt.where(AccountingStatistics.node_name == node_name)
+
     auth_daily_results = session.exec(auth_daily_stmt).all()
     authz_daily_results = session.exec(authz_daily_stmt).all()
     acct_daily_results = session.exec(acct_daily_stmt).all()
@@ -214,7 +241,12 @@ def _get_range_statistics(
         ),
     }
 
-    if include_today:
+    # Only inject today's live data when no specific node is requested, or the
+    # request is for the local node — live data is always local-node only.
+    local_node = settings.NODE_NAME
+    inject_live = include_today and (node_name is None or node_name == local_node)
+
+    if inject_live:
         today_iso = today.isoformat()
         today_stats = process_today_authentication_statistics(session)
         _set_trend_today(
@@ -240,13 +272,14 @@ def _get_range_statistics(
 def get_last_7_days_statistics(
     *,
     session: Session,
+    node_name: str | None = None,
 ) -> dict[str, Any]:
     """
     Retrieves statistics for the last 7 days from the database.
     """
     end_date = datetime.now(timezone.utc).date()
     start_date = end_date - timedelta(days=6)
-    return _get_range_statistics(session, start_date, end_date, "last_7_days")
+    return _get_range_statistics(session, start_date, end_date, "last_7_days", node_name)
 
 
 def get_date_range_statistics(
@@ -254,12 +287,13 @@ def get_date_range_statistics(
     session: Session,
     start_date: datetime,
     end_date: datetime,
+    node_name: str | None = None,
 ) -> dict[str, Any]:
     """
     Retrieves statistics for the range of days from the database.
     """
     return _get_range_statistics(
-        session, start_date.date(), end_date.date(), "last_range_days"
+        session, start_date.date(), end_date.date(), "last_range_days", node_name
     )
 
 
@@ -269,6 +303,7 @@ def process_authentication_statistics(
     end_date: datetime,
     skip: int = 0,
     limit: int = 5,
+    node_name: str | None = None,
 ) -> dict[str, Any]:
     """
     Processes authentication log files to extract statistics and save them to the database.
@@ -334,6 +369,12 @@ def process_authentication_statistics(
         AuthenticationStatistics.log_date.between(start_dt, db_end_dt)
     )
 
+    if node_name:
+        failed_count_stmt = failed_count_stmt.where(AuthenticationStatistics.node_name == node_name)
+        success_count_stmt = success_count_stmt.where(AuthenticationStatistics.node_name == node_name)
+        success_count_by_ip_stmt = success_count_by_ip_stmt.where(AuthenticationStatistics.node_name == node_name)
+        success_count_by_nas_ip_stmt = success_count_by_nas_ip_stmt.where(AuthenticationStatistics.node_name == node_name)
+
     failed_count_results = session.exec(failed_count_stmt).all()
     authentication_failed_count_by_user = [
         {"username": r.username, "fail_count": r.fail_count}
@@ -392,6 +433,7 @@ def process_authorization_statistics(
     end_date: datetime,
     skip: int = 0,
     limit: int = 5,
+    node_name: str | None = None,
 ) -> dict[str, Any]:
     """
     Processes authorization log files to extract statistics and save them to the database.
@@ -413,6 +455,11 @@ def process_authorization_statistics(
     authz_deny_count_stmt = authz_deny_count_stmt.where(
         AuthorizationStatistics.log_date.between(authz_start_dt, authz_end_dt)
     )
+
+    if node_name:
+        authz_deny_count_stmt = authz_deny_count_stmt.where(
+            AuthorizationStatistics.node_name == node_name
+        )
 
     authz_deny_count_results = session.exec(authz_deny_count_stmt).all()
     # Convert the Row objects to a list of dicts

@@ -41,6 +41,7 @@ import { Route as LayoutAlert_rulesRouteImport } from './routes/_layout/alert_ru
 import { Route as LayoutAlert_eventsRouteImport } from './routes/_layout/alert_events'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutAaa_statistics_rangeRouteImport } from './routes/_layout/aaa_statistics_range'
+import { Route as LayoutAaa_statistics_nodesRouteImport } from './routes/_layout/aaa_statistics_nodes'
 import { Route as LayoutAaa_statisticsRouteImport } from './routes/_layout/aaa_statistics'
 import { Route as LayoutAdminUsers_managementRouteImport } from './routes/_layout/admin/users_management'
 import { Route as LayoutAdminAuthProvidersRouteImport } from './routes/_layout/admin/auth-providers'
@@ -208,6 +209,12 @@ const LayoutAaa_statistics_rangeRoute =
     path: '/aaa_statistics_range',
     getParentRoute: () => LayoutRoute,
   } as any)
+const LayoutAaa_statistics_nodesRoute =
+  LayoutAaa_statistics_nodesRouteImport.update({
+    id: '/aaa_statistics_nodes',
+    path: '/aaa_statistics_nodes',
+    getParentRoute: () => LayoutRoute,
+  } as any)
 const LayoutAaa_statisticsRoute = LayoutAaa_statisticsRouteImport.update({
   id: '/aaa_statistics',
   path: '/aaa_statistics',
@@ -233,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/aaa_statistics': typeof LayoutAaa_statisticsRoute
+  '/aaa_statistics_nodes': typeof LayoutAaa_statistics_nodesRoute
   '/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
   '/admin': typeof LayoutAdminRouteWithChildren
   '/alert_events': typeof LayoutAlert_eventsRoute
@@ -269,6 +277,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/aaa_statistics': typeof LayoutAaa_statisticsRoute
+  '/aaa_statistics_nodes': typeof LayoutAaa_statistics_nodesRoute
   '/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
   '/admin': typeof LayoutAdminRouteWithChildren
   '/alert_events': typeof LayoutAlert_eventsRoute
@@ -307,6 +316,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_layout/aaa_statistics': typeof LayoutAaa_statisticsRoute
+  '/_layout/aaa_statistics_nodes': typeof LayoutAaa_statistics_nodesRoute
   '/_layout/aaa_statistics_range': typeof LayoutAaa_statistics_rangeRoute
   '/_layout/admin': typeof LayoutAdminRouteWithChildren
   '/_layout/alert_events': typeof LayoutAlert_eventsRoute
@@ -345,6 +355,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/aaa_statistics'
+    | '/aaa_statistics_nodes'
     | '/aaa_statistics_range'
     | '/admin'
     | '/alert_events'
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/aaa_statistics'
+    | '/aaa_statistics_nodes'
     | '/aaa_statistics_range'
     | '/admin'
     | '/alert_events'
@@ -418,6 +430,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/_layout/aaa_statistics'
+    | '/_layout/aaa_statistics_nodes'
     | '/_layout/aaa_statistics_range'
     | '/_layout/admin'
     | '/_layout/alert_events'
@@ -683,6 +696,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAaa_statistics_rangeRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/aaa_statistics_nodes': {
+      id: '/_layout/aaa_statistics_nodes'
+      path: '/aaa_statistics_nodes'
+      fullPath: '/aaa_statistics_nodes'
+      preLoaderRoute: typeof LayoutAaa_statistics_nodesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/aaa_statistics': {
       id: '/_layout/aaa_statistics'
       path: '/aaa_statistics'
@@ -723,6 +743,7 @@ const LayoutAdminRouteWithChildren = LayoutAdminRoute._addFileChildren(
 
 interface LayoutRouteChildren {
   LayoutAaa_statisticsRoute: typeof LayoutAaa_statisticsRoute
+  LayoutAaa_statistics_nodesRoute: typeof LayoutAaa_statistics_nodesRoute
   LayoutAaa_statistics_rangeRoute: typeof LayoutAaa_statistics_rangeRoute
   LayoutAdminRoute: typeof LayoutAdminRouteWithChildren
   LayoutAlert_eventsRoute: typeof LayoutAlert_eventsRoute
@@ -753,6 +774,7 @@ interface LayoutRouteChildren {
 
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAaa_statisticsRoute: LayoutAaa_statisticsRoute,
+  LayoutAaa_statistics_nodesRoute: LayoutAaa_statistics_nodesRoute,
   LayoutAaa_statistics_rangeRoute: LayoutAaa_statistics_rangeRoute,
   LayoutAdminRoute: LayoutAdminRouteWithChildren,
   LayoutAlert_eventsRoute: LayoutAlert_eventsRoute,

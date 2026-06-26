@@ -291,6 +291,12 @@ export const AaaStatisticsTodayPublicSchema = {
 
 export const AccountingStatisticPublicSchema = {
     properties: {
+        node_name: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Node Name',
+            default: 'primary'
+        },
         username: {
             type: 'string',
             maxLength: 255,
@@ -1144,6 +1150,12 @@ export const AuthProviderConfigUpdateSchema = {
 
 export const AuthenticationStatisticPublicSchema = {
     properties: {
+        node_name: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Node Name',
+            default: 'primary'
+        },
         username: {
             type: 'string',
             maxLength: 255,
@@ -1211,6 +1223,12 @@ export const AuthenticationStatisticsPublicSchema = {
 
 export const AuthorizationStatisticPublicSchema = {
     properties: {
+        node_name: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Node Name',
+            default: 'primary'
+        },
         username: {
             type: 'string',
             maxLength: 255,

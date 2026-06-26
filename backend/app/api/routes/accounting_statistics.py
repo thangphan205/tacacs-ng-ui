@@ -29,6 +29,7 @@ def read_accounting_statistics(
     date_to: date | None = None,
     sort_by: str = "log_date",
     sort_order: str = "desc",
+    node_name: str | None = None,
 ) -> Any:
     col = _SORT_FIELDS.get(sort_by, AccountingStatistics.log_date)
     order = desc(col) if sort_order == "desc" else asc(col)
@@ -44,6 +45,9 @@ def read_accounting_statistics(
         dt = datetime.combine(date_to, time_.max).replace(tzinfo=timezone.utc)
         count_stmt = count_stmt.where(AccountingStatistics.log_date <= dt)
         stmt = stmt.where(AccountingStatistics.log_date <= dt)
+    if node_name:
+        count_stmt = count_stmt.where(AccountingStatistics.node_name == node_name)
+        stmt = stmt.where(AccountingStatistics.node_name == node_name)
 
     count = session.exec(count_stmt).one()
     rows = session.exec(stmt.order_by(order).offset(skip).limit(limit)).all()

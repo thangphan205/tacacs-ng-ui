@@ -1,8 +1,9 @@
 import logging
 import time
+from datetime import date
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import Integer, cast, func
 from sqlmodel import col, select
 
@@ -128,6 +129,68 @@ def promote_to_primary(
             "Update .env: SCHEDULER_ENABLED=true",
             "Run: docker compose up -d backend",
         ],
+    }
+
+
+@router.post("/internal/collect-stats")
+def internal_collect_stats(
+    request: Request,
+    target_date: date = Query(default=None, alias="date"),
+) -> dict:
+    """Internal endpoint: parse local TACACS logs and return raw aggregated stats.
+
+    Called by the primary node to collect stats from each peer (standby) node.
+    Does NOT write to DB — primary is the sole writer.
+    Authenticated via X-Internal-Token.
+    """
+    token = request.headers.get("X-Internal-Token")
+    if not settings.INTERNAL_SYNC_TOKEN or token != settings.INTERNAL_SYNC_TOKEN:
+        raise HTTPException(status_code=403, detail="Invalid or missing internal sync token.")
+
+    from scripts._log_stats_base import (
+        parse_authentication_logs,
+        parse_authorization_logs,
+        parse_accounting_logs,
+        get_target_date,
+        to_log_datetime,
+    )
+    import sys
+
+    if target_date is None:
+        # Temporarily inject no-arg so get_target_date() uses yesterday
+        orig_argv = sys.argv[:]
+        sys.argv = sys.argv[:1]
+        target_date = get_target_date()
+        sys.argv = orig_argv
+
+    log_dir = settings.TACACS_LOG_DIRECTORY
+
+    auth_success, auth_fail = parse_authentication_logs(target_date, log_dir)
+    authz_permit, authz_deny = parse_authorization_logs(target_date, log_dir)
+    acct_start, acct_stop = parse_accounting_logs(target_date, log_dir)
+
+    log_dt = to_log_datetime(target_date)
+
+    def _counters_to_list(c1: dict, c2: dict, k1: str, k2: str) -> list[dict]:
+        all_keys = set(c1.keys()) | set(c2.keys())
+        return [
+            {
+                "username": u,
+                "nas_ip": n,
+                "user_source_ip": c,
+                k1: c1.get((u, n, c), 0),
+                k2: c2.get((u, n, c), 0),
+                "log_date": log_dt.isoformat(),
+            }
+            for u, n, c in sorted(all_keys)
+        ]
+
+    return {
+        "node_name": settings.NODE_NAME,
+        "date": target_date.isoformat(),
+        "authentication": _counters_to_list(auth_success, auth_fail, "success_count", "fail_count"),
+        "authorization": _counters_to_list(authz_permit, authz_deny, "permit_count", "deny_count"),
+        "accounting": _counters_to_list(acct_start, acct_stop, "start_count", "stop_count"),
     }
 
 

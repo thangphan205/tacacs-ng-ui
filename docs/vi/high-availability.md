@@ -198,6 +198,73 @@ Dùng manual mode khi muốn kiểm tra cấu hình trên Zone A trước khi á
 
 ---
 
+## Thống Kê AAA Theo Node
+
+Trong triển khai multi-node, mỗi TACACS-NG node phục vụ traffic riêng và ghi log file cục bộ. Primary node thu thập thống kê từ tất cả peer và lưu vào DB với nhãn `NODE_NAME` của từng node, giúp dashboard hiển thị dữ liệu theo từng node và so sánh song song.
+
+### Cơ Chế Hoạt Động
+
+```
+Primary                     Standby(s)
+  │                              │
+  │  POST /internal/collect-stats│
+  │ ─────────────────────────────►
+  │                              │
+  │  { node_name, auth, authz,   │
+  │    accounting stats (JSON) } │
+  │ ◄─────────────────────────── │
+  │                              │
+  upsert rows tagged với         │
+  NODE_NAME của standby vào DB   │
+```
+
+1. **Primary** chạy cron script của mình (lưu stats với `NODE_NAME` của nó)
+2. **Primary** gọi `POST /api/v1/sync/internal/collect-stats?date=YYYY-MM-DD` đến từng peer trong `PEER_NODES`
+3. **Standby** parse log file cục bộ và trả về JSON thô — **không** ghi vào DB read-only
+4. **Primary** upsert dữ liệu nhận được vào DB, gắn nhãn `NODE_NAME` của standby
+
+Xác thực dùng header `X-Internal-Token` với `INTERNAL_SYNC_TOKEN` dùng chung.
+
+### Cấu Hình
+
+**Primary `.env`:**
+
+```bash
+NODE_NAME=dc1-primary          # định danh node này trong thống kê
+PEER_NODES=http://dc2-standby:8000,http://dc3-standby:8000   # danh sách peer, phân cách bằng dấu phẩy
+INTERNAL_SYNC_TOKEN=<secret-dùng-chung-với-standby>
+```
+
+**Mỗi Standby `.env`:**
+
+```bash
+NODE_NAME=dc2-standby          # phải duy nhất trên mỗi node
+INTERNAL_SYNC_TOKEN=<secret-dùng-chung-với-primary>
+# PEER_NODES không cần trên standby (chỉ primary điều phối thu thập)
+```
+
+### Tính Năng Dashboard
+
+| Trang | Đường dẫn | Mô tả |
+|-------|-----------|-------|
+| AAA Statistics (Today) | Sidebar → AAA Statistics | Dropdown lọc theo node — xem thống kê hôm nay theo từng node |
+| AAA Statistics Range | Sidebar → AAA Range Stats | Dropdown lọc theo node — xem thống kê theo khoảng thời gian |
+| Node Comparison | Sidebar → Node Comparison | Thẻ card song song: một card mỗi node, hiển thị tổng số liệu + biểu đồ xu hướng |
+
+### Thu Thập Thủ Công
+
+```bash
+# Thu thập thống kê cho hôm nay trên tất cả node
+curl -X POST -H "Authorization: Bearer <token>" \
+  https://api-a.yourdomain.com/api/v1/aaa_statistics/run/
+
+# Thu thập cho ngày cụ thể
+curl -X POST -H "Authorization: Bearer <token>" \
+  "https://api-a.yourdomain.com/api/v1/aaa_statistics/run/?date=2026-06-25"
+```
+
+---
+
 ## Hành Vi Của Standby Node
 
 Khi `NODE_ROLE=standby`, backend hoạt động khác để bảo vệ DB read-only replica:
@@ -383,10 +450,12 @@ Tất cả biến HA đều tùy chọn. Mặc định chạy như triển khai 
 | Biến | Mặc định | Mô tả |
 |------|----------|-------|
 | `NODE_ROLE` | `primary` | `primary` hoặc `standby`. Kiểm soát quyền ghi và scheduler. |
+| `NODE_NAME` | `primary` | Tên định danh node dùng để gắn nhãn thống kê AAA (ví dụ `dc1-primary`, `dc2-standby`). Phải duy nhất trên mỗi node. |
 | `SCHEDULER_ENABLED` | `true` | Đặt `false` trên standby — tắt vòng lặp đánh giá alert, ML scoring, audit purge. |
 | `SYNC_MODE` | `auto` | `auto` = daemon standby theo dõi DB và tự reload. `manual` = admin chủ động push. |
-| `PEER_BACKEND_URL` | _(trống)_ | URL API nội bộ của vùng còn lại (ví dụ `https://api-b.yourdomain.com`). |
-| `INTERNAL_SYNC_TOKEN` | _(trống)_ | Shared secret cho các lệnh gọi reload giữa node. Phải khớp trên cả hai vùng. Tạo bằng `openssl rand -hex 32`. |
+| `PEER_BACKEND_URL` | _(trống)_ | URL API nội bộ của vùng còn lại dùng cho đồng bộ cấu hình (ví dụ `https://api-b.yourdomain.com`). |
+| `PEER_NODES` | _(trống)_ | Danh sách URL API nội bộ của tất cả peer node để thu thập thống kê AAA, phân cách bằng dấu phẩy (ví dụ `http://dc2:8000,http://dc3:8000`). Chỉ cần đặt trên primary. |
+| `INTERNAL_SYNC_TOKEN` | _(trống)_ | Shared secret cho các lệnh gọi giữa node (reload cấu hình + thu thập thống kê). Phải khớp trên tất cả node. Tạo bằng `openssl rand -hex 32`. |
 | `PRIMARY_DB_HOST` | _(trống)_ | IP DB host của Zone A. Chỉ cần trên Zone B khi chạy `setup-standby.sh`. |
 | `REPLICATION_PASSWORD` | _(trống)_ | Mật khẩu cho PostgreSQL role `replicator`. Chỉ cần trên Zone B. |
 | `MAVIS_OVERRIDE_<KEY>` | _(trống)_ | Override bất kỳ MAVIS key nào theo vùng (ví dụ `MAVIS_OVERRIDE_LDAP_HOSTS`). |

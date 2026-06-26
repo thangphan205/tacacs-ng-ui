@@ -197,9 +197,11 @@ class Settings(BaseSettings):
 
     # High Availability
     NODE_ROLE: Literal["primary", "standby"] = "primary"
+    NODE_NAME: str = "primary"
     SCHEDULER_ENABLED: bool = True
     SYNC_MODE: Literal["auto", "manual"] = "auto"
     PEER_BACKEND_URL: str = ""
+    PEER_NODES: str = ""  # comma-separated peer backend URLs for stats collection
     INTERNAL_SYNC_TOKEN: str = ""
 
     # WebAuthn / Passkeys
