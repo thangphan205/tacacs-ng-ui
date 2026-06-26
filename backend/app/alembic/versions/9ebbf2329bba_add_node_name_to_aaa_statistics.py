@@ -26,7 +26,7 @@ def upgrade():
     op.create_index('ix_authenticationstatistics_node_name', 'authenticationstatistics', ['node_name'], unique=False)
     op.drop_constraint('uq_authenticationstatistics_username_nas_ip_src_ip_log_date', 'authenticationstatistics', type_='unique')
     op.create_unique_constraint(
-        'uq_authenticationstatistics_username_nas_ip_src_ip_log_date_node',
+        'uq_authenticationstatistics_username_nas_ip_src_ip_log_date_nod',
         'authenticationstatistics',
         ['username', 'nas_ip', 'user_source_ip', 'log_date', 'node_name'],
     )
@@ -80,7 +80,7 @@ def downgrade():
     op.drop_column('authorizationstatistics', 'node_name')
 
     # --- authenticationstatistics ---
-    op.drop_constraint('uq_authenticationstatistics_username_nas_ip_src_ip_log_date_node', 'authenticationstatistics', type_='unique')
+    op.drop_constraint('uq_authenticationstatistics_username_nas_ip_src_ip_log_date_nod', 'authenticationstatistics', type_='unique')
     op.create_unique_constraint(
         'uq_authenticationstatistics_username_nas_ip_src_ip_log_date',
         'authenticationstatistics',
