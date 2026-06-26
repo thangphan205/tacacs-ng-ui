@@ -36,9 +36,9 @@ echo ""
 # Step 1: Build/pull images and create volumes without starting services
 echo "[1/5] Building/pulling images..."
 # Pull third-party images (db, proxy, etc.); ignore failures for locally-built images
-docker compose pull --ignore-pull-failures --quiet || true
+docker compose pull --ignore-pull-failures || true
 # Build backend and frontend from source (handles local-only images with no registry)
-docker compose build --quiet
+docker compose build
 
 # Step 2: Start only the db container with a temporary entry point to do pg_basebackup
 echo "[2/5] Running pg_basebackup from primary ($PRIMARY_DB_HOST)..."
