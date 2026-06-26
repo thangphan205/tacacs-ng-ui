@@ -6,6 +6,8 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import date
 
+from sqlalchemy.exc import IntegrityError
+
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
@@ -32,16 +34,19 @@ def _seed_ha_config(session: Session) -> None:
     if settings.NODE_ROLE == "standby":
         return  # replica DB is read-only; replication delivers the config
     if not session.get(HaConfig, 1):
-        session.add(
-            HaConfig(
-                id=1,
-                node_name=settings.NODE_NAME,
-                sync_mode=settings.SYNC_MODE,
-                scheduler_enabled=settings.SCHEDULER_ENABLED,
-                stats_interval_minutes=settings.STATS_INTERVAL_MINUTES,
+        try:
+            session.add(
+                HaConfig(
+                    id=1,
+                    node_name=settings.NODE_NAME,
+                    sync_mode=settings.SYNC_MODE,
+                    scheduler_enabled=settings.SCHEDULER_ENABLED,
+                    stats_interval_minutes=settings.STATS_INTERVAL_MINUTES,
+                )
             )
-        )
-        session.commit()
+            session.commit()
+        except IntegrityError:
+            session.rollback()  # another worker seeded first; ignore
     if not session.exec(select(HaPeerNode)).first():
         for url in settings.peer_urls:
             session.add(HaPeerNode(name=url, url=url))
