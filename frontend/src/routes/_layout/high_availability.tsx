@@ -454,7 +454,9 @@ function HighAvailabilityPage() {
   }
 
   const haConfigured =
-    (haInfo?.peers?.length ?? 0) > 0 || !!haInfo?.peer_backend_url
+    haInfo?.node_role === "standby" ||
+    (haInfo?.peers?.length ?? 0) > 0 ||
+    !!haInfo?.peer_backend_url
 
   return (
     <Container maxW="4xl" py={6}>
@@ -558,62 +560,106 @@ function HighAvailabilityPage() {
               </Flex>
             </Box>
 
-            <Box
-              p={5}
-              bg="bg.panel"
-              borderWidth="1px"
-              borderLeftWidth="4px"
-              borderLeftColor={
-                (haInfo?.peers ?? []).some((p) => p.available)
-                  ? "green.500"
-                  : "red.500"
-              }
-              borderRadius="xl"
-              shadow="sm"
-            >
-              <Flex align="center" justify="space-between">
-                <Box>
-                  <Text
-                    fontSize="xs"
-                    fontWeight="semibold"
-                    textTransform="uppercase"
-                    letterSpacing="wider"
-                    color="fg.muted"
+            {haInfo?.node_role === "primary" ? (
+              <Box
+                p={5}
+                bg="bg.panel"
+                borderWidth="1px"
+                borderLeftWidth="4px"
+                borderLeftColor={
+                  (haInfo?.peers ?? []).some((p) => p.available)
+                    ? "green.500"
+                    : "red.500"
+                }
+                borderRadius="xl"
+                shadow="sm"
+              >
+                <Flex align="center" justify="space-between">
+                  <Box>
+                    <Text
+                      fontSize="xs"
+                      fontWeight="semibold"
+                      textTransform="uppercase"
+                      letterSpacing="wider"
+                      color="fg.muted"
+                    >
+                      Peers Online
+                    </Text>
+                    <Text
+                      fontSize="2xl"
+                      fontWeight="extrabold"
+                      fontFamily="mono"
+                      mt={2}
+                    >
+                      {(haInfo?.peers ?? []).filter((p) => p.available).length} /{" "}
+                      {(haInfo?.peers ?? []).filter((p) => p.enabled).length}
+                    </Text>
+                  </Box>
+                  <Box
+                    p={3}
+                    bg={
+                      (haInfo?.peers ?? []).some((p) => p.available)
+                        ? "green.muted"
+                        : "red.muted"
+                    }
+                    color={
+                      (haInfo?.peers ?? []).some((p) => p.available)
+                        ? "green.fg"
+                        : "red.fg"
+                    }
+                    borderRadius="lg"
                   >
-                    Peers Online
-                  </Text>
-                  <Text
-                    fontSize="2xl"
-                    fontWeight="extrabold"
-                    fontFamily="mono"
-                    mt={2}
+                    {(haInfo?.peers ?? []).some((p) => p.available) ? (
+                      <FiWifi fontSize="22px" />
+                    ) : (
+                      <FiWifiOff fontSize="22px" />
+                    )}
+                  </Box>
+                </Flex>
+              </Box>
+            ) : (
+              <Box
+                p={5}
+                bg="bg.panel"
+                borderWidth="1px"
+                borderLeftWidth="4px"
+                borderLeftColor={haInfo?.last_sync_at ? "green.500" : "gray.400"}
+                borderRadius="xl"
+                shadow="sm"
+              >
+                <Flex align="center" justify="space-between">
+                  <Box>
+                    <Text
+                      fontSize="xs"
+                      fontWeight="semibold"
+                      textTransform="uppercase"
+                      letterSpacing="wider"
+                      color="fg.muted"
+                    >
+                      Last Sync Received
+                    </Text>
+                    <Text
+                      fontSize="xl"
+                      fontWeight="extrabold"
+                      fontFamily="mono"
+                      mt={2}
+                    >
+                      {haInfo?.last_sync_at
+                        ? formatRelativeTime(haInfo.last_sync_at)
+                        : "Never"}
+                    </Text>
+                  </Box>
+                  <Box
+                    p={3}
+                    bg={haInfo?.last_sync_at ? "green.muted" : "gray.muted"}
+                    color={haInfo?.last_sync_at ? "green.fg" : "gray.fg"}
+                    borderRadius="lg"
                   >
-                    {(haInfo?.peers ?? []).filter((p) => p.available).length} /{" "}
-                    {(haInfo?.peers ?? []).filter((p) => p.enabled).length}
-                  </Text>
-                </Box>
-                <Box
-                  p={3}
-                  bg={
-                    (haInfo?.peers ?? []).some((p) => p.available)
-                      ? "green.muted"
-                      : "red.muted"
-                  }
-                  color={
-                    (haInfo?.peers ?? []).some((p) => p.available)
-                      ? "green.fg"
-                      : "red.fg"
-                  }
-                  borderRadius="lg"
-                >
-                  {(haInfo?.peers ?? []).some((p) => p.available) ? (
                     <FiWifi fontSize="22px" />
-                  ) : (
-                    <FiWifiOff fontSize="22px" />
-                  )}
-                </Box>
-              </Flex>
-            </Box>
+                  </Box>
+                </Flex>
+              </Box>
+            )}
 
             <Box
               p={5}
@@ -663,11 +709,11 @@ function HighAvailabilityPage() {
             </Box>
           </Grid>
 
-          {/* Peers table */}
-          {haInfo && (
+          {/* Peers table — primary only */}
+          {haInfo && haInfo.node_role === "primary" && (
             <PeersTable
               peers={haInfo.peers}
-              isSuperuser={isSuperuser && haInfo.node_role === "primary"}
+              isSuperuser={isSuperuser}
               onToggle={(peer) =>
                 updatePeerMutation.mutate({
                   id: peer.id,
@@ -681,6 +727,24 @@ function HighAvailabilityPage() {
                 updatePeerMutation.isPending || deletePeerMutation.isPending
               }
             />
+          )}
+
+          {/* Primary URL info — standby only */}
+          {haInfo?.node_role === "standby" && haInfo.peer_backend_url && (
+            <Box
+              p={4}
+              bg="bg.panel"
+              borderWidth="1px"
+              borderRadius="xl"
+              shadow="sm"
+            >
+              <Text fontSize="xs" fontWeight="semibold" textTransform="uppercase" letterSpacing="wider" color="fg.muted" mb={1}>
+                Primary Node
+              </Text>
+              <Text fontFamily="mono" fontSize="sm">
+                {haInfo.peer_backend_url}
+              </Text>
+            </Box>
           )}
 
           {/* Last sync */}
@@ -757,7 +821,9 @@ function HighAvailabilityPage() {
                     <Alert.Content>
                       <Alert.Title>Review the Peers table</Alert.Title>
                       <Alert.Description>
-                        Remove the old primary and verify remaining standbys are
+                        The old primary's URL has been added as a peer
+                        automatically. Disable or remove it until Zone A
+                        recovers, then verify remaining standbys are
                         replicating from this node.
                       </Alert.Description>
                     </Alert.Content>

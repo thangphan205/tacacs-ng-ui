@@ -150,6 +150,8 @@ REPLICATION_PASSWORD=your-replication-password
 MAVIS_OVERRIDE_LDAP_HOSTS=ldaps://ldap-zone-b.yourdomain.com:636
 ```
 
+> **Cũng phải đặt `PEER_BACKEND_URL` trên standby.** Khi còn là standby, Zone B không thể ghi DB nên giá trị này nằm chờ trong `.env`. Sau khi promote (khởi động lại với `NODE_ROLE=primary`), backend tự động thêm các URL trong `PEER_BACKEND_URL` chưa có trong bảng peer — URL của Zone A được đăng ký làm peer mà không cần thao tác thủ công.
+
 Chạy script setup một lệnh (thực hiện pg_basebackup + khởi động tất cả service):
 
 ```bash
@@ -578,11 +580,14 @@ docker compose up -d backend
 
 Zone B giờ nhận toàn bộ ghi. Thiết bị mạng đã trỏ sẵn đến Zone B nên xác thực TACACS tiếp tục không gián đoạn.
 
-**Sau khi nâng cấp — dọn dẹp peer:**
+Khi khởi động lại với `NODE_ROLE=primary`, backend tự động thêm các URL trong `PEER_BACKEND_URL` / `PEER_NODES` của Zone B chưa có trong bảng `HaPeerNode` — URL của Zone A được đăng ký làm peer mà không cần thao tác thủ công (yêu cầu Zone B đã có `PEER_BACKEND_URL` trỏ đến Zone A trước khi xảy ra sự cố).
 
-1. Mở dashboard HA của node vừa được nâng cấp
-2. Xóa primary cũ khỏi bảng Peers (đã không hoạt động)
-3. Với mỗi standby còn lại: trỏ lại PostgreSQL replication về primary mới (`pg_rewind` hoặc `pg_basebackup`)
+**Sau khi nâng cấp — quản lý peer:**
+
+1. Mở dashboard HA của node vừa được nâng cấp (High Availability → Peers)
+2. URL của Zone A đã có sẵn trong danh sách — được seed tự động từ `PEER_BACKEND_URL` của Zone B khi khởi động lại
+3. Tắt hoặc xóa peer Zone A cho đến khi Zone A phục hồi để tránh lỗi sync trong log
+4. Với mỗi standby còn lại: trỏ lại PostgreSQL replication về primary mới (`pg_rewind` hoặc `pg_basebackup`)
 
 **Khi Zone A phục hồi:**
 
@@ -597,7 +602,7 @@ Gia nhập lại Zone A như standby mới:
 bash setup-ha.sh
 ```
 
-Sau đó thêm lại Zone A như peer qua UI HA của primary mới.
+Sau đó bật lại (hoặc thêm lại) peer Zone A qua UI HA của primary mới.
 
 ---
 
@@ -614,7 +619,7 @@ Tất cả biến HA đều tùy chọn. Mặc định chạy như triển khai 
 | `NODE_NAME` | `primary` | Seed vào DB khi khởi động lần đầu. Nhãn node dễ đọc (ví dụ `dc1-primary`). Chỉnh qua HA UI sau đó. |
 | `SCHEDULER_ENABLED` | `true` | Seed vào DB khi khởi động lần đầu. Đặt `false` trên standby. Tự đặt `true` sau khi promote qua UI. |
 | `SYNC_MODE` | `auto` | Seed vào DB khi khởi động lần đầu. `auto` = standby tự reload. `manual` = admin push. Chỉnh qua HA UI. |
-| `PEER_BACKEND_URL` | _(trống)_ | Seed như peer đầu tiên khi primary khởi động lần đầu. Dùng HA UI để quản lý peer sau đó. |
+| `PEER_BACKEND_URL` | _(trống)_ | Đặt trên **cả** primary và standby. Primary: seed như peer đầu tiên khi khởi động lần đầu. Standby: giá trị chờ đến khi promote — khi khởi động lần đầu với `NODE_ROLE=primary`, các URL chưa có trong bảng peer được thêm tự động. Dùng HA UI để quản lý peer sau đó. |
 | `PEER_NODES` | _(trống)_ | Seed như nhiều peer khi primary khởi động lần đầu (URL phân cách bằng dấu phẩy). Dùng HA UI để quản lý sau đó. |
 | `STATS_INTERVAL_MINUTES` | `30` | Seed vào DB khi khởi động lần đầu. Chu kỳ (phút) thu thập thống kê AAA. `0` = chỉ dùng cron hàng đêm. Chỉnh qua HA UI. |
 | `PRIMARY_DB_HOST` | _(trống)_ | IP DB host của Zone A. Chỉ cần trên standby khi chạy `setup-standby.sh`. |

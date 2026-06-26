@@ -81,6 +81,24 @@ def _get_enabled_peers(session: SessionDep) -> list[HaPeerNode]:
 def get_ha_info(_: CurrentUser, session: SessionDep) -> dict:
     """Return HA configuration and peer status for this node."""
     cfg = _get_ha_config(session)
+
+    # Peer management is primary-only. On standby the HaPeerNode table is a
+    # read-only replica of the primary's data (pointing at standbys, not the
+    # primary) — exposing it would show misleading self-referential entries.
+    if settings.NODE_ROLE == "standby":
+        ha_state = _get_or_create_ha_state(session)
+        return {
+            "node_role": "standby",
+            "node_name": cfg.node_name,
+            "sync_mode": cfg.sync_mode,
+            "scheduler_enabled": cfg.scheduler_enabled,
+            "stats_interval_minutes": cfg.stats_interval_minutes,
+            "peers": [],
+            "peer_backend_url": settings.PEER_BACKEND_URL or None,
+            "peer_available": None,
+            "last_sync_at": ha_state.last_received_at.isoformat() if ha_state.last_received_at else None,
+        }
+
     peers = list(session.exec(select(HaPeerNode)).all())
     peer_urls = [p.url for p in peers if p.enabled]
     availability = _check_peers_available(peer_urls)
@@ -103,13 +121,8 @@ def get_ha_info(_: CurrentUser, session: SessionDep) -> dict:
             "last_push_at": ns.last_push_at.isoformat() if ns and ns.last_push_at else None,
         })
 
-    # last_sync_at: most recent push (primary) or received (standby)
-    if settings.NODE_ROLE == "primary":
-        push_times = [ns.last_push_at for ns in node_states.values() if ns.last_push_at]
-        last_sync_ts = max(push_times) if push_times else None
-    else:
-        ha_state = _get_or_create_ha_state(session)
-        last_sync_ts = ha_state.last_received_at
+    push_times = [ns.last_push_at for ns in node_states.values() if ns.last_push_at]
+    last_sync_ts = max(push_times) if push_times else None
 
     # compat fields for old frontend / SyncToStandby component
     first_peer = peers[0] if peers else None

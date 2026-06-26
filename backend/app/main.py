@@ -47,11 +47,15 @@ def _seed_ha_config(session: Session) -> None:
             session.commit()
         except IntegrityError:
             session.rollback()  # another worker seeded first; ignore
-    if not session.exec(select(HaPeerNode)).first():
+    # Upsert env-configured peer URLs — needed on first primary boot AND after
+    # promotion from standby (replicated DB may already have peers but not the
+    # old-primary URL that was only set in the standby's PEER_BACKEND_URL env).
+    if settings.peer_urls:
+        existing_urls = {p.url for p in session.exec(select(HaPeerNode)).all()}
         for url in settings.peer_urls:
-            session.add(HaPeerNode(name=url, url=url))
-        if settings.peer_urls:
-            session.commit()
+            if url not in existing_urls:
+                session.add(HaPeerNode(name=url, url=url))
+        session.commit()
 
 
 async def _audit_purge_loop() -> None:

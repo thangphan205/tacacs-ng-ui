@@ -150,6 +150,8 @@ REPLICATION_PASSWORD=your-replication-password
 MAVIS_OVERRIDE_LDAP_HOSTS=ldaps://ldap-zone-b.yourdomain.com:636
 ```
 
+> **Set `PEER_BACKEND_URL` on the standby too.** Zone B cannot write to the DB while it is a standby, so this value stays dormant in `.env`. On promotion (restart with `NODE_ROLE=primary`), the backend automatically adds any env-configured URLs not yet in the peer table — so Zone A's URL becomes an available peer entry without manual intervention.
+
 Run the one-click setup script (does pg_basebackup + starts all services):
 
 ```bash
@@ -588,26 +590,29 @@ docker compose up -d backend
 
 Zone B now accepts all writes. Network devices were already pointed at Zone B, so TACACS authentication continues without change.
 
-**After promotion — clean up peers:**
+On restart with `NODE_ROLE=primary`, the backend automatically seeds any URLs in Zone B's `PEER_BACKEND_URL` / `PEER_NODES` that are not yet in the `HaPeerNode` table — so Zone A's URL is registered as a peer entry without manual intervention (as long as Zone B's `.env` had `PEER_BACKEND_URL` set to Zone A's URL before the failure).
 
-1. Open the promoted node's HA dashboard
-2. Remove the old primary from the Peers table (it's now unreachable)
-3. For each remaining standby: repoint PostgreSQL replication to the new primary (`pg_rewind` or `pg_basebackup`)
+**After promotion — manage peers:**
+
+1. Open the promoted node's HA dashboard (High Availability → Peers)
+2. Zone A's URL is already listed — seeded automatically from Zone B's `PEER_BACKEND_URL` on restart
+3. Disable or remove Zone A's peer entry until Zone A recovers to suppress sync errors in logs
+4. For each remaining standby: repoint PostgreSQL replication to the new primary (`pg_rewind` or `pg_basebackup`)
 
 **When the old primary recovers:**
 
-Re-join as a new standby:
+Re-join as a standby:
 
 ```bash
 # On the old primary server
 # Update .env:
 #   NODE_ROLE=standby
-#   PRIMARY_DB_HOST=<NEW_PRIMARY_IP>
+#   PRIMARY_DB_HOST=<ZONE_B_IP>
 
 bash setup-ha.sh
 ```
 
-Then add it back as a peer via the new primary's HA UI.
+Then re-enable (or re-add) Zone A's peer entry in the new primary's HA UI.
 
 ---
 
@@ -624,7 +629,7 @@ All HA variables are optional. Defaults run as a standard single-node deployment
 | `NODE_NAME` | `primary` | Seeded into DB on first startup. Human-readable node label (e.g. `dc1-primary`). Edit via HA UI after first start. |
 | `SCHEDULER_ENABLED` | `true` | Seeded into DB on first startup. Set `false` on standby to disable alerts/ML/audit loops. Edit via HA UI after promotion. |
 | `SYNC_MODE` | `auto` | Seeded into DB on first startup. `auto` = standby polls DB every 10 s. `manual` = admin-triggered. Edit via HA UI. |
-| `PEER_BACKEND_URL` | _(empty)_ | Seeded as first peer entry on first primary startup. Use HA UI to manage peers after that. |
+| `PEER_BACKEND_URL` | _(empty)_ | Set on **both** primary and standby. On primary: seeded as the first peer entry on first startup. On standby: value is dormant until promotion — on first startup as primary, any env-configured URLs not yet in the peer table are added automatically. Use HA UI to manage peers after initial seeding. |
 | `PEER_NODES` | _(empty)_ | Seeded as multiple peer entries on first primary startup (comma-separated URLs). Use HA UI to manage after that. |
 | `STATS_INTERVAL_MINUTES` | `30` | Seeded into DB on first startup. Minutes between primary AAA stats collection cycles. `0` = nightly cron only. Edit via HA UI. |
 | `PRIMARY_DB_HOST` | _(empty)_ | Zone A's DB host IP. Only needed on standby during `setup-standby.sh`. |
