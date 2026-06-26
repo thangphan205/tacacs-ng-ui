@@ -32,7 +32,9 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=MavisesPublic,
 )
-def read_mavises(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
+def read_mavises(
+    session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None
+) -> Any:
     """
     Retrieve mavises.
     """
@@ -40,7 +42,9 @@ def read_mavises(session: SessionDep, skip: int = 0, limit: int = 100, search: s
     count_statement = select(func.count()).select_from(Mavis)
     statement = select(Mavis)
     if search:
-        f = Mavis.mavis_key.ilike(f"%{search}%") | Mavis.mavis_value.ilike(f"%{search}%")
+        f = Mavis.mavis_key.ilike(f"%{search}%") | Mavis.mavis_value.ilike(
+            f"%{search}%"
+        )
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()
@@ -54,7 +58,11 @@ def read_mavises(session: SessionDep, skip: int = 0, limit: int = 100, search: s
     response_model=MavisPublic,
 )
 def create_mavis(
-    *, session: SessionDep, current_user: SuperUser, request: Request, mavis_in: MavisCreate
+    *,
+    session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
+    mavis_in: MavisCreate,
 ) -> Any:
     """
     Create new mavis.
@@ -68,9 +76,12 @@ def create_mavis(
 
     mavis = mavises.create_mavis(session=session, mavis_create=mavis_in)
     audit_logs_crud.log_entity_action(
-        session=session, action="CREATE", entity_type="Mavis",
+        session=session,
+        action="CREATE",
+        entity_type="Mavis",
         entity_id=str(mavis.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=mavis.model_dump_json(exclude=_SENSITIVE),
@@ -147,9 +158,12 @@ def update_mavis(
         session=session, db_mavis=db_mavis, mavis_in=mavis_in
     )
     audit_logs_crud.log_entity_action(
-        session=session, action="UPDATE", entity_type="Mavis",
+        session=session,
+        action="UPDATE",
+        entity_type="Mavis",
         entity_id=str(db_mavis.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
@@ -175,9 +189,12 @@ def delete_mavis(
     session.delete(mavis)
     session.commit()
     audit_logs_crud.log_entity_action(
-        session=session, action="DELETE", entity_type="Mavis",
+        session=session,
+        action="DELETE",
+        entity_type="Mavis",
         entity_id=str(id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,

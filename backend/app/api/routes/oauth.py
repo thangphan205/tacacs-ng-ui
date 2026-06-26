@@ -90,7 +90,9 @@ def google_callback(
         )
 
     if token_resp.status_code != 200:
-        raise HTTPException(status_code=400, detail="Failed to exchange code with Google")
+        raise HTTPException(
+            status_code=400, detail="Failed to exchange code with Google"
+        )
 
     access_token = token_resp.json().get("access_token")
 
@@ -178,7 +180,9 @@ def keycloak_callback(
         )
 
     if token_resp.status_code != 200:
-        raise HTTPException(status_code=400, detail="Failed to exchange code with Keycloak")
+        raise HTTPException(
+            status_code=400, detail="Failed to exchange code with Keycloak"
+        )
 
     access_token = token_resp.json().get("access_token")
 
@@ -189,7 +193,9 @@ def keycloak_callback(
         )
 
     if userinfo_resp.status_code != 200:
-        raise HTTPException(status_code=400, detail="Failed to fetch Keycloak user info")
+        raise HTTPException(
+            status_code=400, detail="Failed to fetch Keycloak user info"
+        )
 
     userinfo = userinfo_resp.json()
     keycloak_id: str = userinfo["sub"]

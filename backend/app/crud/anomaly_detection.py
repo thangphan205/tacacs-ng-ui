@@ -69,7 +69,9 @@ def get_results(
 
     if subject_type:
         query = query.where(AnomalyDetectionResult.subject_type == subject_type)
-        count_query = count_query.where(AnomalyDetectionResult.subject_type == subject_type)
+        count_query = count_query.where(
+            AnomalyDetectionResult.subject_type == subject_type
+        )
     if is_anomaly_only:
         query = query.where(AnomalyDetectionResult.is_anomaly == True)  # noqa: E712
         count_query = count_query.where(AnomalyDetectionResult.is_anomaly == True)  # noqa: E712
@@ -118,10 +120,10 @@ def get_feature_matrix(
         if u not in user_data:
             user_data[u] = {
                 "fail_counts": [],
-            "unique_ips": set(),
-            "total_success": 0,
-            "total_fail": 0,
-        }
+                "unique_ips": set(),
+                "total_success": 0,
+                "total_fail": 0,
+            }
         user_data[u]["fail_counts"].append(row.fail_count)
         user_data[u]["unique_ips"].add(row.user_source_ip)
         user_data[u]["total_success"] += row.success_count

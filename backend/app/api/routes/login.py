@@ -59,7 +59,9 @@ def login_access_token(
         raise HTTPException(status_code=400, detail="Inactive user")
 
     # Check admin-level global password login disable
-    passkey_cfg = auth_providers_crud.get_provider_config(session=session, provider="passkey")
+    passkey_cfg = auth_providers_crud.get_provider_config(
+        session=session, provider="passkey"
+    )
     if passkey_cfg and passkey_cfg.enabled:
         cfg = json.loads(passkey_cfg.config_json)
         if cfg.get("allow_password_login") == "false":

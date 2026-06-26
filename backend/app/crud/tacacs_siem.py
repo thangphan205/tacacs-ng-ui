@@ -77,7 +77,11 @@ def _send_syslog(
 ) -> None:
     if not settings.SIEM_SYSLOG_HOST:
         return
-    socktype = socket.SOCK_DGRAM if settings.SIEM_SYSLOG_PROTOCOL == "udp" else socket.SOCK_STREAM
+    socktype = (
+        socket.SOCK_DGRAM
+        if settings.SIEM_SYSLOG_PROTOCOL == "udp"
+        else socket.SOCK_STREAM
+    )
     handler = logging.handlers.SysLogHandler(
         address=(settings.SIEM_SYSLOG_HOST, settings.SIEM_SYSLOG_PORT),
         socktype=socktype,

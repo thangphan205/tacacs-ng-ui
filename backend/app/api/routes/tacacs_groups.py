@@ -32,7 +32,9 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=TacacsGroupsPublic,
 )
-def read_tacacs_groups(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
+def read_tacacs_groups(
+    session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None
+) -> Any:
     """
     Retrieve groups.
     """
@@ -40,7 +42,9 @@ def read_tacacs_groups(session: SessionDep, skip: int = 0, limit: int = 100, sea
     count_statement = select(func.count()).select_from(TacacsGroup)
     statement = select(TacacsGroup)
     if search:
-        f = TacacsGroup.group_name.ilike(f"%{search}%") | TacacsGroup.description.ilike(f"%{search}%")
+        f = TacacsGroup.group_name.ilike(f"%{search}%") | TacacsGroup.description.ilike(
+            f"%{search}%"
+        )
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()
@@ -55,7 +59,11 @@ def read_tacacs_groups(session: SessionDep, skip: int = 0, limit: int = 100, sea
     response_model=TacacsGroupPublic,
 )
 def create_tacacs_group(
-    *, session: SessionDep, current_user: SuperUser, request: Request, group_in: TacacsGroupCreate
+    *,
+    session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
+    group_in: TacacsGroupCreate,
 ) -> Any:
     """
     Create new group.
@@ -72,9 +80,12 @@ def create_tacacs_group(
 
     group = tacacs_groups.create_tacacs_group(session=session, group_create=group_in)
     audit_logs_crud.log_entity_action(
-        session=session, action="CREATE", entity_type="TacacsGroup",
+        session=session,
+        action="CREATE",
+        entity_type="TacacsGroup",
         entity_id=str(group.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=group.model_dump_json(exclude=_SENSITIVE),
@@ -128,9 +139,12 @@ def update_tacacs_group(
         session=session, db_tacacs_group=db_tacacs_group, group_in=group_in
     )
     audit_logs_crud.log_entity_action(
-        session=session, action="UPDATE", entity_type="TacacsGroup",
+        session=session,
+        action="UPDATE",
+        entity_type="TacacsGroup",
         entity_id=str(db_tacacs_group.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
@@ -157,9 +171,12 @@ def delete_tacacs_group(
     session.delete(tacacs_group)
     session.commit()
     audit_logs_crud.log_entity_action(
-        session=session, action="DELETE", entity_type="TacacsGroup",
+        session=session,
+        action="DELETE",
+        entity_type="TacacsGroup",
         entity_id=str(id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,

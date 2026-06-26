@@ -1,16 +1,21 @@
-import sys
 import os
+import sys
 from collections import Counter
 
 # Add the project root to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlmodel import Session, select
+
 from app.core.config import settings
 from app.core.db import engine
 from app.crud.tacacs_siem import forward_tacacs_event_to_siem
 from app.models import AuthorizationStatistics
-from scripts._log_stats_base import get_target_date, to_log_datetime, parse_authorization_logs
+from scripts._log_stats_base import (
+    get_target_date,
+    parse_authorization_logs,
+    to_log_datetime,
+)
 
 
 def process_authorization_logs(node_name: str | None = None) -> None:
@@ -24,7 +29,9 @@ def process_authorization_logs(node_name: str | None = None) -> None:
     summary_date = get_target_date()
     target_date_str = summary_date.strftime("%Y-%m-%d")
 
-    print(f"Processing authorization log file for date {target_date_str} (node: {node_name})")
+    print(
+        f"Processing authorization log file for date {target_date_str} (node: {node_name})"
+    )
 
     permitted_authorizations, denied_authorizations = parse_authorization_logs(
         summary_date, settings.TACACS_LOG_DIRECTORY
@@ -47,7 +54,13 @@ def process_authorization_logs(node_name: str | None = None) -> None:
     print(f"Unique User/NAS/Client combinations: {len(all_keys)}")
     print("--------------------------------------------------")
 
-    save_statistics_to_db(summary_date, all_keys, permitted_authorizations, denied_authorizations, node_name)
+    save_statistics_to_db(
+        summary_date,
+        all_keys,
+        permitted_authorizations,
+        denied_authorizations,
+        node_name,
+    )
 
 
 def save_statistics_to_db(
@@ -103,11 +116,23 @@ def save_statistics_to_db(
             key = (username, nas_ip, user_source_ip)
             if permitted_authorizations.get(key, 0) > 0:
                 forward_tacacs_event_to_siem(
-                    "authorization", username, nas_ip, user_source_ip, "permit", ts, background=False
+                    "authorization",
+                    username,
+                    nas_ip,
+                    user_source_ip,
+                    "permit",
+                    ts,
+                    background=False,
                 )
             if denied_authorizations.get(key, 0) > 0:
                 forward_tacacs_event_to_siem(
-                    "authorization", username, nas_ip, user_source_ip, "deny", ts, background=False
+                    "authorization",
+                    username,
+                    nas_ip,
+                    user_source_ip,
+                    "deny",
+                    ts,
+                    background=False,
                 )
 
 

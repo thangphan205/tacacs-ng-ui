@@ -1,6 +1,7 @@
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session
+
 from app.models import ProfileScript, ProfileScriptCreate, ProfileScriptUpdate
 
 
@@ -18,7 +19,7 @@ def update_profilescript(
     *,
     session: Session,
     db_profilescript: ProfileScript,
-    profilescript_in: ProfileScriptUpdate
+    profilescript_in: ProfileScriptUpdate,
 ) -> Any:
     profilescript_data = profilescript_in.model_dump(exclude_unset=True)
     db_profilescript.sqlmodel_update(profilescript_data)

@@ -1,6 +1,7 @@
 from typing import Any
 
 from sqlmodel import Session, select
+
 from app.models import TacacsNgSetting, TacacsNgSettingCreate, TacacsNgSettingUpdate
 
 
@@ -24,7 +25,7 @@ def update_tacacs_ng(
     *,
     session: Session,
     db_tacacs_ng: TacacsNgSetting,
-    tacacs_ng_in: TacacsNgSettingUpdate
+    tacacs_ng_in: TacacsNgSettingUpdate,
 ) -> Any:
     tacacs_ng_data = tacacs_ng_in.model_dump(exclude_unset=True)
     db_tacacs_ng.sqlmodel_update(tacacs_ng_data)

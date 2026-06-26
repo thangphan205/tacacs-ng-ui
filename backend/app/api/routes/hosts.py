@@ -32,7 +32,9 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=HostsPublic,
 )
-def read_hosts(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
+def read_hosts(
+    session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None
+) -> Any:
     """
     Retrieve hosts.
     """
@@ -40,7 +42,12 @@ def read_hosts(session: SessionDep, skip: int = 0, limit: int = 100, search: str
     count_statement = select(func.count()).select_from(Host)
     statement = select(Host)
     if search:
-        f = Host.name.ilike(f"%{search}%") | Host.ipv4_address.ilike(f"%{search}%") | Host.ipv6_address.ilike(f"%{search}%") | Host.description.ilike(f"%{search}%")
+        f = (
+            Host.name.ilike(f"%{search}%")
+            | Host.ipv4_address.ilike(f"%{search}%")
+            | Host.ipv6_address.ilike(f"%{search}%")
+            | Host.description.ilike(f"%{search}%")
+        )
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()
@@ -55,7 +62,11 @@ def read_hosts(session: SessionDep, skip: int = 0, limit: int = 100, search: str
     response_model=HostPublic,
 )
 def create_host(
-    *, session: SessionDep, current_user: SuperUser, request: Request, host_in: HostCreate
+    *,
+    session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
+    host_in: HostCreate,
 ) -> Any:
     """
     Create new host.
@@ -69,9 +80,12 @@ def create_host(
 
     host = hosts.create_host(session=session, host_create=host_in)
     audit_logs_crud.log_entity_action(
-        session=session, action="CREATE", entity_type="Host",
+        session=session,
+        action="CREATE",
+        entity_type="Host",
         entity_id=str(host.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=host.model_dump_json(exclude=_SENSITIVE),
@@ -120,9 +134,12 @@ def update_host(
     old_values = db_host.model_dump_json(exclude=_SENSITIVE)
     db_host = hosts.update_host(session=session, db_host=db_host, host_in=host_in)
     audit_logs_crud.log_entity_action(
-        session=session, action="UPDATE", entity_type="Host",
+        session=session,
+        action="UPDATE",
+        entity_type="Host",
         entity_id=str(db_host.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
@@ -149,9 +166,12 @@ def delete_host(
     session.delete(host)
     session.commit()
     audit_logs_crud.log_entity_action(
-        session=session, action="DELETE", entity_type="Host",
+        session=session,
+        action="DELETE",
+        entity_type="Host",
         entity_id=str(id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,

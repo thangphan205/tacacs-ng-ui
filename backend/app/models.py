@@ -67,7 +67,9 @@ class User(UserBase, TimestampModel, table=True):
     password_login_disabled: bool = Field(default=False)
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
     webauthn_credentials: list["WebAuthnCredential"] = Relationship(
-        back_populates="user", cascade_delete=True, sa_relationship_kwargs={"lazy": "selectin"}
+        back_populates="user",
+        cascade_delete=True,
+        sa_relationship_kwargs={"lazy": "selectin"},
     )
 
     @property
@@ -752,9 +754,13 @@ class TacacsLogEvent(SQLModel):
     client_ip: str
     result: str  # "success" | "failed" | "permit" | "deny" | "start" | "stop"
     message: str
-    command: str | None = None  # extracted command/service from authorization/accounting messages
+    command: str | None = (
+        None  # extracted command/service from authorization/accounting messages
+    )
     port: str | None = None  # tty/port (e.g. vty14, tty0)
-    session_id: str | None = None  # logical session grouping key (username+nas_ip+client_ip+port)
+    session_id: str | None = (
+        None  # logical session grouping key (username+nas_ip+client_ip+port)
+    )
 
 
 class TacacsLogEventsPublic(SQLModel):
@@ -840,7 +846,16 @@ class AuthenticationStatisticsUpdate(AuthenticationStatisticsBase):
 class AuthenticationStatistics(
     AuthenticationStatisticsBase, TimestampModel, table=True
 ):
-    __table_args__ = (UniqueConstraint("username", "nas_ip", "user_source_ip", "log_date", "node_name", name="uq_authenticationstatistics_username_nas_ip_src_ip_log_date_nod"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "username",
+            "nas_ip",
+            "user_source_ip",
+            "log_date",
+            "node_name",
+            name="uq_authenticationstatistics_username_nas_ip_src_ip_log_date_nod",
+        ),
+    )
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
 
@@ -876,7 +891,16 @@ class AuthorizationStatisticsUpdate(AuthorizationStatisticsBase):
 
 # Database model, database table inferred from class name
 class AuthorizationStatistics(AuthorizationStatisticsBase, TimestampModel, table=True):
-    __table_args__ = (UniqueConstraint("username", "nas_ip", "user_source_ip", "log_date", "node_name", name="uq_authorizationstatistics_username_nas_ip_src_ip_log_date_node"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "username",
+            "nas_ip",
+            "user_source_ip",
+            "log_date",
+            "node_name",
+            name="uq_authorizationstatistics_username_nas_ip_src_ip_log_date_node",
+        ),
+    )
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
 
@@ -912,7 +936,16 @@ class AccountingStatisticsUpdate(AccountingStatisticsBase):
 
 # Database model, database table inferred from class name
 class AccountingStatistics(AccountingStatisticsBase, TimestampModel, table=True):
-    __table_args__ = (UniqueConstraint("username", "nas_ip", "user_source_ip", "log_date", "node_name", name="uq_accountingstatistics_username_nas_ip_src_ip_log_date_node"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "username",
+            "nas_ip",
+            "user_source_ip",
+            "log_date",
+            "node_name",
+            name="uq_accountingstatistics_username_nas_ip_src_ip_log_date_node",
+        ),
+    )
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
 
@@ -931,7 +964,6 @@ class AccountingStatisticsPublic(SQLModel):
 
 
 class AaaStatisticsTodayPublic(SQLModel):
-
     authentication_failed_count_by_user: list[dict] = []
     authentication_success_count_by_user: list[dict] = []
     authorization_deny_count_by_user: list[dict] = []
@@ -999,7 +1031,9 @@ class WebAuthnChallenge(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     challenge: bytes = Field(sa_column=Column(sa.LargeBinary, nullable=False))
     user_id: uuid.UUID | None = Field(default=None, index=True)
-    expires_at: datetime = Field(sa_column=Column(sa.DateTime(timezone=True), nullable=False))
+    expires_at: datetime = Field(
+        sa_column=Column(sa.DateTime(timezone=True), nullable=False)
+    )
     created_at: datetime = Field(default_factory=_utc_now, nullable=False)
 
 
@@ -1058,14 +1092,19 @@ class AuthProviderConfigUpdate(SQLModel):
 
 # Audit Logging
 
+
 class AuditLogBase(SQLModel):
     action: str = Field(index=True, max_length=50)
     entity_type: str = Field(index=True, max_length=100)
     entity_id: str | None = Field(default=None, max_length=255)
     description: str | None = Field(default=None, max_length=1024)
     user_agent: str | None = Field(default=None, max_length=512)
-    old_values: str | None = Field(default=None, sa_column=Column(sa.Text, nullable=True))
-    new_values: str | None = Field(default=None, sa_column=Column(sa.Text, nullable=True))
+    old_values: str | None = Field(
+        default=None, sa_column=Column(sa.Text, nullable=True)
+    )
+    new_values: str | None = Field(
+        default=None, sa_column=Column(sa.Text, nullable=True)
+    )
 
 
 class AuditLogCreate(AuditLogBase):
@@ -1102,8 +1141,12 @@ class AlertRuleBase(SQLModel):
     description: str | None = Field(default=None, max_length=1024)
     enabled: bool = Field(default=True)
     log_type: str = Field(max_length=50)  # auth/authz/accounting/all/config
-    condition_field: str = Field(max_length=100)  # username/nas_ip/client_ip/result/command/config_action
-    condition_operator: str = Field(max_length=50)  # gt/lt/eq/contains/new_value/any_change/created/updated/deleted/activated
+    condition_field: str = Field(
+        max_length=100
+    )  # username/nas_ip/client_ip/result/command/config_action
+    condition_operator: str = Field(
+        max_length=50
+    )  # gt/lt/eq/contains/new_value/any_change/created/updated/deleted/activated
     threshold: float | None = Field(default=None)
     time_window_minutes: int = Field(default=10)
     severity: str = Field(default="medium", max_length=20)  # low/medium/high/critical
@@ -1131,7 +1174,9 @@ class AlertRuleUpdate(SQLModel):
 class AlertRule(AlertRuleBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     last_fired_at: datetime | None = Field(default=None)
-    alert_events: list["AlertEvent"] = Relationship(back_populates="alert_rule", cascade_delete=True)
+    alert_events: list["AlertEvent"] = Relationship(
+        back_populates="alert_rule", cascade_delete=True
+    )
 
 
 class AlertRulePublic(AlertRuleBase):
@@ -1171,7 +1216,9 @@ class NotificationChannelUpdate(SQLModel):
 
 class NotificationChannel(NotificationChannelBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    alert_events: list["AlertEvent"] = Relationship(back_populates="notification_channel", cascade_delete=True)
+    alert_events: list["AlertEvent"] = Relationship(
+        back_populates="notification_channel", cascade_delete=True
+    )
 
 
 class NotificationChannelPublic(NotificationChannelBase):
@@ -1192,17 +1239,28 @@ class NotificationChannelsPublic(SQLModel):
 
 class AlertEventBase(SQLModel):
     triggered_at: datetime = Field(default_factory=_utc_now)
-    payload_snapshot: str | None = Field(default=None, sa_column=Column(sa.Text, nullable=True))
+    payload_snapshot: str | None = Field(
+        default=None, sa_column=Column(sa.Text, nullable=True)
+    )
     status: str = Field(default="sent", max_length=20)  # sent/failed
     error_message: str | None = Field(default=None, max_length=1024)
 
 
 class AlertEvent(AlertEventBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    rule_id: uuid.UUID = Field(foreign_key="alertrule.id", nullable=False, ondelete="CASCADE", index=True)
-    channel_id: uuid.UUID = Field(foreign_key="notificationchannel.id", nullable=False, ondelete="CASCADE", index=True)
+    rule_id: uuid.UUID = Field(
+        foreign_key="alertrule.id", nullable=False, ondelete="CASCADE", index=True
+    )
+    channel_id: uuid.UUID = Field(
+        foreign_key="notificationchannel.id",
+        nullable=False,
+        ondelete="CASCADE",
+        index=True,
+    )
     alert_rule: AlertRule | None = Relationship(back_populates="alert_events")
-    notification_channel: NotificationChannel | None = Relationship(back_populates="alert_events")
+    notification_channel: NotificationChannel | None = Relationship(
+        back_populates="alert_events"
+    )
 
 
 class AlertEventPublic(AlertEventBase):
@@ -1251,8 +1309,12 @@ class AnomalyDetectionResultBase(SQLModel):
     scored_at: datetime = Field(default_factory=_utc_now)
     anomaly_score: float
     is_anomaly: bool = Field(default=False)
-    risk_level: str = Field(default="normal", max_length=20)  # normal/low/medium/high/critical
-    feature_snapshot: str | None = Field(default=None, sa_column=Column(sa.Text, nullable=True))
+    risk_level: str = Field(
+        default="normal", max_length=20
+    )  # normal/low/medium/high/critical
+    feature_snapshot: str | None = Field(
+        default=None, sa_column=Column(sa.Text, nullable=True)
+    )
 
 
 class AnomalyDetectionResult(AnomalyDetectionResultBase, TimestampModel, table=True):

@@ -1,16 +1,21 @@
-import sys
 import os
+import sys
 from collections import Counter
 
 # Add the project root to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlmodel import Session, select
+
 from app.core.config import settings
 from app.core.db import engine
 from app.crud.tacacs_siem import forward_tacacs_event_to_siem
 from app.models import AccountingStatistics
-from scripts._log_stats_base import get_target_date, to_log_datetime, parse_accounting_logs
+from scripts._log_stats_base import (
+    get_target_date,
+    parse_accounting_logs,
+    to_log_datetime,
+)
 
 
 def process_accounting_logs(node_name: str | None = None) -> None:
@@ -24,9 +29,13 @@ def process_accounting_logs(node_name: str | None = None) -> None:
     summary_date = get_target_date()
     target_date_str = summary_date.strftime("%Y-%m-%d")
 
-    print(f"Processing accounting log file for date {target_date_str} (node: {node_name})")
+    print(
+        f"Processing accounting log file for date {target_date_str} (node: {node_name})"
+    )
 
-    start_events, stop_events = parse_accounting_logs(summary_date, settings.TACACS_LOG_DIRECTORY)
+    start_events, stop_events = parse_accounting_logs(
+        summary_date, settings.TACACS_LOG_DIRECTORY
+    )
 
     total_starts = sum(start_events.values())
     total_stops = sum(stop_events.values())
@@ -101,11 +110,23 @@ def save_statistics_to_db(
             key = (username, nas_ip, user_source_ip)
             if start_events.get(key, 0) > 0:
                 forward_tacacs_event_to_siem(
-                    "accounting", username, nas_ip, user_source_ip, "start", ts, background=False
+                    "accounting",
+                    username,
+                    nas_ip,
+                    user_source_ip,
+                    "start",
+                    ts,
+                    background=False,
                 )
             if stop_events.get(key, 0) > 0:
                 forward_tacacs_event_to_siem(
-                    "accounting", username, nas_ip, user_source_ip, "stop", ts, background=False
+                    "accounting",
+                    username,
+                    nas_ip,
+                    user_source_ip,
+                    "stop",
+                    ts,
+                    background=False,
                 )
 
 

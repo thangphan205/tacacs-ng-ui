@@ -66,7 +66,9 @@ def delete_notification_channel(
     session.commit()
 
 
-def test_notification_channel(*, channel: NotificationChannel) -> tuple[bool, str | None]:
+def test_notification_channel(
+    *, channel: NotificationChannel
+) -> tuple[bool, str | None]:
     return dispatch_notification(
         channel=channel,
         subject="TACACS-NG Test Notification",

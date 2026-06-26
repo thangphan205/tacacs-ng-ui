@@ -1,10 +1,12 @@
 """Core alert evaluation engine — called by the background worker every 5 minutes."""
+
 import json
 import logging
 import os
 import re
-from datetime import datetime, time as dt_time, timedelta, timezone
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
+from datetime import time as dt_time
 
 from sqlmodel import Session, col, select
 
@@ -45,7 +47,9 @@ _AUTHZ_REGEX = re.compile(
 )
 
 
-def _log_paths_for_window(window_start: datetime, now: datetime, log_type: str) -> list[str]:
+def _log_paths_for_window(
+    window_start: datetime, now: datetime, log_type: str
+) -> list[str]:
     """Return log file paths needed to cover the time window (today + yesterday if spans midnight)."""
     today_path = now.strftime(
         f"{settings.TACACS_LOG_DIRECTORY}%Y/%m/{log_type}-%Y-%m-%d.log"
@@ -60,7 +64,9 @@ def _log_paths_for_window(window_start: datetime, now: datetime, log_type: str) 
     return [p for p in paths if os.path.exists(p)]
 
 
-def _parse_auth_log(window_start: datetime, now: datetime) -> tuple[dict[str, int], dict[str, int], set[str], set[str]]:
+def _parse_auth_log(
+    window_start: datetime, now: datetime
+) -> tuple[dict[str, int], dict[str, int], set[str], set[str]]:
     """
     Parse auth log for the time window.
     Returns: (fail_counts_by_user, fail_counts_by_ip, recent_usernames, recent_ips)
@@ -73,13 +79,15 @@ def _parse_auth_log(window_start: datetime, now: datetime) -> tuple[dict[str, in
 
     for path in _log_paths_for_window(window_start, now, "authentication"):
         try:
-            with open(path, "r", errors="ignore") as f:
+            with open(path, errors="ignore") as f:
                 for line in f:
                     m = _AUTH_REGEX.match(line)
                     if not m:
                         continue
                     try:
-                        ts = datetime.strptime(m.group("timestamp"), "%Y-%m-%d %H:%M:%S %z")
+                        ts = datetime.strptime(
+                            m.group("timestamp"), "%Y-%m-%d %H:%M:%S %z"
+                        )
                     except ValueError:
                         continue
                     if ts < window_start or ts > now:
@@ -92,7 +100,7 @@ def _parse_auth_log(window_start: datetime, now: datetime) -> tuple[dict[str, in
                     if "failed" in msg or "denied" in msg:
                         fail_by_user[username] += 1
                         fail_by_ip[client_ip] += 1
-        except IOError:
+        except OSError:
             pass
 
     return dict(fail_by_user), dict(fail_by_ip), seen_usernames, seen_ips
@@ -104,13 +112,15 @@ def _parse_authz_log(window_start: datetime, now: datetime) -> dict[str, int]:
 
     for path in _log_paths_for_window(window_start, now, "authorization"):
         try:
-            with open(path, "r", errors="ignore") as f:
+            with open(path, errors="ignore") as f:
                 for line in f:
                     m = _AUTHZ_REGEX.match(line)
                     if not m:
                         continue
                     try:
-                        ts = datetime.strptime(m.group("timestamp"), "%Y-%m-%d %H:%M:%S %z")
+                        ts = datetime.strptime(
+                            m.group("timestamp"), "%Y-%m-%d %H:%M:%S %z"
+                        )
                     except ValueError:
                         continue
                     if ts < window_start or ts > now:
@@ -118,7 +128,7 @@ def _parse_authz_log(window_start: datetime, now: datetime) -> dict[str, int]:
                     msg = m.group("message").lower()
                     if "deny" in msg:
                         deny_by_user[m.group("username")] += 1
-        except IOError:
+        except OSError:
             pass
 
     return dict(deny_by_user)
@@ -153,6 +163,7 @@ def _baseline_ips(window_start: datetime, session: Session) -> set[str]:
 # ---------------------------------------------------------------------------
 # Evaluation engine
 # ---------------------------------------------------------------------------
+
 
 def evaluate_all_rules(*, session: Session) -> None:
     """Evaluate all alert rules that are due. Fire notifications for triggered rules."""
@@ -199,9 +210,7 @@ def evaluate_all_rules(*, session: Session) -> None:
         crud_alert_rules.set_last_fired(session=session, rule_id=rule.id, fired_at=now)
 
 
-def _evaluate_rule(
-    *, rule: AlertRule, session: Session
-) -> tuple[bool, dict]:
+def _evaluate_rule(*, rule: AlertRule, session: Session) -> tuple[bool, dict]:
     """Return (triggered, payload_dict)."""
     now = datetime.now(timezone.utc)
     window_start = now - timedelta(minutes=rule.time_window_minutes)
@@ -237,7 +246,9 @@ def _check_auth_stats(
     operator = rule.condition_operator
     threshold = rule.threshold or 0
 
-    fail_by_user, fail_by_ip, seen_usernames, seen_ips = _parse_auth_log(window_start, now)
+    fail_by_user, fail_by_ip, seen_usernames, seen_ips = _parse_auth_log(
+        window_start, now
+    )
 
     if field == "username" and operator == "new_value":
         baseline = _baseline_usernames(window_start, session)
@@ -255,7 +266,9 @@ def _check_auth_stats(
 
     if field in ("fail_count", "result") and operator in ("gt", "lt", "eq"):
         total_fail = sum(fail_by_user.values())
-        return _compare(value=float(total_fail), operator=operator, threshold=threshold), {
+        return _compare(
+            value=float(total_fail), operator=operator, threshold=threshold
+        ), {
             "fail_count": total_fail,
             "window_minutes": rule.time_window_minutes,
             "rule": rule.name,
@@ -273,7 +286,9 @@ def _check_authz_stats(
     if operator in ("gt", "lt", "eq"):
         deny_by_user = _parse_authz_log(window_start, now)
         total_deny = sum(deny_by_user.values())
-        return _compare(value=float(total_deny), operator=operator, threshold=threshold), {
+        return _compare(
+            value=float(total_deny), operator=operator, threshold=threshold
+        ), {
             "deny_count": total_deny,
             "window_minutes": rule.time_window_minutes,
             "rule": rule.name,
@@ -283,24 +298,32 @@ def _check_authz_stats(
 
 
 _CONFIG_ACTION_MAP: dict[str, list[str]] = {
-    "any_change": ["CREATE", "UPDATE", "DELETE"],  # ACTIVATE excluded — has its own rule
-    "created":    ["CREATE"],
-    "updated":    ["UPDATE"],
-    "deleted":    ["DELETE"],
-    "activated":  ["ACTIVATE"],
+    "any_change": [
+        "CREATE",
+        "UPDATE",
+        "DELETE",
+    ],  # ACTIVATE excluded — has its own rule
+    "created": ["CREATE"],
+    "updated": ["UPDATE"],
+    "deleted": ["DELETE"],
+    "activated": ["ACTIVATE"],
 }
 
 
 def _check_audit_logs(
     *, rule: AlertRule, session: Session, window_start: datetime
 ) -> tuple[bool, dict]:
-    actions = _CONFIG_ACTION_MAP.get(rule.condition_operator, ["CREATE", "UPDATE", "DELETE"])
+    actions = _CONFIG_ACTION_MAP.get(
+        rule.condition_operator, ["CREATE", "UPDATE", "DELETE"]
+    )
     rows = session.exec(
-        select(AuditLog).where(
+        select(AuditLog)
+        .where(
             AuditLog.entity_type == "TacacsConfig",
             col(AuditLog.action).in_(actions),
             AuditLog.created_at >= window_start,
-        ).order_by(AuditLog.created_at.desc())  # type: ignore[attr-defined]
+        )
+        .order_by(AuditLog.created_at.desc())  # type: ignore[attr-defined]
     ).all()
     count = len(rows)
     threshold = int(rule.threshold or 1)
@@ -358,10 +381,23 @@ _PAYLOAD_LABELS: dict[str, str] = {
 def _format_body(*, rule: AlertRule, payload: dict) -> str:
     sev_icon = _SEVERITY_EMOJI.get(rule.severity, "⚠️")
     type_icon = _LOG_TYPE_EMOJI.get(rule.log_type, "📋")
-    op_map = {"gt": ">", "lt": "<", "eq": "=", "new_value": "new", "any_change": "any change",
-              "created": "created", "updated": "updated", "deleted": "deleted", "activated": "activated"}
+    op_map = {
+        "gt": ">",
+        "lt": "<",
+        "eq": "=",
+        "new_value": "new",
+        "any_change": "any change",
+        "created": "created",
+        "updated": "updated",
+        "deleted": "deleted",
+        "activated": "activated",
+    }
     op = op_map.get(rule.condition_operator, rule.condition_operator)
-    condition = f"{rule.condition_field} {op} {rule.threshold}" if rule.threshold else f"{rule.condition_field} {op}"
+    condition = (
+        f"{rule.condition_field} {op} {rule.threshold}"
+        if rule.threshold
+        else f"{rule.condition_field} {op}"
+    )
     lines = [
         f"{sev_icon} Severity: {rule.severity.upper()}",
         f"{type_icon} Log type: {rule.log_type}",

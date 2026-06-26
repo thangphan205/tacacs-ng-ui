@@ -32,7 +32,9 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=TacacsUsersPublic,
 )
-def read_tacacs_users(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
+def read_tacacs_users(
+    session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None
+) -> Any:
     """
     Retrieve users.
     """
@@ -40,7 +42,11 @@ def read_tacacs_users(session: SessionDep, skip: int = 0, limit: int = 100, sear
     count_statement = select(func.count()).select_from(TacacsUser)
     statement = select(TacacsUser)
     if search:
-        f = TacacsUser.username.ilike(f"%{search}%") | TacacsUser.member.ilike(f"%{search}%") | TacacsUser.description.ilike(f"%{search}%")
+        f = (
+            TacacsUser.username.ilike(f"%{search}%")
+            | TacacsUser.member.ilike(f"%{search}%")
+            | TacacsUser.description.ilike(f"%{search}%")
+        )
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()
@@ -55,7 +61,11 @@ def read_tacacs_users(session: SessionDep, skip: int = 0, limit: int = 100, sear
     response_model=TacacsUserPublic,
 )
 def create_tacacs_user(
-    *, session: SessionDep, current_user: SuperUser, request: Request, user_in: TacacsUserCreate
+    *,
+    session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
+    user_in: TacacsUserCreate,
 ) -> Any:
     """
     Create new user.
@@ -71,9 +81,12 @@ def create_tacacs_user(
 
     user = tacacs_users.create_tacacs_user(session=session, user_create=user_in)
     audit_logs_crud.log_entity_action(
-        session=session, action="CREATE", entity_type="TacacsUser",
+        session=session,
+        action="CREATE",
+        entity_type="TacacsUser",
         entity_id=str(user.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=user.model_dump_json(exclude=_SENSITIVE),
@@ -138,9 +151,12 @@ def update_tacacs_user(
         session=session, db_user=db_user, user_in=user_in
     )
     audit_logs_crud.log_entity_action(
-        session=session, action="UPDATE", entity_type="TacacsUser",
+        session=session,
+        action="UPDATE",
+        entity_type="TacacsUser",
         entity_id=str(db_user.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
@@ -167,9 +183,12 @@ def delete_tacacs_user(
     session.delete(tacacs_user)
     session.commit()
     audit_logs_crud.log_entity_action(
-        session=session, action="DELETE", entity_type="TacacsUser",
+        session=session,
+        action="DELETE",
+        entity_type="TacacsUser",
         entity_id=str(id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,

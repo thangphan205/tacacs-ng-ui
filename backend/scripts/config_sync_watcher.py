@@ -5,6 +5,7 @@ regenerates tac_plus-ng.cfg + reloads the daemon when a change is detected.
 
 Exits immediately if NODE_ROLE != standby or SYNC_MODE != auto.
 """
+
 import logging
 import os
 import sys
@@ -21,7 +22,11 @@ SYNC_MODE = os.environ.get("SYNC_MODE", "auto")
 POLL_INTERVAL = int(os.environ.get("SYNC_WATCHER_INTERVAL", "10"))
 
 if NODE_ROLE != "standby" or SYNC_MODE != "auto":
-    log.info("Not in standby+auto mode (NODE_ROLE=%s, SYNC_MODE=%s). Exiting.", NODE_ROLE, SYNC_MODE)
+    log.info(
+        "Not in standby+auto mode (NODE_ROLE=%s, SYNC_MODE=%s). Exiting.",
+        NODE_ROLE,
+        SYNC_MODE,
+    )
     sys.exit(0)
 
 # Delay startup to let FastAPI and DB connection initialize
@@ -49,7 +54,9 @@ while True:
             if active is not None:
                 version = f"{active.id}:{active.updated_at}"
                 if last_seen is not None and version != last_seen:
-                    log.info("Active config changed — regenerating and reloading tac_plus-ng.")
+                    log.info(
+                        "Active config changed — regenerating and reloading tac_plus-ng."
+                    )
                     reload_active_config_from_db(session=session)
                 last_seen = version
 

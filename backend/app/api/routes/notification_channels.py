@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.api.deps import CurrentUser, SessionDep, require_primary_node
 from app.crud import notification_channels as crud_channels
 from app.models import (
-    NotificationChannel,
     NotificationChannelCreate,
     NotificationChannelPublic,
     NotificationChannelsPublic,
@@ -23,18 +22,26 @@ def read_notification_channels(
     skip: int = 0,
     limit: int = 100,
 ) -> Any:
-    channels, count = crud_channels.get_notification_channels(session=session, skip=skip, limit=limit)
+    channels, count = crud_channels.get_notification_channels(
+        session=session, skip=skip, limit=limit
+    )
     return NotificationChannelsPublic(data=channels, count=count)
 
 
-@router.post("/", dependencies=[Depends(require_primary_node)], response_model=NotificationChannelPublic)
+@router.post(
+    "/",
+    dependencies=[Depends(require_primary_node)],
+    response_model=NotificationChannelPublic,
+)
 def create_notification_channel(
     *,
     session: SessionDep,
     current_user: CurrentUser,
     channel_in: NotificationChannelCreate,
 ) -> Any:
-    return crud_channels.create_notification_channel(session=session, channel_in=channel_in)
+    return crud_channels.create_notification_channel(
+        session=session, channel_in=channel_in
+    )
 
 
 @router.get("/{id}", response_model=NotificationChannelPublic)
@@ -49,7 +56,11 @@ def read_notification_channel_by_id(
     return channel
 
 
-@router.patch("/{id}", dependencies=[Depends(require_primary_node)], response_model=NotificationChannelPublic)
+@router.patch(
+    "/{id}",
+    dependencies=[Depends(require_primary_node)],
+    response_model=NotificationChannelPublic,
+)
 def update_notification_channel(
     *,
     id: uuid.UUID,

@@ -2,6 +2,7 @@ from typing import Any
 
 from passlib.context import CryptContext
 from sqlmodel import Session, select
+
 from app.models import TacacsUser, TacacsUserCreate, TacacsUserUpdate
 
 # SHA-512 crypt hashing - compatible with tac_plus-ng "crypt" password type
@@ -39,7 +40,10 @@ def update_tacacs_user(
     # Hash the password if type is crypt and a new password is provided
     password_type = user_data.get("password_type", db_user.password_type)
     if password_type == "crypt" and user_data.get("password"):
-        if not (db_user.password_type == "crypt" and user_data["password"] == db_user.password):
+        if not (
+            db_user.password_type == "crypt"
+            and user_data["password"] == db_user.password
+        ):
             user_data["password"] = hash_tacacs_password(user_data["password"])
     db_user.sqlmodel_update(user_data)
     session.add(db_user)

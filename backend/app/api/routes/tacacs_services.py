@@ -31,7 +31,9 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=TacacsServicesPublic,
 )
-def read_tacacs_services(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
+def read_tacacs_services(
+    session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None
+) -> Any:
     """
     Retrieve tacacs_services.
     """
@@ -39,7 +41,9 @@ def read_tacacs_services(session: SessionDep, skip: int = 0, limit: int = 100, s
     count_statement = select(func.count()).select_from(TacacsService)
     statement = select(TacacsService)
     if search:
-        f = TacacsService.name.ilike(f"%{search}%") | TacacsService.description.ilike(f"%{search}%")
+        f = TacacsService.name.ilike(f"%{search}%") | TacacsService.description.ilike(
+            f"%{search}%"
+        )
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()
@@ -76,9 +80,12 @@ def create_tacacs_service(
         session=session, tacacs_service_create=tacacs_service_in
     )
     audit_logs_crud.log_entity_action(
-        session=session, action="CREATE", entity_type="TacacsService",
+        session=session,
+        action="CREATE",
+        entity_type="TacacsService",
         entity_id=str(tacacs_service.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=tacacs_service.model_dump_json(exclude=_SENSITIVE),
@@ -134,9 +141,12 @@ def update_tacacs_service(
         tacacs_service_in=tacacs_service_in,
     )
     audit_logs_crud.log_entity_action(
-        session=session, action="UPDATE", entity_type="TacacsService",
+        session=session,
+        action="UPDATE",
+        entity_type="TacacsService",
         entity_id=str(db_tacacs_service.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
@@ -162,9 +172,12 @@ def delete_tacacs_service(
     session.delete(tacacs_service)
     session.commit()
     audit_logs_crud.log_entity_action(
-        session=session, action="DELETE", entity_type="TacacsService",
+        session=session,
+        action="DELETE",
+        entity_type="TacacsService",
         entity_id=str(id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,

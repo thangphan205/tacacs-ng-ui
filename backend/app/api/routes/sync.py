@@ -67,16 +67,24 @@ def push_config_to_standby(_: CurrentUser) -> dict:
     Only valid on the primary node with SYNC_MODE=manual.
     """
     if settings.NODE_ROLE != "primary":
-        raise HTTPException(status_code=400, detail="Only the primary node can push config.")
+        raise HTTPException(
+            status_code=400, detail="Only the primary node can push config."
+        )
     if not settings.PEER_BACKEND_URL:
-        raise HTTPException(status_code=400, detail="PEER_BACKEND_URL is not configured.")
+        raise HTTPException(
+            status_code=400, detail="PEER_BACKEND_URL is not configured."
+        )
     if not settings.INTERNAL_SYNC_TOKEN:
-        raise HTTPException(status_code=400, detail="INTERNAL_SYNC_TOKEN is not configured.")
+        raise HTTPException(
+            status_code=400, detail="INTERNAL_SYNC_TOKEN is not configured."
+        )
 
     url = f"{settings.PEER_BACKEND_URL.rstrip('/')}/api/v1/sync/internal/reload-config"
     try:
         with httpx.Client(timeout=15) as client:
-            r = client.post(url, headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN})
+            r = client.post(
+                url, headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN}
+            )
     except httpx.RequestError as e:
         raise HTTPException(status_code=502, detail=f"Could not reach peer node: {e}")
 
@@ -102,7 +110,9 @@ def promote_to_primary(
     After success, update .env (NODE_ROLE=primary, SCHEDULER_ENABLED=true) and restart backend.
     """
     if settings.NODE_ROLE != "standby":
-        raise HTTPException(status_code=400, detail="Only standby nodes can be promoted.")
+        raise HTTPException(
+            status_code=400, detail="Only standby nodes can be promoted."
+        )
 
     try:
         lag_col = cast(
@@ -145,16 +155,19 @@ def internal_collect_stats(
     """
     token = request.headers.get("X-Internal-Token")
     if not settings.INTERNAL_SYNC_TOKEN or token != settings.INTERNAL_SYNC_TOKEN:
-        raise HTTPException(status_code=403, detail="Invalid or missing internal sync token.")
+        raise HTTPException(
+            status_code=403, detail="Invalid or missing internal sync token."
+        )
+
+    import sys
 
     from scripts._log_stats_base import (
+        get_target_date,
+        parse_accounting_logs,
         parse_authentication_logs,
         parse_authorization_logs,
-        parse_accounting_logs,
-        get_target_date,
         to_log_datetime,
     )
-    import sys
 
     if target_date is None:
         # Temporarily inject no-arg so get_target_date() uses yesterday
@@ -188,9 +201,15 @@ def internal_collect_stats(
     return {
         "node_name": settings.NODE_NAME,
         "date": target_date.isoformat(),
-        "authentication": _counters_to_list(auth_success, auth_fail, "success_count", "fail_count"),
-        "authorization": _counters_to_list(authz_permit, authz_deny, "permit_count", "deny_count"),
-        "accounting": _counters_to_list(acct_start, acct_stop, "start_count", "stop_count"),
+        "authentication": _counters_to_list(
+            auth_success, auth_fail, "success_count", "fail_count"
+        ),
+        "authorization": _counters_to_list(
+            authz_permit, authz_deny, "permit_count", "deny_count"
+        ),
+        "accounting": _counters_to_list(
+            acct_start, acct_stop, "start_count", "stop_count"
+        ),
     }
 
 
@@ -203,7 +222,9 @@ def internal_reload_config(request: Request, session: SessionDep) -> dict:
     """
     token = request.headers.get("X-Internal-Token")
     if not settings.INTERNAL_SYNC_TOKEN or token != settings.INTERNAL_SYNC_TOKEN:
-        raise HTTPException(status_code=403, detail="Invalid or missing internal sync token.")
+        raise HTTPException(
+            status_code=403, detail="Invalid or missing internal sync token."
+        )
 
     try:
         reload_active_config_from_db(session=session)

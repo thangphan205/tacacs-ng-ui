@@ -44,9 +44,12 @@ router = APIRouter(prefix="/passkeys", tags=["passkeys"])
 
 def _to_public(cred: Any) -> WebAuthnCredentialPublic:
     import base64
+
     return WebAuthnCredentialPublic(
         id=cred.id,
-        credential_id=base64.urlsafe_b64encode(cred.credential_id).rstrip(b"=").decode(),
+        credential_id=base64.urlsafe_b64encode(cred.credential_id)
+        .rstrip(b"=")
+        .decode(),
         name=cred.name,
         created_at=cred.created_at,
         last_used_at=cred.last_used_at,
@@ -75,7 +78,9 @@ def _parse_authentication_credential(data: dict) -> AuthenticationCredential:  #
             client_data_json=base64url_to_bytes(resp["clientDataJSON"]),
             authenticator_data=base64url_to_bytes(resp["authenticatorData"]),
             signature=base64url_to_bytes(resp["signature"]),
-            user_handle=base64url_to_bytes(resp["userHandle"]) if resp.get("userHandle") else None,
+            user_handle=base64url_to_bytes(resp["userHandle"])
+            if resp.get("userHandle")
+            else None,
         ),
     )
 
@@ -132,7 +137,9 @@ def register_complete(
         )
     except Exception as exc:
         logger.exception("Passkey registration failed")
-        raise HTTPException(status_code=400, detail=f"Registration failed: {exc}") from exc
+        raise HTTPException(
+            status_code=400, detail=f"Registration failed: {exc}"
+        ) from exc
 
     cred = passkeys_crud.create_credential(
         session=session,
@@ -193,7 +200,9 @@ def authenticate_complete(
     try:
         auth_cred = _parse_authentication_credential(body.credential)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail="Invalid credential format") from exc
+        raise HTTPException(
+            status_code=400, detail="Invalid credential format"
+        ) from exc
 
     # client_data_json is already decoded bytes — parse directly
     client_data = json.loads(auth_cred.response.client_data_json)
@@ -223,7 +232,9 @@ def authenticate_complete(
         )
     except Exception as exc:
         logger.exception("Passkey authentication failed")
-        raise HTTPException(status_code=400, detail=f"Authentication failed: {exc}") from exc
+        raise HTTPException(
+            status_code=400, detail=f"Authentication failed: {exc}"
+        ) from exc
 
     passkeys_crud.update_sign_count(
         session=session, cred=db_cred, new_count=verified.new_sign_count

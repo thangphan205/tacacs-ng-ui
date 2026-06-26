@@ -145,7 +145,12 @@ def _send_teams(*, config: dict, subject: str, body: str) -> tuple[bool, str | N
                             "size": "Large",
                             "wrap": True,
                         },
-                        {"type": "TextBlock", "text": body, "wrap": True, "spacing": "Medium"},
+                        {
+                            "type": "TextBlock",
+                            "text": body,
+                            "wrap": True,
+                            "spacing": "Medium",
+                        },
                     ],
                 },
             }

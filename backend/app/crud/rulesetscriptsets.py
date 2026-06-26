@@ -1,6 +1,7 @@
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session
+
 from app.models import RulesetScriptSet, RulesetScriptSetCreate, RulesetScriptSetUpdate
 
 
@@ -18,7 +19,7 @@ def update_rulesetscriptset(
     *,
     session: Session,
     db_rulesetscriptset: RulesetScriptSet,
-    rulesetscriptset_in: RulesetScriptSetUpdate
+    rulesetscriptset_in: RulesetScriptSetUpdate,
 ) -> Any:
     rulesetscriptset_data = rulesetscriptset_in.model_dump(exclude_unset=True)
     db_rulesetscriptset.sqlmodel_update(rulesetscriptset_data)

@@ -71,7 +71,9 @@ def validate_password_pci_dss(password: str) -> None:
     dependencies=[Depends(get_current_active_superuser)],
     response_model=UsersPublic,
 )
-def read_users(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
+def read_users(
+    session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None
+) -> Any:
     """
     Retrieve users.
     """
@@ -89,9 +91,15 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100, search: str
     return UsersPublic(data=users, count=count)
 
 
-@router.post("/", dependencies=[Depends(require_primary_node)], response_model=UserPublic)
+@router.post(
+    "/", dependencies=[Depends(require_primary_node)], response_model=UserPublic
+)
 def create_user(
-    *, session: SessionDep, current_user: SuperUser, request: Request, user_in: UserCreate
+    *,
+    session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
+    user_in: UserCreate,
 ) -> Any:
     """
     Create new user.
@@ -116,9 +124,12 @@ def create_user(
             html_content=email_data.html_content,
         )
     audit_logs_crud.log_entity_action(
-        session=session, action="CREATE", entity_type="User",
+        session=session,
+        action="CREATE",
+        entity_type="User",
         entity_id=str(user.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=user.model_dump_json(exclude=_SENSITIVE),
@@ -126,9 +137,15 @@ def create_user(
     return user
 
 
-@router.patch("/me", dependencies=[Depends(require_primary_node)], response_model=UserPublic)
+@router.patch(
+    "/me", dependencies=[Depends(require_primary_node)], response_model=UserPublic
+)
 def update_user_me(
-    *, session: SessionDep, request: Request, user_in: UserUpdateMe, current_user: CurrentUser
+    *,
+    session: SessionDep,
+    request: Request,
+    user_in: UserUpdateMe,
+    current_user: CurrentUser,
 ) -> Any:
     """
     Update own user.
@@ -141,9 +158,12 @@ def update_user_me(
     session.commit()
     session.refresh(current_user)
     audit_logs_crud.log_entity_action(
-        session=session, action="UPDATE", entity_type="User",
+        session=session,
+        action="UPDATE",
+        entity_type="User",
         entity_id=str(current_user.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
@@ -152,9 +172,15 @@ def update_user_me(
     return current_user
 
 
-@router.patch("/me/password", dependencies=[Depends(require_primary_node)], response_model=Message)
+@router.patch(
+    "/me/password", dependencies=[Depends(require_primary_node)], response_model=Message
+)
 def update_password_me(
-    *, session: SessionDep, request: Request, body: UpdatePassword, current_user: CurrentUser
+    *,
+    session: SessionDep,
+    request: Request,
+    body: UpdatePassword,
+    current_user: CurrentUser,
 ) -> Any:
     """
     Update own password.
@@ -172,9 +198,12 @@ def update_password_me(
     session.add(current_user)
     session.commit()
     audit_logs_crud.log_entity_action(
-        session=session, action="UPDATE", entity_type="User",
+        session=session,
+        action="UPDATE",
+        entity_type="User",
         entity_id=str(current_user.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         description="Password updated",
@@ -190,8 +219,9 @@ def read_user_me(current_user: CurrentUser) -> Any:
     return current_user
 
 
-
-@router.post("/signup", dependencies=[Depends(require_primary_node)], response_model=UserPublic)
+@router.post(
+    "/signup", dependencies=[Depends(require_primary_node)], response_model=UserPublic
+)
 def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     """
     Create new user without the need to be logged in.
@@ -268,9 +298,12 @@ def update_user(
     old_values = db_user.model_dump_json(exclude=_SENSITIVE)
     db_user = users.update_user(session=session, db_user=db_user, user_in=user_in)
     audit_logs_crud.log_entity_action(
-        session=session, action="UPDATE", entity_type="User",
+        session=session,
+        action="UPDATE",
+        entity_type="User",
         entity_id=str(db_user.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
@@ -279,7 +312,10 @@ def update_user(
     return db_user
 
 
-@router.delete("/{user_id}", dependencies=[Depends(get_current_active_superuser), Depends(require_primary_node)])
+@router.delete(
+    "/{user_id}",
+    dependencies=[Depends(get_current_active_superuser), Depends(require_primary_node)],
+)
 def delete_user(
     session: SessionDep, request: Request, current_user: CurrentUser, user_id: uuid.UUID
 ) -> Message:
@@ -299,9 +335,12 @@ def delete_user(
     session.delete(user)
     session.commit()
     audit_logs_crud.log_entity_action(
-        session=session, action="DELETE", entity_type="User",
+        session=session,
+        action="DELETE",
+        entity_type="User",
         entity_id=str(user_id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,

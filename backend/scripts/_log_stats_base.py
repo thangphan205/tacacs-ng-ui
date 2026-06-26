@@ -2,7 +2,8 @@ import os
 import re
 import sys
 from collections import Counter
-from datetime import date, datetime, time as time_, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
+from datetime import time as time_
 from zoneinfo import ZoneInfo
 
 # IPv4 or IPv6 — requires dots or colons so plain port/session numbers (e.g. "39001") don't match.
@@ -18,8 +19,8 @@ AUTH_LOG_REGEX = re.compile(
     r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
     rf"(?P<nas_ip>{_IP})\t"
     r"(?P<username>[\w.-]+)"
-    + _NON_IP_FIELD                          # optional tty / port / flag (not an IP)
-    + rf"(?:\t(?P<client_ip>{_IP}))?"        # optional real client IP
+    + _NON_IP_FIELD  # optional tty / port / flag (not an IP)
+    + rf"(?:\t(?P<client_ip>{_IP}))?"  # optional real client IP
     + r"\t(?P<message>[^\n]+)$"
 )
 
@@ -46,9 +47,11 @@ ACCT_LOG_REGEX = re.compile(
 def _get_local_tz() -> ZoneInfo:
     """Read timezone from DB setting, fall back to TZ env var, then UTC."""
     try:
+        from sqlmodel import Session, select
+
         from app.core.db import engine
         from app.models import TacacsNgSetting
-        from sqlmodel import Session, select
+
         with Session(engine) as session:
             setting = session.exec(select(TacacsNgSetting)).first()
             if setting and setting.timezone:
@@ -67,7 +70,9 @@ def get_target_date() -> date:
         try:
             return datetime.strptime(sys.argv[1], "%Y-%m-%d").date()
         except ValueError:
-            print(f"Invalid date argument '{sys.argv[1]}'. Expected YYYY-MM-DD. Using yesterday.")
+            print(
+                f"Invalid date argument '{sys.argv[1]}'. Expected YYYY-MM-DD. Using yesterday."
+            )
     return (datetime.now(_get_local_tz()) - timedelta(days=1)).date()
 
 
@@ -86,6 +91,7 @@ def build_log_file_path(target_date: date, log_type: str, log_directory: str) ->
 # Used by cron scripts and by the internal collect-stats API endpoint.
 # ---------------------------------------------------------------------------
 
+
 def parse_authentication_logs(
     target_date: date, log_directory: str
 ) -> tuple[Counter, Counter]:
@@ -100,7 +106,7 @@ def parse_authentication_logs(
         return successful_logins, failed_logins
 
     try:
-        with open(log_file_path, "r", errors="ignore") as f:
+        with open(log_file_path, errors="ignore") as f:
             for line in f:
                 if not line.startswith(target_date_str):
                     continue
@@ -119,7 +125,7 @@ def parse_authentication_logs(
                     successful_logins[key] += 1
                 else:
                     failed_logins[key] += 1
-    except IOError:
+    except OSError:
         pass
 
     return successful_logins, failed_logins
@@ -139,7 +145,7 @@ def parse_authorization_logs(
         return permitted, denied
 
     try:
-        with open(log_file_path, "r", errors="ignore") as f:
+        with open(log_file_path, errors="ignore") as f:
             for line in f:
                 if not line.startswith(target_date_str):
                     continue
@@ -158,7 +164,7 @@ def parse_authorization_logs(
                     permitted[key] += 1
                 elif "deny" in message:
                     denied[key] += 1
-    except IOError:
+    except OSError:
         pass
 
     return permitted, denied
@@ -178,7 +184,7 @@ def parse_accounting_logs(
         return start_events, stop_events
 
     try:
-        with open(log_file_path, "r", errors="ignore") as f:
+        with open(log_file_path, errors="ignore") as f:
             for line in f:
                 if not line.startswith(target_date_str):
                     continue
@@ -197,7 +203,7 @@ def parse_accounting_logs(
                     start_events[key] += 1
                 elif action == "stop":
                     stop_events[key] += 1
-    except IOError:
+    except OSError:
         pass
 
     return start_events, stop_events

@@ -2,9 +2,9 @@ import asyncio
 import logging
 import subprocess
 import sys
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import date
-from typing import AsyncGenerator
 
 import sentry_sdk
 from fastapi import FastAPI
@@ -15,14 +15,14 @@ from starlette.middleware.cors import CORSMiddleware
 from app.api.main import api_router
 from app.core.config import settings
 from app.core.db import engine
-from app.crud.audit_logs import purge_old_audit_logs
 from app.crud.alert_evaluator import evaluate_all_rules
+from app.crud.audit_logs import purge_old_audit_logs
 from app.crud.ml_anomaly_scorer import run_daily_anomaly_scoring
 
 logger = logging.getLogger(__name__)
 
 _PURGE_INTERVAL_SECONDS = 24 * 60 * 60  # 24 hours
-_ALERT_EVAL_INTERVAL_SECONDS = 5 * 60   # 5 minutes
+_ALERT_EVAL_INTERVAL_SECONDS = 5 * 60  # 5 minutes
 _ML_SCORING_INTERVAL_SECONDS = 24 * 60 * 60  # 24 hours
 
 
@@ -78,7 +78,12 @@ async def _stats_collection_loop() -> None:
                     timeout=120,
                 )
                 if proc.returncode != 0:
-                    logger.warning("Stats script %s exited %s: %s", script, proc.returncode, proc.stderr[-500:])
+                    logger.warning(
+                        "Stats script %s exited %s: %s",
+                        script,
+                        proc.returncode,
+                        proc.stderr[-500:],
+                    )
             except subprocess.TimeoutExpired:
                 logger.warning("Stats script %s timed out", script)
             except Exception:
@@ -87,6 +92,7 @@ async def _stats_collection_loop() -> None:
         # collect from peer nodes
         try:
             from app.api.routes.aaa_statistics import _collect_from_peers
+
             _collect_from_peers(today_str)
         except Exception:
             logger.exception("Peer stats collection failed")

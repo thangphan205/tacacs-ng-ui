@@ -1,6 +1,7 @@
 from typing import Any
 
 from sqlmodel import Session, select
+
 from app.models import TacacsService, TacacsServiceCreate, TacacsServiceUpdate
 
 
@@ -24,7 +25,7 @@ def update_tacacs_service(
     *,
     session: Session,
     db_tacacs_service: TacacsService,
-    tacacs_service_in: TacacsServiceUpdate
+    tacacs_service_in: TacacsServiceUpdate,
 ) -> Any:
     tacacs_service_data = tacacs_service_in.model_dump(exclude_unset=True)
     db_tacacs_service.sqlmodel_update(tacacs_service_data)

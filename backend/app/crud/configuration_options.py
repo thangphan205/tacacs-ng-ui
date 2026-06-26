@@ -1,6 +1,7 @@
 from typing import Any
 
 from sqlmodel import Session, select
+
 from app.models import (
     ConfigurationOption,
     ConfigurationOptionCreate,
@@ -30,7 +31,7 @@ def update_configuration_option(
     *,
     session: Session,
     db_configuration_option: ConfigurationOption,
-    configuration_option_in: ConfigurationOptionUpdate
+    configuration_option_in: ConfigurationOptionUpdate,
 ) -> Any:
     configuration_option_data = configuration_option_in.model_dump(exclude_unset=True)
     db_configuration_option.sqlmodel_update(configuration_option_data)

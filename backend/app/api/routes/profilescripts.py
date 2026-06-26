@@ -32,7 +32,9 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=ProfileScriptsPublic,
 )
-def read_profilescripts(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
+def read_profilescripts(
+    session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None
+) -> Any:
     """
     Retrieve profilescripts.
     """
@@ -40,7 +42,12 @@ def read_profilescripts(session: SessionDep, skip: int = 0, limit: int = 100, se
     count_statement = select(func.count()).select_from(ProfileScript)
     base_statement = select(ProfileScript, Profile).join(Profile)
     if search:
-        f = ProfileScript.condition.ilike(f"%{search}%") | ProfileScript.key.ilike(f"%{search}%") | ProfileScript.value.ilike(f"%{search}%") | ProfileScript.description.ilike(f"%{search}%")
+        f = (
+            ProfileScript.condition.ilike(f"%{search}%")
+            | ProfileScript.key.ilike(f"%{search}%")
+            | ProfileScript.value.ilike(f"%{search}%")
+            | ProfileScript.description.ilike(f"%{search}%")
+        )
         count_statement = count_statement.where(f)
         base_statement = base_statement.where(f)
     count = session.exec(count_statement).one()
@@ -74,9 +81,12 @@ def create_profilescript(
         session=session, profilescript_create=profilescript_in
     )
     audit_logs_crud.log_entity_action(
-        session=session, action="CREATE", entity_type="ProfileScript",
+        session=session,
+        action="CREATE",
+        entity_type="ProfileScript",
         entity_id=str(profilescript.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=profilescript.model_dump_json(exclude=_SENSITIVE),
@@ -135,9 +145,12 @@ def update_profilescript(
         profilescript_in=profilescript_in,
     )
     audit_logs_crud.log_entity_action(
-        session=session, action="UPDATE", entity_type="ProfileScript",
+        session=session,
+        action="UPDATE",
+        entity_type="ProfileScript",
         entity_id=str(db_profilescript.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
@@ -164,9 +177,12 @@ def delete_profilescript(
     session.delete(profilescript)
     session.commit()
     audit_logs_crud.log_entity_action(
-        session=session, action="DELETE", entity_type="ProfileScript",
+        session=session,
+        action="DELETE",
+        entity_type="ProfileScript",
         entity_id=str(id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,

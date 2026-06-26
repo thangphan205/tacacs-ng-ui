@@ -52,7 +52,9 @@ def read_tacacs_configs(
     count_statement = select(func.count()).select_from(TacacsConfig)
     statement = select(TacacsConfig)
     if search:
-        f = TacacsConfig.filename.ilike(f"%{search}%") | TacacsConfig.description.ilike(f"%{search}%")
+        f = TacacsConfig.filename.ilike(f"%{search}%") | TacacsConfig.description.ilike(
+            f"%{search}%"
+        )
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()
@@ -60,7 +62,9 @@ def read_tacacs_configs(
     if sort_column is None:
         raise HTTPException(status_code=400, detail=f"Invalid sort column: {sort_by}")
     order = sort_column.desc() if sort_order == "desc" else sort_column.asc()
-    tacacs_configs = session.exec(statement.order_by(order).offset(skip).limit(limit)).all()
+    tacacs_configs = session.exec(
+        statement.order_by(order).offset(skip).limit(limit)
+    ).all()
 
     return TacacsConfigsPublic(data=tacacs_configs, count=count)
 
@@ -142,9 +146,12 @@ def create_tacacs_config(
         session=session, tacacs_config_create=tacacs_config_in
     )
     audit_logs_crud.log_entity_action(
-        session=session, action="CREATE", entity_type="TacacsConfig",
+        session=session,
+        action="CREATE",
+        entity_type="TacacsConfig",
         entity_id=str(tacacs_config.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=tacacs_config.model_dump_json(exclude=_SENSITIVE),
@@ -225,16 +232,22 @@ def update_tacacs_config(
     if tacacs_config_in.data is not None:
         filename = db_tacacs_config.filename + ".cfg"
         if ".." in filename or "/" in filename:
-            raise HTTPException(status_code=400, detail="Invalid filename path traversal.")
+            raise HTTPException(
+                status_code=400, detail="Invalid filename path traversal."
+            )
         source_file_path = os.path.join(tacacs_configs.CONFIG_PATH, filename)
         try:
             with open(source_file_path, "w", encoding="utf-8") as f:
                 f.write(tacacs_config_in.data)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error writing configuration file: {e}")
+            raise HTTPException(
+                status_code=500, detail=f"Error writing configuration file: {e}"
+            )
 
     # 2. Only run syntax check if we are activating
-    should_activate = tacacs_config_in.active if tacacs_config_in.active is not None else True
+    should_activate = (
+        tacacs_config_in.active if tacacs_config_in.active is not None else True
+    )
     if should_activate:
         result = tacacs_configs.check_tacacs_config_by_id(session=session, id=id)
         if result["status"] == "error":
@@ -251,9 +264,12 @@ def update_tacacs_config(
     )
     new_values_json = db_tacacs_config.model_dump_json(exclude=_SENSITIVE)
     audit_logs_crud.log_entity_action(
-        session=session, action="UPDATE", entity_type="TacacsConfig",
+        session=session,
+        action="UPDATE",
+        entity_type="TacacsConfig",
         entity_id=str(db_tacacs_config.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
@@ -262,9 +278,12 @@ def update_tacacs_config(
     old_active = json.loads(old_values).get("active", False)
     if not old_active and db_tacacs_config.active:
         audit_logs_crud.log_entity_action(
-            session=session, action="ACTIVATE", entity_type="TacacsConfig",
+            session=session,
+            action="ACTIVATE",
+            entity_type="TacacsConfig",
             entity_id=str(db_tacacs_config.id),
-            user_id=current_user.id, user_email=current_user.email,
+            user_id=current_user.id,
+            user_email=current_user.email,
             ip_address=get_client_ip(request),
             user_agent=request.headers.get("user-agent"),
             new_values=new_values_json,
@@ -292,9 +311,12 @@ def delete_tacacs_config(
         session=session, db_tacacs_config=db_tacacs_config
     )
     audit_logs_crud.log_entity_action(
-        session=session, action="DELETE", entity_type="TacacsConfig",
+        session=session,
+        action="DELETE",
+        entity_type="TacacsConfig",
         entity_id=str(id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,

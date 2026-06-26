@@ -1,13 +1,14 @@
 from typing import Any
 
 from sqlmodel import Session, select
+
 from app.models import (
+    ConfigurationOption,
     Ruleset,
     RulesetCreate,
-    RulesetUpdate,
     RulesetScript,
     RulesetScriptSet,
-    ConfigurationOption,
+    RulesetUpdate,
 )
 
 
@@ -37,7 +38,6 @@ def update_ruleset(
 
 
 def ruleset_generator(session: Session) -> str:
-
     statement_configuration_rule = select(ConfigurationOption).where(
         ConfigurationOption.name == "rule"
     )
@@ -46,12 +46,12 @@ def ruleset_generator(session: Session) -> str:
     if configuration_rule_options:
         ruleset_template += "\n   # Ruleset Configuration Options\n"
         for configuration_rule_option in configuration_rule_options:
-            ruleset_template += """     {}\n""".format(
-                configuration_rule_option.config_option
-            )
+            ruleset_template += f"""     {configuration_rule_option.config_option}\n"""
         ruleset_template += "\n   # End of Ruleset Configuration Options\n"
 
-    rulesets_db = session.exec(select(Ruleset).where(Ruleset.generate_config == True)).all()
+    rulesets_db = session.exec(
+        select(Ruleset).where(Ruleset.generate_config == True)
+    ).all()
 
     for ruleset_db in rulesets_db:
         statement = select(RulesetScript).where(
@@ -89,22 +89,16 @@ def ruleset_generator(session: Session) -> str:
                 rulesetscriptset_template=rulesetscriptset_template,
                 action=rulesetscript_info["action"],
             )
-        ruleset_template += """     rule {rule_name} {{
+        ruleset_template += f"""     rule {ruleset_db.name} {{
         enabled=yes
         script {{
 {rulesetscript_template}
-            {action}
+            {ruleset_db.action}
             }}
-        }}\n""".format(
-            rule_name=ruleset_db.name,
-            rulesetscript_template=rulesetscript_template,
-            action=ruleset_db.action,
-        )
+        }}\n"""
 
-    ruleset_all = """
+    ruleset_all = f"""
     ruleset {{
 {ruleset_template}
-    }}\n""".format(
-        ruleset_template=ruleset_template
-    )
+    }}\n"""
     return ruleset_all

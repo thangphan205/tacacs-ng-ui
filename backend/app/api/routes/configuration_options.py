@@ -41,7 +41,11 @@ def read_configuration_options(
     count_statement = select(func.count()).select_from(ConfigurationOption)
     statement = select(ConfigurationOption)
     if search:
-        f = ConfigurationOption.name.ilike(f"%{search}%") | ConfigurationOption.config_option.ilike(f"%{search}%") | ConfigurationOption.description.ilike(f"%{search}%")
+        f = (
+            ConfigurationOption.name.ilike(f"%{search}%")
+            | ConfigurationOption.config_option.ilike(f"%{search}%")
+            | ConfigurationOption.description.ilike(f"%{search}%")
+        )
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()
@@ -78,9 +82,12 @@ def create_configuration_option(
         session=session, configuration_option_create=configuration_option_in
     )
     audit_logs_crud.log_entity_action(
-        session=session, action="CREATE", entity_type="ConfigurationOption",
+        session=session,
+        action="CREATE",
+        entity_type="ConfigurationOption",
         entity_id=str(configuration_option.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=configuration_option.model_dump_json(exclude=_SENSITIVE),
@@ -136,9 +143,12 @@ def update_configuration_option(
         configuration_option_in=configuration_option_in,
     )
     audit_logs_crud.log_entity_action(
-        session=session, action="UPDATE", entity_type="ConfigurationOption",
+        session=session,
+        action="UPDATE",
+        entity_type="ConfigurationOption",
         entity_id=str(db_configuration_option.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
@@ -165,9 +175,12 @@ def delete_configuration_option(
     session.delete(configuration_option)
     session.commit()
     audit_logs_crud.log_entity_action(
-        session=session, action="DELETE", entity_type="ConfigurationOption",
+        session=session,
+        action="DELETE",
+        entity_type="ConfigurationOption",
         entity_id=str(id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,

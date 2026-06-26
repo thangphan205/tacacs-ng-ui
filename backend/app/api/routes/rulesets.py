@@ -34,7 +34,9 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=RulesetsPublic,
 )
-def read_rulesets(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
+def read_rulesets(
+    session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None
+) -> Any:
     """
     Retrieve rulesets.
     """
@@ -42,7 +44,11 @@ def read_rulesets(session: SessionDep, skip: int = 0, limit: int = 100, search: 
     count_statement = select(func.count()).select_from(Ruleset)
     statement = select(Ruleset)
     if search:
-        f = Ruleset.name.ilike(f"%{search}%") | Ruleset.action.ilike(f"%{search}%") | Ruleset.description.ilike(f"%{search}%")
+        f = (
+            Ruleset.name.ilike(f"%{search}%")
+            | Ruleset.action.ilike(f"%{search}%")
+            | Ruleset.description.ilike(f"%{search}%")
+        )
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()
@@ -85,7 +91,11 @@ def preview_rulesets(
     response_model=RulesetPublic,
 )
 def create_ruleset(
-    *, session: SessionDep, current_user: CurrentUser, request: Request, ruleset_in: RulesetCreate
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    request: Request,
+    ruleset_in: RulesetCreate,
 ) -> Any:
     """
     Create new ruleset.
@@ -100,9 +110,12 @@ def create_ruleset(
 
     ruleset = rulesets.create_ruleset(session=session, ruleset_create=ruleset_in)
     audit_logs_crud.log_entity_action(
-        session=session, action="CREATE", entity_type="Ruleset",
+        session=session,
+        action="CREATE",
+        entity_type="Ruleset",
         entity_id=str(ruleset.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=ruleset.model_dump_json(exclude=_SENSITIVE),
@@ -153,9 +166,12 @@ def update_ruleset(
         session=session, db_ruleset=db_ruleset, ruleset_in=ruleset_in
     )
     audit_logs_crud.log_entity_action(
-        session=session, action="UPDATE", entity_type="Ruleset",
+        session=session,
+        action="UPDATE",
+        entity_type="Ruleset",
         entity_id=str(db_ruleset.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
@@ -182,9 +198,12 @@ def delete_ruleset(
     session.delete(ruleset)
     session.commit()
     audit_logs_crud.log_entity_action(
-        session=session, action="DELETE", entity_type="Ruleset",
+        session=session,
+        action="DELETE",
+        entity_type="Ruleset",
         entity_id=str(id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,

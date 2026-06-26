@@ -1,13 +1,14 @@
 from typing import Any
 
 from sqlmodel import Session, select
+
 from app.models import (
+    ConfigurationOption,
     Profile,
     ProfileCreate,
-    ProfileUpdate,
     ProfileScript,
     ProfileScriptSet,
-    ConfigurationOption,
+    ProfileUpdate,
 )
 
 
@@ -37,7 +38,6 @@ def update_profile(
 
 
 def profile_generator(session: Session) -> str:
-
     statement_configuration_profile = select(ConfigurationOption).where(
         ConfigurationOption.name == "profile"
     )
@@ -46,16 +46,15 @@ def profile_generator(session: Session) -> str:
     if configuration_profile_options:
         profile_template += "\n    # Profile Configuration Options\n"
         for configuration_profile_option in configuration_profile_options:
-            profile_template += """
-    {}
-""".format(
-                configuration_profile_option.config_option
-            )
+            profile_template += f"""
+    {configuration_profile_option.config_option}
+"""
         profile_template += "\n    # End of Profile Configuration Options\n"
 
-    profiles_db = session.exec(select(Profile).where(Profile.generate_config == True)).all()
+    profiles_db = session.exec(
+        select(Profile).where(Profile.generate_config == True)
+    ).all()
     for profile_db in profiles_db:
-
         statement = select(ProfileScript).where(
             ProfileScript.profile_id == profile_db.id
         )
@@ -92,17 +91,13 @@ def profile_generator(session: Session) -> str:
                 profilescriptset_template=profilescriptset_template,
                 action=profilescript_info["action"],
             )
-        profile_template += """
-    profile {profile_name} {{
+        profile_template += f"""
+    profile {profile_db.name} {{
         script {{
 {profilescript_template}
-        {action}
+        {profile_db.action}
         }}
     }}
-""".format(
-            profile_name=profile_db.name,
-            profilescript_template=profilescript_template,
-            action=profile_db.action,
-        )
+"""
 
     return profile_template

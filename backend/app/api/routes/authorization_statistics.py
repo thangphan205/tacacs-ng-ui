@@ -1,4 +1,5 @@
-from datetime import date, datetime, time as time_, timezone
+from datetime import date, datetime, timezone
+from datetime import time as time_
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -8,7 +9,9 @@ from sqlmodel import func, select
 from app.api.deps import SessionDep, get_current_user
 from app.models import AuthorizationStatistics, AuthorizationStatisticsPublic
 
-router = APIRouter(prefix="/authorization_statistics", tags=["authorization_statistics"])
+router = APIRouter(
+    prefix="/authorization_statistics", tags=["authorization_statistics"]
+)
 
 _SORT_FIELDS = {
     "log_date": AuthorizationStatistics.log_date,
@@ -20,7 +23,11 @@ _SORT_FIELDS = {
 }
 
 
-@router.get("/", dependencies=[Depends(get_current_user)], response_model=AuthorizationStatisticsPublic)
+@router.get(
+    "/",
+    dependencies=[Depends(get_current_user)],
+    response_model=AuthorizationStatisticsPublic,
+)
 def read_authorization_statistics(
     session: SessionDep,
     skip: int = 0,

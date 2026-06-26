@@ -33,7 +33,9 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     dependencies=[Depends(get_current_user)],
     response_model=RulesetScriptSetsPublic,
 )
-def read_rulesetscriptsets(session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None) -> Any:
+def read_rulesetscriptsets(
+    session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None
+) -> Any:
     """
     Retrieve rulesetscriptsets.
     """
@@ -55,7 +57,11 @@ def read_rulesetscriptsets(session: SessionDep, skip: int = 0, limit: int = 100,
         )
     )
     if search:
-        f = RulesetScriptSet.key.ilike(f"%{search}%") | RulesetScriptSet.value.ilike(f"%{search}%") | RulesetScriptSet.description.ilike(f"%{search}%")
+        f = (
+            RulesetScriptSet.key.ilike(f"%{search}%")
+            | RulesetScriptSet.value.ilike(f"%{search}%")
+            | RulesetScriptSet.description.ilike(f"%{search}%")
+        )
         count_statement = count_statement.where(f)
         base_statement = base_statement.where(f)
     count = session.exec(count_statement).one()
@@ -97,9 +103,12 @@ def create_rulesetscriptset(
         session=session, rulesetscriptset_create=rulesetscriptset_in
     )
     audit_logs_crud.log_entity_action(
-        session=session, action="CREATE", entity_type="RulesetScriptSet",
+        session=session,
+        action="CREATE",
+        entity_type="RulesetScriptSet",
         entity_id=str(rulesetscriptset.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         new_values=rulesetscriptset.model_dump_json(exclude=_SENSITIVE),
@@ -155,9 +164,12 @@ def update_rulesetscriptset(
         rulesetscriptset_in=rulesetscriptset_in,
     )
     audit_logs_crud.log_entity_action(
-        session=session, action="UPDATE", entity_type="RulesetScriptSet",
+        session=session,
+        action="UPDATE",
+        entity_type="RulesetScriptSet",
         entity_id=str(db_rulesetscriptset.id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,
@@ -184,9 +196,12 @@ def delete_rulesetscriptset(
     session.delete(rulesetscriptset)
     session.commit()
     audit_logs_crud.log_entity_action(
-        session=session, action="DELETE", entity_type="RulesetScriptSet",
+        session=session,
+        action="DELETE",
+        entity_type="RulesetScriptSet",
         entity_id=str(id),
-        user_id=current_user.id, user_email=current_user.email,
+        user_id=current_user.id,
+        user_email=current_user.email,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
         old_values=old_values,

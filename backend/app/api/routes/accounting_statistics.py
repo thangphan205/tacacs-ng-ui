@@ -1,4 +1,5 @@
-from datetime import date, datetime, time as time_, timezone
+from datetime import date, datetime, timezone
+from datetime import time as time_
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -20,7 +21,11 @@ _SORT_FIELDS = {
 }
 
 
-@router.get("/", dependencies=[Depends(get_current_user)], response_model=AccountingStatisticsPublic)
+@router.get(
+    "/",
+    dependencies=[Depends(get_current_user)],
+    response_model=AccountingStatisticsPublic,
+)
 def read_accounting_statistics(
     session: SessionDep,
     skip: int = 0,

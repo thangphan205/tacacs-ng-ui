@@ -1,4 +1,5 @@
 """ML anomaly scoring using IsolationForest on 30-day rolling stats."""
+
 import json
 import logging
 
@@ -32,7 +33,9 @@ def run_daily_anomaly_scoring(*, session: Session) -> int:
     matrix = get_feature_matrix(session=session, days=30)
 
     if len(matrix) < 2:
-        logger.info("Not enough subjects to score anomalies (need >= 2, got %d)", len(matrix))
+        logger.info(
+            "Not enough subjects to score anomalies (need >= 2, got %d)", len(matrix)
+        )
         return 0
 
     subjects = list(matrix.keys())

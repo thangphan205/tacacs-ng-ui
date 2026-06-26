@@ -16,9 +16,9 @@ from app.crud import aaa_statistics
 from app.models import (
     AaaStatisticsDateRangePublic,
     AaaStatisticsTodayPublic,
+    AccountingStatistics,
     AuthenticationStatistics,
     AuthorizationStatistics,
-    AccountingStatistics,
 )
 
 log = logging.getLogger(__name__)
@@ -59,6 +59,7 @@ def read_aaa_statistics(
     return_statistics.update(
         aaa_statistics.process_today_authentication_statistics(
             session=session,
+            node_name=node_name,
         )
     )
 
@@ -132,28 +133,29 @@ def read_aaa_statistics_range(
     return return_statistics
 
 
-def _upsert_peer_stats(session: Session, data: dict) -> None:
+def _upsert_peer_stats(session: Session, data: dict[str, Any]) -> None:
     """Write stats returned by a peer's collect-stats endpoint into the local DB."""
     from datetime import datetime as dt
+
     from sqlmodel import select as sel
 
     peer_node = data.get("node_name", "unknown")
 
     for row in data.get("authentication", []):
         log_dt = dt.fromisoformat(row["log_date"])
-        stmt = sel(AuthenticationStatistics).where(
+        auth_stmt = sel(AuthenticationStatistics).where(
             AuthenticationStatistics.username == row["username"],
             AuthenticationStatistics.nas_ip == row["nas_ip"],
             AuthenticationStatistics.user_source_ip == row["user_source_ip"],
             AuthenticationStatistics.log_date == log_dt,
             AuthenticationStatistics.node_name == peer_node,
         )
-        obj = session.exec(stmt).first()
-        if obj:
-            obj.success_count = row["success_count"]
-            obj.fail_count = row["fail_count"]
+        auth_obj = session.exec(auth_stmt).first()
+        if auth_obj:
+            auth_obj.success_count = row["success_count"]
+            auth_obj.fail_count = row["fail_count"]
         else:
-            obj = AuthenticationStatistics(
+            auth_obj = AuthenticationStatistics(
                 username=row["username"],
                 nas_ip=row["nas_ip"],
                 user_source_ip=row["user_source_ip"],
@@ -162,23 +164,23 @@ def _upsert_peer_stats(session: Session, data: dict) -> None:
                 log_date=log_dt,
                 node_name=peer_node,
             )
-        session.add(obj)
+        session.add(auth_obj)
 
     for row in data.get("authorization", []):
         log_dt = dt.fromisoformat(row["log_date"])
-        stmt = sel(AuthorizationStatistics).where(
+        authz_stmt = sel(AuthorizationStatistics).where(
             AuthorizationStatistics.username == row["username"],
             AuthorizationStatistics.nas_ip == row["nas_ip"],
             AuthorizationStatistics.user_source_ip == row["user_source_ip"],
             AuthorizationStatistics.log_date == log_dt,
             AuthorizationStatistics.node_name == peer_node,
         )
-        obj = session.exec(stmt).first()
-        if obj:
-            obj.permit_count = row["permit_count"]
-            obj.deny_count = row["deny_count"]
+        authz_obj = session.exec(authz_stmt).first()
+        if authz_obj:
+            authz_obj.permit_count = row["permit_count"]
+            authz_obj.deny_count = row["deny_count"]
         else:
-            obj = AuthorizationStatistics(
+            authz_obj = AuthorizationStatistics(
                 username=row["username"],
                 nas_ip=row["nas_ip"],
                 user_source_ip=row["user_source_ip"],
@@ -187,23 +189,23 @@ def _upsert_peer_stats(session: Session, data: dict) -> None:
                 log_date=log_dt,
                 node_name=peer_node,
             )
-        session.add(obj)
+        session.add(authz_obj)
 
     for row in data.get("accounting", []):
         log_dt = dt.fromisoformat(row["log_date"])
-        stmt = sel(AccountingStatistics).where(
+        acct_stmt = sel(AccountingStatistics).where(
             AccountingStatistics.username == row["username"],
             AccountingStatistics.nas_ip == row["nas_ip"],
             AccountingStatistics.user_source_ip == row["user_source_ip"],
             AccountingStatistics.log_date == log_dt,
             AccountingStatistics.node_name == peer_node,
         )
-        obj = session.exec(stmt).first()
-        if obj:
-            obj.start_count = row["start_count"]
-            obj.stop_count = row["stop_count"]
+        acct_obj = session.exec(acct_stmt).first()
+        if acct_obj:
+            acct_obj.start_count = row["start_count"]
+            acct_obj.stop_count = row["stop_count"]
         else:
-            obj = AccountingStatistics(
+            acct_obj = AccountingStatistics(
                 username=row["username"],
                 nas_ip=row["nas_ip"],
                 user_source_ip=row["user_source_ip"],
@@ -212,7 +214,7 @@ def _upsert_peer_stats(session: Session, data: dict) -> None:
                 log_date=log_dt,
                 node_name=peer_node,
             )
-        session.add(obj)
+        session.add(acct_obj)
 
     session.commit()
 

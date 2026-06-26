@@ -51,9 +51,7 @@ def delete_alert_rule(*, session: Session, db_rule: AlertRule) -> None:
     session.commit()
 
 
-def set_last_fired(
-    *, session: Session, rule_id: uuid.UUID, fired_at: datetime
-) -> None:
+def set_last_fired(*, session: Session, rule_id: uuid.UUID, fired_at: datetime) -> None:
     rule = session.get(AlertRule, rule_id)
     if rule:
         rule.last_fired_at = fired_at

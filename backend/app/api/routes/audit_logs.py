@@ -24,9 +24,7 @@ def read_audit_logs(
 
 
 @router.get("/{id}", response_model=AuditLogPublic)
-def read_audit_log_by_id(
-    id: uuid.UUID, session: SessionDep
-) -> Any:
+def read_audit_log_by_id(id: uuid.UUID, session: SessionDep) -> Any:
     log = session.get(AuditLog, id)
     if not log:
         raise HTTPException(status_code=404, detail="Audit log not found")

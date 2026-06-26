@@ -64,11 +64,22 @@ def reload_active_config_from_db(*, session: Session) -> None:
 
     try:
         result = subprocess.run(
-            ["supervisorctl", "-c", "/etc/supervisor/conf.d/supervisord.conf", "restart", "tacacs"],
-            capture_output=True, text=True, timeout=10,
+            [
+                "supervisorctl",
+                "-c",
+                "/etc/supervisor/conf.d/supervisord.conf",
+                "restart",
+                "tacacs",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if result.returncode != 0:
-            log.warning("supervisorctl restart failed during HA sync: %s", result.stderr or result.stdout)
+            log.warning(
+                "supervisorctl restart failed during HA sync: %s",
+                result.stderr or result.stdout,
+            )
         else:
             log.info("tac_plus-ng reloaded via HA sync.")
     except Exception as e:
@@ -261,7 +272,9 @@ def _notify_peer_reload() -> None:
     url = f"{settings.PEER_BACKEND_URL.rstrip('/')}/api/v1/sync/internal/reload-config"
     try:
         with httpx.Client(timeout=10) as client:
-            r = client.post(url, headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN})
+            r = client.post(
+                url, headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN}
+            )
         if r.status_code != 200:
             log.warning("Peer reload returned HTTP %s: %s", r.status_code, r.text)
         else:

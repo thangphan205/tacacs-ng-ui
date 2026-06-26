@@ -1,8 +1,13 @@
+import logging
 import os
 import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
+
+import httpx
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import func, select
@@ -16,8 +21,8 @@ from app.models import (
     TacacsLogEventsPublic,
     TacacsLogLatestDate,
     TacacsLogPublic,
-    TacacsLogTypeSummary,
     TacacsLogsPublic,
+    TacacsLogTypeSummary,
 )
 
 router = APIRouter(prefix="/tacacs_logs", tags=["tacacs_logs"])
@@ -220,6 +225,115 @@ def get_log_events_summary(
             elif ev.result == "stop":
                 s.stop += 1
 
+    # If primary node, also collect and aggregate from peer nodes
+    if settings.NODE_ROLE == "primary":
+        peer_urls = [u.strip() for u in settings.PEER_NODES.split(",") if u.strip()]
+        if not peer_urls and settings.PEER_BACKEND_URL:
+            peer_urls = [settings.PEER_BACKEND_URL]
+
+        fetched_peer_nodes = set()
+        for url in peer_urls:
+            endpoint = f"{url.rstrip('/')}/api/v1/sync/internal/collect-stats"
+            if not settings.INTERNAL_SYNC_TOKEN:
+                continue
+            try:
+                with httpx.Client(timeout=3.0) as client:
+                    resp = client.post(
+                        endpoint,
+                        params={"date": date_str},
+                        headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN},
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        peer_node_name = data.get("node_name")
+                        if peer_node_name:
+                            fetched_peer_nodes.add(peer_node_name)
+                        # Add authentication
+                        for row in data.get("authentication", []):
+                            summary["authentication"].total += row.get(
+                                "success_count", 0
+                            ) + row.get("fail_count", 0)
+                            summary["authentication"].success += row.get(
+                                "success_count", 0
+                            )
+                            summary["authentication"].failed += row.get("fail_count", 0)
+                        # Add authorization
+                        for row in data.get("authorization", []):
+                            summary["authorization"].total += row.get(
+                                "permit_count", 0
+                            ) + row.get("deny_count", 0)
+                            summary["authorization"].permit += row.get(
+                                "permit_count", 0
+                            )
+                            summary["authorization"].deny += row.get("deny_count", 0)
+                        # Add accounting
+                        for row in data.get("accounting", []):
+                            summary["accounting"].total += row.get(
+                                "start_count", 0
+                            ) + row.get("stop_count", 0)
+                            summary["accounting"].start += row.get("start_count", 0)
+                            summary["accounting"].stop += row.get("stop_count", 0)
+            except Exception as e:
+                logger.warning("Failed to fetch live stats from peer %s: %s", url, e)
+
+        # Fallback to DB for any non-local nodes not fetched successfully
+        from datetime import time as time_
+
+        from sqlmodel import Session, select
+
+        from app.core.db import engine
+        from app.crud.aaa_statistics import get_distinct_node_names
+        from app.models import (
+            AccountingStatistics,
+            AuthenticationStatistics,
+            AuthorizationStatistics,
+        )
+
+        log_dt = datetime.combine(target_date.date(), time_.min).replace(
+            tzinfo=timezone.utc
+        )
+        with Session(engine) as session:
+            all_known_nodes = get_distinct_node_names(session)
+            for kn in all_known_nodes:
+                if kn != settings.NODE_NAME and kn not in fetched_peer_nodes:
+                    # Query Authentication
+                    auth_rows = session.exec(
+                        select(AuthenticationStatistics).where(
+                            AuthenticationStatistics.log_date == log_dt,
+                            AuthenticationStatistics.node_name == kn,
+                        )
+                    ).all()
+                    for r in auth_rows:
+                        summary["authentication"].total += (
+                            r.success_count + r.fail_count
+                        )
+                        summary["authentication"].success += r.success_count
+                        summary["authentication"].failed += r.fail_count
+
+                    # Query Authorization
+                    authz_rows = session.exec(
+                        select(AuthorizationStatistics).where(
+                            AuthorizationStatistics.log_date == log_dt,
+                            AuthorizationStatistics.node_name == kn,
+                        )
+                    ).all()
+                    for r in authz_rows:
+                        summary["authorization"].total += r.permit_count + r.deny_count
+                        summary["authorization"].permit += r.permit_count
+                        summary["authorization"].deny += r.deny_count
+
+                    # Query Accounting
+                    acct_rows = session.exec(
+                        select(AccountingStatistics).where(
+                            AccountingStatistics.log_date == log_dt,
+                            AccountingStatistics.node_name == kn,
+                        )
+                    ).all()
+                    for r in acct_rows:
+                        summary["accounting"].total += r.start_count + r.stop_count
+                        summary["accounting"].start += r.start_count
+                        summary["accounting"].stop += r.stop_count
+
     return TacacsLogDailySummary(
         date=date_str,
         authentication=summary["authentication"],
@@ -253,7 +367,9 @@ def list_log_events(
     today = datetime.now(timezone.utc)
     try:
         if date_from or date_to:
-            start_date = datetime.strptime(date_from, "%Y-%m-%d") if date_from else today
+            start_date = (
+                datetime.strptime(date_from, "%Y-%m-%d") if date_from else today
+            )
             end_date = datetime.strptime(date_to, "%Y-%m-%d") if date_to else today
         elif date:
             start_date = datetime.strptime(date, "%Y-%m-%d")
@@ -301,7 +417,8 @@ def list_log_events(
     if search:
         q = search.lower()
         all_events = [
-            e for e in all_events
+            e
+            for e in all_events
             if q in e.username.lower()
             or q in e.nas_ip.lower()
             or (e.client_ip and q in e.client_ip.lower())

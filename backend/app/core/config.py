@@ -37,9 +37,9 @@ class Settings(BaseSettings):
     FRONTEND_HOST: str = "http://localhost:5173"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
-    BACKEND_CORS_ORIGINS: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = (
-        []
-    )
+    BACKEND_CORS_ORIGINS: Annotated[
+        list[AnyUrl] | str, BeforeValidator(parse_cors)
+    ] = []
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -159,8 +159,10 @@ class Settings(BaseSettings):
     USERS_OPEN_REGISTRATION: bool = False
 
     # Audit logging
-    AUDIT_LOG_RETENTION_DAYS: int = 90   # delete logs older than N days; 0 = keep forever
-    AUDIT_LOG_MAX_ROWS: int = 0          # keep only the N most recent rows; 0 = no limit
+    AUDIT_LOG_RETENTION_DAYS: int = (
+        90  # delete logs older than N days; 0 = keep forever
+    )
+    AUDIT_LOG_MAX_ROWS: int = 0  # keep only the N most recent rows; 0 = no limit
     SIEM_WEBHOOK_URL: str | None = None  # Splunk HEC or Logstash HTTP input URL
     SIEM_WEBHOOK_TOKEN: str | None = None  # Splunk HEC token or other bearer token
     SIEM_FORWARD_TACACS_EVENTS: bool = False  # forward auth/authz/acct events to SIEM
@@ -203,13 +205,16 @@ class Settings(BaseSettings):
     PEER_BACKEND_URL: str = ""
     PEER_NODES: str = ""  # comma-separated peer backend URLs for stats collection
     INTERNAL_SYNC_TOKEN: str = ""
-    STATS_INTERVAL_MINUTES: int = 30  # how often to collect today's AAA stats into DB (0 = disable)
+    STATS_INTERVAL_MINUTES: int = (
+        30  # how often to collect today's AAA stats into DB (0 = disable)
+    )
 
     # WebAuthn / Passkeys
     @computed_field  # type: ignore[prop-decorator]
     @property
     def WEBAUTHN_RP_ID(self) -> str:
         from urllib.parse import urlparse
+
         return urlparse(self.FRONTEND_HOST).hostname or "localhost"
 
     @computed_field  # type: ignore[prop-decorator]

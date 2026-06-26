@@ -68,7 +68,9 @@ def get_audit_logs(
 def purge_old_audit_logs(*, session: Session) -> int:
     deleted = 0
     if settings.AUDIT_LOG_RETENTION_DAYS > 0:
-        cutoff = datetime.now(timezone.utc) - timedelta(days=settings.AUDIT_LOG_RETENTION_DAYS)
+        cutoff = datetime.now(timezone.utc) - timedelta(
+            days=settings.AUDIT_LOG_RETENTION_DAYS
+        )
         result = session.exec(delete(AuditLog).where(AuditLog.created_at < cutoff))
         deleted += result.rowcount
     if settings.AUDIT_LOG_MAX_ROWS > 0:
@@ -141,7 +143,9 @@ def _forward_to_siem(log: AuditLog) -> None:
 
     def _post() -> None:
         try:
-            httpx.post(settings.SIEM_WEBHOOK_URL, json=payload, headers=headers, timeout=3)  # type: ignore[arg-type]
+            httpx.post(
+                settings.SIEM_WEBHOOK_URL, json=payload, headers=headers, timeout=3
+            )  # type: ignore[arg-type]
         except Exception:
             logger.warning("Failed to forward audit log to SIEM", exc_info=True)
 
