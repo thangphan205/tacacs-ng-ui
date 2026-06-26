@@ -18,7 +18,7 @@ dependencies = [
     "sqlmodel<1.0.0,>=0.0.21",
     # Pin bcrypt until passlib supports the latest
     "bcrypt==4.3.0",
-    "pydantic-settings<3.0.0,>=2.2.1",
+    "pydantic-settings>=2.14.2,<3.0.0",
     "sentry-sdk[fastapi]>=1.40.6,<3.0.0",
     "pyjwt>=2.13.0,<3.0.0",
     "authlib>=1.6.12",
