@@ -417,24 +417,24 @@ function TodayLogSummary() {
       label: "Authentication",
       badges: [
         {
-          label: `✓ ${data?.authentication.success ?? 0} success`,
+          label: `✓ ${data?.authentication?.success ?? 0} success`,
           color: "green",
         },
-        { label: `✗ ${data?.authentication.failed ?? 0} failed`, color: "red" },
+        { label: `✗ ${data?.authentication?.failed ?? 0} failed`, color: "red" },
       ],
     },
     {
       label: "Authorization",
       badges: [
-        { label: `✓ ${data?.authorization.permit ?? 0} permit`, color: "teal" },
-        { label: `✗ ${data?.authorization.deny ?? 0} deny`, color: "orange" },
+        { label: `✓ ${data?.authorization?.permit ?? 0} permit`, color: "teal" },
+        { label: `✗ ${data?.authorization?.deny ?? 0} deny`, color: "orange" },
       ],
     },
     {
       label: "Accounting",
       badges: [
-        { label: `▶ ${data?.accounting.start ?? 0} start`, color: "blue" },
-        { label: `■ ${data?.accounting.stop ?? 0} stop`, color: "gray" },
+        { label: `▶ ${data?.accounting?.start ?? 0} start`, color: "blue" },
+        { label: `■ ${data?.accounting?.stop ?? 0} stop`, color: "gray" },
       ],
     },
   ]
