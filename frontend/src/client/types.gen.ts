@@ -1588,6 +1588,22 @@ export type RulesetscriptsetsDeleteRulesetscriptsetData = {
 
 export type RulesetscriptsetsDeleteRulesetscriptsetResponse = (Message);
 
+export type SyncGetHaInfoResponse = ({
+    [key: string]: unknown;
+});
+
+export type SyncPushConfigToStandbyResponse = ({
+    [key: string]: unknown;
+});
+
+export type SyncPromoteToPrimaryResponse = ({
+    [key: string]: unknown;
+});
+
+export type SyncInternalReloadConfigResponse = ({
+    [key: string]: unknown;
+});
+
 export type TacacsConfigsReadTacacsConfigsData = {
     limit?: number;
     search?: (string | null);
