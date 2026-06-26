@@ -62,10 +62,13 @@ const EditTacacsConfig = ({ tacacs_config }: EditTacacsConfigProps) => {
     mutationFn: (data: TacacsConfigUpdateForm) =>
       TacacsConfigsService.updateTacacsConfig({
         id: tacacs_config.id,
-        requestBody: data,
+        requestBody: {
+          ...data,
+          active: true,
+        },
       }),
     onSuccess: () => {
-      showSuccessToast("TacacsConfig updated successfully.")
+      showSuccessToast("TacacsConfig activated successfully.")
       reset()
       setIsOpen(false)
     },

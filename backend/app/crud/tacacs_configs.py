@@ -460,10 +460,13 @@ def update_tacacs_config(
     # Remove 'data' as it's not a database column
     tacacs_config_data.pop("data", None)
 
-    # If active was not set, force it to False to prevent DB activation
-    if tacacs_config_in.active is None and not should_activate:
-        tacacs_config_data["active"] = False
-    elif tacacs_config_in.active is not None:
+    # Synchronize database active flag with filesystem activation state
+    if tacacs_config_in.active is None:
+        if should_activate:
+            tacacs_config_data["active"] = True
+        else:
+            tacacs_config_data["active"] = False
+    else:
         tacacs_config_data["active"] = tacacs_config_in.active
 
     db_tacacs_config.sqlmodel_update(tacacs_config_data)
