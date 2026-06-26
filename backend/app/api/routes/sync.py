@@ -2,6 +2,7 @@ import logging
 import time
 import uuid
 from datetime import date, datetime, timezone
+from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -27,6 +28,30 @@ from app.models import (
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sync", tags=["sync"])
+
+_LAST_SYNC_FILE = Path("/app/tacacs_config/.last_sync_received")
+
+
+def _write_last_sync_file() -> None:
+    try:
+        _LAST_SYNC_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _LAST_SYNC_FILE.write_text(datetime.now(timezone.utc).isoformat())
+    except Exception:
+        log.debug("Could not write last sync file")
+
+
+def _read_last_sync_file() -> datetime | None:
+    try:
+        if _LAST_SYNC_FILE.exists():
+            return datetime.fromisoformat(_LAST_SYNC_FILE.read_text().strip())
+    except Exception:
+        pass
+    return None
+
+
+def _last_sync_ts(ha_state: HaState) -> str | None:
+    ts = ha_state.last_received_at or _read_last_sync_file()
+    return ts.isoformat() if ts else None
 
 _PEER_CACHE_TTL = 30  # seconds
 _peers_cache: dict[str, dict] = {}  # url -> {"available": bool|None, "ts": float}
@@ -98,7 +123,7 @@ def get_ha_info(_: CurrentUser, session: SessionDep) -> dict:
             "peers": [],
             "peer_backend_url": settings.PEER_BACKEND_URL or None,
             "peer_available": None,
-            "last_sync_at": ha_state.last_received_at.isoformat() if ha_state.last_received_at else None,
+            "last_sync_at": _last_sync_ts(ha_state),
         }
 
     peers = list(session.exec(select(HaPeerNode)).all())
@@ -416,13 +441,6 @@ def internal_reload_config(request: Request, session: SessionDep) -> dict:
         log.exception("HA config reload failed")
         raise HTTPException(status_code=500, detail=f"Config reload failed: {e}")
 
-    # Only write last_received_at if DB is writable (non-replica standby)
-    try:
-        state = _get_or_create_ha_state(session)
-        state.last_received_at = datetime.now(timezone.utc)
-        session.add(state)
-        session.commit()
-    except Exception:
-        log.debug("Could not update last_received_at (read-only replica)")
+    _write_last_sync_file()
 
     return {"status": "reloaded"}
