@@ -262,7 +262,11 @@ id = tac_plus-ng {{
 
 def _notify_peer_reload() -> None:
     """Fire-and-forget call to peer node's internal reload endpoint (auto-sync mode only)."""
+    from datetime import datetime, timezone
+
     from app.core.config import settings  # local import avoids circular dep
+    from app.core.db import engine
+    from app.models import HaState
 
     if settings.NODE_ROLE != "primary" or settings.SYNC_MODE != "auto":
         return
@@ -279,6 +283,11 @@ def _notify_peer_reload() -> None:
             log.warning("Peer reload returned HTTP %s: %s", r.status_code, r.text)
         else:
             log.info("Peer node reloaded config successfully.")
+            with Session(engine) as session:
+                state = session.get(HaState, 1) or HaState(id=1)
+                state.last_push_at = datetime.now(timezone.utc)
+                session.add(state)
+                session.commit()
     except Exception as e:
         log.warning("Failed to notify peer node for config reload: %s", e)
 

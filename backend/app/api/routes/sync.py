@@ -1,20 +1,30 @@
 import logging
 import time
-from datetime import date
+from datetime import date, datetime, timezone
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import Integer, cast, func
-from sqlmodel import col, select
+from sqlmodel import select
 
 from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
 from app.core.config import settings
 from app.crud.tacacs_configs import reload_active_config_from_db
-from app.models import TacacsConfig
+from app.models import HaState
 
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sync", tags=["sync"])
+
+
+def _get_or_create_ha_state(session: SessionDep) -> HaState:
+    state = session.get(HaState, 1)
+    if state is None:
+        state = HaState(id=1)
+        session.add(state)
+        session.commit()
+        session.refresh(state)
+    return state
 
 _peer_cache: dict = {"available": None, "ts": 0.0}
 _PEER_CACHE_TTL = 30  # seconds
@@ -42,13 +52,12 @@ def _check_peer_available() -> bool | None:
 def get_ha_info(_: CurrentUser, session: SessionDep) -> dict:
     """Return HA configuration for this node."""
     peer_available = _check_peer_available()
+    ha_state = _get_or_create_ha_state(session)
 
-    active_cfg = session.exec(
-        select(TacacsConfig)
-        .where(TacacsConfig.active == True)  # noqa: E712
-        .order_by(col(TacacsConfig.updated_at).desc())
-    ).first()
-    last_sync_at = active_cfg.updated_at.isoformat() if active_cfg else None
+    if settings.NODE_ROLE == "primary":
+        last_sync_ts = ha_state.last_push_at
+    else:
+        last_sync_ts = ha_state.last_received_at
 
     return {
         "node_role": settings.NODE_ROLE,
@@ -56,12 +65,12 @@ def get_ha_info(_: CurrentUser, session: SessionDep) -> dict:
         "scheduler_enabled": settings.SCHEDULER_ENABLED,
         "peer_backend_url": settings.PEER_BACKEND_URL or None,
         "peer_available": peer_available,
-        "last_sync_at": last_sync_at,
+        "last_sync_at": last_sync_ts.isoformat() if last_sync_ts else None,
     }
 
 
 @router.post("/push-config")
-def push_config_to_standby(_: CurrentUser) -> dict:
+def push_config_to_standby(_: CurrentUser, session: SessionDep) -> dict:
     """Manually trigger config reload on the peer (standby) node.
 
     Only valid on the primary node with SYNC_MODE=manual.
@@ -93,6 +102,11 @@ def push_config_to_standby(_: CurrentUser) -> dict:
             status_code=502,
             detail=f"Peer node returned HTTP {r.status_code}: {r.text}",
         )
+
+    state = _get_or_create_ha_state(session)
+    state.last_push_at = datetime.now(timezone.utc)
+    session.add(state)
+    session.commit()
 
     log.info("Config pushed to peer node %s successfully.", settings.PEER_BACKEND_URL)
     return {"status": "ok", "peer": settings.PEER_BACKEND_URL}
@@ -231,5 +245,10 @@ def internal_reload_config(request: Request, session: SessionDep) -> dict:
     except Exception as e:
         log.exception("HA config reload failed")
         raise HTTPException(status_code=500, detail=f"Config reload failed: {e}")
+
+    state = _get_or_create_ha_state(session)
+    state.last_received_at = datetime.now(timezone.utc)
+    session.add(state)
+    session.commit()
 
     return {"status": "reloaded"}

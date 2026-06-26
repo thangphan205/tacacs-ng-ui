@@ -1331,3 +1331,11 @@ class AnomalyDetectionResultsPublic(SQLModel):
     data: list[AnomalyDetectionResultPublic]
     count: int
     count: int
+
+
+class HaState(SQLModel, table=True):
+    """Singleton row (id=1) tracking confirmed HA sync timestamps."""
+
+    id: int = Field(default=1, primary_key=True)
+    last_push_at: datetime | None = Field(default=None, nullable=True)
+    last_received_at: datetime | None = Field(default=None, nullable=True)
