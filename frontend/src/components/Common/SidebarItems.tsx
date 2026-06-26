@@ -80,18 +80,6 @@ const CONFIG_SECTIONS: NavSection[] = [
         path: "/aaa_statistics",
       },
       {
-        icon: FiBarChart2,
-        title: "AAA Range Stats",
-        path: "/aaa_statistics_range",
-        indent: true,
-      },
-      {
-        icon: FiBarChart2,
-        title: "Node Comparison",
-        path: "/aaa_statistics_nodes",
-        indent: true,
-      },
-      {
         icon: FiGitMerge,
         title: "High Availability",
         path: "/high_availability",
