@@ -24,8 +24,8 @@ echo "Node Role: $NODE_ROLE"
 echo "============================="
 
 if [[ "$NODE_ROLE" == "primary" ]]; then
-  echo "[1/4] Starting primary docker compose stack..."
-  docker compose up -d
+  echo "[1/4] Building images and starting primary docker compose stack..."
+  docker compose up -d --build
 
   # Wait for DB to be ready
   echo "[2/4] Waiting for PostgreSQL database to be ready..."
@@ -43,8 +43,11 @@ if [[ "$NODE_ROLE" == "primary" ]]; then
   role_exists=$(docker compose exec db psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-app}" -tAc "SELECT 1 FROM pg_roles WHERE rolname='replicator';" 2>/dev/null || echo "")
   if [[ "$role_exists" != "1" ]]; then
     echo "Creating 'replicator' role..."
-    docker compose exec db psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-app}" -c \
-      "CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD '$REPLICATION_PASSWORD';"
+    # Use psql variable binding (:'repl_pass') to safely quote the password as a SQL
+    # string literal — avoids SQL injection if the password contains single quotes.
+    docker compose exec db psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-app}" \
+      -v "repl_pass=$REPLICATION_PASSWORD" \
+      -c "CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD :'repl_pass';"
   else
     echo "Replication role 'replicator' already exists."
   fi
@@ -67,6 +70,12 @@ if [[ "$NODE_ROLE" == "primary" ]]; then
   fi
 
   if [[ -n "$PEER_IP" ]]; then
+    # Validate IPv4 format before writing to pg_hba.conf
+    if ! [[ "$PEER_IP" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+      echo "ERROR: '$PEER_IP' is not a valid IPv4 address." >&2
+      exit 1
+    fi
+
     echo "Standby Node IP: $PEER_IP"
     # Check if already added
     has_hba=$(docker compose exec db bash -c "grep -F '$PEER_IP/32' \$PGDATA/pg_hba.conf || true")
@@ -74,7 +83,7 @@ if [[ "$NODE_ROLE" == "primary" ]]; then
       echo "Adding replication entry to pg_hba.conf..."
       docker compose exec db bash -c "echo 'host replication replicator $PEER_IP/32 md5' >> \$PGDATA/pg_hba.conf"
       echo "Reloading PostgreSQL configuration..."
-      docker compose kill -s HUP db
+      docker compose exec db psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-app}" -c "SELECT pg_reload_conf();" > /dev/null
     else
       echo "Replication entry for $PEER_IP already exists in pg_hba.conf."
     fi

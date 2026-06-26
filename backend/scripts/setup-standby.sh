@@ -40,33 +40,26 @@ docker compose pull --ignore-pull-failures || true
 # Build backend and frontend from source (handles local-only images with no registry)
 docker compose build
 
-# Step 2: Start only the db container with a temporary entry point to do pg_basebackup
+# Step 2: Resolve the Docker volume name for the DB data directory.
+# Docker Compose prefixes volumes with the project name (derived from compose config,
+# not the directory name, to be safe).
 echo "[2/5] Running pg_basebackup from primary ($PRIMARY_DB_HOST)..."
 
-PG_DATA_VOLUME="$(docker compose config --format json 2>/dev/null | python3 -c "
-import json,sys
-cfg = json.load(sys.stdin)
-vols = cfg.get('volumes', {})
-# find the volume used by db service
-for svc_name, svc in cfg.get('services', {}).items():
-    if svc_name == 'db':
-        for m in svc.get('volumes', []):
-            if isinstance(m, dict) and 'pgdata' in m.get('target', ''):
-                print(m['source'])
-                sys.exit(0)
-" 2>/dev/null || echo "")"
-
-if [[ -z "$PG_DATA_VOLUME" ]]; then
-  PG_DATA_VOLUME="$(docker compose ps -q db 2>/dev/null || true)"
-  PG_DATA_VOLUME="app-db-data"
+COMPOSE_PROJECT="$(docker compose config --format json 2>/dev/null \
+  | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('name',''))" 2>/dev/null \
+  || echo "")"
+if [[ -z "$COMPOSE_PROJECT" ]]; then
+  COMPOSE_PROJECT="${STACK_NAME:-$(basename "$(pwd)")}"
 fi
+PG_DATA_VOLUME="${COMPOSE_PROJECT}_app-db-data"
+echo "Using DB volume: $PG_DATA_VOLUME"
 
 # Run pg_basebackup inside a temporary postgres container that shares the DB volume.
 # Mount the volume at the same path the db service uses (/var/lib/postgresql/data/pgdata)
 # so pg_basebackup writes PG files directly into the volume root — not a subdirectory.
 docker run --rm \
   -e PGPASSWORD="$REPLICATION_PASSWORD" \
-  -v "${STACK_NAME:-tacacs-ng-ui}_app-db-data:/var/lib/postgresql/data/pgdata" \
+  -v "${PG_DATA_VOLUME}:/var/lib/postgresql/data/pgdata" \
   postgres:18 \
   bash -c "
     find /var/lib/postgresql/data/pgdata -mindepth 1 -delete 2>/dev/null || true
@@ -78,30 +71,53 @@ docker run --rm \
       -Fp -Xs -P -R
   "
 
+# Step 3: Write primary_conninfo into postgresql.auto.conf.
+# Password is passed via env var and escaped inside the container to avoid:
+#   - shell quoting issues in the outer script
+#   - single-quote injection into the PostgreSQL connection string
 echo "[3/5] Writing standby replication config..."
-docker run --rm \
-  -v "${STACK_NAME:-tacacs-ng-ui}_app-db-data:/var/lib/postgresql/data/pgdata" \
+docker run --rm -i \
+  -e REPL_HOST="$PRIMARY_DB_HOST" \
+  -e REPL_PORT="$POSTGRES_PORT" \
+  -e REPL_PASS="$REPLICATION_PASSWORD" \
+  -v "${PG_DATA_VOLUME}:/var/lib/postgresql/data/pgdata" \
   postgres:18 \
-  bash -c "
-    cat >> /var/lib/postgresql/data/pgdata/postgresql.auto.conf <<EOF
-
-# HA streaming replication (written by setup-standby.sh)
-primary_conninfo = 'host=$PRIMARY_DB_HOST port=$POSTGRES_PORT user=replicator password=$REPLICATION_PASSWORD application_name=standby'
-recovery_target_timeline = 'latest'
-EOF
-    # standby.signal tells PostgreSQL to start in standby (hot standby) mode
-    touch /var/lib/postgresql/data/pgdata/standby.signal
-  "
+  bash << 'INNERSCRIPT'
+pgdata=/var/lib/postgresql/data/pgdata
+# Escape for PostgreSQL libpq connection string: \ -> \\ then ' -> \'
+p="${REPL_PASS//\\/\\\\}"
+p="${p//\'/\\\'}"
+{
+  printf '\n# HA streaming replication (written by setup-standby.sh)\n'
+  printf "primary_conninfo = 'host=%s port=%s user=replicator password=%s application_name=standby'\n" \
+    "$REPL_HOST" "$REPL_PORT" "$p"
+  printf "recovery_target_timeline = 'latest'\n"
+} >> "$pgdata/postgresql.auto.conf"
+touch "$pgdata/standby.signal"
+echo "Replication config written."
+INNERSCRIPT
 
 echo "[4/5] Starting all services..."
 docker compose up -d
 
 echo "[5/5] Verifying replication..."
-sleep 10
-docker compose exec db psql \
-  -U "$POSTGRES_USER" \
-  -d "$POSTGRES_DB" \
-  -c "SELECT pg_is_in_recovery() AS is_standby, now() - pg_last_xact_replay_timestamp() AS replication_lag;"
+echo "Waiting for PostgreSQL to start in standby mode (up to 30s)..."
+VERIFIED=0
+for i in $(seq 1 30); do
+  result=$(docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+    -tAc "SELECT pg_is_in_recovery();" 2>/dev/null || echo "")
+  if [[ "$result" == "t" ]]; then
+    docker compose exec db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+      -c "SELECT pg_is_in_recovery() AS is_standby, now() - pg_last_xact_replay_timestamp() AS replication_lag;"
+    VERIFIED=1
+    break
+  fi
+  sleep 1
+done
+
+if [[ "$VERIFIED" -eq 0 ]]; then
+  echo "WARNING: Replication not confirmed after 30s. Check with: docker compose logs db" >&2
+fi
 
 echo ""
 echo "=== Setup complete ==="
