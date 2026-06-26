@@ -1,4 +1,3 @@
-import React from "react"
 import {
   Alert,
   Badge,
@@ -18,6 +17,7 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import React from "react"
 import {
   FiAlertTriangle,
   FiCheckCircle,
@@ -32,8 +32,8 @@ import {
 } from "react-icons/fi"
 import { SyncToStandby } from "@/components/TacacsConfigs/SyncToStandby"
 import { Tooltip } from "@/components/ui/tooltip"
-import useAuth from "@/hooks/useAuth"
 import { fetchWithAuth, type HaInfo, type PromoteResult } from "@/haApi"
+import useAuth from "@/hooks/useAuth"
 
 export const Route = createFileRoute("/_layout/high_availability")({
   component: HighAvailabilityPage,
@@ -123,7 +123,8 @@ function HighAvailabilityPage() {
     retry: false,
   })
 
-  const [promoteResult, setPromoteResult] = React.useState<PromoteResult | null>(null)
+  const [promoteResult, setPromoteResult] =
+    React.useState<PromoteResult | null>(null)
   const [confirmPromote, setConfirmPromote] = React.useState(false)
 
   const promoteMutation = useMutation({
@@ -354,8 +355,9 @@ function HighAvailabilityPage() {
                 Failover — Promote to Primary
               </Heading>
               <Text fontSize="sm" color="fg.muted" mb={4}>
-                Run <Text as="code">pg_promote()</Text> on this node's database to make it accept writes.
-                After promotion, update <Text as="code">.env</Text> and restart the backend.
+                Run <Text as="code">pg_promote()</Text> on this node's database
+                to make it accept writes. After promotion, update{" "}
+                <Text as="code">.env</Text> and restart the backend.
               </Text>
 
               {promoteResult ? (
@@ -366,7 +368,8 @@ function HighAvailabilityPage() {
                       <Alert.Title>Promoted successfully</Alert.Title>
                       {promoteResult.replication_lag_seconds !== null && (
                         <Alert.Description>
-                          Replication lag at promotion: {promoteResult.replication_lag_seconds}s
+                          Replication lag at promotion:{" "}
+                          {promoteResult.replication_lag_seconds}s
                         </Alert.Description>
                       )}
                     </Alert.Content>
@@ -393,7 +396,8 @@ function HighAvailabilityPage() {
                     <Alert.Content>
                       <Alert.Title>Confirm promotion</Alert.Title>
                       <Alert.Description>
-                        This will break replication from the old primary. Proceed only if Zone A is down.
+                        This will break replication from the old primary.
+                        Proceed only if Zone A is down.
                       </Alert.Description>
                     </Alert.Content>
                   </Alert.Root>

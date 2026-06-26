@@ -3,8 +3,8 @@ import { Link as RouterLink, useMatchRoute } from "@tanstack/react-router"
 import {
   FiActivity,
   FiAlertCircle,
-  FiBell,
   FiBarChart2,
+  FiBell,
   FiCpu,
   FiDatabase,
   FiFileText,

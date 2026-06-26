@@ -34,11 +34,7 @@ export function SyncToStandby() {
   if (isLoading) return <Spinner size="sm" />
 
   // Show button only on primary node with manual sync mode
-  if (
-    !haInfo ||
-    haInfo.node_role !== "primary" ||
-    haInfo.sync_mode !== "manual"
-  ) {
+  if (haInfo?.node_role !== "primary" || haInfo.sync_mode !== "manual") {
     return null
   }
 
