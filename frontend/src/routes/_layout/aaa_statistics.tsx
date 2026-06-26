@@ -37,6 +37,7 @@ import {
   LineChart,
   Pie,
   PieChart,
+  ResponsiveContainer,
   Sector,
   Tooltip,
   XAxis,
@@ -338,18 +339,6 @@ function TodayStatsTab() {
       "Acct Stop": stats?.last_7_days_accounting_stop?.[index]?.count || 0,
     })) || []
 
-  const chart_last_7_days = useChart({
-    data: last_7_days_data,
-    series: [
-      { name: "Auth Success", color: "green.500" },
-      { name: "Auth Fail", color: "red.500" },
-      { name: "Authz Permit", color: "blue.500" },
-      { name: "Authz Deny", color: "orange.500" },
-      { name: "Acct Start", color: "purple.500" },
-      { name: "Acct Stop", color: "gray.500" },
-    ],
-  })
-
   return (
     <Box>
       <Flex justify="space-between" align="center" mb={6} gap={4} wrap="wrap">
@@ -476,22 +465,35 @@ function TodayStatsTab() {
               <Heading size="sm" mb={4} fontWeight="bold">
                 Last 7 Days AAA Statistics
               </Heading>
-              <Chart.Root chart={chart_last_7_days} height="350px">
+              <ResponsiveContainer width="100%" height={350}>
                 <LineChart
-                  width={800}
-                  height={350}
                   data={last_7_days_data}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  margin={{ top: 10, right: 30, left: -20, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--chakra-colors-border)"
+                  />
+                  <XAxis
+                    dataKey="date"
+                    tick={{
+                      fontSize: 11,
+                      fill: "var(--chakra-colors-fg-muted)",
+                    }}
+                  />
+                  <YAxis
+                    tick={{
+                      fontSize: 11,
+                      fill: "var(--chakra-colors-fg-muted)",
+                    }}
+                  />
                   <Tooltip />
                   <Legend />
-                  <XAxis dataKey="date" />
-                  <YAxis />
                   <Line
                     dataKey="Auth Success"
                     type="monotone"
                     stroke="var(--chakra-colors-green-500)"
+                    strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 4 }}
                   />
@@ -499,6 +501,7 @@ function TodayStatsTab() {
                     dataKey="Auth Fail"
                     type="monotone"
                     stroke="var(--chakra-colors-red-500)"
+                    strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 4 }}
                   />
@@ -506,6 +509,7 @@ function TodayStatsTab() {
                     dataKey="Authz Permit"
                     type="monotone"
                     stroke="var(--chakra-colors-blue-500)"
+                    strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 4 }}
                   />
@@ -513,6 +517,7 @@ function TodayStatsTab() {
                     dataKey="Authz Deny"
                     type="monotone"
                     stroke="var(--chakra-colors-orange-500)"
+                    strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 4 }}
                   />
@@ -520,6 +525,7 @@ function TodayStatsTab() {
                     dataKey="Acct Start"
                     type="monotone"
                     stroke="var(--chakra-colors-purple-500)"
+                    strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 4 }}
                   />
@@ -527,11 +533,12 @@ function TodayStatsTab() {
                     dataKey="Acct Stop"
                     type="monotone"
                     stroke="var(--chakra-colors-gray-500)"
+                    strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 4 }}
                   />
                 </LineChart>
-              </Chart.Root>
+              </ResponsiveContainer>
             </Box>
           </GridItem>
         </Grid>
@@ -613,18 +620,6 @@ function RangeStatsTab() {
         stats?.last_range_days_accounting_start?.[index]?.count || 0,
       "Acct Stop": stats?.last_range_days_accounting_stop?.[index]?.count || 0,
     })) || []
-
-  const chart_last_range_days = useChart({
-    data: last_range_days_data,
-    series: [
-      { name: "Auth Success", color: "green.500" },
-      { name: "Auth Fail", color: "red.500" },
-      { name: "Authz Permit", color: "blue.500" },
-      { name: "Authz Deny", color: "orange.500" },
-      { name: "Acct Start", color: "purple.500" },
-      { name: "Acct Stop", color: "gray.500" },
-    ],
-  })
 
   // Range-wide totals calculations
   const totalSuccess =
@@ -790,22 +785,35 @@ function RangeStatsTab() {
               <Heading size="sm" mb={4} fontWeight="bold">
                 AAA Statistics From {startDate} to {endDate}
               </Heading>
-              <Chart.Root chart={chart_last_range_days} height="350px">
+              <ResponsiveContainer width="100%" height={350}>
                 <LineChart
-                  width={800}
-                  height={350}
                   data={last_range_days_data}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  margin={{ top: 10, right: 30, left: -20, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--chakra-colors-border)"
+                  />
+                  <XAxis
+                    dataKey="date"
+                    tick={{
+                      fontSize: 11,
+                      fill: "var(--chakra-colors-fg-muted)",
+                    }}
+                  />
+                  <YAxis
+                    tick={{
+                      fontSize: 11,
+                      fill: "var(--chakra-colors-fg-muted)",
+                    }}
+                  />
                   <Tooltip />
                   <Legend />
-                  <XAxis dataKey="date" />
-                  <YAxis />
                   <Line
                     dataKey="Auth Success"
                     type="monotone"
                     stroke="var(--chakra-colors-green-500)"
+                    strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 4 }}
                   />
@@ -813,6 +821,7 @@ function RangeStatsTab() {
                     dataKey="Auth Fail"
                     type="monotone"
                     stroke="var(--chakra-colors-red-500)"
+                    strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 4 }}
                   />
@@ -820,6 +829,7 @@ function RangeStatsTab() {
                     dataKey="Authz Permit"
                     type="monotone"
                     stroke="var(--chakra-colors-blue-500)"
+                    strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 4 }}
                   />
@@ -827,6 +837,7 @@ function RangeStatsTab() {
                     dataKey="Authz Deny"
                     type="monotone"
                     stroke="var(--chakra-colors-orange-500)"
+                    strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 4 }}
                   />
@@ -834,6 +845,7 @@ function RangeStatsTab() {
                     dataKey="Acct Start"
                     type="monotone"
                     stroke="var(--chakra-colors-purple-500)"
+                    strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 4 }}
                   />
@@ -841,11 +853,12 @@ function RangeStatsTab() {
                     dataKey="Acct Stop"
                     type="monotone"
                     stroke="var(--chakra-colors-gray-500)"
+                    strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 4 }}
                   />
                 </LineChart>
-              </Chart.Root>
+              </ResponsiveContainer>
             </Box>
           </GridItem>
         </Grid>
@@ -891,16 +904,6 @@ function NodeCard({
       "Authz Deny":
         stats?.last_range_days_authorization_deny?.[index]?.count ?? 0,
     })) ?? []
-
-  const chart = useChart({
-    data: trendData,
-    series: [
-      { name: "Auth Success", color: "green.500" },
-      { name: "Auth Fail", color: "red.500" },
-      { name: "Authz Permit", color: "blue.500" },
-      { name: "Authz Deny", color: "orange.500" },
-    ],
-  })
 
   const totalSuccess = sumField(stats?.last_range_days_authentication_success)
   const totalFail = sumField(stats?.last_range_days_authentication_fail)
@@ -1087,46 +1090,64 @@ function NodeCard({
                 </Text>
               </Flex>
             ) : (
-              <Chart.Root chart={chart} height="180px">
+              <ResponsiveContainer width="100%" height={180}>
                 <LineChart
                   data={trendData}
                   margin={{ top: 4, right: 8, left: -25, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tick={{ fontSize: 9 }} />
-                  <YAxis tick={{ fontSize: 9 }} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--chakra-colors-border)"
+                  />
+                  <XAxis
+                    dataKey="date"
+                    tick={{
+                      fontSize: 9,
+                      fill: "var(--chakra-colors-fg-muted)",
+                    }}
+                  />
+                  <YAxis
+                    tick={{
+                      fontSize: 9,
+                      fill: "var(--chakra-colors-fg-muted)",
+                    }}
+                  />
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 9, marginTop: 8 }} />
                   <Line
                     dataKey="Auth Success"
                     type="monotone"
                     stroke="var(--chakra-colors-green-500)"
+                    strokeWidth={1.5}
                     dot={false}
-                    activeDot={{ r: 4 }}
+                    activeDot={{ r: 3 }}
                   />
                   <Line
                     dataKey="Auth Fail"
                     type="monotone"
                     stroke="var(--chakra-colors-red-500)"
+                    strokeWidth={1.5}
                     dot={false}
-                    activeDot={{ r: 4 }}
+                    activeDot={{ r: 3 }}
                   />
                   <Line
                     dataKey="Authz Permit"
                     type="monotone"
                     stroke="var(--chakra-colors-blue-500)"
+                    strokeWidth={1.5}
                     dot={false}
-                    activeDot={{ r: 4 }}
+                    activeDot={{ r: 3 }}
                   />
                   <Line
                     dataKey="Authz Deny"
                     type="monotone"
                     stroke="var(--chakra-colors-orange-500)"
+                    strokeWidth={1.5}
                     dot={false}
-                    activeDot={{ r: 4 }}
+                    activeDot={{ r: 3 }}
                   />
                 </LineChart>
-              </Chart.Root>
+              </ResponsiveContainer>
             )}
           </Box>
 
