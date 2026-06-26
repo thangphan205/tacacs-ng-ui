@@ -47,8 +47,7 @@ export function SyncToStandby() {
   const enabledPeers = (haInfo.peers ?? []).filter((p) => p.enabled)
   const reachablePeers = enabledPeers.filter((p) => p.available)
   const unreachablePeers = enabledPeers.filter((p) => p.available === false)
-  const allUnreachable =
-    enabledPeers.length > 0 && reachablePeers.length === 0
+  const allUnreachable = enabledPeers.length > 0 && reachablePeers.length === 0
 
   const label =
     enabledPeers.length === 1

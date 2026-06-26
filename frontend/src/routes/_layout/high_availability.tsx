@@ -257,9 +257,7 @@ function PeersTable({
               )}
             </Table.Row>
           ))}
-          {isSuperuser && (
-            <AddPeerRow onAdd={onAdd} isPending={addPending} />
-          )}
+          {isSuperuser && <AddPeerRow onAdd={onAdd} isPending={addPending} />}
         </Table.Body>
       </Table.Root>
     </Box>
@@ -483,19 +481,42 @@ function HighAvailabilityPage() {
       </Flex>
 
       {!haConfigured ? (
-        <EmptyState.Root>
-          <EmptyState.Content>
-            <EmptyState.Indicator>
-              <FiGitMerge />
-            </EmptyState.Indicator>
-            <EmptyState.Title>High Availability not configured</EmptyState.Title>
-            <EmptyState.Description>
-              Add a peer node below, or set{" "}
-              <Text as="code">PEER_BACKEND_URL</Text> /{" "}
-              <Text as="code">PEER_NODES</Text> in the environment.
-            </EmptyState.Description>
-          </EmptyState.Content>
-        </EmptyState.Root>
+        <VStack gap={6} align="stretch">
+          <EmptyState.Root>
+            <EmptyState.Content>
+              <EmptyState.Indicator>
+                <FiGitMerge />
+              </EmptyState.Indicator>
+              <EmptyState.Title>
+                High Availability not configured
+              </EmptyState.Title>
+              <EmptyState.Description>
+                Add a peer node below, or set{" "}
+                <Text as="code">PEER_BACKEND_URL</Text> /{" "}
+                <Text as="code">PEER_NODES</Text> in the environment.
+              </EmptyState.Description>
+            </EmptyState.Content>
+          </EmptyState.Root>
+
+          {haInfo && haInfo.node_role === "primary" && (
+            <PeersTable
+              peers={haInfo.peers}
+              isSuperuser={isSuperuser}
+              onToggle={(peer) =>
+                updatePeerMutation.mutate({
+                  id: peer.id,
+                  body: { enabled: !peer.enabled },
+                })
+              }
+              onDelete={(peer) => deletePeerMutation.mutate(peer.id)}
+              onAdd={(peer) => addPeerMutation.mutate(peer)}
+              addPending={addPeerMutation.isPending}
+              mutatePending={
+                updatePeerMutation.isPending || deletePeerMutation.isPending
+              }
+            />
+          )}
+        </VStack>
       ) : (
         <VStack gap={6} align="stretch">
           {/* Standby read-only notice */}
@@ -548,7 +569,9 @@ function HighAvailabilityPage() {
                 <Box
                   p={3}
                   bg={
-                    haInfo?.node_role === "primary" ? "blue.muted" : "purple.muted"
+                    haInfo?.node_role === "primary"
+                      ? "blue.muted"
+                      : "purple.muted"
                   }
                   color={
                     haInfo?.node_role === "primary" ? "blue.fg" : "purple.fg"
@@ -591,8 +614,8 @@ function HighAvailabilityPage() {
                       fontFamily="mono"
                       mt={2}
                     >
-                      {(haInfo?.peers ?? []).filter((p) => p.available).length} /{" "}
-                      {(haInfo?.peers ?? []).filter((p) => p.enabled).length}
+                      {(haInfo?.peers ?? []).filter((p) => p.available).length}{" "}
+                      / {(haInfo?.peers ?? []).filter((p) => p.enabled).length}
                     </Text>
                   </Box>
                   <Box
@@ -623,7 +646,9 @@ function HighAvailabilityPage() {
                 bg="bg.panel"
                 borderWidth="1px"
                 borderLeftWidth="4px"
-                borderLeftColor={haInfo?.last_sync_at ? "green.500" : "gray.400"}
+                borderLeftColor={
+                  haInfo?.last_sync_at ? "green.500" : "gray.400"
+                }
                 borderRadius="xl"
                 shadow="sm"
               >
@@ -698,9 +723,7 @@ function HighAvailabilityPage() {
                   bg={
                     haInfo?.sync_mode === "auto" ? "teal.muted" : "orange.muted"
                   }
-                  color={
-                    haInfo?.sync_mode === "auto" ? "teal.fg" : "orange.fg"
-                  }
+                  color={haInfo?.sync_mode === "auto" ? "teal.fg" : "orange.fg"}
                   borderRadius="lg"
                 >
                   <FiSettings fontSize="22px" />
@@ -738,7 +761,14 @@ function HighAvailabilityPage() {
               borderRadius="xl"
               shadow="sm"
             >
-              <Text fontSize="xs" fontWeight="semibold" textTransform="uppercase" letterSpacing="wider" color="fg.muted" mb={1}>
+              <Text
+                fontSize="xs"
+                fontWeight="semibold"
+                textTransform="uppercase"
+                letterSpacing="wider"
+                color="fg.muted"
+                mb={1}
+              >
                 Primary Node
               </Text>
               <Text fontFamily="mono" fontSize="sm">
@@ -823,8 +853,8 @@ function HighAvailabilityPage() {
                       <Alert.Description>
                         The old primary's URL has been added as a peer
                         automatically. Disable or remove it until Zone A
-                        recovers, then verify remaining standbys are
-                        replicating from this node.
+                        recovers, then verify remaining standbys are replicating
+                        from this node.
                       </Alert.Description>
                     </Alert.Content>
                   </Alert.Root>
