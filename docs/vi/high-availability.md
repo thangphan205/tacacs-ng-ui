@@ -163,6 +163,53 @@ Script thực hiện:
 4. Khởi động `docker compose up -d`
 5. Xác minh replication đang hoạt động
 
+<details>
+<summary>Output mẫu</summary>
+
+```
+=== tacacs-ng-ui HA Setup ===
+Node Role: standby
+=============================
+Starting standby node bootstrap...
+=== tacacs-ng-ui HA Standby Setup ===
+Primary DB host : 172.25.245.214:5432
+Node role       : standby
+
+[1/5] Building/pulling images...
+[+] pull 7/7
+ ✔ Image postgres:18            Pulled
+ ✔ Image traefik:v3.7           Pulled
+ ✔ Image adminer                Pulled
+ ✔ Image schickling/mailcatcher Pulled
+ ! Image backend:latest         pull access denied (sẽ build từ source)
+ ! Image frontend:latest        pull access denied (sẽ build từ source)
+[+] Building 4.3s (53/53) FINISHED
+ ✔ Image backend:latest          Built
+ ✔ Image frontend:latest         Built
+[2/5] Running pg_basebackup from primary (172.25.245.214)...
+waiting for checkpoint
+21026/33541 kB (62%), 0/1 tablespace
+33552/33552 kB (100%), 1/1 tablespace
+[3/5] Writing standby replication config...
+[4/5] Starting all services...
+ ✔ Container tacacs-ng-ui-db-1          Healthy
+ ✔ Container tacacs-ng-ui-backend-1     Started
+ ✔ Container tacacs-ng-ui-frontend-1    Started
+[5/5] Verifying replication...
+ is_standby | replication_lag
+------------+-----------------
+ t          |
+(1 row)
+
+=== Setup complete ===
+Zone B is now running as a hot standby replica of 172.25.245.214.
+
+Dashboard : https://172.25.245.236
+API       : http://172.25.245.236:8000
+```
+
+</details>
+
 **Kiểm tra replication:**
 
 ```bash
@@ -630,6 +677,37 @@ Kết quả hiển thị từng peer:
   ]
 }
 ```
+
+---
+
+## Xử Lý Sự Cố
+
+### `pg_basebackup: FATAL: password authentication failed for user "replicator"`
+
+Role `replicator` chưa tồn tại hoặc mật khẩu không khớp trên primary.
+
+**Kiểm tra role có tồn tại không (chạy trên primary):**
+
+```bash
+export $(grep -v '^#' .env | grep -v '^$' | xargs)
+docker compose exec db psql -U $POSTGRES_USER -c "\du replicator"
+```
+
+**Không có kết quả** — role chưa được tạo. Chạy `bash setup-ha.sh` trên primary (khuyến nghị), hoặc tạo thủ công:
+
+```bash
+docker compose exec db psql -U $POSTGRES_USER -c \
+  "CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD '$REPLICATION_PASSWORD';"
+```
+
+**Role đã tồn tại** — `REPLICATION_PASSWORD` trong `.env` của primary và standby không khớp. Đặt lại mật khẩu trên primary cho trùng với standby:
+
+```bash
+docker compose exec db psql -U $POSTGRES_USER -c \
+  "ALTER ROLE replicator WITH PASSWORD '$REPLICATION_PASSWORD';"
+```
+
+Sau đó chạy lại `bash setup-ha.sh` trên standby.
 
 ---
 

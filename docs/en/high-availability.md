@@ -163,6 +163,53 @@ The script:
 4. Starts `docker compose up -d`
 5. Verifies replication is active
 
+<details>
+<summary>Expected output</summary>
+
+```
+=== tacacs-ng-ui HA Setup ===
+Node Role: standby
+=============================
+Starting standby node bootstrap...
+=== tacacs-ng-ui HA Standby Setup ===
+Primary DB host : 172.25.245.214:5432
+Node role       : standby
+
+[1/5] Building/pulling images...
+[+] pull 7/7
+ ✔ Image postgres:18            Pulled
+ ✔ Image traefik:v3.7           Pulled
+ ✔ Image adminer                Pulled
+ ✔ Image schickling/mailcatcher Pulled
+ ! Image backend:latest         pull access denied (will build from source)
+ ! Image frontend:latest        pull access denied (will build from source)
+[+] Building 4.3s (53/53) FINISHED
+ ✔ Image backend:latest          Built
+ ✔ Image frontend:latest         Built
+[2/5] Running pg_basebackup from primary (172.25.245.214)...
+waiting for checkpoint
+21026/33541 kB (62%), 0/1 tablespace
+33552/33552 kB (100%), 1/1 tablespace
+[3/5] Writing standby replication config...
+[4/5] Starting all services...
+ ✔ Container tacacs-ng-ui-db-1          Healthy
+ ✔ Container tacacs-ng-ui-backend-1     Started
+ ✔ Container tacacs-ng-ui-frontend-1    Started
+[5/5] Verifying replication...
+ is_standby | replication_lag
+------------+-----------------
+ t          |
+(1 row)
+
+=== Setup complete ===
+Zone B is now running as a hot standby replica of 172.25.245.214.
+
+Dashboard : https://172.25.245.236
+API       : http://172.25.245.236:8000
+```
+
+</details>
+
 **Verify replication is working:**
 
 ```bash
@@ -640,6 +687,37 @@ Response shows per-peer result:
   ]
 }
 ```
+
+---
+
+## Troubleshooting
+
+### `pg_basebackup: FATAL: password authentication failed for user "replicator"`
+
+The `replicator` role is missing or has a different password on the primary.
+
+**Check if the role exists (run on primary):**
+
+```bash
+export $(grep -v '^#' .env | grep -v '^$' | xargs)
+docker compose exec db psql -U $POSTGRES_USER -c "\du replicator"
+```
+
+**If no rows returned** — role was never created. Either run `bash setup-ha.sh` on the primary (recommended), or create it manually:
+
+```bash
+docker compose exec db psql -U $POSTGRES_USER -c \
+  "CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD '$REPLICATION_PASSWORD';"
+```
+
+**If role exists** — `REPLICATION_PASSWORD` differs between primary and standby `.env`. Reset the password on the primary to match:
+
+```bash
+docker compose exec db psql -U $POSTGRES_USER -c \
+  "ALTER ROLE replicator WITH PASSWORD '$REPLICATION_PASSWORD';"
+```
+
+Then re-run `bash setup-ha.sh` on the standby.
 
 ---
 
