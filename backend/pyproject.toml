@@ -35,7 +35,7 @@ dev = [
     "ruff<1.0.0,>=0.2.2",
     "pre-commit<4.0.0,>=3.6.2",
     "types-passlib>=1.7.7.20260211,<2.0.0.0",
-    "coverage<8.0.0,>=7.4.3",
+    "coverage>=7.14.3,<8.0.0",
 ]
 
 [build-system]
