@@ -17,7 +17,7 @@ test("Input is visible, empty and editable", async ({ page }) => {
   await page.goto("/recover-password")
 
   await expect(page.getByPlaceholder("Email")).toBeVisible()
-  await expect(page.getByPlaceholder("Email")).toHaveText("")
+  await expect(page.getByPlaceholder("Email")).toHaveValue("")
   await expect(page.getByPlaceholder("Email")).toBeEditable()
 })
 

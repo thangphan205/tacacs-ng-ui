@@ -28,7 +28,7 @@ const verifyInput = async (
 ) => {
   const input = page.getByPlaceholder(placeholder, options)
   await expect(input).toBeVisible()
-  await expect(input).toHaveText("")
+  await expect(input).toHaveValue("")
   await expect(input).toBeEditable()
 }
 
