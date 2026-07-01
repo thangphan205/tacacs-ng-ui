@@ -3,7 +3,7 @@ annotated-types==0.7.0
 anyio==4.13.0
 cachetools==7.0.6
 certifi==2026.6.17
-chardet==5.2.0
+chardet==7.4.3
 charset-normalizer==3.4.3
 click==8.3.1
 cssselect==1.4.0
