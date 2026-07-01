@@ -321,6 +321,48 @@ export type ConfigurationOptionUpdate = {
     description?: (string | null);
 };
 
+export type HaConfigPublic = {
+    node_name?: string;
+    sync_mode?: string;
+    scheduler_enabled?: boolean;
+    stats_interval_minutes?: number;
+    id: number;
+    updated_at: string;
+};
+
+export type HaConfigUpdate = {
+    node_name?: (string | null);
+    sync_mode?: ('auto' | 'manual' | null);
+    scheduler_enabled?: (boolean | null);
+    stats_interval_minutes?: (number | null);
+};
+
+export type HaPeerNodeCreate = {
+    name: string;
+    url: string;
+    enabled?: boolean;
+};
+
+export type HaPeerNodePublic = {
+    name: string;
+    url: string;
+    enabled?: boolean;
+    id: string;
+    created_at: string;
+    updated_at: string;
+};
+
+export type HaPeerNodesPublic = {
+    data: Array<HaPeerNodePublic>;
+    count: number;
+};
+
+export type HaPeerNodeUpdate = {
+    name?: (string | null);
+    url?: (string | null);
+    enabled?: (boolean | null);
+};
+
 export type HostCreate = {
     name: string;
     ipv4_address?: (string | null);
@@ -1599,6 +1641,35 @@ export type RulesetscriptsetsDeleteRulesetscriptsetResponse = (Message);
 export type SyncGetHaInfoResponse = ({
     [key: string]: unknown;
 });
+
+export type SyncGetHaConfigEndpointResponse = (HaConfigPublic);
+
+export type SyncUpdateHaConfigData = {
+    requestBody: HaConfigUpdate;
+};
+
+export type SyncUpdateHaConfigResponse = (HaConfigPublic);
+
+export type SyncListPeersResponse = (HaPeerNodesPublic);
+
+export type SyncCreatePeerData = {
+    requestBody: HaPeerNodeCreate;
+};
+
+export type SyncCreatePeerResponse = (HaPeerNodePublic);
+
+export type SyncUpdatePeerData = {
+    peerId: string;
+    requestBody: HaPeerNodeUpdate;
+};
+
+export type SyncUpdatePeerResponse = (HaPeerNodePublic);
+
+export type SyncDeletePeerData = {
+    peerId: string;
+};
+
+export type SyncDeletePeerResponse = (void);
 
 export type SyncPushConfigToStandbyResponse = ({
     [key: string]: unknown;

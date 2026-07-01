@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { AaaStatisticsListAaaNodesResponse, AaaStatisticsReadAaaStatisticsData, AaaStatisticsReadAaaStatisticsResponse, AaaStatisticsReadAaaStatisticsRangeData, AaaStatisticsReadAaaStatisticsRangeResponse, AaaStatisticsRunAaaStatisticsData, AaaStatisticsRunAaaStatisticsResponse, AccountingStatisticsReadAccountingStatisticsData, AccountingStatisticsReadAccountingStatisticsResponse, AdminListAuthProvidersResponse, AdminGetAuthProviderData, AdminGetAuthProviderResponse, AdminUpdateAuthProviderData, AdminUpdateAuthProviderResponse, AlertEventsReadAlertStatisticsResponse, AlertEventsReadAlertEventsData, AlertEventsReadAlertEventsResponse, AlertRulesReadAlertRulesData, AlertRulesReadAlertRulesResponse, AlertRulesCreateAlertRuleData, AlertRulesCreateAlertRuleResponse, AlertRulesReadAlertRuleByIdData, AlertRulesReadAlertRuleByIdResponse, AlertRulesUpdateAlertRuleData, AlertRulesUpdateAlertRuleResponse, AlertRulesDeleteAlertRuleData, AlertRulesDeleteAlertRuleResponse, AnomalyDetectionReadAnomalyResultsData, AnomalyDetectionReadAnomalyResultsResponse, AnomalyDetectionRetrainAnomalyModelResponse, AuditLogsReadAuditLogsData, AuditLogsReadAuditLogsResponse, AuditLogsReadAuditLogByIdData, AuditLogsReadAuditLogByIdResponse, AuditLogsPurgeAuditLogsResponse, AuthenticationStatisticsReadAuthenticationStatisticsData, AuthenticationStatisticsReadAuthenticationStatisticsResponse, AuthorizationStatisticsReadAuthorizationStatisticsData, AuthorizationStatisticsReadAuthorizationStatisticsResponse, AuthProvidersAuthProvidersStatusResponse, ConfigurationOptionsReadConfigurationOptionsData, ConfigurationOptionsReadConfigurationOptionsResponse, ConfigurationOptionsCreateConfigurationOptionData, ConfigurationOptionsCreateConfigurationOptionResponse, ConfigurationOptionsReadConfigurationOptionByIdData, ConfigurationOptionsReadConfigurationOptionByIdResponse, ConfigurationOptionsUpdateConfigurationOptionData, ConfigurationOptionsUpdateConfigurationOptionResponse, ConfigurationOptionsDeleteConfigurationOptionData, ConfigurationOptionsDeleteConfigurationOptionResponse, HostsReadHostsData, HostsReadHostsResponse, HostsCreateHostData, HostsCreateHostResponse, HostsReadHostByIdData, HostsReadHostByIdResponse, HostsUpdateHostData, HostsUpdateHostResponse, HostsDeleteHostData, HostsDeleteHostResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, MavisesReadMavisesData, MavisesReadMavisesResponse, MavisesCreateMavisData, MavisesCreateMavisResponse, MavisesPreviewMavisResponse, MavisesReadMavisByIdData, MavisesReadMavisByIdResponse, MavisesUpdateMavisData, MavisesUpdateMavisResponse, MavisesDeleteMavisData, MavisesDeleteMavisResponse, NotificationChannelsReadNotificationChannelsData, NotificationChannelsReadNotificationChannelsResponse, NotificationChannelsCreateNotificationChannelData, NotificationChannelsCreateNotificationChannelResponse, NotificationChannelsReadNotificationChannelByIdData, NotificationChannelsReadNotificationChannelByIdResponse, NotificationChannelsUpdateNotificationChannelData, NotificationChannelsUpdateNotificationChannelResponse, NotificationChannelsDeleteNotificationChannelData, NotificationChannelsDeleteNotificationChannelResponse, NotificationChannelsTestNotificationChannelData, NotificationChannelsTestNotificationChannelResponse, OauthGoogleAuthorizeResponse, OauthGoogleCallbackData, OauthGoogleCallbackResponse, OauthKeycloakAuthorizeResponse, OauthKeycloakCallbackData, OauthKeycloakCallbackResponse, PasskeysRegisterBeginResponse, PasskeysRegisterCompleteData, PasskeysRegisterCompleteResponse, PasskeysListCredentialsResponse, PasskeysDeleteCredentialData, PasskeysDeleteCredentialResponse, PasskeysAuthenticateBeginResponse, PasskeysAuthenticateCompleteData, PasskeysAuthenticateCompleteResponse, PrivateCreateUserData, PrivateCreateUserResponse, ProfilesReadProfilesData, ProfilesReadProfilesResponse, ProfilesCreateProfileData, ProfilesCreateProfileResponse, ProfilesPreviewProfilesResponse, ProfilesReadProfileByIdData, ProfilesReadProfileByIdResponse, ProfilesUpdateProfileData, ProfilesUpdateProfileResponse, ProfilesDeleteProfileData, ProfilesDeleteProfileResponse, ProfilescriptsReadProfilescriptsData, ProfilescriptsReadProfilescriptsResponse, ProfilescriptsCreateProfilescriptData, ProfilescriptsCreateProfilescriptResponse, ProfilescriptsReadProfilescriptByIdData, ProfilescriptsReadProfilescriptByIdResponse, ProfilescriptsUpdateProfilescriptData, ProfilescriptsUpdateProfilescriptResponse, ProfilescriptsDeleteProfilescriptData, ProfilescriptsDeleteProfilescriptResponse, ProfilescriptsetsReadProfilescriptsetsData, ProfilescriptsetsReadProfilescriptsetsResponse, ProfilescriptsetsCreateProfilescriptsetData, ProfilescriptsetsCreateProfilescriptsetResponse, ProfilescriptsetsReadProfilescriptsetByIdData, ProfilescriptsetsReadProfilescriptsetByIdResponse, ProfilescriptsetsUpdateProfilescriptsetData, ProfilescriptsetsUpdateProfilescriptsetResponse, ProfilescriptsetsDeleteProfilescriptsetData, ProfilescriptsetsDeleteProfilescriptsetResponse, RulesetsReadRulesetsData, RulesetsReadRulesetsResponse, RulesetsCreateRulesetData, RulesetsCreateRulesetResponse, RulesetsPreviewRulesetsResponse, RulesetsReadRulesetByIdData, RulesetsReadRulesetByIdResponse, RulesetsUpdateRulesetData, RulesetsUpdateRulesetResponse, RulesetsDeleteRulesetData, RulesetsDeleteRulesetResponse, RulesetscriptsReadRulesetscriptsData, RulesetscriptsReadRulesetscriptsResponse, RulesetscriptsCreateRulesetscriptData, RulesetscriptsCreateRulesetscriptResponse, RulesetscriptsReadRulesetscriptByIdData, RulesetscriptsReadRulesetscriptByIdResponse, RulesetscriptsUpdateRulesetscriptData, RulesetscriptsUpdateRulesetscriptResponse, RulesetscriptsDeleteRulesetscriptData, RulesetscriptsDeleteRulesetscriptResponse, RulesetscriptsetsReadRulesetscriptsetsData, RulesetscriptsetsReadRulesetscriptsetsResponse, RulesetscriptsetsCreateRulesetscriptsetData, RulesetscriptsetsCreateRulesetscriptsetResponse, RulesetscriptsetsReadRulesetscriptsetByIdData, RulesetscriptsetsReadRulesetscriptsetByIdResponse, RulesetscriptsetsUpdateRulesetscriptsetData, RulesetscriptsetsUpdateRulesetscriptsetResponse, RulesetscriptsetsDeleteRulesetscriptsetData, RulesetscriptsetsDeleteRulesetscriptsetResponse, SyncGetHaInfoResponse, SyncPushConfigToStandbyResponse, SyncPromoteToPrimaryResponse, SyncInternalCollectStatsData, SyncInternalCollectStatsResponse, SyncInternalReloadConfigResponse, TacacsConfigsReadTacacsConfigsData, TacacsConfigsReadTacacsConfigsResponse, TacacsConfigsCreateTacacsConfigData, TacacsConfigsCreateTacacsConfigResponse, TacacsConfigsGeneratePreviewTacacsConfigResponse, TacacsConfigsGetActiveTacacsConfigResponse, TacacsConfigsReadTacacsConfigByIdData, TacacsConfigsReadTacacsConfigByIdResponse, TacacsConfigsUpdateTacacsConfigData, TacacsConfigsUpdateTacacsConfigResponse, TacacsConfigsDeleteTacacsConfigData, TacacsConfigsDeleteTacacsConfigResponse, TacacsConfigsCheckTacacsConfigByIdData, TacacsConfigsCheckTacacsConfigByIdResponse, TacacsGroupsReadTacacsGroupsData, TacacsGroupsReadTacacsGroupsResponse, TacacsGroupsCreateTacacsGroupData, TacacsGroupsCreateTacacsGroupResponse, TacacsGroupsReadTacacsGroupByIdData, TacacsGroupsReadTacacsGroupByIdResponse, TacacsGroupsUpdateTacacsGroupData, TacacsGroupsUpdateTacacsGroupResponse, TacacsGroupsDeleteTacacsGroupData, TacacsGroupsDeleteTacacsGroupResponse, TacacsLogsGetLatestLogDateResponse, TacacsLogsGetLogEventsSummaryData, TacacsLogsGetLogEventsSummaryResponse, TacacsLogsListLogEventsData, TacacsLogsListLogEventsResponse, TacacsLogsListLogFilesData, TacacsLogsListLogFilesResponse, TacacsLogsReadLogFileData, TacacsLogsReadLogFileResponse, TacacsNgSettingsReadTacacsNgSettingsResponse, TacacsNgSettingsUpdateTacacsNgSettingsData, TacacsNgSettingsUpdateTacacsNgSettingsResponse, TacacsServicesReadTacacsServicesData, TacacsServicesReadTacacsServicesResponse, TacacsServicesCreateTacacsServiceData, TacacsServicesCreateTacacsServiceResponse, TacacsServicesReadTacacsServiceByIdData, TacacsServicesReadTacacsServiceByIdResponse, TacacsServicesUpdateTacacsServiceData, TacacsServicesUpdateTacacsServiceResponse, TacacsServicesDeleteTacacsServiceData, TacacsServicesDeleteTacacsServiceResponse, TacacsUsersReadTacacsUsersData, TacacsUsersReadTacacsUsersResponse, TacacsUsersCreateTacacsUserData, TacacsUsersCreateTacacsUserResponse, TacacsUsersReadTacacsUserByIdData, TacacsUsersReadTacacsUserByIdResponse, TacacsUsersUpdateTacacsUserData, TacacsUsersUpdateTacacsUserResponse, TacacsUsersDeleteTacacsUserData, TacacsUsersDeleteTacacsUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { AaaStatisticsListAaaNodesResponse, AaaStatisticsReadAaaStatisticsData, AaaStatisticsReadAaaStatisticsResponse, AaaStatisticsReadAaaStatisticsRangeData, AaaStatisticsReadAaaStatisticsRangeResponse, AaaStatisticsRunAaaStatisticsData, AaaStatisticsRunAaaStatisticsResponse, AccountingStatisticsReadAccountingStatisticsData, AccountingStatisticsReadAccountingStatisticsResponse, AdminListAuthProvidersResponse, AdminGetAuthProviderData, AdminGetAuthProviderResponse, AdminUpdateAuthProviderData, AdminUpdateAuthProviderResponse, AlertEventsReadAlertStatisticsResponse, AlertEventsReadAlertEventsData, AlertEventsReadAlertEventsResponse, AlertRulesReadAlertRulesData, AlertRulesReadAlertRulesResponse, AlertRulesCreateAlertRuleData, AlertRulesCreateAlertRuleResponse, AlertRulesReadAlertRuleByIdData, AlertRulesReadAlertRuleByIdResponse, AlertRulesUpdateAlertRuleData, AlertRulesUpdateAlertRuleResponse, AlertRulesDeleteAlertRuleData, AlertRulesDeleteAlertRuleResponse, AnomalyDetectionReadAnomalyResultsData, AnomalyDetectionReadAnomalyResultsResponse, AnomalyDetectionRetrainAnomalyModelResponse, AuditLogsReadAuditLogsData, AuditLogsReadAuditLogsResponse, AuditLogsReadAuditLogByIdData, AuditLogsReadAuditLogByIdResponse, AuditLogsPurgeAuditLogsResponse, AuthenticationStatisticsReadAuthenticationStatisticsData, AuthenticationStatisticsReadAuthenticationStatisticsResponse, AuthorizationStatisticsReadAuthorizationStatisticsData, AuthorizationStatisticsReadAuthorizationStatisticsResponse, AuthProvidersAuthProvidersStatusResponse, ConfigurationOptionsReadConfigurationOptionsData, ConfigurationOptionsReadConfigurationOptionsResponse, ConfigurationOptionsCreateConfigurationOptionData, ConfigurationOptionsCreateConfigurationOptionResponse, ConfigurationOptionsReadConfigurationOptionByIdData, ConfigurationOptionsReadConfigurationOptionByIdResponse, ConfigurationOptionsUpdateConfigurationOptionData, ConfigurationOptionsUpdateConfigurationOptionResponse, ConfigurationOptionsDeleteConfigurationOptionData, ConfigurationOptionsDeleteConfigurationOptionResponse, HostsReadHostsData, HostsReadHostsResponse, HostsCreateHostData, HostsCreateHostResponse, HostsReadHostByIdData, HostsReadHostByIdResponse, HostsUpdateHostData, HostsUpdateHostResponse, HostsDeleteHostData, HostsDeleteHostResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, MavisesReadMavisesData, MavisesReadMavisesResponse, MavisesCreateMavisData, MavisesCreateMavisResponse, MavisesPreviewMavisResponse, MavisesReadMavisByIdData, MavisesReadMavisByIdResponse, MavisesUpdateMavisData, MavisesUpdateMavisResponse, MavisesDeleteMavisData, MavisesDeleteMavisResponse, NotificationChannelsReadNotificationChannelsData, NotificationChannelsReadNotificationChannelsResponse, NotificationChannelsCreateNotificationChannelData, NotificationChannelsCreateNotificationChannelResponse, NotificationChannelsReadNotificationChannelByIdData, NotificationChannelsReadNotificationChannelByIdResponse, NotificationChannelsUpdateNotificationChannelData, NotificationChannelsUpdateNotificationChannelResponse, NotificationChannelsDeleteNotificationChannelData, NotificationChannelsDeleteNotificationChannelResponse, NotificationChannelsTestNotificationChannelData, NotificationChannelsTestNotificationChannelResponse, OauthGoogleAuthorizeResponse, OauthGoogleCallbackData, OauthGoogleCallbackResponse, OauthKeycloakAuthorizeResponse, OauthKeycloakCallbackData, OauthKeycloakCallbackResponse, PasskeysRegisterBeginResponse, PasskeysRegisterCompleteData, PasskeysRegisterCompleteResponse, PasskeysListCredentialsResponse, PasskeysDeleteCredentialData, PasskeysDeleteCredentialResponse, PasskeysAuthenticateBeginResponse, PasskeysAuthenticateCompleteData, PasskeysAuthenticateCompleteResponse, PrivateCreateUserData, PrivateCreateUserResponse, ProfilesReadProfilesData, ProfilesReadProfilesResponse, ProfilesCreateProfileData, ProfilesCreateProfileResponse, ProfilesPreviewProfilesResponse, ProfilesReadProfileByIdData, ProfilesReadProfileByIdResponse, ProfilesUpdateProfileData, ProfilesUpdateProfileResponse, ProfilesDeleteProfileData, ProfilesDeleteProfileResponse, ProfilescriptsReadProfilescriptsData, ProfilescriptsReadProfilescriptsResponse, ProfilescriptsCreateProfilescriptData, ProfilescriptsCreateProfilescriptResponse, ProfilescriptsReadProfilescriptByIdData, ProfilescriptsReadProfilescriptByIdResponse, ProfilescriptsUpdateProfilescriptData, ProfilescriptsUpdateProfilescriptResponse, ProfilescriptsDeleteProfilescriptData, ProfilescriptsDeleteProfilescriptResponse, ProfilescriptsetsReadProfilescriptsetsData, ProfilescriptsetsReadProfilescriptsetsResponse, ProfilescriptsetsCreateProfilescriptsetData, ProfilescriptsetsCreateProfilescriptsetResponse, ProfilescriptsetsReadProfilescriptsetByIdData, ProfilescriptsetsReadProfilescriptsetByIdResponse, ProfilescriptsetsUpdateProfilescriptsetData, ProfilescriptsetsUpdateProfilescriptsetResponse, ProfilescriptsetsDeleteProfilescriptsetData, ProfilescriptsetsDeleteProfilescriptsetResponse, RulesetsReadRulesetsData, RulesetsReadRulesetsResponse, RulesetsCreateRulesetData, RulesetsCreateRulesetResponse, RulesetsPreviewRulesetsResponse, RulesetsReadRulesetByIdData, RulesetsReadRulesetByIdResponse, RulesetsUpdateRulesetData, RulesetsUpdateRulesetResponse, RulesetsDeleteRulesetData, RulesetsDeleteRulesetResponse, RulesetscriptsReadRulesetscriptsData, RulesetscriptsReadRulesetscriptsResponse, RulesetscriptsCreateRulesetscriptData, RulesetscriptsCreateRulesetscriptResponse, RulesetscriptsReadRulesetscriptByIdData, RulesetscriptsReadRulesetscriptByIdResponse, RulesetscriptsUpdateRulesetscriptData, RulesetscriptsUpdateRulesetscriptResponse, RulesetscriptsDeleteRulesetscriptData, RulesetscriptsDeleteRulesetscriptResponse, RulesetscriptsetsReadRulesetscriptsetsData, RulesetscriptsetsReadRulesetscriptsetsResponse, RulesetscriptsetsCreateRulesetscriptsetData, RulesetscriptsetsCreateRulesetscriptsetResponse, RulesetscriptsetsReadRulesetscriptsetByIdData, RulesetscriptsetsReadRulesetscriptsetByIdResponse, RulesetscriptsetsUpdateRulesetscriptsetData, RulesetscriptsetsUpdateRulesetscriptsetResponse, RulesetscriptsetsDeleteRulesetscriptsetData, RulesetscriptsetsDeleteRulesetscriptsetResponse, SyncGetHaInfoResponse, SyncGetHaConfigEndpointResponse, SyncUpdateHaConfigData, SyncUpdateHaConfigResponse, SyncListPeersResponse, SyncCreatePeerData, SyncCreatePeerResponse, SyncUpdatePeerData, SyncUpdatePeerResponse, SyncDeletePeerData, SyncDeletePeerResponse, SyncPushConfigToStandbyResponse, SyncPromoteToPrimaryResponse, SyncInternalCollectStatsData, SyncInternalCollectStatsResponse, SyncInternalReloadConfigResponse, TacacsConfigsReadTacacsConfigsData, TacacsConfigsReadTacacsConfigsResponse, TacacsConfigsCreateTacacsConfigData, TacacsConfigsCreateTacacsConfigResponse, TacacsConfigsGeneratePreviewTacacsConfigResponse, TacacsConfigsGetActiveTacacsConfigResponse, TacacsConfigsReadTacacsConfigByIdData, TacacsConfigsReadTacacsConfigByIdResponse, TacacsConfigsUpdateTacacsConfigData, TacacsConfigsUpdateTacacsConfigResponse, TacacsConfigsDeleteTacacsConfigData, TacacsConfigsDeleteTacacsConfigResponse, TacacsConfigsCheckTacacsConfigByIdData, TacacsConfigsCheckTacacsConfigByIdResponse, TacacsGroupsReadTacacsGroupsData, TacacsGroupsReadTacacsGroupsResponse, TacacsGroupsCreateTacacsGroupData, TacacsGroupsCreateTacacsGroupResponse, TacacsGroupsReadTacacsGroupByIdData, TacacsGroupsReadTacacsGroupByIdResponse, TacacsGroupsUpdateTacacsGroupData, TacacsGroupsUpdateTacacsGroupResponse, TacacsGroupsDeleteTacacsGroupData, TacacsGroupsDeleteTacacsGroupResponse, TacacsLogsGetLatestLogDateResponse, TacacsLogsGetLogEventsSummaryData, TacacsLogsGetLogEventsSummaryResponse, TacacsLogsListLogEventsData, TacacsLogsListLogEventsResponse, TacacsLogsListLogFilesData, TacacsLogsListLogFilesResponse, TacacsLogsReadLogFileData, TacacsLogsReadLogFileResponse, TacacsNgSettingsReadTacacsNgSettingsResponse, TacacsNgSettingsUpdateTacacsNgSettingsData, TacacsNgSettingsUpdateTacacsNgSettingsResponse, TacacsServicesReadTacacsServicesData, TacacsServicesReadTacacsServicesResponse, TacacsServicesCreateTacacsServiceData, TacacsServicesCreateTacacsServiceResponse, TacacsServicesReadTacacsServiceByIdData, TacacsServicesReadTacacsServiceByIdResponse, TacacsServicesUpdateTacacsServiceData, TacacsServicesUpdateTacacsServiceResponse, TacacsServicesDeleteTacacsServiceData, TacacsServicesDeleteTacacsServiceResponse, TacacsUsersReadTacacsUsersData, TacacsUsersReadTacacsUsersResponse, TacacsUsersCreateTacacsUserData, TacacsUsersCreateTacacsUserResponse, TacacsUsersReadTacacsUserByIdData, TacacsUsersReadTacacsUserByIdResponse, TacacsUsersUpdateTacacsUserData, TacacsUsersUpdateTacacsUserResponse, TacacsUsersDeleteTacacsUserData, TacacsUsersDeleteTacacsUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class AaaStatisticsService {
     /**
@@ -2095,7 +2095,7 @@ export class RulesetscriptsetsService {
 export class SyncService {
     /**
      * Get Ha Info
-     * Return HA configuration for this node.
+     * Return HA configuration and peer status for this node.
      * @returns unknown Successful Response
      * @throws ApiError
      */
@@ -2107,10 +2107,113 @@ export class SyncService {
     }
     
     /**
+     * Get Ha Config Endpoint
+     * @returns HaConfigPublic Successful Response
+     * @throws ApiError
+     */
+    public static getHaConfigEndpoint(): CancelablePromise<SyncGetHaConfigEndpointResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/sync/config'
+        });
+    }
+    
+    /**
+     * Update Ha Config
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns HaConfigPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateHaConfig(data: SyncUpdateHaConfigData): CancelablePromise<SyncUpdateHaConfigResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/sync/config',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * List Peers
+     * @returns HaPeerNodesPublic Successful Response
+     * @throws ApiError
+     */
+    public static listPeers(): CancelablePromise<SyncListPeersResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/sync/peers'
+        });
+    }
+    
+    /**
+     * Create Peer
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns HaPeerNodePublic Successful Response
+     * @throws ApiError
+     */
+    public static createPeer(data: SyncCreatePeerData): CancelablePromise<SyncCreatePeerResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/sync/peers',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Peer
+     * @param data The data for the request.
+     * @param data.peerId
+     * @param data.requestBody
+     * @returns HaPeerNodePublic Successful Response
+     * @throws ApiError
+     */
+    public static updatePeer(data: SyncUpdatePeerData): CancelablePromise<SyncUpdatePeerResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/sync/peers/{peer_id}',
+            path: {
+                peer_id: data.peerId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Peer
+     * @param data The data for the request.
+     * @param data.peerId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deletePeer(data: SyncDeletePeerData): CancelablePromise<SyncDeletePeerResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/sync/peers/{peer_id}',
+            path: {
+                peer_id: data.peerId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
      * Push Config To Standby
-     * Manually trigger config reload on the peer (standby) node.
-     *
-     * Only valid on the primary node with SYNC_MODE=manual.
+     * Manually push config to all enabled standby peers (primary + manual sync only).
      * @returns unknown Successful Response
      * @throws ApiError
      */
@@ -2123,10 +2226,7 @@ export class SyncService {
     
     /**
      * Promote To Primary
-     * Promote this standby node to primary via pg_promote().
-     *
-     * Superuser only. Only valid on NODE_ROLE=standby.
-     * After success, update .env (NODE_ROLE=primary, SCHEDULER_ENABLED=true) and restart backend.
+     * Promote this standby node to primary via pg_promote(). Superuser only.
      * @returns unknown Successful Response
      * @throws ApiError
      */
@@ -2139,11 +2239,7 @@ export class SyncService {
     
     /**
      * Internal Collect Stats
-     * Internal endpoint: parse local TACACS logs and return raw aggregated stats.
-     *
-     * Called by the primary node to collect stats from each peer (standby) node.
-     * Does NOT write to DB — primary is the sole writer.
-     * Authenticated via X-Internal-Token.
+     * Internal: parse local TACACS logs and return raw stats. Called by primary.
      * @param data The data for the request.
      * @param data.date
      * @returns unknown Successful Response
@@ -2164,10 +2260,7 @@ export class SyncService {
     
     /**
      * Internal Reload Config
-     * Internal endpoint: reload tac_plus-ng config from DB on this (standby) node.
-     *
-     * Called by the primary node (auto or manual sync). Authenticated via shared token.
-     * Not exposed in OpenAPI docs — internal HA traffic only.
+     * Internal: reload tac_plus-ng config from DB on this (standby) node.
      * @returns unknown Successful Response
      * @throws ApiError
      */

@@ -1481,6 +1481,217 @@ export const HTTPValidationErrorSchema = {
     title: 'HTTPValidationError'
 } as const;
 
+export const HaConfigPublicSchema = {
+    properties: {
+        node_name: {
+            type: 'string',
+            maxLength: 100,
+            title: 'Node Name',
+            default: 'primary'
+        },
+        sync_mode: {
+            type: 'string',
+            maxLength: 10,
+            title: 'Sync Mode',
+            default: 'auto'
+        },
+        scheduler_enabled: {
+            type: 'boolean',
+            title: 'Scheduler Enabled',
+            default: true
+        },
+        stats_interval_minutes: {
+            type: 'integer',
+            title: 'Stats Interval Minutes',
+            default: 30
+        },
+        id: {
+            type: 'integer',
+            title: 'Id'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'updated_at'],
+    title: 'HaConfigPublic'
+} as const;
+
+export const HaConfigUpdateSchema = {
+    properties: {
+        node_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Node Name'
+        },
+        sync_mode: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['auto', 'manual']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sync Mode'
+        },
+        scheduler_enabled: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Scheduler Enabled'
+        },
+        stats_interval_minutes: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Stats Interval Minutes'
+        }
+    },
+    type: 'object',
+    title: 'HaConfigUpdate'
+} as const;
+
+export const HaPeerNodeCreateSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 100,
+            title: 'Name'
+        },
+        url: {
+            type: 'string',
+            maxLength: 500,
+            title: 'Url'
+        },
+        enabled: {
+            type: 'boolean',
+            title: 'Enabled',
+            default: true
+        }
+    },
+    type: 'object',
+    required: ['name', 'url'],
+    title: 'HaPeerNodeCreate'
+} as const;
+
+export const HaPeerNodePublicSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 100,
+            title: 'Name'
+        },
+        url: {
+            type: 'string',
+            maxLength: 500,
+            title: 'Url'
+        },
+        enabled: {
+            type: 'boolean',
+            title: 'Enabled',
+            default: true
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['name', 'url', 'id', 'created_at', 'updated_at'],
+    title: 'HaPeerNodePublic'
+} as const;
+
+export const HaPeerNodeUpdateSchema = {
+    properties: {
+        name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Url'
+        },
+        enabled: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Enabled'
+        }
+    },
+    type: 'object',
+    title: 'HaPeerNodeUpdate'
+} as const;
+
+export const HaPeerNodesPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/HaPeerNodePublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'HaPeerNodesPublic'
+} as const;
+
 export const HostCreateSchema = {
     properties: {
         name: {
