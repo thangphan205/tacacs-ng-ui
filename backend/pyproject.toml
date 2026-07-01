@@ -24,7 +24,7 @@ dependencies = [
     "authlib>=1.6.12",
     "webauthn>=2.2.0,<3.0.0",
     "cryptography>=48.0.1",
-    "scikit-learn>=1.4.0,<2.0.0",
+    "scikit-learn>=1.9.0,<2.0.0",
     "numpy>=2.5.0,<3.0.0",
 ]
 
