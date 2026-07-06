@@ -30,7 +30,7 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.0",
+    "@biomejs/biome": "^2.5.2",
     "@emnapi/core": "^1.11.1",
     "@emnapi/runtime": "^1.11.1",
     "@hey-api/openapi-ts": "0.73.0",
