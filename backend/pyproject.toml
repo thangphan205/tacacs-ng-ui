@@ -15,7 +15,7 @@ dependencies = [
     "alembic<2.0.0,>=1.12.1",
     "httpx<1.0.0,>=0.25.1",
     "psycopg[binary]<4.0.0,>=3.1.13",
-    "sqlmodel<1.0.0,>=0.0.21",
+    "sqlmodel==0.0.39",
     # Pin bcrypt until passlib supports the latest
     "bcrypt==4.3.0",
     "pydantic-settings>=2.14.2,<3.0.0",
@@ -23,8 +23,8 @@ dependencies = [
     "pyjwt>=2.13.0,<3.0.0",
     "authlib>=1.6.12",
     "webauthn>=2.2.0,<3.0.0",
-    "cryptography>=48.0.1",
-    "scikit-learn>=1.4.0,<2.0.0",
+    "cryptography>=49.0.0",
+    "scikit-learn>=1.9.0,<2.0.0",
     "numpy>=2.5.0,<3.0.0",
 ]
 
@@ -32,7 +32,7 @@ dependencies = [
 dev = [
     "pytest<8.0.0,>=7.4.3",
     "mypy<2.0.0,>=1.8.0",
-    "ruff<1.0.0,>=0.2.2",
+    "ruff>=0.15.21,<1.0.0",
     "pre-commit<4.0.0,>=3.6.2",
     "types-passlib>=1.7.7.20260211,<2.0.0.0",
     "coverage>=7.14.3,<8.0.0",
