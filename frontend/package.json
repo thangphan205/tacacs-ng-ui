@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.2",
-    "@emnapi/core": "^1.11.1",
+    "@emnapi/core": "^1.11.2",
     "@emnapi/runtime": "^1.11.2",
     "@hey-api/openapi-ts": "0.73.0",
     "@playwright/test": "1.61.1",
