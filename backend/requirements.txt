@@ -57,4 +57,4 @@ urllib3==2.5.0
 uvicorn==0.40.0
 uvloop==0.22.1
 watchfiles==1.1.0
-websockets==15.0.1
+websockets==16.1.1
