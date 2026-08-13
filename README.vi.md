@@ -49,6 +49,7 @@
 - **Audit Logging Toàn Diện**: Mọi hành động trên UI được ghi lại với thông tin actor, IP, snapshot thực thể (trước/sau) và timestamp. Bảng chỉ dành cho superuser với tìm kiếm, bộ lọc ngày và xuất CSV.
 - **Alert Rules Thời Gian Thực**: Định nghĩa quy tắc (đột biến lỗi xác thực, tên người dùng/IP mới, thay đổi cấu hình, kích hoạt) với cửa sổ thời gian, ngưỡng, cooldown và mức độ nghiêm trọng có thể cấu hình. Thông báo qua Telegram, Slack, Discord, Teams hoặc webhook — đánh giá mỗi 5 phút từ file log trực tiếp.
 - **Phát Hiện Bất Thường ML**: Mô hình IsolationForest chấm điểm mỗi người dùng hàng ngày theo 4 đặc trưng hành vi (trung bình/độ lệch chuẩn lỗi xác thực, số IP duy nhất, tỷ lệ từ chối). Kết quả phân loại normal/low/medium/high/critical và hiển thị trên trang UI riêng.
+- **High Availability**: Chạy một node primary cùng N node standby. Thay đổi cấu hình được fan-out đến mọi peer đang bật, standby đồng bộ qua PostgreSQL streaming replication, và peer được thêm, tắt hoặc xóa ngay trên giao diện HA mà không cần khởi động lại dịch vụ. Thăng cấp standby lên primary chỉ bằng một cú nhấp.
 - **Xác Thực Đa Yếu Tố**: Google OAuth, Keycloak OIDC và Passkeys (WebAuthn) ngoài email/mật khẩu.
 - **Bảo Mật Theo Thiết Kế**: Chính sách mật khẩu tuân thủ PCI DSS, xác thực JWT và khôi phục mật khẩu qua email.
 - **Công Cụ Tích Hợp**: Traefik reverse proxy, tài liệu API tự động qua Swagger UI và kiểm thử end-to-end với Playwright.
@@ -378,6 +379,8 @@ Bao gồm Docker Compose, custom local domains, cấu hình `.env`, v.v.
 3. **Dashboard Quan Sát Nâng Cao**: ✅ Tóm tắt log hôm nay, thẻ tổng quan, hoạt động người dùng gần đây, biểu đồ Top 5 với bộ lọc 7/30 ngày — ra mắt trong v0.3.0. Cải tiến trong v0.3.2 với drill-down tên người dùng, cột lệnh/port, ngăn kéo chi tiết và timeline phiên.
 4. **Tích Hợp SIEM**: ✅ Chuyển tiếp thời gian thực qua HTTP webhook (Splunk HEC) và syslog (UDP/TCP) từ v0.3.0.
 5. **Phát Hiện Bất Thường & Cảnh Báo**: ✅ Alert rules thời gian thực với thông báo đa kênh (Telegram, Slack, Discord, Teams, Google Chat, Email/SMTP, webhook) và phát hiện bất thường ML (IsolationForest) từ v0.3.5–v0.3.6.
+6. **Cải Thiện UX / Khởi Chạy Không Cần Cấu Hình**: ✅ Ra mắt trong v0.4.0 — bảng Field Guide tương tác trong mọi hộp thoại Thêm/Sửa, thiết kế lại giao diện cho toàn bộ bảng quản lý, dữ liệu mẫu đa hãng (Cisco, Arista, Huawei, Juniper, Palo Alto, Fortinet) nạp sẵn ở lần khởi động đầu, chỉnh sửa file cấu hình TACACS+ trực tiếp trên trình duyệt và định dạng thời gian 24 giờ thống nhất.
+7. **High Availability**: ✅ Ra mắt trong v0.5.0 — HA đa node Mô hình C (một primary + N standby) với fan-out cấu hình đến mọi peer đang bật và theo dõi trạng thái đồng bộ theo từng peer. Mọi thiết lập HA ngoài `NODE_ROLE` và `INTERNAL_SYNC_TOKEN` được lưu trong database và chỉnh sửa được từ UI mà không cần khởi động lại. Được củng cố trong v0.5.1 với seeding peer khi failover, dashboard standby an toàn với database chỉ đọc và script triển khai hợp nhất `setup-ha.sh`.
 
 ## Release Notes
 

@@ -6,6 +6,10 @@
 
 * 🐛 **Stale generated API client** — regenerated `frontend/src/client/` to include the HA config and peer-management routes (`HaConfig` CRUD, `HaPeerNode` CRUD) added in v0.5.0. The missing types were failing the `generate-client` CI check on every Dependabot PR. PR by [@thangphan205](https://github.com/thangphan205).
 
+### Documentation
+
+* 📖 **README (EN + VI)** — added High Availability to the key features list and a roadmap entry covering the v0.5.0 multi-node HA work and the v0.5.1 hardening. The Vietnamese roadmap also gains the v0.4.0 UX entry it was missing. PR by [@thangphan205](https://github.com/thangphan205).
+
 ### Tests
 
 * ✅ **Reset-password toast race** — the "Expired or invalid reset link" test asserted on the "Invalid token" toast immediately after clicking Reset Password, but the toast only mounts once the POST settles, so a slow response in CI missed the 5s assertion window. The test then passed on retry, which CI rejects because Playwright runs with `--fail-on-flaky-tests`. Both this test and the success-flow test now await the `/api/v1/reset-password/` response before asserting. PR by [@thangphan205](https://github.com/thangphan205).
@@ -22,6 +26,7 @@
 * ⬆️ **pre-commit 3.8.0 → 4.6.1** (major). PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **coverage 7.6.1 → 7.14.3** (major). PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **urllib3 2.5.0 → 2.7.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **lxml 6.1.0 → 6.1.1**. PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **sqlmodel 0.0.24 → 0.0.39**. PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **sqlalchemy 2.0.45 → 2.0.51**. PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **scikit-learn 1.8.0 → 1.9.0**. PR by [@thangphan205](https://github.com/thangphan205).
