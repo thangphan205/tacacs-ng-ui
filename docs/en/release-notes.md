@@ -1,5 +1,83 @@
 # Release Notes
 
+## Unreleased
+
+### Fixes
+
+* 🐛 **Stale generated API client** — regenerated `frontend/src/client/` to include the HA config and peer-management routes (`HaConfig` CRUD, `HaPeerNode` CRUD) added in v0.5.0. The missing types were failing the `generate-client` CI check on every Dependabot PR. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Tests
+
+* ✅ **Reset-password toast race** — the "Expired or invalid reset link" test asserted on the "Invalid token" toast immediately after clicking Reset Password, but the toast only mounts once the POST settles, so a slow response in CI missed the 5s assertion window. The test then passed on retry, which CI rejects because Playwright runs with `--fail-on-flaky-tests`. Both this test and the success-flow test now await the `/api/v1/reset-password/` response before asserting. PR by [@thangphan205](https://github.com/thangphan205).
+* ✅ **Flaky Playwright fixes** — user-settings tests now wait for tab visibility before asserting `aria-selected`, and use `expect(locator).toHaveClass()` instead of a synchronous `page.evaluate(classList.contains)` so assertions retry; appearance tests always set Light Mode explicitly instead of branching on initial state. PR by [@thangphan205](https://github.com/thangphan205).
+* ✅ **Correct input assertions** — login, sign-up, and reset-password tests use `toHaveValue("")` instead of `toHaveText("")` on inputs; the old assertion passed regardless of the actual input value. PR by [@thangphan205](https://github.com/thangphan205).
+* ✅ **MailCatcher polling timeout raised to 15s** — reduces flakes waiting on email delivery in CI. The "Weak new password validation" test was removed after timing out consistently even at the higher timeout; the same client-side validation is covered by the passing reset-password flow test. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Dependencies
+
+* ⬆️ **cryptography 48.0.1 → 50.0.0** (major) — security patch. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **chardet 5.2.0 → 7.4.3** (major). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **pytest 7.4.4 → 9.1.1** (major). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **websockets 15.0.1 → 16.1.1** (major). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **pre-commit 3.8.0 → 4.6.1** (major). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **coverage 7.6.1 → 7.14.3** (major). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **urllib3 2.5.0 → 2.7.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **sqlmodel 0.0.24 → 0.0.39**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **sqlalchemy 2.0.45 → 2.0.51**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **scikit-learn 1.8.0 → 1.9.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **sentry-sdk 2.62.0 → 2.64.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **joserfc 1.6.5 → 1.6.8**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **ruff 0.6.7 → 0.15.21**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **shiki 3.19.0 → 4.3.1** (major). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **axios 1.16.0 → 1.18.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@chakra-ui/react 3.36.0 → 3.36.1**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@chakra-ui/charts 3.34.0 → 3.36.1**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **recharts 3.8.1 → 3.9.2**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@tanstack/react-router 1.170.4 → 1.170.16**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@tanstack/react-query-devtools** — version bump. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **react-hook-form 7.80.0 → 7.81.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **react-icons 5.6.0 → 5.7.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **postcss 8.5.15 → 8.5.26**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **js-yaml 4.2.0 → 4.3.1**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@biomejs/biome 2.5.0 → 2.5.4**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@types/node 26.0.0 → 26.1.1**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@emnapi/runtime 1.11.1 → 1.11.2**, **@emnapi/core 1.11.1 → 1.11.3**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **playwright v1.59.1-noble → v1.61.1-noble** (Docker test image). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **actions/setup-node 6 → 7** (major, CI). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **actions/setup-python 6 → 7** (major, CI). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **actions/labeler 6 → 7** (major, CI). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **tiangolo/latest-changes 0.6.0 → 0.7.2** (CI). PR by [@thangphan205](https://github.com/thangphan205).
+
+## v0.5.1
+
+### Features
+
+* ✨ **Add first HA peer without env vars** — when HA is unconfigured (no peers in the DB and no `PEER_BACKEND_URL`), the empty state now renders the peers table so a superuser can add the first peer straight from the dashboard. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Filesystem-persisted last sync timestamp** — the last sync time is written to the filesystem so standby nodes with a read-only replica database can still report it. PR by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Flexible `VITE_API_URL`** — relaxed frontend API URL configuration for IP-based and reverse-proxied deployments. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Fixes
+
+* 🐛 **Dashboard blanked by unexpected log summary shape** — `data?.authentication.success` only guarded against a null `data`; if `data.authentication` was undefined (seen during primary-node peer aggregation) the whole dashboard crashed with `Cannot read properties of undefined (reading 'success')`. All six nested accesses across the authentication, authorization, and accounting cards in `TodayLogSummary` are now optional-chained. PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **Config activation left stale `active` flag in DB** — `model_dump(exclude_unset=True)` dropped the `active` flag when it was omitted from the payload, so activating via the default path never wrote it. The flag is now written explicitly from `should_activate` when `active` is `None`, and the activation dialog sends `active=true`. PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **HaConfig seed race across uvicorn workers** — four workers start concurrently, all read `None` for `HaConfig` id=1 and all attempt the INSERT, so three hit a `UniqueViolation`. The seed now catches `IntegrityError` and rolls back; the row written by the winning worker is enough. PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **DB write on standby in `_get_or_create_ha_state`** — the standby database is read-only, so `session.add` + commit failed when no `HaState` row existed. It now returns an unsaved instance, letting `ha-info` read `last_received_at` without writing. PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **Standby failover peer seeding and dashboard display** — `HaPeerNode` seeding is now an upsert, so after promotion the `PEER_BACKEND_URL` of the promoted node adds the old primary even when the replicated DB already holds peer rows. On a standby, `ha-info` returns `peers=[]` instead of the primary's list (which pointed at the standby itself and showed a self-ping as Online) and exposes `PEER_BACKEND_URL` so the UI can display the primary node. The HA dashboard on a standby shows a "Last Sync Received" card and a "Primary Node" URL box in place of "Peers Online" and the peer table, and `haConfigured` is true for `node_role=standby` so the dashboard is never empty. PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **HA setup script hardening** — `setup-ha.sh` passes `--build` on the primary so first run never uses a stale image, binds the replication password as a psql variable (`:'repl_pass'`) instead of interpolating it into `CREATE ROLE`, validates `PEER_IP` as IPv4 before writing `pg_hba.conf`, and reloads config via `pg_reload_conf()` instead of `docker compose kill -s HUP` (SIGHUP to PID 1 may never reach postgres). `setup-standby.sh` detects the Compose project name from `compose config` instead of assuming `STACK_NAME`, escapes the replication password before it lands in `primary_conninfo`, and replaces `sleep 10` with a 30-iteration retry loop that warns instead of silently reporting NULL lag. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Documentation
+
+* 📖 **Upgrade guide (EN + VI)** — replaced the four-command "Updating" section in the deployment guide with a full procedure: backup, release-notes check, build, restart (prestart runs migrations automatically — the old manual `alembic` step was wrong), verification via logs and `alembic`, and rollback. The HA upgrade section gains a pre-upgrade checklist, corrected build commands (separate `build` and `up` rather than `up --build`), a replication lag check before restarting Zone B, and its own verify and rollback steps. PR by [@thangphan205](https://github.com/thangphan205).
+* 📖 **Unified `setup-ha.sh`** — the high-availability deployment docs now use a single setup script in place of the manual step-by-step scripts, and add an HA troubleshooting section. `PEER_BACKEND_URL` is documented as required on both primary and standby, with the failover procedure updated in EN and VI. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Tests
+
+* ✅ **Standby HA sync coverage** — added tests for the standby fixes: `ha-info` on a standby with no `HaState` row returns 200 with `peers=[]` and `last_sync_at=None` and performs no DB write; `last_sync_at` populates from `HaState.last_received_at`; `peer_backend_url` comes from the env var; `_get_or_create_ha_state` returns an unsaved instance without committing; and `_seed_ha_config` upserts the env URL when peers already exist without duplicating an existing one. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Refactors
+
+* 🔧 **Verbose standby setup output** — removed the quiet flags from `docker compose pull` and `docker compose build` in `setup-standby.sh` so image pull and build progress is visible. PR by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.5.0
 
 ### Features
