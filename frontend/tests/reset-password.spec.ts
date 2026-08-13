@@ -66,7 +66,15 @@ test("User can reset password successfully using the link", async ({
 
   await page.getByPlaceholder("New Password").fill(newPassword)
   await page.getByPlaceholder("Confirm Password").fill(newPassword)
+
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/v1/reset-password/") &&
+      response.request().method() === "POST",
+  )
   await page.getByRole("button", { name: "Reset Password" }).click()
+  await responsePromise
+
   await expect(page.getByText("Password updated successfully")).toBeVisible()
 
   // Check if the user is able to login with the new password
@@ -81,7 +89,17 @@ test("Expired or invalid reset link", async ({ page }) => {
 
   await page.getByPlaceholder("New Password").fill(password)
   await page.getByPlaceholder("Confirm Password").fill(password)
+
+  // Wait for the API response before asserting on the error toast — the toast
+  // only mounts once the request settles, and it auto-dismisses 5s later, so
+  // asserting straight after the click races a slow response in CI.
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/v1/reset-password/") &&
+      response.request().method() === "POST",
+  )
   await page.getByRole("button", { name: "Reset Password" }).click()
+  await responsePromise
 
   await expect(page.getByText("Invalid token")).toBeVisible()
 })
