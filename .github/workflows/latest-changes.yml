@@ -33,8 +33,8 @@ jobs:
       - uses: tiangolo/latest-changes@0.7.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          latest_changes_file: ./release-notes.md
-          latest_changes_header: "## Latest Changes"
+          latest_changes_file: ./docs/en/release-notes.md
+          latest_changes_header: "## Unreleased"
           end_regex: "^## "
           debug_logs: true
           label_header_prefix: "### "

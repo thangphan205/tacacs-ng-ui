@@ -2,13 +2,20 @@
 
 ## Unreleased
 
+## v0.5.2
+
 ### Fixes
 
 * 🐛 **Stale generated API client** — regenerated `frontend/src/client/` to include the HA config and peer-management routes (`HaConfig` CRUD, `HaPeerNode` CRUD) added in v0.5.0. The missing types were failing the `generate-client` CI check on every Dependabot PR. PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **`latest-changes` workflow pointed at a missing file** — `latest_changes_file` still referenced `./release-notes.md`, which moved to `docs/en/release-notes.md` in the June docs reorganisation, and the configured header did not exist in the file. Every merge produced a failed run, so release notes were never appended automatically. Points at the real path and header now; the empty `## Unreleased` section above is kept permanently as its insertion point. Note that the workflow additionally needs the `LATEST_CHANGES` repository secret, which is not set. PR by [@thangphan205](https://github.com/thangphan205).
 
 ### Documentation
 
 * 📖 **README (EN + VI)** — added High Availability to the key features list and a roadmap entry covering the v0.5.0 multi-node HA work and the v0.5.1 hardening. The Vietnamese roadmap also gains the v0.4.0 UX entry it was missing. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Internal
+
+* 🔧 **Removed `backend/requirements.txt`** — the file was not consumed by anything: the backend image installs with `uv sync --frozen` from `pyproject.toml` and `uv.lock`, and no CI job, script, or doc referenced it. Dependabot had been maintaining it since November 2025, so bumps merged into it never reached the running image and two of its entries (lxml, chardet) were not installed at all. `pyproject.toml` and `uv.lock` are now the single source of truth. PR by [@thangphan205](https://github.com/thangphan205).
 
 ### Tests
 
