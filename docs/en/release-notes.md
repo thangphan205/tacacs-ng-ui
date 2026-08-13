@@ -20,17 +20,11 @@
 ### Dependencies
 
 * ⬆️ **cryptography 48.0.1 → 50.0.0** (major) — security patch. PR by [@thangphan205](https://github.com/thangphan205).
-* ⬆️ **chardet 5.2.0 → 7.4.3** (major). PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **pytest 7.4.4 → 9.1.1** (major). PR by [@thangphan205](https://github.com/thangphan205).
-* ⬆️ **websockets 15.0.1 → 16.1.1** (major). PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **pre-commit 3.8.0 → 4.6.1** (major). PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **coverage 7.6.1 → 7.14.3** (major). PR by [@thangphan205](https://github.com/thangphan205).
-* ⬆️ **urllib3 2.5.0 → 2.7.0**. PR by [@thangphan205](https://github.com/thangphan205).
-* ⬆️ **lxml 6.1.0 → 6.1.1**. PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **sqlmodel 0.0.24 → 0.0.39**. PR by [@thangphan205](https://github.com/thangphan205).
-* ⬆️ **sqlalchemy 2.0.45 → 2.0.51**. PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **scikit-learn 1.8.0 → 1.9.0**. PR by [@thangphan205](https://github.com/thangphan205).
-* ⬆️ **sentry-sdk 2.62.0 → 2.64.0**. PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **joserfc 1.6.5 → 1.6.8**. PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **ruff 0.6.7 → 0.15.21**. PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **shiki 3.19.0 → 4.3.1** (major). PR by [@thangphan205](https://github.com/thangphan205).
@@ -52,6 +46,8 @@
 * ⬆️ **actions/setup-python 6 → 7** (major, CI). PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **actions/labeler 6 → 7** (major, CI). PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **tiangolo/latest-changes 0.6.0 → 0.7.2** (CI). PR by [@thangphan205](https://github.com/thangphan205).
+
+> **Note — `backend/requirements.txt` bumps are not shipped.** Six merged Dependabot PRs in this window touched only `backend/requirements.txt`: sentry-sdk 2.62.0 → 2.64.0, sqlalchemy 2.0.45 → 2.0.51, websockets 15.0.1 → 16.1.1, lxml 6.1.0 → 6.1.1, chardet 5.2.0 → 7.4.3, and urllib3 2.5.0 → 2.7.0. That file is not consumed by anything — the backend image installs with `uv sync --frozen` from `pyproject.toml` and `uv.lock` (`backend/Dockerfile`). The versions actually installed are sentry-sdk 2.57.0, sqlalchemy 2.0.35, websockets 13.1, urllib3 2.7.0; lxml and chardet are not installed at all. Deliberately excluded from the list above so it reflects what ships.
 
 ## v0.5.1
 
