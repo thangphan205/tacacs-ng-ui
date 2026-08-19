@@ -212,6 +212,27 @@ class TestNotificationDispatcher:
         call_kwargs = mock_post.call_args
         assert call_kwargs.kwargs["json"]["subject"] == "Alert"
         assert call_kwargs.kwargs["json"]["body"] == "Details here"
+        assert "data" not in call_kwargs.kwargs["json"]
+
+    def test_webhook_includes_structured_payload(self) -> None:
+        from app.crud.notification_dispatcher import dispatch_notification
+        ch = self._channel("webhook", {"webhook_url": "https://example.com/hook"})
+        mock_resp = MagicMock()
+        mock_resp.is_success = True
+        payload = {
+            "ip": "10.0.0.5",
+            "fail_count": 4,
+            "triggered_ips": [{"ip": "10.0.0.5", "fail_count": 4}],
+        }
+        with patch("httpx.post", return_value=mock_resp) as mock_post:
+            ok, err = dispatch_notification(
+                channel=ch, subject="Alert", body="Details here", payload=payload
+            )
+        assert ok is True
+        assert err is None
+        sent_json = mock_post.call_args.kwargs["json"]
+        assert sent_json["data"]["ip"] == "10.0.0.5"
+        assert sent_json["data"]["fail_count"] == 4
 
     def test_webhook_with_bearer_token(self) -> None:
         from app.crud.notification_dispatcher import dispatch_notification

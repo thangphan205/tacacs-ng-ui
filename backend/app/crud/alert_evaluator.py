@@ -192,7 +192,7 @@ def evaluate_all_rules(*, session: Session) -> None:
             subject = f"[{rule.severity.upper()}] TACACS Alert: {rule.name}"
             body = _format_body(rule=rule, payload=payload)
             success, error_msg = dispatch_notification(
-                channel=channel, subject=subject, body=body
+                channel=channel, subject=subject, body=body, payload=payload
             )
             crud_alert_events.create_alert_event(
                 session=session,
@@ -262,6 +262,25 @@ def _check_auth_stats(
         new_ips = seen_ips - baseline
         if new_ips:
             return True, {"new_source_ips": list(new_ips), "rule": rule.name}
+        return False, {}
+
+    if field == "client_ip" and operator in ("gt", "lt", "eq"):
+        matches = [
+            (ip, count)
+            for ip, count in fail_by_ip.items()
+            if _compare(value=float(count), operator=operator, threshold=threshold)
+        ]
+        matches.sort(key=lambda pair: pair[1], reverse=True)
+        if matches:
+            return True, {
+                "triggered_ips": [
+                    {"ip": ip, "fail_count": count} for ip, count in matches
+                ],
+                "ip": matches[0][0],
+                "fail_count": matches[0][1],
+                "window_minutes": rule.time_window_minutes,
+                "rule": rule.name,
+            }
         return False, {}
 
     if field in ("fail_count", "result") and operator in ("gt", "lt", "eq"):
@@ -372,6 +391,7 @@ _PAYLOAD_LABELS: dict[str, str] = {
     "deny_count": "Authz denials",
     "new_usernames": "New usernames",
     "new_source_ips": "New source IPs",
+    "triggered_ips": "Offending IPs",
     "config_change_count": "Config changes",
     "actions_checked": "Actions",
     "window_minutes": "Window (min)",
@@ -407,8 +427,12 @@ def _format_body(*, rule: AlertRule, payload: dict) -> str:
         "📊 Details:",
     ]
     for k, v in payload.items():
-        if k in ("rule", "window_minutes"):
-            continue
+        if k in ("rule", "window_minutes", "ip"):
+            continue  # "ip" duplicates triggered_ips[0]; kept in payload only for webhook consumers
         label = _PAYLOAD_LABELS.get(k, k.replace("_", " ").title())
+        if k == "triggered_ips" and isinstance(v, list):
+            v = ", ".join(
+                f"{item['ip']} ({item['fail_count']} fails)" for item in v[:10]
+            )
         lines.append(f"  • {label}: {v}")
     return "\n".join(lines)

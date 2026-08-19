@@ -279,8 +279,15 @@ function RuleDialog({
               <option value="fail_count">Fail Count</option>
               <option value="deny_count">Deny Count</option>
               <option value="username">New Username</option>
-              <option value="client_ip">New Source IP</option>
+              <option value="client_ip">Source IP</option>
             </select>
+            {form.condition_field === "client_ip" && (
+              <Text fontSize="xs" color="fg.muted" mt={1}>
+                {form.condition_operator === "new_value"
+                  ? "Fires when a source IP is seen for the first time in 30 days."
+                  : "Fires when a single source IP exceeds the threshold of auth rejects in the window. The offending IP is included in the alert payload/webhook."}
+              </Text>
+            )}
           </Box>
         )}
         <Box flex={1}>

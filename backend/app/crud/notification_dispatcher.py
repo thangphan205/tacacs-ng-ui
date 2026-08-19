@@ -13,9 +13,18 @@ _TIMEOUT = 10.0
 
 
 def dispatch_notification(
-    *, channel: NotificationChannel, subject: str, body: str
+    *,
+    channel: NotificationChannel,
+    subject: str,
+    body: str,
+    payload: dict | None = None,
 ) -> tuple[bool, str | None]:
-    """Send a notification via the configured channel. Returns (success, error_message)."""
+    """Send a notification via the configured channel. Returns (success, error_message).
+
+    `payload` carries the structured alert data (e.g. offending IP, fail counts).
+    Only the `webhook` channel forwards it as-is (under a `data` key) so downstream
+    automation can act on fields like `data.ip` without parsing the free-text body.
+    """
     try:
         config = json.loads(channel.config_json or "{}")
     except json.JSONDecodeError as e:
@@ -31,7 +40,9 @@ def dispatch_notification(
         elif channel.channel_type == "teams":
             return _send_teams(config=config, subject=subject, body=body)
         elif channel.channel_type == "webhook":
-            return _send_webhook(config=config, subject=subject, body=body)
+            return _send_webhook(
+                config=config, subject=subject, body=body, payload=payload
+            )
         elif channel.channel_type == "gchat":
             return _send_gchat(config=config, subject=subject, body=body)
         elif channel.channel_type == "email":
@@ -162,7 +173,9 @@ def _send_teams(*, config: dict, subject: str, body: str) -> tuple[bool, str | N
     return False, f"Teams webhook error {resp.status_code}: {resp.text[:200]}"
 
 
-def _send_webhook(*, config: dict, subject: str, body: str) -> tuple[bool, str | None]:
+def _send_webhook(
+    *, config: dict, subject: str, body: str, payload: dict | None = None
+) -> tuple[bool, str | None]:
     webhook_url = config.get("webhook_url", "")
     if not webhook_url:
         return False, "webhook config missing webhook_url"
@@ -172,9 +185,13 @@ def _send_webhook(*, config: dict, subject: str, body: str) -> tuple[bool, str |
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
+    json_body: dict = {"subject": subject, "body": body}
+    if payload:
+        json_body["data"] = payload
+
     resp = httpx.post(
         webhook_url,
-        json={"subject": subject, "body": body},
+        json=json_body,
         headers=headers,
         timeout=_TIMEOUT,
     )
