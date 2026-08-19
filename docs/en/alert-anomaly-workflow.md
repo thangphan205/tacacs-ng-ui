@@ -93,6 +93,16 @@ condition_field="username", operator="new_value":
 
 condition_field="client_ip", operator="new_value":
   same as username but on user_source_ip column
+
+condition_field="client_ip", operator="gt/lt/eq":
+  fail_by_ip = auth failures in the window grouped by source IP
+  matches    = [ip for ip, count in fail_by_ip if _compare(count, operator, threshold)]
+  triggered  = matches is not empty
+  payload    = { ip, fail_count, triggered_ips: [{ip, fail_count}, ...] }
+
+  Only reached when log_type is "auth" or "all"; use "auth" and operator "gt"
+  with an explicit threshold. See the limitations note in the v0.5.3 release
+  notes before using "lt"/"eq" or leaving the threshold blank.
 ```
 
 ### 6b. Authz Stats Check
@@ -170,7 +180,10 @@ channel_type="teams":
 channel_type="webhook":
   POST webhook_url
   headers: { Authorization: "Bearer {token}" }  if token present
-  body: { subject, body }
+  body: { subject, body, data }
+    data — the structured alert payload, present only when the rule produced
+    one. For client_ip gt/lt/eq rules it carries { ip, fail_count,
+    triggered_ips }. Webhook is the only channel type that receives it.
 
 returns: (success: bool, error_message: str | None)
 timeout: 10 seconds

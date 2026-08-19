@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+## v0.5.3
+
+### Features
+
+* ✨ **Per-source-IP alert thresholds with structured webhook payloads** — the `client_ip` condition field previously only worked with the `new_value` operator. Selecting it with `gt`/`lt`/`eq` was already offered in the alert rule form, but no backend handler existed for that combination, so the rule silently never fired. Auth failures are now grouped by source IP within the rule's time window and the rule triggers when a single IP crosses the threshold. Webhook channels additionally receive the alert data as a structured `data` object (`ip`, `fail_count`, `triggered_ips`) alongside the existing `subject` and `body`, so downstream automation such as a firewall block script can read `data.ip` without parsing free text. Other channel types (Telegram, Slack, Discord, Teams, Google Chat, Email) are unchanged. PR by [@diorgesl](https://github.com/diorgesl).
+
+> **Known limitations in this release.** The per-IP branch runs only in the authentication check, so a `client_ip` rule with Log Type `authz` never reaches it, and with Log Type `all` a non-triggering IP check falls through to the authorization and config checks — which ignore `condition_field` — and can fire with a payload that carries no `ip`. Only `gt` behaves as documented: because the per-IP tally contains just the IPs that already failed, `lt` matches on a single failed login and reports the highest-count IP as the offender. A rule saved with an empty threshold evaluates it as `0`, so pairing that with `gt` alerts on every auth failure. `triggered_ips` is uncapped, so a wide scan writes a large payload snapshot per notification channel. Use `client_ip` with Log Type `auth`, operator `gt`, and an explicit threshold until these are addressed.
+
+### Dependencies
+
+* ⬆️ **h11 0.14.0 → 0.16.0** — security fix for [CVE-2025-43859](https://github.com/advisories/GHSA-vqfr-h8mv-ghfj) (critical, CVSS 9.1): leniency in parsing line terminators in chunked-coding message bodies permits malformed requests and enables request smuggling when paired with a proxy that parses differently. Transitive via `httpcore` ← `httpx`. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **alembic 1.18.4 → 1.19.1**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **numpy 2.5.0 → 2.5.2**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **ruff 0.15.21 → 0.16.3**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **pre-commit 4.6.1 → 4.6.2**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@tanstack/react-query 5.101.2 → 5.101.4** and **@tanstack/react-query-devtools 5.101.2 → 5.101.4**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@types/node 26.1.1 → 26.2.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@emnapi/runtime 1.11.2 → 1.11.3**. PR by [@thangphan205](https://github.com/thangphan205).
+
+> **Deferred bumps.** Two Dependabot PRs are intentionally left open. **bcrypt 4.3.0 → 5.0.0** breaks authentication outright — bcrypt 5.0 removed the `__about__` attribute that passlib 1.7.4 reads to detect its backend, so `get_password_hash` raises `AttributeError` and every hash and verify fails. `backend/pyproject.toml` pins `bcrypt==4.3.0` for this reason; passlib has been unmaintained since 2020 and 1.7.4 is its final release, so lifting the pin requires migrating off passlib rather than bumping. **@playwright/test 1.61.1 → 1.62.1** fails with `browserType.launch: Executable doesn't exist` because `frontend/Dockerfile.playwright` pins the browser image to `mcr.microsoft.com/playwright:v1.61.1-noble`; the npm package and the Docker image have to move together.
+
 ## v0.5.2
 
 ### Fixes
