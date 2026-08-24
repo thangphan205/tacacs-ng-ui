@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
+      contents: write
     steps:
       - name: Dump GitHub context
         env:
@@ -28,8 +29,10 @@ jobs:
         run: echo "$GITHUB_CONTEXT"
       - uses: actions/checkout@v7
         with:
-          # To allow latest-changes to commit to the main branch
-          token: ${{ secrets.LATEST_CHANGES }}
+          # main is unprotected, so the default GITHUB_TOKEN (with the
+          # contents: write permission above) can push the commit itself —
+          # no dedicated PAT secret needed.
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: tiangolo/latest-changes@0.7.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
