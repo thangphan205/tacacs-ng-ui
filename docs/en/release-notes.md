@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Features
+
+* feat: let MCP write TACACS+ entities, never deploy configs. PR [#275](https://github.com/thangphan205/tacacs-ng-ui/pull/275) by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.6.0
 
 ### Security Fixes
