@@ -950,6 +950,26 @@ export const AnomalyDetectionResultsPublicSchema = {
     title: 'AnomalyDetectionResultsPublic'
 } as const;
 
+export const ApiKeyAllowedIpsUpdateSchema = {
+    properties: {
+        allowed_ips: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Allowed Ips'
+        }
+    },
+    type: 'object',
+    title: 'ApiKeyAllowedIpsUpdate',
+    description: 'Restricted update payload: only the allowlist may be edited post-creation.'
+} as const;
+
 export const ApiKeyCreateSchema = {
     properties: {
         name: {
@@ -962,6 +982,18 @@ export const ApiKeyCreateSchema = {
             maxLength: 512,
             title: 'Scopes',
             default: 'mcp:read'
+        },
+        allowed_ips: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Allowed Ips'
         },
         description: {
             anyOf: [
@@ -1028,6 +1060,18 @@ export const ApiKeyCreatedSchema = {
             maxLength: 512,
             title: 'Scopes',
             default: 'mcp:read'
+        },
+        allowed_ips: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Allowed Ips'
         },
         description: {
             anyOf: [
@@ -1124,6 +1168,18 @@ export const ApiKeyPublicSchema = {
             maxLength: 512,
             title: 'Scopes',
             default: 'mcp:read'
+        },
+        allowed_ips: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Allowed Ips'
         },
         description: {
             anyOf: [

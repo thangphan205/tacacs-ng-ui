@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
+import pytest
+from pydantic import ValidationError
 from sqlmodel import Session
 
 from app.core.security import API_KEY_LABEL, generate_api_key, hash_api_key
@@ -15,6 +17,7 @@ def _create_key(
     *,
     scopes: str = "mcp:read",
     expires_in_days: int | None = 90,
+    allowed_ips: str | None = None,
 ) -> tuple[ApiKey, str]:
     return api_keys.create_api_key(
         session=db,
@@ -22,6 +25,7 @@ def _create_key(
             name=random_lower_string(),
             scopes=scopes,
             expires_in_days=expires_in_days,
+            allowed_ips=allowed_ips,
         ),
         owner_id=user.id,
         created_by_id=user.id,
@@ -142,3 +146,80 @@ def test_revoke_api_key_is_idempotent(db: Session) -> None:
 
     revoked_again = api_keys.revoke_api_key(session=db, db_api_key=revoked)
     assert revoked_again.revoked_at == first_revoked_at
+
+
+def test_resolve_api_key_allows_any_ip_when_unset(db: Session) -> None:
+    user = create_random_user(db=db)
+    _, plaintext = _create_key(db, user)
+
+    assert api_keys.resolve_api_key(plaintext, "203.0.113.9") is not None
+    assert api_keys.resolve_api_key(plaintext, None) is not None
+
+
+def test_resolve_api_key_allows_matching_cidr(db: Session) -> None:
+    user = create_random_user(db=db)
+    _, plaintext = _create_key(db, user, allowed_ips="10.0.0.0/24")
+
+    assert api_keys.resolve_api_key(plaintext, "10.0.0.5") is not None
+
+
+def test_resolve_api_key_rejects_non_matching_ip(db: Session) -> None:
+    user = create_random_user(db=db)
+    _, plaintext = _create_key(db, user, allowed_ips="10.0.0.0/24")
+
+    assert api_keys.resolve_api_key(plaintext, "192.168.1.1") is None
+
+
+def test_resolve_api_key_allows_exact_bare_address(db: Session) -> None:
+    user = create_random_user(db=db)
+    _, plaintext = _create_key(db, user, allowed_ips="203.0.113.4")
+
+    assert api_keys.resolve_api_key(plaintext, "203.0.113.4") is not None
+    assert api_keys.resolve_api_key(plaintext, "203.0.113.5") is None
+
+
+def test_resolve_api_key_ipv6_cidr_containment(db: Session) -> None:
+    user = create_random_user(db=db)
+    _, plaintext = _create_key(db, user, allowed_ips="2001:db8::/32")
+
+    assert api_keys.resolve_api_key(plaintext, "2001:db8::1") is not None
+    assert api_keys.resolve_api_key(plaintext, "2001:db9::1") is None
+
+
+def test_resolve_api_key_malformed_ip_does_not_crash(db: Session) -> None:
+    user = create_random_user(db=db)
+    _, plaintext = _create_key(db, user, allowed_ips="10.0.0.0/24")
+
+    assert api_keys.resolve_api_key(plaintext, "not-an-ip") is None
+
+
+def test_resolve_api_key_no_ip_denied_when_restricted(db: Session) -> None:
+    user = create_random_user(db=db)
+    _, plaintext = _create_key(db, user, allowed_ips="10.0.0.0/24")
+
+    assert api_keys.resolve_api_key(plaintext, None) is None
+
+
+def test_allowed_ips_validator_rejects_invalid_entry() -> None:
+    with pytest.raises(ValidationError):
+        ApiKeyCreate(name="k", allowed_ips="10.0.0.0/24, garbage")
+
+
+def test_allowed_ips_validator_normalizes_empty_to_none() -> None:
+    assert ApiKeyCreate(name="k", allowed_ips="").allowed_ips is None
+    assert ApiKeyCreate(name="k", allowed_ips="   ,  ").allowed_ips is None
+
+
+def test_allowed_ips_validator_normalizes_whitespace() -> None:
+    created = ApiKeyCreate(name="k", allowed_ips="  10.0.0.1 ,10.0.0.2")
+    assert created.allowed_ips == "10.0.0.1,10.0.0.2"
+
+
+def test_update_allowed_ips(db: Session) -> None:
+    user = create_random_user(db=db)
+    db_api_key, _ = _create_key(db, user)
+
+    updated = api_keys.update_allowed_ips(
+        session=db, db_api_key=db_api_key, allowed_ips="10.0.0.0/24"
+    )
+    assert updated.allowed_ips == "10.0.0.0/24"

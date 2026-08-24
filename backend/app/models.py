@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime, timezone
+from ipaddress import ip_network
 from typing import Literal
 
 import sqlalchemy as sa
-from pydantic import EmailStr
+from pydantic import EmailStr, field_validator
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
 
@@ -1418,12 +1419,46 @@ class HaNodeState(SQLModel, table=True):
 # --- API Keys (machine credentials, currently used by the MCP server) ---
 
 
+def _normalize_allowed_ips(value: str | None) -> str | None:
+    """Validate a comma-separated IP/CIDR list, normalizing to canonical form.
+
+    Each entry must parse as an IP address or network (IPv4 or IPv6);
+    ``ip_network(..., strict=False)`` also accepts bare addresses as /32 or
+    /128 networks, so a single parse call covers both forms. Empty input (or
+    input that reduces to no entries) normalizes to None, meaning "no
+    restriction" — matches the pre-migration behavior of every existing key.
+    """
+    if not value:
+        return None
+    entries = []
+    for raw_entry in value.split(","):
+        entry = raw_entry.strip()
+        if not entry:
+            continue
+        try:
+            ip_network(entry, strict=False)
+        except ValueError as e:
+            raise ValueError(
+                f"'{entry}' is not a valid IP address or CIDR network."
+            ) from e
+        entries.append(entry)
+    return ",".join(entries) if entries else None
+
+
 class ApiKeyBase(SQLModel):
     name: str = Field(max_length=255)
     # Comma-separated scope list, e.g. "mcp:read,mcp:generate".
     scopes: str = Field(default="mcp:read", max_length=512)
+    # Comma-separated list of IPv4/IPv6 addresses or CIDR networks this key
+    # may authenticate from. None/empty means "no restriction".
+    allowed_ips: str | None = Field(default=None, max_length=1024)
     description: str | None = Field(default=None, max_length=1024)
     expires_at: datetime | None = Field(default=None)
+
+    @field_validator("allowed_ips")
+    @classmethod
+    def _validate_allowed_ips(cls, value: str | None) -> str | None:
+        return _normalize_allowed_ips(value)
 
 
 class ApiKeyCreate(ApiKeyBase):
@@ -1431,6 +1466,17 @@ class ApiKeyCreate(ApiKeyBase):
     user_id: uuid.UUID | None = Field(default=None)
     # Convenience: when expires_at is not given, it is derived from this.
     expires_in_days: int | None = Field(default=None)
+
+
+class ApiKeyAllowedIpsUpdate(SQLModel):
+    """Restricted update payload: only the allowlist may be edited post-creation."""
+
+    allowed_ips: str | None = Field(default=None, max_length=1024)
+
+    @field_validator("allowed_ips")
+    @classmethod
+    def _validate_allowed_ips(cls, value: str | None) -> str | None:
+        return _normalize_allowed_ips(value)
 
 
 class ApiKey(ApiKeyBase, TimestampModel, table=True):

@@ -142,3 +142,97 @@ def test_revoke_missing_api_key_returns_404(
         headers=superuser_token_headers,
     )
     assert r.status_code == 404
+
+
+def test_create_api_key_rejects_invalid_allowed_ip(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{BASE}/",
+        headers=superuser_token_headers,
+        json={"name": random_lower_string(), "allowed_ips": "not-an-ip"},
+    )
+    assert r.status_code == 422
+
+
+def test_create_api_key_normalizes_allowed_ips(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{BASE}/",
+        headers=superuser_token_headers,
+        json={"name": random_lower_string(), "allowed_ips": "  10.0.0.1 ,10.0.0.2"},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["allowed_ips"] == "10.0.0.1,10.0.0.2"
+
+
+def test_update_allowed_ips_only_changes_allowed_ips(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{BASE}/",
+        headers=superuser_token_headers,
+        json={"name": "keep-my-name", "scopes": "mcp:read"},
+    )
+    created = r.json()
+
+    r = client.patch(
+        f"{BASE}/{created['id']}",
+        headers=superuser_token_headers,
+        json={"allowed_ips": "10.0.0.0/24"},
+    )
+    assert r.status_code == 200, r.text
+    updated = r.json()
+    assert updated["allowed_ips"] == "10.0.0.0/24"
+    assert updated["name"] == "keep-my-name"
+    assert updated["scopes"] == "mcp:read"
+
+
+def test_update_allowed_ips_rejects_invalid_entry(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{BASE}/",
+        headers=superuser_token_headers,
+        json={"name": random_lower_string()},
+    )
+    created = r.json()
+
+    r = client.patch(
+        f"{BASE}/{created['id']}",
+        headers=superuser_token_headers,
+        json={"allowed_ips": "garbage"},
+    )
+    assert r.status_code == 422
+
+
+def test_update_allowed_ips_missing_key_returns_404(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.patch(
+        f"{BASE}/00000000-0000-0000-0000-000000000000",
+        headers=superuser_token_headers,
+        json={"allowed_ips": "10.0.0.0/24"},
+    )
+    assert r.status_code == 404
+
+
+def test_normal_user_cannot_update_allowed_ips(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    normal_user_token_headers: dict[str, str],
+) -> None:
+    r = client.post(
+        f"{BASE}/",
+        headers=superuser_token_headers,
+        json={"name": random_lower_string()},
+    )
+    created = r.json()
+
+    r = client.patch(
+        f"{BASE}/{created['id']}",
+        headers=normal_user_token_headers,
+        json={"allowed_ips": "10.0.0.0/24"},
+    )
+    assert r.status_code == 403

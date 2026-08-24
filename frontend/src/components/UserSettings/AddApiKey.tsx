@@ -75,6 +75,7 @@ interface FormValues {
   name: string
   description: string
   expires_in_days: number
+  allowed_ips: string
 }
 
 const AddApiKey = () => {
@@ -92,7 +93,12 @@ const AddApiKey = () => {
   } = useForm<FormValues>({
     mode: "onBlur",
     criteriaMode: "all",
-    defaultValues: { name: "", description: "", expires_in_days: 90 },
+    defaultValues: {
+      name: "",
+      description: "",
+      expires_in_days: 90,
+      allowed_ips: "",
+    },
   })
 
   const toggleScope = (value: string, checked: boolean) => {
@@ -116,6 +122,12 @@ const AddApiKey = () => {
           description: data.description || null,
           scopes: scopes.join(","),
           expires_in_days: Number(data.expires_in_days),
+          allowed_ips:
+            data.allowed_ips
+              .split("\n")
+              .map((s) => s.trim())
+              .filter(Boolean)
+              .join(",") || null,
         },
       }),
     onSuccess: (data) => {
@@ -227,6 +239,12 @@ const AddApiKey = () => {
                       </Badge>
                     ))}
                 </HStack>
+
+                <Field label="Allowed source IPs">
+                  <Text fontSize="sm" fontFamily="mono">
+                    {created.allowed_ips || "Any"}
+                  </Text>
+                </Field>
               </VStack>
             </DialogBody>
             <DialogFooter gap={2}>
@@ -323,6 +341,19 @@ const AddApiKey = () => {
                     </Text>
                   )}
                 </Box>
+
+                <Field
+                  invalid={!!errors.allowed_ips}
+                  errorText={errors.allowed_ips?.message}
+                  label="Allowed source IPs"
+                  helperText="Optional. One IPv4/IPv6 address or CIDR per line. Leave blank to allow any source. Editable later."
+                >
+                  <Textarea
+                    {...register("allowed_ips")}
+                    placeholder={"203.0.113.4\n198.51.100.0/24\n2001:db8::/32"}
+                    rows={3}
+                  />
+                </Field>
 
                 <Field
                   invalid={!!errors.expires_in_days}

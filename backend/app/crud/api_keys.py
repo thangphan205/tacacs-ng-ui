@@ -1,3 +1,4 @@
+import ipaddress
 import logging
 import uuid
 from dataclasses import dataclass
@@ -57,6 +58,7 @@ def create_api_key(
     db_api_key = ApiKey(
         name=api_key_create.name,
         scopes=api_key_create.scopes,
+        allowed_ips=api_key_create.allowed_ips,
         description=api_key_create.description,
         expires_at=expires_at,
         user_id=owner_id,
@@ -84,7 +86,38 @@ def revoke_api_key(*, session: Session, db_api_key: ApiKey) -> ApiKey:
     return db_api_key
 
 
-def _is_usable(api_key: ApiKey, *, now: datetime) -> bool:
+def update_allowed_ips(
+    *, session: Session, db_api_key: ApiKey, allowed_ips: str | None
+) -> ApiKey:
+    """Update the source-IP allowlist — the only field editable post-creation."""
+    db_api_key.allowed_ips = allowed_ips
+    session.add(db_api_key)
+    session.commit()
+    session.refresh(db_api_key)
+    return db_api_key
+
+
+def _ip_allowed(allowed_ips: str | None, ip: str | None) -> bool:
+    if not allowed_ips:
+        return True
+    if ip is None:
+        return False
+    try:
+        candidate = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    for entry in (e.strip() for e in allowed_ips.split(",")):
+        if not entry:
+            continue
+        try:
+            if candidate in ipaddress.ip_network(entry, strict=False):
+                return True
+        except ValueError:
+            continue
+    return False
+
+
+def _is_usable(api_key: ApiKey, *, now: datetime, ip: str | None) -> bool:
     if api_key.revoked_at is not None:
         return False
     if api_key.expires_at is not None:
@@ -93,6 +126,8 @@ def _is_usable(api_key: ApiKey, *, now: datetime) -> bool:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
         if expires_at <= now:
             return False
+    if not _ip_allowed(api_key.allowed_ips, ip):
+        return False
     return True
 
 
@@ -123,7 +158,7 @@ def resolve_api_key(raw: str, ip: str | None = None) -> ApiKeyPrincipal | None:
     with Session(engine) as session:
         statement = select(ApiKey).where(ApiKey.key_hash == hash_api_key(raw))
         api_key = session.exec(statement).first()
-        if api_key is None or not _is_usable(api_key, now=now):
+        if api_key is None or not _is_usable(api_key, now=now, ip=ip):
             return None
 
         user = session.get(User, api_key.user_id)

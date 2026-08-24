@@ -13,7 +13,9 @@ import { useQuery } from "@tanstack/react-query"
 import { FiKey } from "react-icons/fi"
 
 import { type ApiKeyPublic, ApiKeysService } from "@/client"
+import { Tooltip } from "../ui/tooltip"
 import AddApiKey from "./AddApiKey"
+import EditApiKeyAllowedIps from "./EditApiKeyAllowedIps"
 import RevokeApiKey from "./RevokeApiKey"
 
 type KeyStatus = "Active" | "Revoked" | "Expired"
@@ -85,6 +87,7 @@ const ApiKeys = () => {
               <Table.ColumnHeader>Name</Table.ColumnHeader>
               <Table.ColumnHeader>Prefix</Table.ColumnHeader>
               <Table.ColumnHeader>Scopes</Table.ColumnHeader>
+              <Table.ColumnHeader>Allowed IPs</Table.ColumnHeader>
               <Table.ColumnHeader>Status</Table.ColumnHeader>
               <Table.ColumnHeader>Expires</Table.ColumnHeader>
               <Table.ColumnHeader>Last used</Table.ColumnHeader>
@@ -131,6 +134,28 @@ const ApiKeys = () => {
                         ))}
                     </HStack>
                   </Table.Cell>
+                  <Table.Cell fontSize="xs">
+                    {(() => {
+                      const ips =
+                        apiKey.allowed_ips?.split(",").filter(Boolean) ?? []
+                      if (ips.length === 0) {
+                        return <Text color="gray.500">Any</Text>
+                      }
+                      const [first, ...rest] = ips
+                      return (
+                        <HStack gap={1}>
+                          <Text fontFamily="mono">{first}</Text>
+                          {rest.length > 0 && (
+                            <Tooltip content={rest.join(", ")}>
+                              <Text color="gray.500" cursor="default">
+                                +{rest.length} more
+                              </Text>
+                            </Tooltip>
+                          )}
+                        </HStack>
+                      )
+                    })()}
+                  </Table.Cell>
                   <Table.Cell>
                     <Badge colorPalette={STATUS_COLOR[status]} variant="subtle">
                       {status}
@@ -143,7 +168,12 @@ const ApiKeys = () => {
                     {formatDate(apiKey.last_used_at, "Never")}
                   </Table.Cell>
                   <Table.Cell textAlign="end">
-                    {status !== "Revoked" && <RevokeApiKey apiKey={apiKey} />}
+                    {status !== "Revoked" && (
+                      <HStack gap={1} justify="end">
+                        <EditApiKeyAllowedIps apiKey={apiKey} />
+                        <RevokeApiKey apiKey={apiKey} />
+                      </HStack>
+                    )}
                   </Table.Cell>
                 </Table.Row>
               )

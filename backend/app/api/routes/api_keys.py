@@ -16,6 +16,7 @@ from app.crud import api_keys
 from app.crud import audit_logs as audit_logs_crud
 from app.models import (
     ApiKey,
+    ApiKeyAllowedIpsUpdate,
     ApiKeyCreate,
     ApiKeyCreated,
     ApiKeyPublic,
@@ -137,6 +138,49 @@ def read_api_key_by_id(
     api_key = api_keys.get_api_key_by_id(session=session, id=id)
     if not api_key:
         raise HTTPException(status_code=404, detail="API key not found")
+    return api_key
+
+
+@router.patch(
+    "/{id}",
+    dependencies=[Depends(require_primary_node)],
+    response_model=ApiKeyPublic,
+)
+def update_api_key_allowed_ips(
+    *,
+    session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
+    id: uuid.UUID,
+    update_in: ApiKeyAllowedIpsUpdate,
+) -> Any:
+    """
+    Update an API key's allowed source-IP restriction.
+
+    This is the only field editable after creation — name/scopes/description/
+    expiry are set once at creation, same as before this route existed.
+    """
+    api_key = api_keys.get_api_key_by_id(session=session, id=id)
+    if not api_key:
+        raise HTTPException(status_code=404, detail="API key not found")
+
+    old_values = api_key.model_dump_json(exclude=_SENSITIVE)
+    api_key = api_keys.update_allowed_ips(
+        session=session, db_api_key=api_key, allowed_ips=update_in.allowed_ips
+    )
+    audit_logs_crud.log_entity_action(
+        session=session,
+        action="UPDATE",
+        entity_type="ApiKey",
+        entity_id=str(api_key.id),
+        user_id=current_user.id,
+        user_email=current_user.email,
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=api_key.model_dump_json(exclude=_SENSITIVE),
+        description=f"Updated allowed IPs for API key '{api_key.name}' ({api_key.key_prefix})",
+    )
     return api_key
 
 

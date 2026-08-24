@@ -215,9 +215,17 @@ export type AnomalyDetectionResultsPublic = {
     count: number;
 };
 
+/**
+ * Restricted update payload: only the allowlist may be edited post-creation.
+ */
+export type ApiKeyAllowedIpsUpdate = {
+    allowed_ips?: (string | null);
+};
+
 export type ApiKeyCreate = {
     name: string;
     scopes?: string;
+    allowed_ips?: (string | null);
     description?: (string | null);
     expires_at?: (string | null);
     user_id?: (string | null);
@@ -230,6 +238,7 @@ export type ApiKeyCreate = {
 export type ApiKeyCreated = {
     name: string;
     scopes?: string;
+    allowed_ips?: (string | null);
     description?: (string | null);
     expires_at?: (string | null);
     id: string;
@@ -245,6 +254,7 @@ export type ApiKeyCreated = {
 export type ApiKeyPublic = {
     name: string;
     scopes?: string;
+    allowed_ips?: (string | null);
     description?: (string | null);
     expires_at?: (string | null);
     id: string;
@@ -1208,6 +1218,13 @@ export type ApiKeysReadApiKeyByIdData = {
 };
 
 export type ApiKeysReadApiKeyByIdResponse = (ApiKeyPublic);
+
+export type ApiKeysUpdateApiKeyAllowedIpsData = {
+    id: string;
+    requestBody: ApiKeyAllowedIpsUpdate;
+};
+
+export type ApiKeysUpdateApiKeyAllowedIpsResponse = (ApiKeyPublic);
 
 export type ApiKeysRevokeApiKeyData = {
     id: string;
