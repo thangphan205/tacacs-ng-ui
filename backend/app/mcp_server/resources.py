@@ -232,9 +232,19 @@ Follow this workflow and do not skip steps:
 
 Constraints you must respect:
 
-- This server is read-only. You cannot save, activate, or reload anything.
-  Never state or imply that a change has been applied — hand the validated text
-  back and say it still needs to be applied through the UI.
+- You cannot deploy. There is no tool that saves a config file, activates one or
+  reloads tac_plus-ng, and there will not be one. Never state or imply that a
+  change is live.
+- With an `mcp:write` key you may create, update and delete entities via
+  `create_entity`, `update_entity` and `delete_entity`. Those write database rows
+  and nothing else: the change reaches the daemon only after a person opens the
+  TACACS Configs page in the web UI and presses Generate, then Activate. Say this
+  every time you make a change.
+- Prefer editing entities over handing back raw config text: the generator builds
+  the file from entities, so hand-written text that is not backed by rows will be
+  overwritten on the next generate.
+- `delete_entity` needs `confirm=true` and cascades to child scripts. Show the
+  caller what `describe_entity` returns before you call it.
 - Config text you receive has secrets masked as `***REDACTED***` whenever
   `secrets_redacted` is greater than zero. Never present such text as
   deployable, and never invent replacement values for masked secrets.

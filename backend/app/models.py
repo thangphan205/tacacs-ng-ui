@@ -1445,9 +1445,36 @@ def _normalize_allowed_ips(value: str | None) -> str | None:
     return ",".join(entries) if entries else None
 
 
+# The complete set of scope strings an API key may carry. `mcp:read` and
+# `mcp:write` are the two access levels (write implies read); `mcp:secrets` is an
+# independent opt-in for unredacted output. Enforced below so a typo fails at key
+# creation instead of silently granting nothing.
+ALLOWED_API_KEY_SCOPES: frozenset[str] = frozenset(
+    {"mcp:read", "mcp:write", "mcp:secrets"}
+)
+
+
+def _normalize_scopes(value: str) -> str:
+    entries: list[str] = []
+    for raw in (value or "").split(","):
+        entry = raw.strip()
+        if not entry:
+            continue
+        if entry not in ALLOWED_API_KEY_SCOPES:
+            raise ValueError(
+                f"'{entry}' is not a valid scope. "
+                f"Valid scopes: {', '.join(sorted(ALLOWED_API_KEY_SCOPES))}."
+            )
+        if entry not in entries:
+            entries.append(entry)
+    if not entries:
+        raise ValueError("At least one scope is required.")
+    return ",".join(entries)
+
+
 class ApiKeyBase(SQLModel):
     name: str = Field(max_length=255)
-    # Comma-separated scope list, e.g. "mcp:read,mcp:generate".
+    # Comma-separated scope list, e.g. "mcp:write,mcp:secrets".
     scopes: str = Field(default="mcp:read", max_length=512)
     # Comma-separated list of IPv4/IPv6 addresses or CIDR networks this key
     # may authenticate from. None/empty means "no restriction".
@@ -1466,6 +1493,15 @@ class ApiKeyCreate(ApiKeyBase):
     user_id: uuid.UUID | None = Field(default=None)
     # Convenience: when expires_at is not given, it is derived from this.
     expires_in_days: int | None = Field(default=None)
+
+    # Validated on the create payload rather than on ApiKeyBase: ApiKeyPublic
+    # and the table model also inherit Base, and a stored row carrying a scope
+    # string this build no longer recognises must still be readable and
+    # revocable rather than blowing up response serialization.
+    @field_validator("scopes")
+    @classmethod
+    def _validate_scopes(cls, value: str) -> str:
+        return _normalize_scopes(value)
 
 
 class ApiKeyAllowedIpsUpdate(SQLModel):

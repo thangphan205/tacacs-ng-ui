@@ -56,7 +56,7 @@ def mcp_api_key(db: Session) -> str:
         session=db,
         api_key_create=ApiKeyCreate(
             name="pytest-mcp",
-            scopes="mcp:read,mcp:generate,mcp:validate,mcp:secrets",
+            scopes="mcp:write,mcp:secrets",
         ),
         owner_id=user.id,
         created_by_id=user.id,

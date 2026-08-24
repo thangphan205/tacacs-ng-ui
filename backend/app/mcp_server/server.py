@@ -12,11 +12,14 @@ from app.core.config import settings
 log = logging.getLogger(__name__)
 
 _INSTRUCTIONS = (
-    "Inspect TACACS+ (tac_plus-ng) entities from the tacacs-ng-ui database and "
-    "generate or validate tac_plus-ng configuration text. This server is "
-    "read-only: it never modifies the database, never writes the live config "
-    "file, and never reloads the daemon. Read the tacacs://syntax/reference "
-    "resource before authoring config text."
+    "Inspect TACACS+ (tac_plus-ng) entities from the tacacs-ng-ui database, "
+    "render and validate tac_plus-ng configuration text, and — with an API key "
+    "carrying the mcp:write scope — create, update and delete entities. "
+    "Deployment is never yours to do: this server cannot save a config file, "
+    "cannot activate one, and cannot reload the daemon. Entity changes sit in "
+    "the database until a person opens the TACACS Configs page in the web UI "
+    "and presses Generate, then Activate. Say so whenever you make a change. "
+    "Read the tacacs://syntax/reference resource before authoring config text."
 )
 
 # The live server for the current lifespan. Rebuilt on every lifespan run
