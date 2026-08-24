@@ -91,6 +91,10 @@
 
 * 📖 **README (EN + VI)** — added High Availability to the key features list and a roadmap entry covering the v0.5.0 multi-node HA work and the v0.5.1 hardening. The Vietnamese roadmap also gains the v0.4.0 UX entry it was missing. PR by [@thangphan205](https://github.com/thangphan205).
 
+### Fixes
+
+* fix: stop double-hashing a supplied sha512-crypt password. PR [#277](https://github.com/thangphan205/tacacs-ng-ui/pull/277) by [@thangphan205](https://github.com/thangphan205).
+
 ### Docs
 
 * docs: prepare v0.6.0 release notes and READMEs. PR [#276](https://github.com/thangphan205/tacacs-ng-ui/pull/276) by [@thangphan205](https://github.com/thangphan205).
