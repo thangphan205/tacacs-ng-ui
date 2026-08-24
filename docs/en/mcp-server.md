@@ -11,16 +11,17 @@ pushes to HA peers. Applying a change remains a deliberate action in the UI.
 
 ## Enabling
 
-The feature is off by default. In `.env`:
+The feature is **on by default** (`MCP_ENABLED=true`). To turn it off, set in
+`.env`:
 
 ```
-MCP_ENABLED=true
-MCP_PATH=/mcp
+MCP_ENABLED=false
 ```
 
-Restart the backend. The endpoint is served by the existing FastAPI app on port
-8000, so the Traefik router for `api.${DOMAIN}` already covers it — no new
-container, no new port, no new labels.
+Restart the backend after changing it either way. The endpoint is served by
+the existing FastAPI app on port 8000, so the Traefik router for
+`api.${DOMAIN}` already covers it — no new container, no new port, no new
+labels.
 
 The canonical URL carries a trailing slash:
 

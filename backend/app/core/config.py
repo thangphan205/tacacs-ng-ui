@@ -210,7 +210,7 @@ class Settings(BaseSettings):
     )
 
     # MCP (Model Context Protocol) server — read-only LLM access to config generation
-    MCP_ENABLED: bool = False  # feature flag, off by default
+    MCP_ENABLED: bool = True  # feature flag, on by default
     MCP_PATH: str = "/mcp"  # mount path on the main FastAPI app
     MCP_MAX_CONFIG_TEXT_BYTES: int = 1_048_576  # cap for validate_config_text
     MCP_VALIDATE_TIMEOUT_SECONDS: int = 10  # tac_plus-ng -P timeout

@@ -159,7 +159,7 @@ Records CREATE/UPDATE/DELETE/ACTIVATE actions on entities with user_id, email, I
 
 ### MCP Server (`backend/app/mcp_server/`)
 
-Read-only Model Context Protocol endpoint letting an LLM client inspect TACACS+ entities, render config previews, and syntax-check config text. Off by default (`MCP_ENABLED`). See `docs/en/mcp-server.md`.
+Read-only Model Context Protocol endpoint letting an LLM client inspect TACACS+ entities, render config previews, and syntax-check config text. On by default (`MCP_ENABLED=true`); set to `false` to disable. See `docs/en/mcp-server.md`.
 
 Mounted at `settings.MCP_PATH` (default `/mcp`) directly on `app` in `main.py` — **never** under `api_router`, since a `Mount` must stay invisible to `custom_generate_unique_id` and OpenAPI generation. Canonical URL has a trailing slash.
 
