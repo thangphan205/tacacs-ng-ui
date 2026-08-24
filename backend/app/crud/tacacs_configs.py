@@ -2,7 +2,7 @@ import logging
 import os
 import subprocess
 import tempfile
-from pathlib import Path
+import uuid
 from typing import Any
 
 import httpx
@@ -246,17 +246,6 @@ id = tac_plus-ng {{
         + "\n}\n"
     )
 
-    config_path = Path.cwd() / "tacacs-ng.conf"
-    try:
-        config_path.write_text(config_file_template, encoding="utf-8")
-    except OSError:
-        tf = tempfile.NamedTemporaryFile(
-            delete=False, suffix=".conf", prefix="tacacs-ng-"
-        )
-        tf.write(config_file_template.encode("utf-8"))
-        tf.close()
-        config_path = Path(tf.name)
-
     return config_file_template
 
 
@@ -277,9 +266,10 @@ def _notify_peer_reload() -> None:
         if sync_mode != "auto":
             return
         from sqlmodel import select as _select
-        peers = list(session.exec(
-            _select(HaPeerNode).where(HaPeerNode.enabled == True)
-        ).all())
+
+        peers = list(
+            session.exec(_select(HaPeerNode).where(HaPeerNode.enabled == True)).all()
+        )
 
     peer_urls = [p.url for p in peers] if peers else settings.peer_urls
     if not peer_urls:
@@ -291,12 +281,19 @@ def _notify_peer_reload() -> None:
         ok = False
         try:
             with httpx.Client(timeout=10) as client:
-                r = client.post(url, headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN})
+                r = client.post(
+                    url, headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN}
+                )
             ok = r.status_code == 200
             if ok:
                 log.info("Peer %s reloaded config successfully.", peer_url)
             else:
-                log.warning("Peer %s reload returned HTTP %s: %s", peer_url, r.status_code, r.text)
+                log.warning(
+                    "Peer %s reload returned HTTP %s: %s",
+                    peer_url,
+                    r.status_code,
+                    r.text,
+                )
         except Exception as e:
             log.warning("Failed to notify peer %s for config reload: %s", peer_url, e)
 
@@ -304,7 +301,9 @@ def _notify_peer_reload() -> None:
         peer_obj = next((p for p in peers if p.url == peer_url), None)
         if peer_obj is not None:
             with Session(engine) as session:
-                state = session.get(HaNodeState, peer_obj.id) or HaNodeState(peer_id=peer_obj.id)
+                state = session.get(HaNodeState, peer_obj.id) or HaNodeState(
+                    peer_id=peer_obj.id
+                )
                 state.last_push_at = now
                 state.last_available = ok
                 session.add(state)
@@ -506,21 +505,90 @@ def get_active_tacacs_config(*, session: Session) -> TacacsConfig | None:
     return active_tacacs_config
 
 
-def check_tacacs_config_by_id(*, session: Session, id: int) -> dict[str, Any]:
-    """
-    Check the syntax of a TACACS+ config file by running 'tac_plus-ng -P configfile.cfg'
-    inside the tac_plus-ng container using Docker.
-    """
-    # Get the config object from DB
-    config_obj = session.get(TacacsConfig, id)
-    if not config_obj:
-        raise HTTPException(status_code=404, detail=f"Config with id {id} not found.")
+class ConfigCheckError(Exception):
+    """Raised when the syntax checker itself cannot run (binary missing, timed out)."""
 
-    filename = config_obj.filename + ".cfg"
-    # Since both services are in the same container, we can use the shared path directly.
-    config_file_path = os.path.join(CONFIG_PATH, filename)
 
-    # Build the command to call the binary directly
+def _parse_syntax_output(
+    *, returncode: int, raw_output: str, filename: str
+) -> dict[str, Any]:
+    """
+    Turn `tac_plus-ng -P` output into {status, raw_output, line, message}.
+
+    The parser is heuristic: tac_plus-ng reports problems as `file:?:line:message`,
+    so we split on ':' and fall back progressively when fewer parts are present.
+    """
+    line = 0
+    message = "Syntax check successful."
+
+    if returncode == 0:
+        status = "success"
+        if raw_output:
+            lines = [
+                line_str.strip()
+                for line_str in raw_output.splitlines()
+                if line_str.strip()
+            ]
+            if lines:
+                parts = lines[0].split(":")
+                if len(parts) >= 4:
+                    try:
+                        line = int(parts[2].strip())
+                        message = ":".join(parts[3:]).strip()
+                    except ValueError:
+                        message = lines[0]
+                elif len(parts) >= 2:
+                    message = ":".join(parts[1:]).strip()
+                else:
+                    message = lines[0]
+    else:
+        status = "error"
+        if raw_output:
+            lines = [
+                line_str.strip()
+                for line_str in raw_output.splitlines()
+                if line_str.strip()
+            ]
+            if lines:
+                # Find a line containing the filename to extract the exact error details
+                matched_line = None
+                for line_item in lines:
+                    if filename in line_item and len(line_item.split(":")) >= 4:
+                        matched_line = line_item
+                        break
+                if not matched_line:
+                    matched_line = lines[0]
+
+                parts = matched_line.split(":")
+                if len(parts) >= 4:
+                    try:
+                        line = int(parts[2].strip())
+                        message = ":".join(parts[3:]).strip()
+                    except ValueError:
+                        message = matched_line
+                elif len(parts) >= 2:
+                    message = ":".join(parts[1:]).strip()
+                else:
+                    message = matched_line
+        else:
+            message = "Unknown error during syntax check."
+
+    return {
+        "status": status,
+        "raw_output": raw_output or message,
+        "line": line,
+        "message": message,
+    }
+
+
+def _run_syntax_check(
+    *, config_file_path: str, filename: str, timeout: int = 10
+) -> dict[str, Any]:
+    """
+    Run `tac_plus-ng -P <path>` and parse the result.
+
+    Raises ConfigCheckError when the checker itself cannot run.
+    """
     command = [
         "/usr/local/sbin/tac_plus-ng",
         "-P",
@@ -529,75 +597,56 @@ def check_tacacs_config_by_id(*, session: Session, id: int) -> dict[str, Any]:
 
     try:
         result = subprocess.run(
-            command, capture_output=True, text=True, check=False, timeout=10
+            command, capture_output=True, text=True, check=False, timeout=timeout
         )
-        logging.info(f"Command error: {result.stderr}")
-        raw_output = result.stderr or result.stdout or ""
-        line = 0
-        message = "Syntax check successful."
-
-        if result.returncode == 0:
-            status = "success"
-            if raw_output:
-                lines = [
-                    line_str.strip()
-                    for line_str in raw_output.splitlines()
-                    if line_str.strip()
-                ]
-                if lines:
-                    parts = lines[0].split(":")
-                    if len(parts) >= 4:
-                        try:
-                            line = int(parts[2].strip())
-                            message = ":".join(parts[3:]).strip()
-                        except ValueError:
-                            message = lines[0]
-                    elif len(parts) >= 2:
-                        message = ":".join(parts[1:]).strip()
-                    else:
-                        message = lines[0]
-        else:
-            status = "error"
-            if raw_output:
-                lines = [
-                    line_str.strip()
-                    for line_str in raw_output.splitlines()
-                    if line_str.strip()
-                ]
-                if lines:
-                    # Find a line containing the filename to extract the exact error details
-                    matched_line = None
-                    for line_item in lines:
-                        if filename in line_item and len(line_item.split(":")) >= 4:
-                            matched_line = line_item
-                            break
-                    if not matched_line:
-                        matched_line = lines[0]
-
-                    parts = matched_line.split(":")
-                    if len(parts) >= 4:
-                        try:
-                            line = int(parts[2].strip())
-                            message = ":".join(parts[3:]).strip()
-                        except ValueError:
-                            message = matched_line
-                    elif len(parts) >= 2:
-                        message = ":".join(parts[1:]).strip()
-                    else:
-                        message = matched_line
-            else:
-                message = "Unknown error during syntax check."
-
-        return {
-            "status": status,
-            "raw_output": raw_output or message,
-            "line": line,
-            "message": message,
-        }
     except FileNotFoundError:
-        raise HTTPException(
-            status_code=500,
-            detail="`tac_plus-ng` command not found. Is it installed in the container and in the system's PATH?",
+        raise ConfigCheckError(
+            "`tac_plus-ng` command not found. Is it installed in the container and in the system's PATH?"
         )
     except subprocess.TimeoutExpired:
-        raise HTTPException(status_code=500, detail="Syntax check command timed out.")
+        raise ConfigCheckError("Syntax check command timed out.")
+
+    log.debug("tac_plus-ng -P stderr: %s", result.stderr)
+    return _parse_syntax_output(
+        returncode=result.returncode,
+        raw_output=result.stderr or result.stdout or "",
+        filename=filename,
+    )
+
+
+def validate_config_text(*, text: str, timeout: int = 10) -> dict[str, Any]:
+    """
+    Syntax-check arbitrary config text without touching the shared config directory.
+
+    Writes to a private temporary directory that is removed on exit.
+    Raises ConfigCheckError when the checker itself cannot run.
+    """
+    with tempfile.TemporaryDirectory(prefix="tacacs-validate-") as tmpdir:
+        # Keep the ".cfg" name so the filename-matching heuristic in
+        # _parse_syntax_output can still locate the error line.
+        filename = "candidate.cfg"
+        config_file_path = os.path.join(tmpdir, filename)
+        with open(config_file_path, "w", encoding="utf-8") as f:
+            f.write(text)
+        return _run_syntax_check(
+            config_file_path=config_file_path, filename=filename, timeout=timeout
+        )
+
+
+def check_tacacs_config_by_id(*, session: Session, id: uuid.UUID) -> dict[str, Any]:
+    """
+    Check the syntax of a saved TACACS+ config file by running
+    'tac_plus-ng -P configfile.cfg'. Both services share the same container,
+    so the shared path is used directly.
+    """
+    config_obj = session.get(TacacsConfig, id)
+    if not config_obj:
+        raise HTTPException(status_code=404, detail=f"Config with id {id} not found.")
+
+    filename = config_obj.filename + ".cfg"
+    try:
+        return _run_syntax_check(
+            config_file_path=os.path.join(CONFIG_PATH, filename), filename=filename
+        )
+    except ConfigCheckError as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1413,3 +1413,73 @@ class HaNodeState(SQLModel, table=True):
     )
     last_push_at: datetime | None = Field(default=None, nullable=True)
     last_available: bool | None = Field(default=None, nullable=True)
+
+
+# --- API Keys (machine credentials, currently used by the MCP server) ---
+
+
+class ApiKeyBase(SQLModel):
+    name: str = Field(max_length=255)
+    # Comma-separated scope list, e.g. "mcp:read,mcp:generate".
+    scopes: str = Field(default="mcp:read", max_length=512)
+    description: str | None = Field(default=None, max_length=1024)
+    expires_at: datetime | None = Field(default=None)
+
+
+class ApiKeyCreate(ApiKeyBase):
+    # Defaults to the calling superuser when omitted.
+    user_id: uuid.UUID | None = Field(default=None)
+    # Convenience: when expires_at is not given, it is derived from this.
+    expires_in_days: int | None = Field(default=None)
+
+
+class ApiKey(ApiKeyBase, TimestampModel, table=True):
+    # Table name is inferred from the class name: "apikey".
+    #
+    # The lifecycle timestamps below use `DateTime(timezone=True)` rather than
+    # the project's usual naive columns. Writing an aware UTC value into a
+    # `timestamp without time zone` column makes psycopg convert it to the
+    # session's local zone and drop the offset, so an expiry read back as UTC
+    # would land hours in the future — an expired key would keep authenticating.
+    # Same approach as WebAuthnChallenge.expires_at.
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(
+        foreign_key="user.id", nullable=False, ondelete="CASCADE", index=True
+    )
+    # Display-only leading fragment of the plaintext key, e.g. "tngk_a1b2c3d4".
+    key_prefix: str = Field(max_length=20, index=True)
+    # Hex HMAC-SHA256 of the plaintext key; the plaintext is never stored.
+    key_hash: str = Field(max_length=64, unique=True, index=True)
+    expires_at: datetime | None = Field(
+        default=None, sa_column=Column(sa.DateTime(timezone=True), nullable=True)
+    )
+    last_used_at: datetime | None = Field(
+        default=None, sa_column=Column(sa.DateTime(timezone=True), nullable=True)
+    )
+    last_used_ip: str | None = Field(default=None, max_length=45)
+    revoked_at: datetime | None = Field(
+        default=None, sa_column=Column(sa.DateTime(timezone=True), nullable=True)
+    )
+    created_by_id: uuid.UUID | None = Field(default=None, index=True)
+
+
+# Deliberately omits key_hash so no route can leak it.
+class ApiKeyPublic(ApiKeyBase):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    key_prefix: str
+    last_used_at: datetime | None
+    revoked_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ApiKeysPublic(SQLModel):
+    data: list[ApiKeyPublic]
+    count: int
+
+
+class ApiKeyCreated(ApiKeyPublic):
+    """Returned only by the create endpoint — the one time the secret exists."""
+
+    plaintext_key: str

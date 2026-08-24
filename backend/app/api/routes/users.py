@@ -185,7 +185,9 @@ def update_password_me(
     """
     Update own password.
     """
-    if not verify_password(body.current_password, current_user.hashed_password):
+    # Discard any rehash: line below replaces the stored hash outright anyway.
+    valid, _ = verify_password(body.current_password, current_user.hashed_password)
+    if not valid:
         raise HTTPException(status_code=400, detail="Incorrect password")
     if body.current_password == body.new_password:
         raise HTTPException(

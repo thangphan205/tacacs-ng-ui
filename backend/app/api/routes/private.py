@@ -1,7 +1,7 @@
 from typing import Any
 
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.api.deps import SessionDep
 from app.core.security import get_password_hash
@@ -15,7 +15,10 @@ router = APIRouter(tags=["private"], prefix="/private")
 
 class PrivateUserCreate(BaseModel):
     email: str
-    password: str
+    # Same bound as every other password model in app.models — keeps this
+    # local-only route from being the one place an unbounded password reaches
+    # the hasher.
+    password: str = Field(min_length=8, max_length=40)
     full_name: str
     is_verified: bool = False
 

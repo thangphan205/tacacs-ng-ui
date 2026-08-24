@@ -3,7 +3,7 @@ import logging
 import subprocess
 import sys
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import date
 
 from sqlalchemy.exc import IntegrityError
@@ -96,7 +96,9 @@ async def _stats_collection_loop() -> None:
     while True:
         with Session(engine) as s:
             cfg = s.get(HaConfig, 1)
-        interval = (cfg.stats_interval_minutes if cfg else settings.STATS_INTERVAL_MINUTES) * 60
+        interval = (
+            cfg.stats_interval_minutes if cfg else settings.STATS_INTERVAL_MINUTES
+        ) * 60
         if interval <= 0:
             await asyncio.sleep(60)
             continue
@@ -146,20 +148,30 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     with Session(engine) as session:
         cfg = session.get(HaConfig, 1)
     scheduler_on = cfg.scheduler_enabled if cfg else settings.SCHEDULER_ENABLED
-    stats_interval = (cfg.stats_interval_minutes if cfg else settings.STATS_INTERVAL_MINUTES)
+    stats_interval = (
+        cfg.stats_interval_minutes if cfg else settings.STATS_INTERVAL_MINUTES
+    )
 
-    tasks = []
-    if scheduler_on:
-        tasks = [
-            asyncio.create_task(_audit_purge_loop()),
-            asyncio.create_task(_alert_evaluation_loop()),
-            asyncio.create_task(_ml_scoring_loop()),
-        ]
-        if stats_interval > 0:
-            tasks.append(asyncio.create_task(_stats_collection_loop()))
-    yield
-    for t in tasks:
-        t.cancel()
+    async with AsyncExitStack() as stack:
+        if settings.MCP_ENABLED:
+            from app.mcp_server.server import mcp_lifespan
+
+            await stack.enter_async_context(mcp_lifespan())
+
+        tasks = []
+        if scheduler_on:
+            tasks = [
+                asyncio.create_task(_audit_purge_loop()),
+                asyncio.create_task(_alert_evaluation_loop()),
+                asyncio.create_task(_ml_scoring_loop()),
+            ]
+            if stats_interval > 0:
+                tasks.append(asyncio.create_task(_stats_collection_loop()))
+        try:
+            yield
+        finally:
+            for t in tasks:
+                t.cancel()
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -187,3 +199,13 @@ if settings.all_cors_origins:
     )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+if settings.MCP_ENABLED:
+    # Mounted on `app`, not on api_router: a Mount is not an APIRoute, so it is
+    # invisible to custom_generate_unique_id and to OpenAPI generation — the
+    # generated TypeScript client stays unaffected by the MCP surface.
+    # The canonical URL carries a trailing slash: <host>/mcp/
+    from app.mcp_server.auth import ApiKeyAuthMiddleware
+    from app.mcp_server.server import MCPMountApp
+
+    app.mount(settings.MCP_PATH, ApiKeyAuthMiddleware(MCPMountApp()))

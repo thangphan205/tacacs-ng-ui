@@ -209,6 +209,13 @@ class Settings(BaseSettings):
         30  # how often to collect today's AAA stats into DB (0 = disable)
     )
 
+    # MCP (Model Context Protocol) server — read-only LLM access to config generation
+    MCP_ENABLED: bool = False  # feature flag, off by default
+    MCP_PATH: str = "/mcp"  # mount path on the main FastAPI app
+    MCP_MAX_CONFIG_TEXT_BYTES: int = 1_048_576  # cap for validate_config_text
+    MCP_VALIDATE_TIMEOUT_SECONDS: int = 10  # tac_plus-ng -P timeout
+    MCP_DEFAULT_KEY_EXPIRY_DAYS: int = 90  # 0 disables expiry
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def peer_urls(self) -> list[str]:

@@ -7,6 +7,7 @@ from app.api.routes import (
     alert_events,
     alert_rules,
     anomaly_detection,
+    api_keys,
     audit_logs,
     authentication_statistics,
     authorization_statistics,
@@ -59,6 +60,7 @@ api_router.include_router(hosts.router)
 api_router.include_router(rulesets.router)
 api_router.include_router(rulesetscripts.router)
 api_router.include_router(rulesetscriptsets.router)
+api_router.include_router(api_keys.router)
 api_router.include_router(audit_logs.router)
 api_router.include_router(tacacs_logs.router)
 api_router.include_router(configuration_options.router)
