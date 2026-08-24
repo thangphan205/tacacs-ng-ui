@@ -98,6 +98,10 @@ def get_active_tacacs_config(*, session: SessionDep) -> Any:
     """
 
     tacacs_config = tacacs_configs.get_active_tacacs_config(session=session)
+    if not tacacs_config:
+        # Valid state on a fresh install. Without this the model_validate below
+        # raises on None and the caller gets a 500 instead of an answer.
+        raise HTTPException(status_code=404, detail="No configuration is active")
     tacacs_config_return = TacacsConfigPublic.model_validate(tacacs_config)
     tacacs_config_return.data = tacacs_configs.get_tacacs_config_by_filename(
         filename="tac_plus-ng"

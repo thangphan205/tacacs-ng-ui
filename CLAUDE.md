@@ -159,7 +159,9 @@ Records CREATE/UPDATE/DELETE/ACTIVATE actions on entities with user_id, email, I
 
 ### MCP Server (`backend/app/mcp_server/`)
 
-Read-only Model Context Protocol endpoint letting an LLM client inspect TACACS+ entities, render config previews, and syntax-check config text. On by default (`MCP_ENABLED=true`); set to `false` to disable. See `docs/en/mcp-server.md`.
+Model Context Protocol endpoint letting an LLM client inspect TACACS+ entities, render config previews, syntax-check config text, and — with `mcp:write` — create/update/delete entities. On by default (`MCP_ENABLED=true`); set to `false` to disable. See `docs/en/mcp-server.md`.
+
+**It cannot deploy, and must never be able to.** No tool saves a config file, activates one, or reloads tac_plus-ng — an entity edited over MCP sits in the database until a human presses Generate + Activate in the UI. `tests/mcp/test_no_config_writes.py` walks the AST of every module in the package and fails if one gains a reference to `create_tacacs_config` / `update_tacacs_config` / `delete_tacacs_config`, a write-mode `open()`, or a subprocess import. Do not weaken that test to make a change pass.
 
 Mounted at `settings.MCP_PATH` (default `/mcp`) directly on `app` in `main.py` — **never** under `api_router`, since a `Mount` must stay invisible to `custom_generate_unique_id` and OpenAPI generation. Canonical URL has a trailing slash.
 
@@ -167,8 +169,9 @@ Mounted at `settings.MCP_PATH` (default `/mcp`) directly on `app` in `main.py` �
 |---|---|
 | `server.py` | `build_mcp()` factory, `MCPMountApp` ASGI shim, `mcp_lifespan()` |
 | `auth.py` | `ApiKeyAuthMiddleware` (401 before protocol handling), `principal_from(ctx)`, scope guards |
-| `tools.py` | the 12 tool registrations |
-| `service.py` | DB work — plain sync functions taking a `Session` |
+| `tools.py` | the 15 tool registrations; `_require_read` / `_allow_write` / `_allow_unredacted` guards |
+| `service.py` | read-side DB work — plain sync functions taking a `Session` |
+| `write_service.py` | write-side DB work — the `WRITABLE` registry adapting each entity's CRUD kwargs to one signature |
 | `redact.py` | two-pass secret masking |
 | `resources.py` | tac_plus-ng syntax reference, entity schema, active config, authoring prompt |
 
@@ -178,12 +181,17 @@ Constraints that are load-bearing:
 - **Tools must be `async def` + `run_in_threadpool`** — FastMCP calls sync tool functions inline on the event loop.
 - **`transport_security` must be passed explicitly** — FastMCP auto-enables DNS-rebinding protection when `host` is loopback (its default), which rejects the `Host: api.<domain>` header behind Traefik.
 - **`session_manager.run()` is once-per-instance** — hence a fresh `FastMCP` per lifespan and the `MCPMountApp` shim. This is also why `tests/conftest.py`'s `client` fixture is session-scoped.
+- **Write tools check the node role themselves** — `require_primary_node()` is a FastAPI dependency and MCP tools are not routes, so `_allow_write()` repeats the standby check inline.
 
 ### API Keys (`backend/app/crud/api_keys.py`)
 
-Machine credentials for MCP. Hashed with HMAC-SHA256 keyed on `SECRET_KEY` (**not** a password hash — argon2 and bcrypt both embed a random salt, which makes indexed lookup impossible, and their deliberate 50-250ms of blocking CPU would land on every MCP tool call). Superuser-gated CRUD at `/api/v1/api_keys`, soft revoke, audit-logged. Plaintext is returned exactly once at creation. Scopes: `mcp:read`, `mcp:generate`, `mcp:validate`, `mcp:secrets`.
+Machine credentials for MCP. Hashed with HMAC-SHA256 keyed on `SECRET_KEY` (**not** a password hash — argon2 and bcrypt both embed a random salt, which makes indexed lookup impossible, and their deliberate 50-250ms of blocking CPU would land on every MCP tool call). Superuser-gated CRUD at `/api/v1/api_keys`, soft revoke, audit-logged. Plaintext is returned exactly once at creation.
 
-Managed in the UI under **User Settings → API Keys** (`frontend/src/components/UserSettings/{ApiKeys,AddApiKey,RevokeApiKey,McpGuideModal,McpClientGuide}.tsx`), a tab added to `settings.tsx` only when `currentUser.is_superuser`. The create form uses `noValidate` so react-hook-form owns validation — Chakra's `Field required` sets a native `required` that would otherwise block submit before RHF runs. The scope checkboxes deliberately sit outside a `Field`, whose context would point every nested input's `aria-labelledby` at the Field label.
+Scopes are two access levels plus one opt-in: `mcp:read` (read-only), `mcp:write` (read-write — subsumes `mcp:read`, and additionally requires the key's user to be a superuser), and `mcp:secrets` (unredacted output, superuser-only, audit-logged). The set lives in `ALLOWED_API_KEY_SCOPES` in `models.py` and is enforced by a `field_validator` on **`ApiKeyCreate`, not `ApiKeyBase`** — `ApiKeyPublic` and the table model also inherit Base, so validating there would make a row with an unrecognised scope string unreadable and unrevokable.
+
+Managed in the UI under **User Settings → API Keys** (`frontend/src/components/UserSettings/{ApiKeys,AddApiKey,RevokeApiKey,McpGuideModal,McpClientGuide}.tsx`), a tab added to `settings.tsx` only when `currentUser.is_superuser`. The create form uses `noValidate` so react-hook-form owns validation — Chakra's `Field required` sets a native `required` that would otherwise block submit before RHF runs. The access-level radio and secrets checkbox deliberately sit outside a `Field`, whose context would point every nested input's `aria-labelledby` at the Field label.
+
+The TACACS Configs page (`frontend/src/routes/_layout/tacacs_configs.tsx`) shows a `PendingChangesAlert` that diffs `GET /tacacs_configs/preview` against `GET /tacacs_configs/active` client-side, so entity edits made elsewhere — the entity pages, or an MCP write key — surface as "unapplied changes" rather than sitting unnoticed. `/active` 404s when nothing has been activated yet; the query uses `retry: false` and treats the error as a valid state.
 
 ### Password Hashing
 

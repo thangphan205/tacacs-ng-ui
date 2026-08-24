@@ -327,11 +327,13 @@ export const McpClientGuide = ({
             <FiInfo fontSize="14px" />
           </Box>
           <Text fontSize="xs" color="gray.600">
-            <strong>Read-only endpoint:</strong> Canonical URL is{" "}
+            <strong>Endpoint:</strong> Canonical URL is{" "}
             <Code fontSize="xs">{mcpUrl}</Code> (trailing slash required;
-            requires <Code fontSize="xs">MCP_ENABLED=true</Code>). LLMs can
-            generate previews and validate syntax, but cannot activate
-            configurations or reload the daemon.
+            requires <Code fontSize="xs">MCP_ENABLED=true</Code>). A{" "}
+            <Code fontSize="xs">mcp:write</Code> key lets an LLM edit TACACS+
+            entities, but no key can activate a configuration or reload the
+            daemon — you must generate and activate the config yourself on the
+            TACACS Configs page.
           </Text>
         </HStack>
       )}

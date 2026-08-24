@@ -33,44 +33,33 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
+import { Radio, RadioGroup } from "../ui/radio"
 import McpClientGuide from "./McpClientGuide"
 
-interface ScopeOption {
+interface AccessLevel {
   value: string
   label: string
   description: string
-  dangerous?: boolean
 }
 
-const SCOPE_OPTIONS: ScopeOption[] = [
+const ACCESS_LEVELS: AccessLevel[] = [
   {
     value: "mcp:read",
-    label: "mcp:read",
+    label: "Read-only",
     description:
-      "List and describe TACACS+ entities, settings and saved configs.",
+      "Inspect TACACS+ entities and settings, render config previews and diffs, and syntax-check config. Changes nothing.",
   },
   {
-    value: "mcp:generate",
-    label: "mcp:generate",
+    value: "mcp:write",
+    label: "Read-write",
     description:
-      "Render config previews, sections and diffs from the database.",
-  },
-  {
-    value: "mcp:validate",
-    label: "mcp:validate",
-    description:
-      "Syntax-check config with tac_plus-ng. Arbitrary text also requires a superuser.",
-  },
-  {
-    value: "mcp:secrets",
-    label: "mcp:secrets",
-    description:
-      "Return config with secrets unmasked. Only works for superuser keys, and every use is audit-logged.",
-    dangerous: true,
+      "Everything in Read-only, plus creating, updating and deleting TACACS+ entities. Only works for superuser keys.",
   },
 ]
 
-const DEFAULT_SCOPES = ["mcp:read", "mcp:generate", "mcp:validate"]
+const SECRETS_SCOPE = "mcp:secrets"
+
+const DEFAULT_ACCESS = "mcp:read"
 
 interface FormValues {
   name: string
@@ -81,10 +70,13 @@ interface FormValues {
 
 const AddApiKey = () => {
   const [isOpen, setIsOpen] = useState(false)
-  const [scopes, setScopes] = useState<string[]>(DEFAULT_SCOPES)
+  const [access, setAccess] = useState<string>(DEFAULT_ACCESS)
+  const [allowSecrets, setAllowSecrets] = useState(false)
   const [created, setCreated] = useState<ApiKeyCreated | null>(null)
   const queryClient = useQueryClient()
-  const { showSuccessToast, showErrorToast } = useCustomToast()
+  const { showSuccessToast } = useCustomToast()
+
+  const scopes = allowSecrets ? [access, SECRETS_SCOPE] : [access]
 
   const {
     register,
@@ -102,16 +94,11 @@ const AddApiKey = () => {
     },
   })
 
-  const toggleScope = (value: string, checked: boolean) => {
-    setScopes((current) =>
-      checked ? [...current, value] : current.filter((s) => s !== value),
-    )
-  }
-
   const closeAll = () => {
     setIsOpen(false)
     setCreated(null)
-    setScopes(DEFAULT_SCOPES)
+    setAccess(DEFAULT_ACCESS)
+    setAllowSecrets(false)
     reset()
   }
 
@@ -142,10 +129,6 @@ const AddApiKey = () => {
   })
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
-    if (scopes.length === 0) {
-      showErrorToast("Select at least one scope.")
-      return
-    }
     mutation.mutate(data)
   }
 
@@ -233,7 +216,9 @@ const AddApiKey = () => {
                           <Badge
                             key={scope}
                             colorPalette={
-                              scope === "mcp:secrets" ? "orange" : "blue"
+                              scope === "mcp:secrets" || scope === "mcp:write"
+                                ? "orange"
+                                : "blue"
                             }
                             variant="subtle"
                             size="sm"
@@ -287,8 +272,9 @@ const AddApiKey = () => {
             </DialogHeader>
             <DialogBody overflowY="auto" flex="1">
               <Text mb={4} fontSize="sm" color="gray.500">
-                Machine credential for the read-only MCP server. It cannot log
-                in to this UI and cannot modify anything.
+                Machine credential for the MCP server. It cannot log in to this
+                UI, and no MCP key can generate or activate a TACACS+ config —
+                that stays a manual step you take on the TACACS Configs page.
               </Text>
 
               <VStack align="stretch" gap={4}>
@@ -333,39 +319,78 @@ const AddApiKey = () => {
 
                 <Box>
                   <Text fontSize="sm" fontWeight="medium" mb={1}>
-                    Scopes
+                    Access level
                   </Text>
-                  <VStack align="stretch" gap={3} pt={1}>
-                    {SCOPE_OPTIONS.map((option) => (
-                      <Box key={option.value}>
-                        <Checkbox
-                          checked={scopes.includes(option.value)}
-                          onCheckedChange={(e) =>
-                            toggleScope(option.value, !!e.checked)
-                          }
-                        >
-                          <HStack gap={2}>
-                            <Text fontFamily="mono" fontSize="sm">
-                              {option.label}
-                            </Text>
-                            {option.dangerous && (
-                              <Badge colorPalette="orange" variant="subtle">
-                                sensitive
-                              </Badge>
-                            )}
-                          </HStack>
-                        </Checkbox>
-                        <Text fontSize="xs" color="gray.500" ml={6}>
-                          {option.description}
-                        </Text>
+                  <RadioGroup
+                    value={access}
+                    onValueChange={(e) => setAccess(e.value ?? DEFAULT_ACCESS)}
+                  >
+                    <VStack align="stretch" gap={3} pt={1}>
+                      {ACCESS_LEVELS.map((level) => (
+                        <Box key={level.value}>
+                          <Radio value={level.value}>
+                            <HStack gap={2}>
+                              <Text fontSize="sm">{level.label}</Text>
+                              <Text
+                                fontFamily="mono"
+                                fontSize="xs"
+                                color="gray.500"
+                              >
+                                {level.value}
+                              </Text>
+                            </HStack>
+                          </Radio>
+                          <Text fontSize="xs" color="gray.500" ml={6}>
+                            {level.description}
+                          </Text>
+                        </Box>
+                      ))}
+                    </VStack>
+                  </RadioGroup>
+
+                  {access === "mcp:write" && (
+                    <HStack
+                      align="start"
+                      gap={2}
+                      mt={3}
+                      p={3}
+                      borderRadius="md"
+                      borderWidth="1px"
+                      borderColor="orange.400"
+                    >
+                      <Box color="orange.500" pt={0.5}>
+                        <FiAlertTriangle />
                       </Box>
-                    ))}
-                  </VStack>
-                  {scopes.length === 0 && (
-                    <Text fontSize="sm" color="red.500" mt={2}>
-                      Select at least one scope.
-                    </Text>
+                      <Text fontSize="sm">
+                        An MCP client using this key can create, update and
+                        delete TACACS+ users, groups, profiles, services, hosts,
+                        rulesets and MAVIS entries. It still cannot deploy: the
+                        changes sit in the database until <strong>you</strong>{" "}
+                        open the TACACS Configs page and press Generate, then
+                        Activate. Nothing reaches the running tac_plus-ng daemon
+                        before that.
+                      </Text>
+                    </HStack>
                   )}
+
+                  <Box mt={4}>
+                    <Checkbox
+                      checked={allowSecrets}
+                      onCheckedChange={(e) => setAllowSecrets(!!e.checked)}
+                    >
+                      <HStack gap={2}>
+                        <Text fontSize="sm">Allow unredacted secrets</Text>
+                        <Badge colorPalette="orange" variant="subtle">
+                          sensitive
+                        </Badge>
+                      </HStack>
+                    </Checkbox>
+                    <Text fontSize="xs" color="gray.500" ml={6}>
+                      Adds <Code fontSize="xs">mcp:secrets</Code>: config can be
+                      returned with device keys and passwords unmasked. Only
+                      works for superuser keys, and every use is audit-logged.
+                    </Text>
+                  </Box>
                 </Box>
 
                 <Field

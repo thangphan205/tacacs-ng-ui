@@ -52,8 +52,8 @@ def test_hash_api_key_is_deterministic() -> None:
 
 
 def test_parse_scopes() -> None:
-    assert api_keys.parse_scopes("mcp:read, mcp:generate ,") == frozenset(
-        {"mcp:read", "mcp:generate"}
+    assert api_keys.parse_scopes("mcp:read, mcp:write ,") == frozenset(
+        {"mcp:read", "mcp:write"}
     )
     assert api_keys.parse_scopes("") == frozenset()
 
@@ -76,7 +76,7 @@ def test_create_api_key_without_expiry(db: Session) -> None:
 
 def test_resolve_api_key_happy_path(db: Session) -> None:
     user = create_random_user(db=db)
-    db_api_key, plaintext = _create_key(db, user, scopes="mcp:read,mcp:generate")
+    db_api_key, plaintext = _create_key(db, user, scopes="mcp:read,mcp:write")
 
     principal = api_keys.resolve_api_key(plaintext, "10.0.0.1")
 
@@ -85,7 +85,7 @@ def test_resolve_api_key_happy_path(db: Session) -> None:
     assert principal.user_email == user.email
     assert principal.api_key_id == db_api_key.id
     assert principal.has("mcp:read")
-    assert principal.has("mcp:generate")
+    assert principal.has("mcp:write")
     assert not principal.has("mcp:secrets")
 
 

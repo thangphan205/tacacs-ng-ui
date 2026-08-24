@@ -24,6 +24,8 @@ pytestmark = pytest.mark.skipif(
 MCP_URL = "/mcp/"
 
 EXPECTED_TOOLS = {
+    "create_entity",
+    "delete_entity",
     "describe_entity",
     "diff_generated_vs_active",
     "generate_config_preview",
@@ -33,10 +35,15 @@ EXPECTED_TOOLS = {
     "list_saved_configs",
     "read_saved_config",
     "validate_config_text",
+    "update_entity",
     "validate_generated_config",
     "validate_saved_config",
     "whoami",
 }
+
+# Any tool matching one of these would mean MCP can deploy a config, which it
+# must never be able to do.
+FORBIDDEN_TOOL_SUBSTRINGS = ("activate", "reload", "restart", "save_config", "apply")
 
 
 def _rpc(
@@ -156,8 +163,9 @@ def test_whoami_reports_the_bound_identity(
     payload = result["structuredContent"]
     assert payload["user_email"] == settings.FIRST_SUPERUSER
     assert payload["is_superuser"] is True
-    assert payload["mcp_read_only"] is True
-    assert "mcp:read" in payload["scopes"]
+    assert payload["can_write"] is True
+    assert payload["can_activate_config"] is False
+    assert "mcp:write" in payload["scopes"]
 
 
 # --- behaviour ---
@@ -217,13 +225,18 @@ def test_missing_scope_is_refused_by_name(client: TestClient, db: Session) -> No
     db.commit()
     headers = _headers_for(db, user, "mcp:read")
 
-    result = _call(client, headers, "validate_config_text", {"text": "group = g1\n"})
-    assert "mcp:validate" in _error_text(result)
+    result = _call(
+        client,
+        headers,
+        "create_entity",
+        {"entity_type": "group", "data": {"group_name": "should-not-exist"}},
+    )
+    assert "mcp:write" in _error_text(result)
 
 
 def test_unredacted_output_requires_superuser(client: TestClient, db: Session) -> None:
     user = create_random_user(db=db)  # not a superuser
-    headers = _headers_for(db, user, "mcp:generate,mcp:secrets")
+    headers = _headers_for(db, user, "mcp:read,mcp:secrets")
 
     result = _call(
         client, headers, "generate_config_preview", {"redact_secrets": False}
@@ -238,7 +251,7 @@ def test_unredacted_output_requires_the_secrets_scope(
     user.is_superuser = True
     db.add(user)
     db.commit()
-    headers = _headers_for(db, user, "mcp:generate")
+    headers = _headers_for(db, user, "mcp:read")
 
     result = _call(
         client, headers, "generate_config_preview", {"redact_secrets": False}
@@ -291,3 +304,151 @@ def test_out_of_range_pagination_never_reaches_the_database(
     assert "validation error" in text
     assert "[SQL:" not in text
     assert "psycopg" not in text
+
+
+# --- writes ---
+
+
+def test_no_tool_can_deploy_a_config(
+    client: TestClient, mcp_headers: dict[str, str]
+) -> None:
+    """MCP may edit entities but must never save, activate or reload a config."""
+    result = _rpc(client, mcp_headers, "tools/list", {})
+    for tool in result["tools"]:
+        assert not any(bad in tool["name"] for bad in FORBIDDEN_TOOL_SUBSTRINGS), (
+            tool["name"]
+        )
+
+
+def test_write_scope_implies_read_scope(
+    client: TestClient, mcp_headers: dict[str, str]
+) -> None:
+    """The mcp:write fixture key holds no mcp:read yet reads fine."""
+    principal = api_keys.resolve_api_key(mcp_headers["Authorization"][7:])
+    assert principal is not None
+    assert "mcp:read" not in principal.scopes
+
+    result = _call(client, mcp_headers, "list_entities", {"entity_type": "group"})
+    assert "items" in result["structuredContent"]
+
+
+def test_write_requires_superuser(client: TestClient, db: Session) -> None:
+    user = create_random_user(db=db)  # not a superuser
+    headers = _headers_for(db, user, "mcp:write")
+
+    result = _call(
+        client,
+        headers,
+        "create_entity",
+        {"entity_type": "group", "data": {"group_name": "should-not-exist"}},
+    )
+    assert "superuser" in _error_text(result).lower()
+
+
+def test_create_update_delete_entity_round_trip(
+    client: TestClient, mcp_headers: dict[str, str]
+) -> None:
+    created = _call(
+        client,
+        mcp_headers,
+        "create_entity",
+        {
+            "entity_type": "group",
+            "data": {"group_name": "mcp-rt-group", "description": "made over mcp"},
+        },
+    )["structuredContent"]
+    assert created["created"] is True
+    assert created["item"]["group_name"] == "mcp-rt-group"
+    # The client must be told a human still has to generate and activate.
+    assert "Activate" in created["next_step"]
+
+    duplicate = _call(
+        client,
+        mcp_headers,
+        "create_entity",
+        {"entity_type": "group", "data": {"group_name": "mcp-rt-group"}},
+    )
+    assert "already exists" in _error_text(duplicate)
+
+    # Partial payload: description changes, group_name is preserved.
+    updated = _call(
+        client,
+        mcp_headers,
+        "update_entity",
+        {
+            "entity_type": "group",
+            "name": "mcp-rt-group",
+            "data": {"description": "edited over mcp"},
+        },
+    )["structuredContent"]
+    assert updated["item"]["group_name"] == "mcp-rt-group"
+    assert updated["item"]["description"] == "edited over mcp"
+
+    unconfirmed = _call(
+        client,
+        mcp_headers,
+        "delete_entity",
+        {"entity_type": "group", "name": "mcp-rt-group"},
+    )
+    assert "confirm" in _error_text(unconfirmed)
+
+    deleted = _call(
+        client,
+        mcp_headers,
+        "delete_entity",
+        {"entity_type": "group", "name": "mcp-rt-group", "confirm": True},
+    )["structuredContent"]
+    assert deleted["deleted"] is True
+
+    gone = _call(
+        client,
+        mcp_headers,
+        "describe_entity",
+        {"entity_type": "group", "name": "mcp-rt-group"},
+    )
+    assert "mcp-rt-group" in _error_text(gone)
+
+
+def test_create_entity_reports_validation_errors_readably(
+    client: TestClient, mcp_headers: dict[str, str]
+) -> None:
+    result = _call(
+        client,
+        mcp_headers,
+        "create_entity",
+        {"entity_type": "user", "data": {"username": "missing-required-fields"}},
+    )
+    text = _error_text(result)
+    assert "password_type" in text
+    assert "[SQL:" not in text
+
+
+def test_created_entity_is_audit_logged(
+    client: TestClient, db: Session, mcp_headers: dict[str, str]
+) -> None:
+    from sqlmodel import select
+
+    from app.models import AuditLog
+
+    _call(
+        client,
+        mcp_headers,
+        "create_entity",
+        {"entity_type": "group", "data": {"group_name": "mcp-audit-group"}},
+    )
+    entry = db.exec(
+        select(AuditLog)
+        .where(AuditLog.entity_type == "TacacsGroup")
+        .order_by(AuditLog.created_at.desc())
+    ).first()
+    assert entry is not None
+    assert entry.action == "CREATE"
+    assert entry.user_agent is not None
+    assert entry.user_agent.startswith("mcp/api-key:")
+
+    _call(
+        client,
+        mcp_headers,
+        "delete_entity",
+        {"entity_type": "group", "name": "mcp-audit-group", "confirm": True},
+    )

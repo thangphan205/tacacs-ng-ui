@@ -5,8 +5,12 @@ FastMCP invokes synchronous tool functions inline on the event loop, so a
 blocking DB query or a 10-second `tac_plus-ng -P` subprocess would freeze one
 of the four uvicorn workers.
 
-Scopes: mcp:read · mcp:generate · mcp:validate · mcp:secrets
-(`mcp:secrets` additionally requires the key to be bound to a superuser.)
+Scopes: mcp:read (read-only) · mcp:write (read-write, implies mcp:read) ·
+mcp:secrets (opt-in, unredacted output). `mcp:write` and `mcp:secrets` both
+additionally require the key to be bound to a superuser.
+
+Writes reach entity tables only. No tool here saves a config file, activates a
+config or reloads tac_plus-ng — a human does that from the TACACS Configs page.
 """
 
 import logging
@@ -21,7 +25,7 @@ from app.core.config import settings
 from app.core.db import engine
 from app.crud import audit_logs as audit_logs_crud
 from app.crud.api_keys import ApiKeyPrincipal
-from app.mcp_server import resources, service
+from app.mcp_server import resources, service, write_service
 from app.mcp_server.auth import (
     McpAuthError,
     principal_from,
@@ -48,6 +52,36 @@ Section = Literal["mavis", "profiles", "rulesets"]
 # negative limit reaches Postgres and the raw error, SQL text included, is
 # handed back to the LLM client.
 MAX_PAGE_SIZE = 500
+
+# Appended to every write response. The tools mutate entity rows only; nothing
+# reaches tac_plus-ng until a human generates and activates a config in the UI.
+NEXT_STEP = (
+    "Saved to the database only. The running tac_plus-ng daemon is unchanged: "
+    "a human must open the TACACS Configs page in the UI and press Generate, "
+    "then Activate, before this takes effect. Call diff_generated_vs_active to "
+    "show what is still pending."
+)
+
+
+def _require_read(principal: ApiKeyPrincipal) -> None:
+    """Read access: `mcp:write` subsumes `mcp:read`, so either one passes."""
+    if not (principal.has("mcp:read") or principal.has("mcp:write")):
+        raise McpAuthError("API key is missing the required scope 'mcp:read'.")
+
+
+def _allow_write(principal: ApiKeyPrincipal, action: str) -> None:
+    """Entity writes need the scope, a superuser, and a primary node.
+
+    The node check mirrors `api.deps.require_primary_node`, which MCP tools
+    cannot use because they are not FastAPI routes.
+    """
+    require_scope(principal, "mcp:write")
+    require_superuser(principal, action)
+    if settings.NODE_ROLE == "standby":
+        raise McpAuthError(
+            "This node is in standby (read-only) mode. "
+            "Make changes on the primary node."
+        )
 
 
 def _allow_unredacted(principal: ApiKeyPrincipal, what: str) -> None:
@@ -77,18 +111,53 @@ def _audit_secret_export(principal: ApiKeyPrincipal, what: str) -> None:
         log.warning("Failed to audit unredacted MCP export", exc_info=True)
 
 
+def _audit_write(
+    principal: ApiKeyPrincipal, action: str, result: write_service.WriteResult
+) -> None:
+    """Record an MCP-originated mutation, same shape as the REST routes do."""
+    try:
+        with Session(engine) as session:
+            audit_logs_crud.log_entity_action(
+                session=session,
+                action=action,
+                entity_type=result.audit_type,
+                entity_id=result.entity_id,
+                user_id=principal.user_id,
+                user_email=principal.user_email,
+                ip_address=None,
+                user_agent=f"mcp/api-key:{principal.api_key_name}",
+                old_values=result.old_values,
+                new_values=result.new_values,
+                description=(
+                    f"{action.title()}d over MCP using API key "
+                    f"'{principal.api_key_name}'"
+                ),
+            )
+    except Exception:
+        log.warning("Failed to audit MCP write", exc_info=True)
+
+
 def register(server: FastMCP) -> None:
     @server.tool()
     async def whoami(ctx: Context) -> dict[str, Any]:  # type: ignore[type-arg]
-        """Identify the API key this session is authenticated with."""
+        """Identify the API key this session is authenticated with.
+
+        `can_write` reports whether entity writes are permitted. Even when it is
+        true, no tool can generate, save, activate or reload a config.
+        """
         p = principal_from(ctx)
+        can_write = (
+            p.has("mcp:write") and p.is_superuser and settings.NODE_ROLE != "standby"
+        )
         return {
             "user_email": p.user_email,
             "is_superuser": p.is_superuser,
             "scopes": sorted(p.scopes),
             "api_key_name": p.api_key_name,
             "node_role": settings.NODE_ROLE,
-            "mcp_read_only": True,
+            "can_write": can_write,
+            "mcp_read_only": not can_write,
+            "can_activate_config": False,
         }
 
     @server.tool()
@@ -106,7 +175,7 @@ def register(server: FastMCP) -> None:
         the generated config. Secret fields are always redacted.
         """
         p = principal_from(ctx)
-        require_scope(p, "mcp:read")
+        _require_read(p)
 
         def _run() -> dict[str, Any]:
             with Session(engine) as session:
@@ -130,7 +199,7 @@ def register(server: FastMCP) -> None:
     ) -> dict[str, Any]:
         """Describe one entity by name, with its nested scripts where applicable."""
         p = principal_from(ctx)
-        require_scope(p, "mcp:read")
+        _require_read(p)
 
         def _run() -> dict[str, Any]:
             with Session(engine) as session:
@@ -147,7 +216,7 @@ def register(server: FastMCP) -> None:
     async def get_tacacs_settings(ctx: Context) -> dict[str, Any]:  # type: ignore[type-arg]
         """Read the tac_plus-ng daemon settings (listen address, instances, logs)."""
         p = principal_from(ctx)
-        require_scope(p, "mcp:read")
+        _require_read(p)
 
         def _run() -> dict[str, Any]:
             with Session(engine) as session:
@@ -167,7 +236,7 @@ def register(server: FastMCP) -> None:
         deployable as-is.
         """
         p = principal_from(ctx)
-        require_scope(p, "mcp:generate")
+        _require_read(p)
         if not redact_secrets:
             _allow_unredacted(p, "config")
             _audit_secret_export(p, "config preview")
@@ -188,7 +257,7 @@ def register(server: FastMCP) -> None:
     ) -> dict[str, Any]:
         """Render a single config section (mavis, profiles or rulesets)."""
         p = principal_from(ctx)
-        require_scope(p, "mcp:generate")
+        _require_read(p)
         if not redact_secrets:
             _allow_unredacted(p, "config section")
             _audit_secret_export(p, f"config section '{section}'")
@@ -212,7 +281,7 @@ def register(server: FastMCP) -> None:
         when the text does not parse.
         """
         p = principal_from(ctx)
-        require_scope(p, "mcp:validate")
+        _require_read(p)
         # The parser runs privileged in this container and tac_plus-ng config
         # supports `include`, which would turn arbitrary text into a file-read
         # primitive. Superuser-only, size-capped, and include-directives refused.
@@ -247,7 +316,7 @@ def register(server: FastMCP) -> None:
         server.
         """
         p = principal_from(ctx)
-        require_scope(p, "mcp:validate")
+        _require_read(p)
 
         def _run() -> dict[str, Any]:
             with Session(engine) as session:
@@ -261,7 +330,7 @@ def register(server: FastMCP) -> None:
     async def list_saved_configs(ctx: Context) -> dict[str, Any]:  # type: ignore[type-arg]
         """List saved config files and report which one is active."""
         p = principal_from(ctx)
-        require_scope(p, "mcp:read")
+        _require_read(p)
 
         def _run() -> dict[str, Any]:
             with Session(engine) as session:
@@ -277,7 +346,7 @@ def register(server: FastMCP) -> None:
     ) -> dict[str, Any]:
         """Read a saved config file by name (without the .cfg suffix)."""
         p = principal_from(ctx)
-        require_scope(p, "mcp:read")
+        _require_read(p)
         if not redact_secrets:
             _allow_unredacted(p, "saved config")
             _audit_secret_export(p, f"saved config '{filename}'")
@@ -297,7 +366,7 @@ def register(server: FastMCP) -> None:
     ) -> dict[str, Any]:
         """Syntax-check a saved config file by name."""
         p = principal_from(ctx)
-        require_scope(p, "mcp:validate")
+        _require_read(p)
 
         return await run_in_threadpool(
             service.validate_saved_config,
@@ -315,7 +384,7 @@ def register(server: FastMCP) -> None:
         Answers "what would change if this were regenerated and applied".
         """
         p = principal_from(ctx)
-        require_scope(p, "mcp:generate")
+        _require_read(p)
         if not redact_secrets:
             _allow_unredacted(p, "diff")
             _audit_secret_export(p, "config diff")
@@ -327,5 +396,106 @@ def register(server: FastMCP) -> None:
                 )
 
         return await run_in_threadpool(_run)
+
+    @server.tool()
+    async def create_entity(
+        ctx: Context,  # type: ignore[type-arg]
+        entity_type: EntityType,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Create one TACACS+ entity.
+
+        `data` holds the entity's fields — read the `tacacs://schema/entities`
+        resource for the field list of each type. The row is written to the
+        database only: the live config file is untouched and the daemon is not
+        reloaded, so a human still has to generate and activate a config.
+        """
+        p = principal_from(ctx)
+        _allow_write(p, f"Creating a {entity_type}")
+
+        def _run() -> write_service.WriteResult:
+            with Session(engine) as session:
+                return write_service.create_entity(
+                    session=session, entity_type=entity_type, data=data
+                )
+
+        result = await run_in_threadpool(_run)
+        await run_in_threadpool(_audit_write, p, "CREATE", result)
+        return {
+            "created": True,
+            "entity_type": result.entity_type,
+            "id": result.entity_id,
+            "item": result.item,
+            "next_step": NEXT_STEP,
+        }
+
+    @server.tool()
+    async def update_entity(
+        ctx: Context,  # type: ignore[type-arg]
+        entity_type: EntityType,
+        name: str,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update one TACACS+ entity, addressed by its current name.
+
+        `data` may be partial — omitted fields keep their current value. As with
+        `create_entity`, this changes the database only; nothing reaches the
+        running daemon until a human generates and activates a config.
+        """
+        p = principal_from(ctx)
+        _allow_write(p, f"Updating a {entity_type}")
+
+        def _run() -> write_service.WriteResult:
+            with Session(engine) as session:
+                return write_service.update_entity(
+                    session=session, entity_type=entity_type, name=name, data=data
+                )
+
+        result = await run_in_threadpool(_run)
+        await run_in_threadpool(_audit_write, p, "UPDATE", result)
+        return {
+            "updated": True,
+            "entity_type": result.entity_type,
+            "id": result.entity_id,
+            "item": result.item,
+            "next_step": NEXT_STEP,
+        }
+
+    @server.tool()
+    async def delete_entity(
+        ctx: Context,  # type: ignore[type-arg]
+        entity_type: EntityType,
+        name: str,
+        confirm: bool = False,
+    ) -> dict[str, Any]:
+        """Delete one TACACS+ entity by name. Requires `confirm=true`.
+
+        Destructive and not undoable — child rows (profile and ruleset scripts)
+        cascade with the parent. Call `describe_entity` first and show the caller
+        what will be removed. The daemon keeps running the currently active
+        config until a human generates and activates a new one.
+        """
+        p = principal_from(ctx)
+        _allow_write(p, f"Deleting a {entity_type}")
+        if not confirm:
+            raise McpAuthError(
+                f"Refusing to delete {entity_type} '{name}' without confirm=true."
+            )
+
+        def _run() -> write_service.WriteResult:
+            with Session(engine) as session:
+                return write_service.delete_entity(
+                    session=session, entity_type=entity_type, name=name
+                )
+
+        result = await run_in_threadpool(_run)
+        await run_in_threadpool(_audit_write, p, "DELETE", result)
+        return {
+            "deleted": True,
+            "entity_type": result.entity_type,
+            "id": result.entity_id,
+            "name": name,
+            "next_step": NEXT_STEP,
+        }
 
     resources.register(server)

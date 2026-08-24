@@ -17,7 +17,7 @@ def test_create_api_key_returns_plaintext_once(
     r = client.post(
         f"{BASE}/",
         headers=superuser_token_headers,
-        json={"name": name, "scopes": "mcp:read,mcp:generate"},
+        json={"name": name, "scopes": "mcp:write,mcp:secrets"},
     )
     assert r.status_code == 200, r.text
     created = r.json()
@@ -165,6 +165,30 @@ def test_create_api_key_normalizes_allowed_ips(
     )
     assert r.status_code == 200, r.text
     assert r.json()["allowed_ips"] == "10.0.0.1,10.0.0.2"
+
+
+def test_create_rejects_an_unknown_scope(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    """A typo must fail loudly instead of minting a key that grants nothing."""
+    r = client.post(
+        f"{BASE}/",
+        headers=superuser_token_headers,
+        json={"name": random_lower_string(), "scopes": "mcp:read,mcp:wrte"},
+    )
+    assert r.status_code == 422, r.text
+    assert "mcp:wrte" in r.text
+
+
+def test_create_rejects_an_empty_scope_list(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{BASE}/",
+        headers=superuser_token_headers,
+        json={"name": random_lower_string(), "scopes": " , "},
+    )
+    assert r.status_code == 422, r.text
 
 
 def test_update_allowed_ips_only_changes_allowed_ips(

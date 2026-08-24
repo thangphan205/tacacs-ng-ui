@@ -1,5 +1,6 @@
 import {
   Badge,
+  Code,
   Container,
   EmptyState,
   Flex,
@@ -60,8 +61,10 @@ const ApiKeys = () => {
         <VStack align="start" gap={1}>
           <Heading size="sm">API Keys</Heading>
           <Text fontSize="sm" color="gray.500">
-            Machine credentials for the read-only MCP server. They cannot sign
-            in to this UI and cannot change any configuration.
+            Machine credentials for the MCP server. They cannot sign in to this
+            UI. A <Code fontSize="xs">mcp:write</Code> key can edit TACACS+
+            entities, but no key can generate or activate a config — you do that
+            yourself on the TACACS Configs page.
           </Text>
         </VStack>
         <HStack gap={2}>

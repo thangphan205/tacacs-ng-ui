@@ -67,6 +67,69 @@ export const Route = createFileRoute("/_layout/tacacs_configs")({
   validateSearch: (search) => tacacs_configsSearchSchema.parse(search),
 })
 
+/**
+ * Compares the config the database would generate against the one the daemon is
+ * actually running, so edits made outside this page — the entity pages, or an
+ * MCP client holding a write key — do not sit unnoticed. Neither of those can
+ * deploy; only Generate + Activate here does.
+ */
+function PendingChangesAlert() {
+  const { data: preview, isLoading: previewLoading } = useQuery({
+    queryKey: ["tacacs_configs", "preview"],
+    queryFn: () => TacacsConfigsService.generatePreviewTacacsConfig(),
+  })
+
+  // Errors when no config has ever been activated, which is a valid state.
+  const {
+    data: active,
+    isLoading: activeLoading,
+    isError: activeMissing,
+  } = useQuery({
+    queryKey: ["tacacs_configs", "active"],
+    queryFn: () => TacacsConfigsService.getActiveTacacsConfig(),
+    retry: false,
+  })
+
+  if (previewLoading || activeLoading) return null
+
+  const generated = preview?.data ?? ""
+  const running = activeMissing ? null : (active?.data ?? "")
+  const inSync = running !== null && generated.trim() === running.trim()
+
+  if (inSync) {
+    return (
+      <Alert.Root status="success" mb={4} borderRadius="md">
+        <Alert.Indicator />
+        <Alert.Content>
+          <Alert.Title>Running config matches the database</Alert.Title>
+          <Alert.Description>
+            Nothing to apply. Any later change — from these pages or from an MCP
+            client — needs a new configuration generated and activated here.
+          </Alert.Description>
+        </Alert.Content>
+      </Alert.Root>
+    )
+  }
+
+  return (
+    <Alert.Root status="warning" mb={4} borderRadius="md">
+      <Alert.Indicator />
+      <Alert.Content>
+        <Alert.Title>
+          {running === null
+            ? "No configuration is active yet"
+            : "Unapplied changes in the database"}
+        </Alert.Title>
+        <Alert.Description>
+          {running === null
+            ? "Generate a configuration and activate it to start serving it."
+            : "The database no longer matches the config tac_plus-ng is running. Changes made on the entity pages, or by an MCP client, only take effect once you generate a new configuration and activate it here."}
+        </Alert.Description>
+      </Alert.Content>
+    </Alert.Root>
+  )
+}
+
 function TacacsConfigsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, search } = Route.useSearch()
@@ -219,17 +282,7 @@ function TacacsConfigs() {
         </Box>
       </Flex>
 
-      <Alert.Root status="warning" mb={4} borderRadius="md">
-        <Alert.Indicator />
-        <Alert.Content>
-          <Alert.Title>Action required after changes</Alert.Title>
-          <Alert.Description>
-            After modifying any TACACS+ settings (users, groups, hosts,
-            policies), generate and activate a new configuration for changes to
-            take effect.
-          </Alert.Description>
-        </Alert.Content>
-      </Alert.Root>
+      <PendingChangesAlert />
 
       <Flex mt={4} align="center" justify="space-between">
         <Flex gap={2} flexWrap="wrap">

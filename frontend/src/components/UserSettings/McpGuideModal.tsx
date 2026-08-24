@@ -90,10 +90,11 @@ export const McpGuideModal = () => {
         <DialogBody>
           <VStack align="stretch" gap={5}>
             <Text fontSize="sm" color="gray.600">
-              The TACACS+ NG UI provides a read-only Model Context Protocol
-              (MCP) server allowing LLMs (Claude, Google Antigravity, Gemini,
-              Cursor) to inspect configurations, draft changes, and
-              syntax-validate tac_plus-ng configs.
+              The TACACS+ NG UI provides a Model Context Protocol (MCP) server
+              allowing LLMs (Claude, Google Antigravity, Gemini, Cursor) to
+              inspect configurations, draft changes, and syntax-validate
+              tac_plus-ng configs. A read-write key additionally lets them edit
+              TACACS+ entities — but never deploy them.
             </Text>
 
             <SimpleGrid columns={{ base: 1, md: 2 }} gap={3}>
@@ -127,6 +128,10 @@ export const McpGuideModal = () => {
                     ✓ Run <Code fontSize="2xs">tac_plus-ng -P</Code> syntax
                     validation
                   </Text>
+                  <Text>
+                    ✓ With <Code fontSize="2xs">mcp:write</Code>: create, update
+                    and delete entities in the database
+                  </Text>
                 </VStack>
               </Box>
 
@@ -147,7 +152,7 @@ export const McpGuideModal = () => {
                 </HStack>
                 <VStack align="start" gap={1.5} fontSize="xs" color="gray.600">
                   <Text>
-                    ✗ <strong>Cannot modify</strong> the database or write files
+                    ✗ <strong>Cannot generate</strong> or save a config file
                   </Text>
                   <Text>
                     ✗ <strong>Cannot activate</strong> or deploy new
@@ -177,9 +182,10 @@ export const McpGuideModal = () => {
                 </Box>
                 <Text fontSize="xs" color="gray.600">
                   <strong>Human-in-the-loop safety:</strong> MCP clients cannot
-                  push changes to network devices. Deploying and activating
-                  configuration changes remains a deliberate human action in
-                  this Web UI (
+                  push changes to network devices. Even a read-write key only
+                  edits database rows — the running daemon keeps serving the
+                  currently active config. Deploying remains a deliberate human
+                  action in this Web UI (
                   <strong>Configurations → Generate &amp; Activate</strong>).
                 </Text>
               </HStack>
