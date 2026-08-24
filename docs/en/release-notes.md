@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Security Fixes
+
+* 🔒 **Login password hashing migrated from passlib + bcrypt to `pwdlib[argon2,bcrypt]`**, matching the upstream `full-stack-fastapi-template`. New passwords are hashed with **argon2id**; existing `$2b$` bcrypt hashes stay verifiable and are transparently rewritten to argon2 on the owner's next successful login. The rewrite is skipped on `NODE_ROLE=standby` (read-only replica) and is best-effort — a failed write leaves the old hash in place and never turns a valid login into an error. **No database migration is required**: `user.hashed_password` is an unbounded `VARCHAR`, and argon2 hashes (~97 chars) fit where bcrypt's 60 did.
+
+  The `bcrypt==4.3.0` pin is lifted, so the deferred bcrypt 5.0 Dependabot PR can now be closed as already applied. passlib is retained **solely** for `sha512_crypt` in `crud/tacacs_users.py`, whose `$6$rounds=...$` output format is dictated by tac_plus-ng; its `[bcrypt]` extra is dropped, and `CryptContext(schemes=["sha512_crypt"])` never imports passlib's bcrypt backend, so bcrypt 5.x is safe alongside it. A regression test asserts that backend stays unloaded.
+
+* 🔒 **Fixed an unauthenticated 500 on `/login/access-token`.** bcrypt 5.0 raises `ValueError` for secrets longer than 72 bytes instead of truncating them, and the OAuth2 password form field is length-unbounded — so once the pin was lifted, an over-long password submitted against any account still holding a bcrypt hash would have crashed the endpoint. `verify_password` now treats both that error and an unrecognised hash format as a failed login.
+
 ### Features
 
 * ✨ **MCP server — read-only LLM access to TACACS+ configuration.** A [Model Context Protocol](https://modelcontextprotocol.io) endpoint at `/mcp/` lets a client such as Claude Desktop or Claude Code inspect TACACS+ entities, render config previews and diffs, and syntax-check config text with the real `tac_plus-ng -P` parser. It cannot write to the database, change the live config, activate a config, reload the daemon, or push to HA peers. **Off by default** (`MCP_ENABLED=false`). Twelve tools plus a tac_plus-ng syntax reference resource and an authoring prompt. Secrets (`Host.secret_key`, `TacacsUser.password`, MAVIS credentials) are masked in every response unless explicitly requested by a superuser key holding `mcp:secrets`, which is audit-logged. See [docs/en/mcp-server.md](mcp-server.md).
@@ -12,17 +20,13 @@
 
 * 🐛 **`generate_tacacs_ng_config()` no longer writes a stray file into the working directory.** Every call — including the read-only `GET /tacacs_configs/preview` — wrote `<cwd>/tacacs-ng.conf`, so four uvicorn workers raced on the same path, and the `OSError` fallback created a `NamedTemporaryFile(delete=False)` that was never cleaned up. The generator is now side-effect free and the stale committed artifact is removed.
 
-### Security Fixes
-
-* 🔒 **Login password hashing migrated from passlib + bcrypt to `pwdlib[argon2,bcrypt]`**, matching the upstream `full-stack-fastapi-template`. New passwords are hashed with **argon2id**; existing `$2b$` bcrypt hashes stay verifiable and are transparently rewritten to argon2 on the owner's next successful login. The rewrite is skipped on `NODE_ROLE=standby` (read-only replica) and is best-effort — a failed write leaves the old hash in place and never turns a valid login into an error. **No database migration is required**: `user.hashed_password` is an unbounded `VARCHAR`, and argon2 hashes (~97 chars) fit where bcrypt's 60 did.
-
-  The `bcrypt==4.3.0` pin is lifted, so the deferred bcrypt 5.0 Dependabot PR can now be closed as already applied. passlib is retained **solely** for `sha512_crypt` in `crud/tacacs_users.py`, whose `$6$rounds=...$` output format is dictated by tac_plus-ng; its `[bcrypt]` extra is dropped, and `CryptContext(schemes=["sha512_crypt"])` never imports passlib's bcrypt backend, so bcrypt 5.x is safe alongside it. A regression test asserts that backend stays unloaded.
-
-* 🔒 **Fixed an unauthenticated 500 on `/login/access-token`.** bcrypt 5.0 raises `ValueError` for secrets longer than 72 bytes instead of truncating them, and the OAuth2 password form field is length-unbounded — so once the pin was lifted, an over-long password submitted against any account still holding a bcrypt hash would have crashed the endpoint. `verify_password` now treats both that error and an unrecognised hash format as a failed login.
-
 ### Upgrades
 
 * ⬆️ **bcrypt 4.3.0 → 5.0.0**, unblocked by the password-hashing migration above.
+
+### Docs
+
+* docs: restore release notes wiped by the newly-fixed latest-changes bot. PR [#263](https://github.com/thangphan205/tacacs-ng-ui/pull/263) by [@thangphan205](https://github.com/thangphan205).
 
 ### Internal
 
