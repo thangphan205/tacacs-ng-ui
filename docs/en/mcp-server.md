@@ -40,12 +40,14 @@ exactly once, at creation, and is not recoverable afterwards.
 ### From the UI
 
 Sign in as a superuser and open **User Settings → API Keys**. The tab is hidden
-from everyone else. *Create API Key* asks for a name, the scopes, and a lifetime;
-the generated key and a ready-to-paste `claude mcp add` command are shown once,
-with a copy button. After you close that dialog only the 20-character prefix is
-ever displayed again.
+from everyone else. *Create API Key* asks for a name, the scopes, a lifetime,
+and an optional allowlist of source IPs/CIDRs; the generated key and a
+ready-to-paste `claude mcp add` command are shown once, with a copy button.
+After you close that dialog only the 20-character prefix is ever displayed
+again.
 
-Revoking from the same table takes effect immediately.
+Revoking from the same table takes effect immediately. The IP allowlist can
+also be edited later, from the same row, without reissuing the key.
 
 ### From the API
 
@@ -56,6 +58,7 @@ curl -s -X POST https://api.example.com/api/v1/api_keys/ \
   -d '{
         "name": "claude-desktop-laptop",
         "scopes": "mcp:read,mcp:generate,mcp:validate",
+        "allowed_ips": "203.0.113.4,198.51.100.0/24",
         "expires_in_days": 90
       }' | jq -r .plaintext_key
 ```
@@ -66,11 +69,18 @@ curl -s -X POST https://api.example.com/api/v1/api_keys/ \
 | `GET /api/v1/api_keys/` | superuser | list all keys |
 | `GET /api/v1/api_keys/me` | any user | list your own keys |
 | `GET /api/v1/api_keys/{id}` | superuser | read one key |
+| `PATCH /api/v1/api_keys/{id}` | superuser | update the IP allowlist only |
 | `DELETE /api/v1/api_keys/{id}` | superuser | revoke (soft — the row is kept for audit) |
 
-The UI uses these same endpoints; nothing about a key can be edited after
-creation, so a change of scope means minting a replacement and revoking the old
-key.
+The UI uses these same endpoints. `allowed_ips` is a comma-separated list of
+IPv4/IPv6 addresses or CIDR networks the key may authenticate from; omit it (or
+send `null`) for no restriction. It's the one field editable after creation —
+everything else, including scope, is fixed at creation time, so a change of
+scope means minting a replacement and revoking the old key.
+
+A request from a source IP outside the allowlist gets the same generic 401 as
+an invalid or expired key — the middleware doesn't distinguish the reason, so
+an unauthenticated caller can't learn that a key exists but is IP-restricted.
 
 Creation and revocation are recorded in the audit log. The digest is never
 returned by any endpoint and never appears in audit values.

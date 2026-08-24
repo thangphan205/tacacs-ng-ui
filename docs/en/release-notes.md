@@ -2,10 +2,6 @@
 
 ## Unreleased
 
-### Docs
-
-* chore: release v0.6.0 — MCP server, scoped API keys, local-user PAP fix. PR [#265](https://github.com/thangphan205/tacacs-ng-ui/pull/265) by [@thangphan205](https://github.com/thangphan205).
-
 ## v0.6.0
 
 ### Security Fixes
@@ -21,6 +17,8 @@
 * ✨ **MCP server — read-only LLM access to TACACS+ configuration.** A [Model Context Protocol](https://modelcontextprotocol.io) endpoint at `/mcp/` lets a client such as Claude Desktop or Claude Code inspect TACACS+ entities, render config previews and diffs, and syntax-check config text with the real `tac_plus-ng -P` parser. It cannot write to the database, change the live config, activate a config, reload the daemon, or push to HA peers. **Off by default** (`MCP_ENABLED=false`). Twelve tools plus a tac_plus-ng syntax reference resource and an authoring prompt. Secrets (`Host.secret_key`, `TacacsUser.password`, MAVIS credentials) are masked in every response unless explicitly requested by a superuser key holding `mcp:secrets`, which is audit-logged. See [docs/en/mcp-server.md](mcp-server.md).
 
 * ✨ **API keys** — machine credentials for the MCP server, managed under **User Settings → API Keys** (superuser only). Scoped (`mcp:read`, `mcp:generate`, `mcp:validate`, `mcp:secrets`), expiring, revocable, and audit-logged. The plaintext key is shown exactly once at creation; only a 20-character prefix is displayed afterwards. Stored as an HMAC-SHA256 digest keyed on `SECRET_KEY` — deliberately not a password hash, since a random salt would make indexed lookup impossible and the blocking cost would land on every tool call.
+
+* ✨ **API keys can be restricted to an allowed source-IP list.** An optional comma-separated allowlist of IPv4/IPv6 addresses or CIDR networks, enforced against the caller's resolved client IP (`X-Forwarded-For` / `X-Real-IP` / socket address) on every MCP request — a request from outside the allowlist gets the same generic 401 as an invalid or expired key, so an unauthenticated caller can't learn the key exists. It's the one field editable after creation: unlike scope, name, or expiry, the allowlist can be changed from the same API Keys table row without reissuing the key.
 
 ### Fixes
 
