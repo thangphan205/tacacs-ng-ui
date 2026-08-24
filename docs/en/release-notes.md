@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### Features
+
+* ✨ **MCP server — read-only LLM access to TACACS+ configuration.** A [Model Context Protocol](https://modelcontextprotocol.io) endpoint at `/mcp/` lets a client such as Claude Desktop or Claude Code inspect TACACS+ entities, render config previews and diffs, and syntax-check config text with the real `tac_plus-ng -P` parser. It cannot write to the database, change the live config, activate a config, reload the daemon, or push to HA peers. **Off by default** (`MCP_ENABLED=false`). Twelve tools plus a tac_plus-ng syntax reference resource and an authoring prompt. Secrets (`Host.secret_key`, `TacacsUser.password`, MAVIS credentials) are masked in every response unless explicitly requested by a superuser key holding `mcp:secrets`, which is audit-logged. See [docs/en/mcp-server.md](mcp-server.md).
+
+* ✨ **API keys** — machine credentials for the MCP server, managed under **User Settings → API Keys** (superuser only). Scoped (`mcp:read`, `mcp:generate`, `mcp:validate`, `mcp:secrets`), expiring, revocable, and audit-logged. The plaintext key is shown exactly once at creation; only a 20-character prefix is displayed afterwards. Stored as an HMAC-SHA256 digest keyed on `SECRET_KEY` — deliberately not a password hash, since a random salt would make indexed lookup impossible and the blocking cost would land on every tool call.
+
+### Fixes
+
+* 🐛 **`generate_tacacs_ng_config()` no longer writes a stray file into the working directory.** Every call — including the read-only `GET /tacacs_configs/preview` — wrote `<cwd>/tacacs-ng.conf`, so four uvicorn workers raced on the same path, and the `OSError` fallback created a `NamedTemporaryFile(delete=False)` that was never cleaned up. The generator is now side-effect free and the stale committed artifact is removed.
+
+### Security
+
+* 🔒 **Login password hashing migrated from passlib + bcrypt to `pwdlib[argon2,bcrypt]`**, matching the upstream `full-stack-fastapi-template`. New passwords are hashed with **argon2id**; existing `$2b$` bcrypt hashes stay verifiable and are transparently rewritten to argon2 on the owner's next successful login. The rewrite is skipped on `NODE_ROLE=standby` (read-only replica) and is best-effort — a failed write leaves the old hash in place and never turns a valid login into an error. **No database migration is required**: `user.hashed_password` is an unbounded `VARCHAR`, and argon2 hashes (~97 chars) fit where bcrypt's 60 did.
+
+  The `bcrypt==4.3.0` pin is lifted, so the deferred bcrypt 5.0 Dependabot PR can now be closed as already applied. passlib is retained **solely** for `sha512_crypt` in `crud/tacacs_users.py`, whose `$6$rounds=...$` output format is dictated by tac_plus-ng; its `[bcrypt]` extra is dropped, and `CryptContext(schemes=["sha512_crypt"])` never imports passlib's bcrypt backend, so bcrypt 5.x is safe alongside it. A regression test asserts that backend stays unloaded.
+
+* 🔒 **Fixed an unauthenticated 500 on `/login/access-token`.** bcrypt 5.0 raises `ValueError` for secrets longer than 72 bytes instead of truncating them, and the OAuth2 password form field is length-unbounded — so once the pin was lifted, an over-long password submitted against any account still holding a bcrypt hash would have crashed the endpoint. `verify_password` now treats both that error and an unrecognised hash format as a failed login.
+
+### Chores
+
+* ⬆️ **bcrypt 4.3.0 → 5.0.0**, unblocked by the migration above.
+* 🔇 The `AttributeError: module 'bcrypt' has no attribute '__about__'` warning that appeared in every test run is gone — passlib no longer touches bcrypt at all.
+
 ## v0.5.3
 
 ### Features
@@ -21,7 +44,7 @@
 * ⬆️ **@types/node 26.1.1 → 26.2.0**. PR by [@thangphan205](https://github.com/thangphan205).
 * ⬆️ **@emnapi/runtime 1.11.2 → 1.11.3**. PR by [@thangphan205](https://github.com/thangphan205).
 
-> **Deferred bumps.** Two Dependabot PRs are intentionally left open. **bcrypt 4.3.0 → 5.0.0** breaks authentication outright — bcrypt 5.0 removed the `__about__` attribute that passlib 1.7.4 reads to detect its backend, so `get_password_hash` raises `AttributeError` and every hash and verify fails. `backend/pyproject.toml` pins `bcrypt==4.3.0` for this reason; passlib has been unmaintained since 2020 and 1.7.4 is its final release, so lifting the pin requires migrating off passlib rather than bumping. **@playwright/test 1.61.1 → 1.62.1** fails with `browserType.launch: Executable doesn't exist` because `frontend/Dockerfile.playwright` pins the browser image to `mcr.microsoft.com/playwright:v1.61.1-noble`; the npm package and the Docker image have to move together.
+> **Deferred bumps.** Two Dependabot PRs are intentionally left open. **bcrypt 4.3.0 → 5.0.0** breaks authentication outright — bcrypt 5.0 makes `hashpw()` raise `ValueError` for secrets longer than 72 bytes instead of silently truncating them, and passlib 1.7.4's bcrypt backend probes for a historical OpenBSD wrap-around bug at load time by hashing a 255-byte secret (`detect_wrap_bug`, `passlib/handlers/bcrypt.py:377`). That probe calls `verify` directly rather than passlib's own `safe_verify` wrapper, so the `ValueError` escapes, the backend fails to initialise, and every hash and verify raises. (The `AttributeError: module 'bcrypt' has no attribute '__about__'` seen in the test logs is unrelated and harmless — `__about__` went away in bcrypt 4.1, passlib catches the error, and the value only feeds a debug log.) `backend/pyproject.toml` pins `bcrypt==4.3.0` for this reason; passlib has been unmaintained since 2020 and 1.7.4 is its final release, so lifting the pin requires migrating off passlib rather than bumping. **@playwright/test 1.61.1 → 1.62.1** fails with `browserType.launch: Executable doesn't exist` because `frontend/Dockerfile.playwright` pins the browser image to `mcr.microsoft.com/playwright:v1.61.1-noble`; the npm package and the Docker image have to move together.
 
 ## v0.5.2
 

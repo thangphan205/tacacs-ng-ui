@@ -86,7 +86,9 @@ def purge_old_audit_logs(*, session: Session) -> int:
     return deleted
 
 
-_SENSITIVE: frozenset[str] = frozenset({"hashed_password", "encrypted_secret"})
+_SENSITIVE: frozenset[str] = frozenset(
+    {"hashed_password", "encrypted_secret", "key_hash", "plaintext_key"}
+)
 
 
 def log_entity_action(

@@ -157,6 +157,47 @@ Forwards parsed events to external SIEM via HTTP webhook (Splunk HEC / Logstash)
 
 Records CREATE/UPDATE/DELETE/ACTIVATE actions on entities with user_id, email, IP, user-agent, old/new values. Auto-purges via `AUDIT_LOG_RETENTION_DAYS` (default 90) and `AUDIT_LOG_MAX_ROWS`. Routes call `audit_logs_crud.log_entity_action()` after mutations.
 
+### MCP Server (`backend/app/mcp_server/`)
+
+Read-only Model Context Protocol endpoint letting an LLM client inspect TACACS+ entities, render config previews, and syntax-check config text. Off by default (`MCP_ENABLED`). See `docs/en/mcp-server.md`.
+
+Mounted at `settings.MCP_PATH` (default `/mcp`) directly on `app` in `main.py` — **never** under `api_router`, since a `Mount` must stay invisible to `custom_generate_unique_id` and OpenAPI generation. Canonical URL has a trailing slash.
+
+| File | Role |
+|---|---|
+| `server.py` | `build_mcp()` factory, `MCPMountApp` ASGI shim, `mcp_lifespan()` |
+| `auth.py` | `ApiKeyAuthMiddleware` (401 before protocol handling), `principal_from(ctx)`, scope guards |
+| `tools.py` | the 12 tool registrations |
+| `service.py` | DB work — plain sync functions taking a `Session` |
+| `redact.py` | two-pass secret masking |
+| `resources.py` | tac_plus-ng syntax reference, entity schema, active config, authoring prompt |
+
+Constraints that are load-bearing:
+
+- **`stateless_http=True` is mandatory** — supervisord runs `uvicorn --workers 4`, four processes with no shared memory, so in-process session state would miss on most requests.
+- **Tools must be `async def` + `run_in_threadpool`** — FastMCP calls sync tool functions inline on the event loop.
+- **`transport_security` must be passed explicitly** — FastMCP auto-enables DNS-rebinding protection when `host` is loopback (its default), which rejects the `Host: api.<domain>` header behind Traefik.
+- **`session_manager.run()` is once-per-instance** — hence a fresh `FastMCP` per lifespan and the `MCPMountApp` shim. This is also why `tests/conftest.py`'s `client` fixture is session-scoped.
+
+### API Keys (`backend/app/crud/api_keys.py`)
+
+Machine credentials for MCP. Hashed with HMAC-SHA256 keyed on `SECRET_KEY` (**not** a password hash — argon2 and bcrypt both embed a random salt, which makes indexed lookup impossible, and their deliberate 50-250ms of blocking CPU would land on every MCP tool call). Superuser-gated CRUD at `/api/v1/api_keys`, soft revoke, audit-logged. Plaintext is returned exactly once at creation. Scopes: `mcp:read`, `mcp:generate`, `mcp:validate`, `mcp:secrets`.
+
+Managed in the UI under **User Settings → API Keys** (`frontend/src/components/UserSettings/{ApiKeys,AddApiKey,RevokeApiKey}.tsx`), a tab added to `settings.tsx` only when `currentUser.is_superuser`. The create form uses `noValidate` so react-hook-form owns validation — Chakra's `Field required` sets a native `required` that would otherwise block submit before RHF runs. The scope checkboxes deliberately sit outside a `Field`, whose context would point every nested input's `aria-labelledby` at the Field label.
+
+### Password Hashing
+
+Two independent schemes — do not confuse them:
+
+| | Library | Format | Where |
+|---|---|---|---|
+| **Login passwords** | `pwdlib` — `PasswordHash((Argon2Hasher(), BcryptHasher()))` | `$argon2id$` | `core/security.py` |
+| **TACACS+ device users** | `passlib` — `sha512_crypt` | `$6$rounds=...$` | `crud/tacacs_users.py` |
+
+`verify_password()` returns **`tuple[bool, str | None]`**, not a bool — the second item is a rehash to persist. `crud.users.authenticate()` writes it back, upgrading pre-migration bcrypt hashes to argon2 on next login (skipped on `NODE_ROLE=standby`).
+
+passlib survives only for the TACACS scheme because tac_plus-ng parses `$6$rounds=...$` directly. **Never add `"bcrypt"` to a passlib `CryptContext` here**: its bcrypt backend probes for an old OpenBSD bug by hashing a 255-byte secret, which bcrypt ≥ 5.0 rejects with `ValueError`, breaking every hash and verify. `tests/core/test_security.py::test_passlib_bcrypt_backend_is_never_loaded` guards this.
+
 ### Authentication Providers (`backend/app/api/routes/oauth.py`)
 
 - **Google OAuth2** — `google_id` column on User; HMAC-state validation

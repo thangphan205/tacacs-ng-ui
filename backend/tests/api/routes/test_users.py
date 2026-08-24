@@ -216,7 +216,7 @@ def test_update_password_me(client: TestClient, db: Session) -> None:
     assert r.json()["message"] == "Password updated successfully"
 
     db.refresh(user)
-    assert verify_password(new_password, user.hashed_password)
+    assert verify_password(new_password, user.hashed_password)[0]
 
 
 def test_update_password_me_incorrect_password(client: TestClient, db: Session) -> None:
@@ -282,7 +282,7 @@ def test_register_user(client: TestClient, db: Session) -> None:
     assert user_db
     assert user_db.email == username
     assert user_db.full_name == full_name
-    assert verify_password(password, user_db.hashed_password)
+    assert verify_password(password, user_db.hashed_password)[0]
 
 
 def test_register_user_already_exists_error(client: TestClient) -> None:

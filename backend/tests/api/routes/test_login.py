@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
+from pwdlib.hashers.bcrypt import BcryptHasher
 from sqlmodel import Session
 
 from app.core.config import settings
@@ -9,7 +10,11 @@ from app.crud.users import create_user
 from app.models import UserCreate
 from app.utils import generate_password_reset_token
 from tests.utils.user import user_authentication_headers
-from tests.utils.utils import random_email, random_lower_string
+from tests.utils.utils import (
+    random_email,
+    random_lower_string,
+    random_pci_compliant_password,
+)
 
 
 def test_get_access_token(client: TestClient) -> None:
@@ -99,7 +104,7 @@ def test_reset_password(client: TestClient, db: Session) -> None:
     assert r.json() == {"message": "Password updated successfully"}
 
     db.refresh(user)
-    assert verify_password(new_password, user.hashed_password)
+    assert verify_password(new_password, user.hashed_password)[0]
 
 
 def test_reset_password_invalid_token(
@@ -116,3 +121,55 @@ def test_reset_password_invalid_token(
     assert "detail" in response
     assert r.status_code == 400
     assert response["detail"] == "Invalid token"
+
+
+# --- legacy bcrypt hash migration, end to end ---
+
+
+def test_login_upgrades_legacy_bcrypt_hash_end_to_end(
+    client: TestClient, db: Session
+) -> None:
+    email = random_email()
+    password = random_pci_compliant_password()
+    user = create_user(
+        session=db, user_create=UserCreate(email=email, password=password)
+    )
+    user.hashed_password = BcryptHasher(rounds=12).hash(password)
+    db.add(user)
+    db.commit()
+
+    r = client.post(
+        f"{settings.API_V1_STR}/login/access-token",
+        data={"username": email, "password": password},
+    )
+
+    assert r.status_code == 200
+    assert r.json()["access_token"]
+    db.refresh(user)
+    assert user.hashed_password.startswith("$argon2id$")
+
+
+def test_login_with_oversized_password_returns_400(
+    client: TestClient, db: Session
+) -> None:
+    """bcrypt >= 5.0 raises on secrets over 72 bytes rather than truncating.
+
+    The login form does not bound the password length, so without the guard in
+    verify_password this is an unauthenticated 500 against any account still
+    holding a bcrypt hash.
+    """
+    email = random_email()
+    password = random_pci_compliant_password()
+    user = create_user(
+        session=db, user_create=UserCreate(email=email, password=password)
+    )
+    user.hashed_password = BcryptHasher(rounds=12).hash(password)
+    db.add(user)
+    db.commit()
+
+    r = client.post(
+        f"{settings.API_V1_STR}/login/access-token",
+        data={"username": email, "password": "a" * 200},
+    )
+
+    assert r.status_code == 400

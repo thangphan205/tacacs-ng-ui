@@ -1,11 +1,15 @@
+import logging
 import secrets
 import uuid
 from typing import Any
 
 from sqlmodel import Session, select
 
+from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
 from app.models import Item, ItemCreate, User, UserCreate, UserUpdate
+
+logger = logging.getLogger(__name__)
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:
@@ -42,9 +46,41 @@ def authenticate(*, session: Session, email: str, password: str) -> User | None:
     db_user = get_user_by_email(session=session, email=email)
     if not db_user:
         return None
-    if not verify_password(password, db_user.hashed_password):
+    valid, updated_hash = verify_password(password, db_user.hashed_password)
+    if not valid:
         return None
+    if updated_hash is not None:
+        _persist_rehashed_password(
+            session=session, db_user=db_user, updated_hash=updated_hash
+        )
     return db_user
+
+
+def _persist_rehashed_password(
+    *, session: Session, db_user: User, updated_hash: str
+) -> None:
+    """Transparently upgrade a legacy bcrypt hash to argon2 on successful login.
+
+    Best effort by design: a failed write must never turn a valid login into an
+    error, and must never block the token from being issued. The user simply
+    keeps their old hash and we try again on their next login.
+
+    Standby nodes run against a read-only PostgreSQL replica where any write
+    raises, so skip it there entirely — same rule as
+    crud.audit_logs.create_audit_log.
+    """
+    if settings.NODE_ROLE == "standby":
+        return
+    try:
+        db_user.hashed_password = updated_hash
+        session.add(db_user)
+        session.commit()
+        session.refresh(db_user)
+    except Exception:
+        session.rollback()
+        logger.warning(
+            "Could not persist rehashed password for user %s", db_user.id, exc_info=True
+        )
 
 
 def get_user_by_google_id(*, session: Session, google_id: str) -> User | None:

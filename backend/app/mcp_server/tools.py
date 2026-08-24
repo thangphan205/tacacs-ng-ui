@@ -1,0 +1,331 @@
+"""MCP tool, resource and prompt registrations.
+
+Every tool is `async def` and offloads its work with `run_in_threadpool`:
+FastMCP invokes synchronous tool functions inline on the event loop, so a
+blocking DB query or a 10-second `tac_plus-ng -P` subprocess would freeze one
+of the four uvicorn workers.
+
+Scopes: mcp:read · mcp:generate · mcp:validate · mcp:secrets
+(`mcp:secrets` additionally requires the key to be bound to a superuser.)
+"""
+
+import logging
+from typing import Annotated, Any, Literal
+
+from mcp.server.fastmcp import Context, FastMCP
+from pydantic import Field
+from sqlmodel import Session
+from starlette.concurrency import run_in_threadpool
+
+from app.core.config import settings
+from app.core.db import engine
+from app.crud import audit_logs as audit_logs_crud
+from app.crud.api_keys import ApiKeyPrincipal
+from app.mcp_server import resources, service
+from app.mcp_server.auth import (
+    McpAuthError,
+    principal_from,
+    require_scope,
+    require_superuser,
+)
+
+log = logging.getLogger(__name__)
+
+EntityType = Literal[
+    "host",
+    "user",
+    "group",
+    "profile",
+    "ruleset",
+    "mavis",
+    "configuration_option",
+    "tacacs_service",
+]
+Section = Literal["mavis", "profiles", "rulesets"]
+
+# Bound in the tool signature so the JSON schema advertises the range and
+# pydantic refuses out-of-range values before any SQL is built. Without it a
+# negative limit reaches Postgres and the raw error, SQL text included, is
+# handed back to the LLM client.
+MAX_PAGE_SIZE = 500
+
+
+def _allow_unredacted(principal: ApiKeyPrincipal, what: str) -> None:
+    """Unredacted config output requires both the scope and superuser status."""
+    require_scope(principal, "mcp:secrets")
+    require_superuser(principal, f"Returning unredacted {what}")
+
+
+def _audit_secret_export(principal: ApiKeyPrincipal, what: str) -> None:
+    try:
+        with Session(engine) as session:
+            audit_logs_crud.log_entity_action(
+                session=session,
+                action="EXPORT",
+                entity_type="TacacsConfig",
+                entity_id=None,
+                user_id=principal.user_id,
+                user_email=principal.user_email,
+                ip_address=None,
+                user_agent=f"mcp/api-key:{principal.api_key_name}",
+                description=(
+                    f"Unredacted {what} exported over MCP using API key "
+                    f"'{principal.api_key_name}'"
+                ),
+            )
+    except Exception:
+        log.warning("Failed to audit unredacted MCP export", exc_info=True)
+
+
+def register(server: FastMCP) -> None:
+    @server.tool()
+    async def whoami(ctx: Context) -> dict[str, Any]:  # type: ignore[type-arg]
+        """Identify the API key this session is authenticated with."""
+        p = principal_from(ctx)
+        return {
+            "user_email": p.user_email,
+            "is_superuser": p.is_superuser,
+            "scopes": sorted(p.scopes),
+            "api_key_name": p.api_key_name,
+            "node_role": settings.NODE_ROLE,
+            "mcp_read_only": True,
+        }
+
+    @server.tool()
+    async def list_entities(
+        ctx: Context,  # type: ignore[type-arg]
+        entity_type: EntityType,
+        search: str | None = None,
+        limit: Annotated[int, Field(ge=1, le=MAX_PAGE_SIZE)] = 100,
+        offset: Annotated[int, Field(ge=0)] = 0,
+        only_generated: bool | None = None,
+    ) -> dict[str, Any]:
+        """List TACACS+ entities of one type.
+
+        `only_generated=true` restricts the result to rows that actually reach
+        the generated config. Secret fields are always redacted.
+        """
+        p = principal_from(ctx)
+        require_scope(p, "mcp:read")
+
+        def _run() -> dict[str, Any]:
+            with Session(engine) as session:
+                return service.list_entities(
+                    session=session,
+                    entity_type=entity_type,
+                    search=search,
+                    limit=limit,
+                    offset=offset,
+                    only_generated=only_generated,
+                )
+
+        return await run_in_threadpool(_run)
+
+    @server.tool()
+    async def describe_entity(
+        ctx: Context,  # type: ignore[type-arg]
+        entity_type: EntityType,
+        name: str,
+        include_children: bool = True,
+    ) -> dict[str, Any]:
+        """Describe one entity by name, with its nested scripts where applicable."""
+        p = principal_from(ctx)
+        require_scope(p, "mcp:read")
+
+        def _run() -> dict[str, Any]:
+            with Session(engine) as session:
+                return service.describe_entity(
+                    session=session,
+                    entity_type=entity_type,
+                    name=name,
+                    include_children=include_children,
+                )
+
+        return await run_in_threadpool(_run)
+
+    @server.tool()
+    async def get_tacacs_settings(ctx: Context) -> dict[str, Any]:  # type: ignore[type-arg]
+        """Read the tac_plus-ng daemon settings (listen address, instances, logs)."""
+        p = principal_from(ctx)
+        require_scope(p, "mcp:read")
+
+        def _run() -> dict[str, Any]:
+            with Session(engine) as session:
+                return service.get_tacacs_settings(session=session)
+
+        return await run_in_threadpool(_run)
+
+    @server.tool()
+    async def generate_config_preview(
+        ctx: Context,  # type: ignore[type-arg]
+        redact_secrets: bool = True,
+    ) -> dict[str, Any]:
+        """Render the full tac_plus-ng config from current database state.
+
+        Nothing is written: this is a preview. `secrets_redacted` reports how
+        many secret values were masked — a non-zero value means the text is not
+        deployable as-is.
+        """
+        p = principal_from(ctx)
+        require_scope(p, "mcp:generate")
+        if not redact_secrets:
+            _allow_unredacted(p, "config")
+            _audit_secret_export(p, "config preview")
+
+        def _run() -> dict[str, Any]:
+            with Session(engine) as session:
+                return service.generate_config_preview(
+                    session=session, redact_secrets=redact_secrets
+                )
+
+        return await run_in_threadpool(_run)
+
+    @server.tool()
+    async def generate_config_section(
+        ctx: Context,  # type: ignore[type-arg]
+        section: Section,
+        redact_secrets: bool = True,
+    ) -> dict[str, Any]:
+        """Render a single config section (mavis, profiles or rulesets)."""
+        p = principal_from(ctx)
+        require_scope(p, "mcp:generate")
+        if not redact_secrets:
+            _allow_unredacted(p, "config section")
+            _audit_secret_export(p, f"config section '{section}'")
+
+        def _run() -> dict[str, Any]:
+            with Session(engine) as session:
+                return service.generate_config_section(
+                    session=session, section=section, redact_secrets=redact_secrets
+                )
+
+        return await run_in_threadpool(_run)
+
+    @server.tool()
+    async def validate_config_text(
+        ctx: Context,  # type: ignore[type-arg]
+        text: str,
+    ) -> dict[str, Any]:
+        """Syntax-check arbitrary config text with `tac_plus-ng -P`.
+
+        Nothing is saved or applied. Returns the first error's line and message
+        when the text does not parse.
+        """
+        p = principal_from(ctx)
+        require_scope(p, "mcp:validate")
+        # The parser runs privileged in this container and tac_plus-ng config
+        # supports `include`, which would turn arbitrary text into a file-read
+        # primitive. Superuser-only, size-capped, and include-directives refused.
+        require_superuser(p, "Validating arbitrary config text")
+
+        size = len(text.encode("utf-8"))
+        if size > settings.MCP_MAX_CONFIG_TEXT_BYTES:
+            raise McpAuthError(
+                f"Config text is {size} bytes, over the "
+                f"{settings.MCP_MAX_CONFIG_TEXT_BYTES} byte limit."
+            )
+        for line in text.splitlines():
+            stripped = line.strip().lstrip("#").strip()
+            if stripped.split(" ")[0].lower() == "include":
+                raise McpAuthError(
+                    "`include` directives are not accepted by this tool; "
+                    "inline the referenced content instead."
+                )
+
+        return await run_in_threadpool(
+            service.validate_config_text,
+            text=text,
+            timeout=settings.MCP_VALIDATE_TIMEOUT_SECONDS,
+        )
+
+    @server.tool()
+    async def validate_generated_config(ctx: Context) -> dict[str, Any]:  # type: ignore[type-arg]
+        """Validate the real, unredacted config built from the database.
+
+        Prefer this over `validate_config_text` when the question is "does what
+        is in the database right now actually compile" — no secret leaves the
+        server.
+        """
+        p = principal_from(ctx)
+        require_scope(p, "mcp:validate")
+
+        def _run() -> dict[str, Any]:
+            with Session(engine) as session:
+                return service.validate_generated_config(
+                    session=session, timeout=settings.MCP_VALIDATE_TIMEOUT_SECONDS
+                )
+
+        return await run_in_threadpool(_run)
+
+    @server.tool()
+    async def list_saved_configs(ctx: Context) -> dict[str, Any]:  # type: ignore[type-arg]
+        """List saved config files and report which one is active."""
+        p = principal_from(ctx)
+        require_scope(p, "mcp:read")
+
+        def _run() -> dict[str, Any]:
+            with Session(engine) as session:
+                return service.list_saved_configs(session=session)
+
+        return await run_in_threadpool(_run)
+
+    @server.tool()
+    async def read_saved_config(
+        ctx: Context,  # type: ignore[type-arg]
+        filename: str,
+        redact_secrets: bool = True,
+    ) -> dict[str, Any]:
+        """Read a saved config file by name (without the .cfg suffix)."""
+        p = principal_from(ctx)
+        require_scope(p, "mcp:read")
+        if not redact_secrets:
+            _allow_unredacted(p, "saved config")
+            _audit_secret_export(p, f"saved config '{filename}'")
+
+        def _run() -> dict[str, Any]:
+            with Session(engine) as session:
+                return service.read_saved_config(
+                    session=session, filename=filename, redact_secrets=redact_secrets
+                )
+
+        return await run_in_threadpool(_run)
+
+    @server.tool()
+    async def validate_saved_config(
+        ctx: Context,  # type: ignore[type-arg]
+        filename: str,
+    ) -> dict[str, Any]:
+        """Syntax-check a saved config file by name."""
+        p = principal_from(ctx)
+        require_scope(p, "mcp:validate")
+
+        return await run_in_threadpool(
+            service.validate_saved_config,
+            filename=filename,
+            timeout=settings.MCP_VALIDATE_TIMEOUT_SECONDS,
+        )
+
+    @server.tool()
+    async def diff_generated_vs_active(
+        ctx: Context,  # type: ignore[type-arg]
+        redact_secrets: bool = True,
+    ) -> dict[str, Any]:
+        """Diff the config generated from the database against the live file.
+
+        Answers "what would change if this were regenerated and applied".
+        """
+        p = principal_from(ctx)
+        require_scope(p, "mcp:generate")
+        if not redact_secrets:
+            _allow_unredacted(p, "diff")
+            _audit_secret_export(p, "config diff")
+
+        def _run() -> dict[str, Any]:
+            with Session(engine) as session:
+                return service.diff_generated_vs_active(
+                    session=session, redact_secrets=redact_secrets
+                )
+
+        return await run_in_threadpool(_run)
+
+    resources.register(server)

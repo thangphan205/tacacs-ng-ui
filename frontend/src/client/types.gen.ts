@@ -215,6 +215,52 @@ export type AnomalyDetectionResultsPublic = {
     count: number;
 };
 
+export type ApiKeyCreate = {
+    name: string;
+    scopes?: string;
+    description?: (string | null);
+    expires_at?: (string | null);
+    user_id?: (string | null);
+    expires_in_days?: (number | null);
+};
+
+/**
+ * Returned only by the create endpoint — the one time the secret exists.
+ */
+export type ApiKeyCreated = {
+    name: string;
+    scopes?: string;
+    description?: (string | null);
+    expires_at?: (string | null);
+    id: string;
+    user_id: string;
+    key_prefix: string;
+    last_used_at: (string | null);
+    revoked_at: (string | null);
+    created_at: string;
+    updated_at: string;
+    plaintext_key: string;
+};
+
+export type ApiKeyPublic = {
+    name: string;
+    scopes?: string;
+    description?: (string | null);
+    expires_at?: (string | null);
+    id: string;
+    user_id: string;
+    key_prefix: string;
+    last_used_at: (string | null);
+    revoked_at: (string | null);
+    created_at: string;
+    updated_at: string;
+};
+
+export type ApiKeysPublic = {
+    data: Array<ApiKeyPublic>;
+    count: number;
+};
+
 export type AuditLogPublic = {
     action: string;
     entity_type: string;
@@ -1135,6 +1181,39 @@ export type AnomalyDetectionReadAnomalyResultsResponse = (AnomalyDetectionResult
 export type AnomalyDetectionRetrainAnomalyModelResponse = ({
     [key: string]: unknown;
 });
+
+export type ApiKeysCreateApiKeyData = {
+    requestBody: ApiKeyCreate;
+};
+
+export type ApiKeysCreateApiKeyResponse = (ApiKeyCreated);
+
+export type ApiKeysReadApiKeysData = {
+    limit?: number;
+    search?: (string | null);
+    skip?: number;
+};
+
+export type ApiKeysReadApiKeysResponse = (ApiKeysPublic);
+
+export type ApiKeysReadOwnApiKeysData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type ApiKeysReadOwnApiKeysResponse = (ApiKeysPublic);
+
+export type ApiKeysReadApiKeyByIdData = {
+    id: string;
+};
+
+export type ApiKeysReadApiKeyByIdResponse = (ApiKeyPublic);
+
+export type ApiKeysRevokeApiKeyData = {
+    id: string;
+};
+
+export type ApiKeysRevokeApiKeyResponse = (Message);
 
 export type AuditLogsReadAuditLogsData = {
     limit?: number;

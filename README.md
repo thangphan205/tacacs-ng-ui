@@ -380,6 +380,12 @@ All models support per-zone LDAP server configuration via `MAVIS_OVERRIDE_*` env
 
 **Full guide:** [docs/en/high-availability.md](docs/en/high-availability.md)
 
+## MCP Server
+
+An optional, read-only [Model Context Protocol](https://modelcontextprotocol.io) endpoint lets an LLM client (Claude Desktop, Claude Code) inspect TACACS+ entities, render config previews, and syntax-check config text with the real `tac_plus-ng -P` parser. It cannot write to the database, change the live config, or reload the daemon. Off by default (`MCP_ENABLED=false`); authenticated with dedicated, revocable API keys, with secrets redacted from all output.
+
+**Full guide:** [docs/en/mcp-server.md](docs/en/mcp-server.md)
+
 ## User Guide
 
 Full usage guide (managing users, hosts, profiles, rulesets, generating configs, monitoring): [docs/en/user-guide.md](docs/en/user-guide.md).

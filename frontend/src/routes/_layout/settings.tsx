@@ -1,6 +1,6 @@
 import { Container, Heading, Tabs } from "@chakra-ui/react"
 import { createFileRoute } from "@tanstack/react-router"
-
+import ApiKeys from "@/components/UserSettings/ApiKeys"
 import Appearance from "@/components/UserSettings/Appearance"
 import ChangePassword from "@/components/UserSettings/ChangePassword"
 import PasskeyManager from "@/components/UserSettings/PasskeyManager"
@@ -14,6 +14,12 @@ const tabsConfig = [
   { value: "appearance", title: "Appearance", component: Appearance },
 ]
 
+// API keys are machine credentials for the MCP server; the routes behind this
+// tab are superuser-only, so showing it to anyone else would only 403.
+const superuserTabsConfig = [
+  { value: "api-keys", title: "API Keys", component: ApiKeys },
+]
+
 export const Route = createFileRoute("/_layout/settings")({
   component: UserSettings,
 })
@@ -25,6 +31,10 @@ function UserSettings() {
     return null
   }
 
+  const tabs = currentUser.is_superuser
+    ? [...tabsConfig, ...superuserTabsConfig]
+    : tabsConfig
+
   return (
     <Container maxW="full">
       <Heading size="md" textAlign={{ base: "center", md: "left" }} py={12}>
@@ -33,13 +43,13 @@ function UserSettings() {
 
       <Tabs.Root defaultValue="my-profile" variant="subtle">
         <Tabs.List>
-          {tabsConfig.map((tab) => (
+          {tabs.map((tab) => (
             <Tabs.Trigger key={tab.value} value={tab.value}>
               {tab.title}
             </Tabs.Trigger>
           ))}
         </Tabs.List>
-        {tabsConfig.map((tab) => (
+        {tabs.map((tab) => (
           <Tabs.Content key={tab.value} value={tab.value}>
             <tab.component />
           </Tabs.Content>

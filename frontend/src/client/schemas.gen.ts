@@ -950,6 +950,278 @@ export const AnomalyDetectionResultsPublicSchema = {
     title: 'AnomalyDetectionResultsPublic'
 } as const;
 
+export const ApiKeyCreateSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Name'
+        },
+        scopes: {
+            type: 'string',
+            maxLength: 512,
+            title: 'Scopes',
+            default: 'mcp:read'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        expires_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Expires At'
+        },
+        user_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'User Id'
+        },
+        expires_in_days: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Expires In Days'
+        }
+    },
+    type: 'object',
+    required: ['name'],
+    title: 'ApiKeyCreate'
+} as const;
+
+export const ApiKeyCreatedSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Name'
+        },
+        scopes: {
+            type: 'string',
+            maxLength: 512,
+            title: 'Scopes',
+            default: 'mcp:read'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        expires_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Expires At'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        user_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'User Id'
+        },
+        key_prefix: {
+            type: 'string',
+            title: 'Key Prefix'
+        },
+        last_used_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Last Used At'
+        },
+        revoked_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Revoked At'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        },
+        plaintext_key: {
+            type: 'string',
+            title: 'Plaintext Key'
+        }
+    },
+    type: 'object',
+    required: ['name', 'id', 'user_id', 'key_prefix', 'last_used_at', 'revoked_at', 'created_at', 'updated_at', 'plaintext_key'],
+    title: 'ApiKeyCreated',
+    description: 'Returned only by the create endpoint — the one time the secret exists.'
+} as const;
+
+export const ApiKeyPublicSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Name'
+        },
+        scopes: {
+            type: 'string',
+            maxLength: 512,
+            title: 'Scopes',
+            default: 'mcp:read'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        expires_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Expires At'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        user_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'User Id'
+        },
+        key_prefix: {
+            type: 'string',
+            title: 'Key Prefix'
+        },
+        last_used_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Last Used At'
+        },
+        revoked_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Revoked At'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['name', 'id', 'user_id', 'key_prefix', 'last_used_at', 'revoked_at', 'created_at', 'updated_at'],
+    title: 'ApiKeyPublic'
+} as const;
+
+export const ApiKeysPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/ApiKeyPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'ApiKeysPublic'
+} as const;
+
 export const AuditLogPublicSchema = {
     properties: {
         action: {
@@ -2529,6 +2801,8 @@ export const PrivateUserCreateSchema = {
         },
         password: {
             type: 'string',
+            maxLength: 40,
+            minLength: 8,
             title: 'Password'
         },
         full_name: {
