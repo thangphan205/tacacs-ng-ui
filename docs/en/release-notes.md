@@ -1,11 +1,5 @@
 # Release Notes
 
-## Unreleased
-
-### Features
-
-* feat: let MCP write TACACS+ entities, never deploy configs. PR [#275](https://github.com/thangphan205/tacacs-ng-ui/pull/275) by [@thangphan205](https://github.com/thangphan205).
-
 ## v0.6.0
 
 ### Security Fixes
@@ -18,9 +12,17 @@
 
 ### Features
 
-* ✨ **MCP server — read-only LLM access to TACACS+ configuration.** A [Model Context Protocol](https://modelcontextprotocol.io) endpoint at `/mcp/` lets a client such as Claude Desktop or Claude Code inspect TACACS+ entities, render config previews and diffs, and syntax-check config text with the real `tac_plus-ng -P` parser. It cannot write to the database, change the live config, activate a config, reload the daemon, or push to HA peers. **On by default** (`MCP_ENABLED=true`; set to `false` to disable). Twelve tools plus a tac_plus-ng syntax reference resource and an authoring prompt. Secrets (`Host.secret_key`, `TacacsUser.password`, MAVIS credentials) are masked in every response unless explicitly requested by a superuser key holding `mcp:secrets`, which is audit-logged. See [docs/en/mcp-server.md](mcp-server.md).
+* ✨ **MCP server — LLM access to TACACS+ configuration.** A [Model Context Protocol](https://modelcontextprotocol.io) endpoint at `/mcp/` lets a client such as Claude Desktop, Claude Code, Google Antigravity, Gemini CLI, Cursor or Windsurf inspect TACACS+ entities, render config previews and diffs, and syntax-check config text with the real `tac_plus-ng -P` parser. **On by default** (`MCP_ENABLED=true`; set to `false` to disable). Fifteen tools plus a tac_plus-ng syntax reference resource, an entity schema resource, and an authoring prompt. Secrets (`Host.secret_key`, `TacacsUser.password`, MAVIS credentials) are masked in every response unless explicitly requested by a superuser key holding `mcp:secrets`, which is audit-logged. See [docs/en/mcp-server.md](mcp-server.md).
 
-* ✨ **API keys** — machine credentials for the MCP server, managed under **User Settings → API Keys** (superuser only). Scoped (`mcp:read`, `mcp:generate`, `mcp:validate`, `mcp:secrets`), expiring, revocable, and audit-logged. The plaintext key is shown exactly once at creation; only a 20-character prefix is displayed afterwards. Stored as an HMAC-SHA256 digest keyed on `SECRET_KEY` — deliberately not a password hash, since a random salt would make indexed lookup impossible and the blocking cost would land on every tool call.
+* ✨ **MCP clients can edit entities — but never deploy them.** A key issued at the **Read-write** access level can create, update and delete TACACS+ users, groups, hosts, profiles, rulesets, services, MAVIS entries and configuration options, via `create_entity`, `update_entity` and `delete_entity`. Writes additionally require the key to belong to a superuser and are refused on a standby node; each one is recorded in the audit log with user agent `mcp/api-key:<key name>`, so an MCP-made change is distinguishable from one made in the UI.
+
+  **Deployment stays a human action.** No tool saves a config file, activates one, or reloads tac_plus-ng, and none will be added: `backend/tests/mcp/test_no_config_writes.py` walks the AST of every module in the package and fails the build if one gains a reference to the config-writing functions, a write-mode `open()`, or a subprocess import. An entity edited over MCP sits in the database until someone opens **TACACS Configs** and presses *Generate*, then *Activate* — every write response says exactly that in a `next_step` field, and the TACACS Configs page now diffs the generated config against the live one, so pending changes surface as a banner instead of going unnoticed. PR [#275](https://github.com/thangphan205/tacacs-ng-ui/pull/275).
+
+* ✨ **API keys** — machine credentials for the MCP server, managed under **User Settings → API Keys** (superuser only). Expiring, revocable, and audit-logged. The plaintext key is shown exactly once at creation; only a 20-character prefix is displayed afterwards. Stored as an HMAC-SHA256 digest keyed on `SECRET_KEY` — deliberately not a password hash, since a random salt would make indexed lookup impossible and the blocking cost would land on every tool call.
+
+  Each key carries one of two access levels — **Read-only** (`mcp:read`) or **Read-write** (`mcp:write`, which subsumes read) — plus an independent opt-in for unredacted secret output (`mcp:secrets`). Anything outside that set is rejected at key creation, so a typo cannot silently mint a key that grants nothing.
+
+* ✨ **Multi-client MCP setup guide.** An in-app **MCP Setup Guide** dialog, and a copy-ready connection snippet shown alongside a newly created key, covering Claude Code, Claude Desktop, Google Antigravity, Gemini CLI/Code Assist, Cursor and Windsurf — including the `mcp-remote` npm bridge for clients without native remote support. Both spell out what a key can and cannot do.
 
 * ✨ **API keys can be restricted to an allowed source-IP list.** An optional comma-separated allowlist of IPv4/IPv6 addresses or CIDR networks, enforced against the caller's resolved client IP (`X-Forwarded-For` / `X-Real-IP` / socket address) on every MCP request — a request from outside the allowlist gets the same generic 401 as an invalid or expired key, so an unauthenticated caller can't learn the key exists. It's the one field editable after creation: unlike scope, name, or expiry, the allowlist can be changed from the same API Keys table row without reissuing the key.
 
@@ -29,6 +31,8 @@
 * 🐛 **Local users now authenticate over PAP.** Generated `user { }` blocks only ever contained `password login = <type> "<value>"`, so a locally defined user had no PAP credential and tac_plus-ng fell through to `pap backend = mavis`. Anyone not also present in LDAP failed with `pap login failed (backend error) [No answer from LDAP backend.]` — which is every local-only account, including on deployments that never intended to use LDAP. The generator now emits `password pap = login` for every user whose password type is not `mavis`. Because `= login` is an alias for "reuse the login password" rather than a type, the one directive covers both `clear` and `crypt` users: PAP carries the password in cleartext, so a crypt hash verifies fine, and the secret is not duplicated a second time in the config file. `mavis` users are deliberately unchanged — they must keep falling through to the backend. Verified against the real `tac_plus-ng` parser. Reported by [@simoneng69](https://github.com/simoneng69) in issue [#260](https://github.com/thangphan205/tacacs-ng-ui/issues/260); PR [#264](https://github.com/thangphan205/tacacs-ng-ui/pull/264).
 
   > **Related, not fixed in this release.** The `login backend` / `user backend` / `pap backend` directives are still hardcoded to `mavis`, so the matching `login_backend`, `user_backend`, and `pap_backend` fields in TACACS NG Settings accept and store a value that is never emitted. `local` is not a valid tac_plus-ng backend keyword either — the grammar accepts `mavis` (optionally `prefetch`), and "local" means omitting the directive. Separately, the `mavis module = external { … }` block is emitted even when no MAVIS rows are configured, and first startup always seeds default MAVIS settings, so every deployment ships pointing all authentication at LDAP.
+
+* 🐛 **`GET /tacacs_configs/active` returned a 500 when nothing had ever been activated.** A fresh install has no active config row, and the route fed that `None` straight into `TacacsConfigPublic.model_validate()`. It now answers 404, which is what "no configuration is active" should have been all along — and what the new pending-changes banner on the TACACS Configs page relies on to tell a fresh install apart from a drifted one.
 
 * 🐛 **`generate_tacacs_ng_config()` no longer writes a stray file into the working directory.** Every call — including the read-only `GET /tacacs_configs/preview` — wrote `<cwd>/tacacs-ng.conf`, so four uvicorn workers raced on the same path, and the `OSError` fallback created a `NamedTemporaryFile(delete=False)` that was never cleaned up. The generator is now side-effect free and the stale committed artifact is removed.
 
@@ -41,6 +45,8 @@
 * docs: restore release notes wiped by the newly-fixed latest-changes bot. PR [#263](https://github.com/thangphan205/tacacs-ng-ui/pull/263) by [@thangphan205](https://github.com/thangphan205).
 
 ### Internal
+
+* 🧪 **A guard test now enforces that MCP can never deploy a config.** `tests/mcp/test_no_config_writes.py` parses every module under `app/mcp_server/` and asserts none references `create_tacacs_config` / `update_tacacs_config` / `delete_tacacs_config`, opens a file for writing, or imports a way to shell out. It walks the AST rather than grepping, because those modules name the forbidden functions in their own docstrings precisely to say they are off limits.
 
 * 🔇 The `AttributeError: module 'bcrypt' has no attribute '__about__'` warning that appeared in every test run is gone — passlib no longer touches bcrypt at all.
 * fix: latest-changes workflow fails on every run — missing token secret. PR [#262](https://github.com/thangphan205/tacacs-ng-ui/pull/262) by [@thangphan205](https://github.com/thangphan205).
