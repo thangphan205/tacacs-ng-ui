@@ -29,23 +29,40 @@ test("Empty-state or table renders without error", async ({ page }) => {
   ).toBeVisible()
 })
 
-test("Create dialog defaults to the three non-sensitive scopes", async ({
+test("Create dialog defaults to read-only, with secrets off", async ({
   page,
 }) => {
   await openApiKeysTab(page)
   await page.getByRole("button", { name: "Create API Key" }).click()
 
-  await expect(page.getByRole("checkbox", { name: /mcp:read/ })).toBeChecked()
+  await expect(page.getByRole("radio", { name: /Read-only/ })).toBeChecked()
   await expect(
-    page.getByRole("checkbox", { name: /mcp:generate/ }),
-  ).toBeChecked()
-  await expect(
-    page.getByRole("checkbox", { name: /mcp:validate/ }),
-  ).toBeChecked()
-  // mcp:secrets returns unmasked config, so it must never be on by default.
-  await expect(
-    page.getByRole("checkbox", { name: /mcp:secrets/ }),
+    page.getByRole("radio", { name: /Read-write/ }),
   ).not.toBeChecked()
+  // Unmasked config must never be on by default.
+  await expect(
+    page.getByRole("checkbox", { name: /Allow unredacted secrets/ }),
+  ).not.toBeChecked()
+})
+
+test("Read-write warns that the config still has to be activated by hand", async ({
+  page,
+}) => {
+  await openApiKeysTab(page)
+  await page.getByRole("button", { name: "Create API Key" }).click()
+
+  const dialog = page.getByRole("dialog")
+  await expect(dialog.getByText(/cannot deploy/)).toHaveCount(0)
+
+  // Click the label, not the radio: the input itself is visually hidden behind
+  // the control span, which intercepts the pointer event.
+  await dialog.getByText("Read-write", { exact: true }).click()
+  await expect(page.getByRole("radio", { name: /Read-write/ })).toBeChecked()
+
+  // A write key edits entities only — someone still has to generate and
+  // activate a config before anything reaches the daemon.
+  await expect(dialog.getByText(/It still cannot deploy/)).toBeVisible()
+  await expect(dialog.getByText(/Generate, then Activate/)).toBeVisible()
 })
 
 test("Name is required", async ({ page }) => {
@@ -94,11 +111,15 @@ test("MCP Setup Guide button opens dialog with client tabs", async ({
     dialog.getByRole("heading", { name: "MCP Client Setup Guide" }),
   ).toBeVisible()
   await expect(dialog.getByRole("tab", { name: "Claude Code" })).toBeVisible()
-  await expect(dialog.getByRole("tab", { name: "Claude Desktop" })).toBeVisible()
+  await expect(
+    dialog.getByRole("tab", { name: "Claude Desktop" }),
+  ).toBeVisible()
   await expect(dialog.getByRole("tab", { name: "Antigravity" })).toBeVisible()
   await expect(dialog.getByRole("tab", { name: "Gemini" })).toBeVisible()
 
-  await dialog.getByRole("button", { name: "Close" }).click()
+  // The dialog's X trigger carries aria-label="Close" too, so name alone is
+  // ambiguous; .last() is the footer button.
+  await dialog.getByRole("button", { name: "Close" }).last().click()
   await expect(dialog).toHaveCount(0)
 })
 
