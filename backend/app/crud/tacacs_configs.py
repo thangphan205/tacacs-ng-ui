@@ -224,6 +224,7 @@ id = tac_plus-ng {{
             tacacs_users_template += """
     user {username} {{
         password login = {mavis_type} "{mavis_password}"
+        password pap = login
         member = {member}
     }}""".format(
                 username=tacacs_user_info["username"],

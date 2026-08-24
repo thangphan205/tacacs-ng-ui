@@ -9,6 +9,7 @@ from app.crud.tacacs_configs import (
     generate_tacacs_ng_config,
     validate_config_text,
 )
+from app.models import TacacsGroup, TacacsUser
 
 TAC_PLUS_NG_BIN = "/usr/local/sbin/tac_plus-ng"
 
@@ -125,5 +126,40 @@ def test_validate_config_text_rejects_garbage() -> None:
 )
 def test_validate_config_text_accepts_generated_config(db: Session) -> None:
     config = generate_tacacs_ng_config(session=db)
+    result = validate_config_text(text=config)
+    assert result["status"] == "success", result["raw_output"]
+
+
+@pytest.mark.skipif(
+    not os.path.exists(TAC_PLUS_NG_BIN),
+    reason="tac_plus-ng binary only present inside the backend container",
+)
+def test_validate_accepts_local_user_with_pap_login(db: Session) -> None:
+    """The `password pap = login` emitted for local users must parse (issue #260).
+
+    The generic accepts-generated-config test above runs against whatever is in
+    the DB, which need not contain a local user — so seed one explicitly.
+    """
+    group = TacacsGroup(group_name="GROUP_PAP_VALIDATE", generate_config=True)
+    user = TacacsUser(
+        username="USER_PAP_VALIDATE",
+        password_type="crypt",
+        password="$6$rounds=656000$abcdefgh$ijklmnop",
+        member="GROUP_PAP_VALIDATE",
+        generate_config=True,
+    )
+    db.add(group)
+    db.add(user)
+    db.commit()
+
+    config: str
+    try:
+        config = generate_tacacs_ng_config(session=db)
+    finally:
+        db.delete(user)
+        db.delete(group)
+        db.commit()
+
+    assert "password pap = login" in config
     result = validate_config_text(text=config)
     assert result["status"] == "success", result["raw_output"]
