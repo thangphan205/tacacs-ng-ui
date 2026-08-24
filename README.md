@@ -54,6 +54,7 @@ Historically, managing TACACS+ servers required manually editing complex configu
   - [Generate Secret Keys](#generate-secret-keys)
   - [Google OAuth](#google-oauth-optional)
 - [High Availability (HA)](#high-availability-ha-deployment)
+- [MCP Server](#mcp-server)
 - [User Guide](#user-guide)
 - [Development](#backend-development)
 - [Screenshots](#screenshots)
@@ -78,6 +79,8 @@ Historically, managing TACACS+ servers required manually editing complex configu
 - **Real-Time Alert Rules**: Define rules (auth failure spikes, new usernames/IPs, repeated rejects from a single source IP, config changes, activations) with configurable windows, thresholds, cooldowns, and severity. Notifications dispatched via Telegram, Slack, Discord, Teams, Google Chat, Email, or generic webhook — evaluated every 5 minutes from live log files, no daily cron dependency. Webhook channels also receive the alert as structured JSON (`data.ip`, `data.fail_count`, `data.triggered_ips`) so downstream automation can act on it without parsing text.
 - **ML Anomaly Detection**: IsolationForest model scores every user daily across four behavioral features (avg/stddev auth failures, unique IPs, deny ratio). Results classified normal/low/medium/high/critical and displayed in a dedicated UI page.
 - **High Availability**: Run one primary with N standby nodes. Config changes fan out to every enabled peer, standbys follow via PostgreSQL streaming replication, and peers are added, disabled, or removed from the HA UI without restarting a service. Promotion to primary is a single click.
+- **MCP Server for LLM Clients**: An optional, read-only [Model Context Protocol](https://modelcontextprotocol.io) endpoint lets Claude Desktop or Claude Code inspect TACACS+ entities, render config previews and diffs, and syntax-check config text with the real `tac_plus-ng -P` parser. It cannot write to the database, activate a config, or reload the daemon. Off by default, authenticated with scoped and revocable API keys, and secrets are redacted from every response.
+- **Scoped API Keys**: Machine credentials managed under User Settings, with per-key scopes, expiry, one-time plaintext display, soft revoke, and full audit logging.
 - **Multi-Factor Auth**: Google OAuth, Keycloak OIDC, and Passkeys (WebAuthn) in addition to email/password.
 - **Secure by Design**: PCI DSS-compliant password policy, JWT authentication, and email-based password recovery.
 - **Integrated Tooling**: Traefik reverse proxy, automatic API documentation via Swagger UI, and end-to-end testing with Playwright.
@@ -497,6 +500,7 @@ To further enhance the security and utility of tacacs-ng-ui, the following roadm
 5. **Proactive Abnormal Access Detection & Alerting**: ✅ Real-time alert rules engine with multi-channel notifications (Telegram, Slack, Discord, Teams, Google Chat, Email/SMTP, webhook) and ML-based anomaly detection (IsolationForest) shipped in v0.3.5–v0.3.6. Alerts evaluated every 5 minutes from live log files with configurable windows, thresholds, cooldowns, and severity levels. Rich per-channel formatting with severity emojis and structured layouts added in v0.3.6. Extended in v0.5.3 with per-source-IP thresholds (alert when one IP crosses N auth rejects in the window) and a structured `data` object on webhook payloads for downstream automation.
 6. **Improved UX / Zero-Config Start**: ✅ Shipped in v0.4.0 — interactive Field Guide panels in every Add/Edit dialog, premium UI redesign across all management tables, multi-vendor seed data (Cisco, Arista, Huawei, Juniper, Palo Alto, Fortinet) pre-loaded on first startup, inline TACACS+ config file editing, command tooltips and interactive event selection in session timeline, and unified 24-hour datetime formatting.
 7. **High Availability**: ✅ Shipped in v0.5.0 — Model C multi-node HA (one primary + N standbys) with config fan-out to every enabled peer and per-peer sync state tracking. All HA settings except `NODE_ROLE` and `INTERNAL_SYNC_TOKEN` live in the database and are editable from the UI without a restart, and promoting a standby writes its scheduler state directly. Hardened in v0.5.1 with standby failover peer seeding, a read-only-safe standby dashboard, and a unified `setup-ha.sh` deployment script.
+8. **LLM-Assisted Administration**: ✅ Shipped in v0.6.0 — a read-only MCP server exposing twelve tools, a tac_plus-ng syntax reference resource, and an authoring prompt, so an LLM client can inspect entities, preview and diff configs, and syntax-check candidate config text against the real parser. Backed by scoped, revocable API keys with secret redaction on every response. Write access (creating entities, activating configs) is deliberately out of scope.
 
 ## Release Notes
 

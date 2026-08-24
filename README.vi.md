@@ -29,6 +29,7 @@
   - [Remote server](#triển-khai-trên-remote-server)
   - [Tên miền](#triển-khai-với-tên-miền)
   - [High Availability (HA)](#triển-khai-high-availability-ha)
+- [MCP Server](#mcp-server)
 - [Tài Liệu Phát Triển](#phát-triển-backend)
 - [Ảnh Chụp Màn Hình](#dashboard-1)
 - [Lộ Trình Phát Triển](#lộ-trình-phát-triển)
@@ -50,6 +51,8 @@
 - **Alert Rules Thời Gian Thực**: Định nghĩa quy tắc (đột biến lỗi xác thực, tên người dùng/IP mới, nhiều lần từ chối từ cùng một source IP, thay đổi cấu hình, kích hoạt) với cửa sổ thời gian, ngưỡng, cooldown và mức độ nghiêm trọng có thể cấu hình. Thông báo qua Telegram, Slack, Discord, Teams hoặc webhook — đánh giá mỗi 5 phút từ file log trực tiếp. Kênh webhook còn nhận cảnh báo dưới dạng JSON có cấu trúc (`data.ip`, `data.fail_count`, `data.triggered_ips`) để hệ thống tự động hóa xử lý mà không cần phân tích văn bản.
 - **Phát Hiện Bất Thường ML**: Mô hình IsolationForest chấm điểm mỗi người dùng hàng ngày theo 4 đặc trưng hành vi (trung bình/độ lệch chuẩn lỗi xác thực, số IP duy nhất, tỷ lệ từ chối). Kết quả phân loại normal/low/medium/high/critical và hiển thị trên trang UI riêng.
 - **High Availability**: Chạy một node primary cùng N node standby. Thay đổi cấu hình được fan-out đến mọi peer đang bật, standby đồng bộ qua PostgreSQL streaming replication, và peer được thêm, tắt hoặc xóa ngay trên giao diện HA mà không cần khởi động lại dịch vụ. Thăng cấp standby lên primary chỉ bằng một cú nhấp.
+- **MCP Server cho LLM Client**: Endpoint [Model Context Protocol](https://modelcontextprotocol.io) chỉ đọc (tùy chọn) cho phép Claude Desktop hoặc Claude Code xem các thực thể TACACS+, xem trước cấu hình và diff, và kiểm tra cú pháp cấu hình bằng chính bộ phân tích `tac_plus-ng -P`. Không thể ghi vào database, kích hoạt cấu hình hay reload daemon. Mặc định tắt, xác thực bằng API key có scope và có thể thu hồi, và mọi secret đều được che trong phản hồi.
+- **API Key Có Scope**: Thông tin đăng nhập cho máy, quản lý trong User Settings, có scope riêng cho từng key, thời hạn, hiển thị plaintext đúng một lần, thu hồi mềm và ghi audit log đầy đủ.
 - **Xác Thực Đa Yếu Tố**: Google OAuth, Keycloak OIDC và Passkeys (WebAuthn) ngoài email/mật khẩu.
 - **Bảo Mật Theo Thiết Kế**: Chính sách mật khẩu tuân thủ PCI DSS, xác thực JWT và khôi phục mật khẩu qua email.
 - **Công Cụ Tích Hợp**: Traefik reverse proxy, tài liệu API tự động qua Swagger UI và kiểm thử end-to-end với Playwright.
@@ -326,6 +329,12 @@ Một số biến môi trường có giá trị mặc định là `changethis`. 
 python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
+## MCP Server
+
+Endpoint [Model Context Protocol](https://modelcontextprotocol.io) chỉ đọc (tùy chọn) cho phép LLM client (Claude Desktop, Claude Code) xem các thực thể TACACS+, xem trước cấu hình, và kiểm tra cú pháp cấu hình bằng chính bộ phân tích `tac_plus-ng -P`. Không thể ghi vào database, thay đổi cấu hình đang chạy hay reload daemon. Mặc định tắt (`MCP_ENABLED=false`); xác thực bằng API key riêng, có thể thu hồi, và mọi secret đều được che trong phản hồi.
+
+**Hướng dẫn đầy đủ:** [docs/en/mcp-server.md](docs/en/mcp-server.md)
+
 ## Phát Triển Backend
 
 Tài liệu backend: [backend/README.md](./backend/README.md).
@@ -381,6 +390,7 @@ Bao gồm Docker Compose, custom local domains, cấu hình `.env`, v.v.
 5. **Phát Hiện Bất Thường & Cảnh Báo**: ✅ Alert rules thời gian thực với thông báo đa kênh (Telegram, Slack, Discord, Teams, Google Chat, Email/SMTP, webhook) và phát hiện bất thường ML (IsolationForest) từ v0.3.5–v0.3.6. Mở rộng trong v0.5.3 với ngưỡng theo từng source IP (cảnh báo khi một IP vượt N lần từ chối xác thực trong cửa sổ thời gian) và đối tượng `data` có cấu trúc trong payload webhook cho tự động hóa.
 6. **Cải Thiện UX / Khởi Chạy Không Cần Cấu Hình**: ✅ Ra mắt trong v0.4.0 — bảng Field Guide tương tác trong mọi hộp thoại Thêm/Sửa, thiết kế lại giao diện cho toàn bộ bảng quản lý, dữ liệu mẫu đa hãng (Cisco, Arista, Huawei, Juniper, Palo Alto, Fortinet) nạp sẵn ở lần khởi động đầu, chỉnh sửa file cấu hình TACACS+ trực tiếp trên trình duyệt và định dạng thời gian 24 giờ thống nhất.
 7. **High Availability**: ✅ Ra mắt trong v0.5.0 — HA đa node Mô hình C (một primary + N standby) với fan-out cấu hình đến mọi peer đang bật và theo dõi trạng thái đồng bộ theo từng peer. Mọi thiết lập HA ngoài `NODE_ROLE` và `INTERNAL_SYNC_TOKEN` được lưu trong database và chỉnh sửa được từ UI mà không cần khởi động lại. Được củng cố trong v0.5.1 với seeding peer khi failover, dashboard standby an toàn với database chỉ đọc và script triển khai hợp nhất `setup-ha.sh`.
+8. **Quản Trị Với Trợ Lý LLM**: ✅ Ra mắt trong v0.6.0 — MCP server chỉ đọc với 12 tool, một resource tra cứu cú pháp tac_plus-ng và một prompt hỗ trợ soạn cấu hình, cho phép LLM client xem thực thể, xem trước và diff cấu hình, và kiểm tra cú pháp cấu hình bằng chính bộ phân tích thật. Xác thực bằng API key có scope, có thể thu hồi, và mọi secret đều được che. Quyền ghi (tạo thực thể, kích hoạt cấu hình) được cố ý loại khỏi phạm vi.
 
 ## Release Notes
 
