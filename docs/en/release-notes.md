@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.6.0
+
 ### Security Fixes
 
 * 🔒 **Login password hashing migrated from passlib + bcrypt to `pwdlib[argon2,bcrypt]`**, matching the upstream `full-stack-fastapi-template`. New passwords are hashed with **argon2id**; existing `$2b$` bcrypt hashes stay verifiable and are transparently rewritten to argon2 on the owner's next successful login. The rewrite is skipped on `NODE_ROLE=standby` (read-only replica) and is best-effort — a failed write leaves the old hash in place and never turns a valid login into an error. **No database migration is required**: `user.hashed_password` is an unbounded `VARCHAR`, and argon2 hashes (~97 chars) fit where bcrypt's 60 did.
@@ -18,7 +20,10 @@
 
 ### Fixes
 
-* fix: emit `password pap = login` for local TACACS users. PR [#264](https://github.com/thangphan205/tacacs-ng-ui/pull/264) by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **Local users now authenticate over PAP.** Generated `user { }` blocks only ever contained `password login = <type> "<value>"`, so a locally defined user had no PAP credential and tac_plus-ng fell through to `pap backend = mavis`. Anyone not also present in LDAP failed with `pap login failed (backend error) [No answer from LDAP backend.]` — which is every local-only account, including on deployments that never intended to use LDAP. The generator now emits `password pap = login` for every user whose password type is not `mavis`. Because `= login` is an alias for "reuse the login password" rather than a type, the one directive covers both `clear` and `crypt` users: PAP carries the password in cleartext, so a crypt hash verifies fine, and the secret is not duplicated a second time in the config file. `mavis` users are deliberately unchanged — they must keep falling through to the backend. Verified against the real `tac_plus-ng` parser. Reported by [@simoneng69](https://github.com/simoneng69) in issue [#260](https://github.com/thangphan205/tacacs-ng-ui/issues/260); PR [#264](https://github.com/thangphan205/tacacs-ng-ui/pull/264).
+
+  > **Related, not fixed in this release.** The `login backend` / `user backend` / `pap backend` directives are still hardcoded to `mavis`, so the matching `login_backend`, `user_backend`, and `pap_backend` fields in TACACS NG Settings accept and store a value that is never emitted. `local` is not a valid tac_plus-ng backend keyword either — the grammar accepts `mavis` (optionally `prefetch`), and "local" means omitting the directive. Separately, the `mavis module = external { … }` block is emitted even when no MAVIS rows are configured, and first startup always seeds default MAVIS settings, so every deployment ships pointing all authentication at LDAP.
+
 * 🐛 **`generate_tacacs_ng_config()` no longer writes a stray file into the working directory.** Every call — including the read-only `GET /tacacs_configs/preview` — wrote `<cwd>/tacacs-ng.conf`, so four uvicorn workers raced on the same path, and the `OSError` fallback created a `NamedTemporaryFile(delete=False)` that was never cleaned up. The generator is now side-effect free and the stale committed artifact is removed.
 
 ### Upgrades
