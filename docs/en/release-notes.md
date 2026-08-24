@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Docs
+
+* chore: release v0.6.0 — MCP server, scoped API keys, local-user PAP fix. PR [#265](https://github.com/thangphan205/tacacs-ng-ui/pull/265) by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.6.0
 
 ### Security Fixes
