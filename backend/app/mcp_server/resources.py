@@ -109,6 +109,14 @@ by MAVIS via the group prefix.
 
 `password login` accepts `clear`, `des`, `crypt`, `mavis`, `permit`, `deny`.
 
+> The `$6$...` digest above is **generated output**, not input. When you create
+> or update a user through `create_entity` / `update_entity`, put the user's
+> **plaintext** password in the `password` field — the server applies
+> sha512-crypt itself. Never pre-hash it (no `openssl passwd -6`, no crypt
+> library): a digest you supply is stored verbatim, so the account would end up
+> accepting that digest string as its password rather than the password you
+> meant to set.
+
 `password pap = login` reuses the login password for PAP. Without it a locally
 defined user has no PAP credential, so tac_plus-ng falls through to
 `pap backend = mavis` and PAP fails for anyone not present in LDAP. PAP carries
@@ -198,7 +206,7 @@ exist in the UI but are **not** emitted into the config.
 | `Mavis` | `mavis_key`, `mavis_value` → `setenv K="V"` | All rows, unfiltered. A `MAVIS_OVERRIDE_<key>` environment variable takes precedence over the stored value (used for per-zone LDAP servers in HA). |
 | `Host` | `name`, `ipv4_address`, `secret_key` | `ipv6_address`, the four banner fields, `parent` and `description` are stored but **not** emitted. |
 | `TacacsGroup` | `group_name` | Emits a bare `group = <name>`. |
-| `TacacsUser` | `username`, `password_type`, `password`, `member` | `password_type == "mavis"` emits `password login = mavis` with no argument and no `password pap`. Every other type is a local user and also emits `password pap = login`. |
+| `TacacsUser` | `username`, `password_type`, `password`, `member` | **`password` is the plaintext password — write it, never a digest.** With `password_type == "crypt"` the server applies sha512-crypt on save; pre-hashing it yourself makes the digest string itself the password. `password_type == "mavis"` emits `password login = mavis` with no argument and no `password pap`. Every other type is a local user and also emits `password pap = login`. |
 | `Profile` | `name`, `action` (the fall-through verb) | Profiles with zero scripts are skipped entirely. |
 | `ProfileScript` | `condition`, `key`, `value`, `action` | Scripts with zero sets are skipped. |
 | `ProfileScriptSet` | `key`, `value` → `set k=v` | |

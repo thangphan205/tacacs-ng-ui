@@ -406,9 +406,12 @@ def register(server: FastMCP) -> None:
         """Create one TACACS+ entity.
 
         `data` holds the entity's fields — read the `tacacs://schema/entities`
-        resource for the field list of each type. The row is written to the
-        database only: the live config file is untouched and the daemon is not
-        reloaded, so a human still has to generate and activate a config.
+        resource for the field list of each type. For a user, `password` is the
+        **plaintext** password; the server hashes it. Never pre-hash it.
+
+        The row is written to the database only: the live config file is
+        untouched and the daemon is not reloaded, so a human still has to
+        generate and activate a config.
         """
         p = principal_from(ctx)
         _allow_write(p, f"Creating a {entity_type}")
@@ -438,9 +441,12 @@ def register(server: FastMCP) -> None:
     ) -> dict[str, Any]:
         """Update one TACACS+ entity, addressed by its current name.
 
-        `data` may be partial — omitted fields keep their current value. As with
-        `create_entity`, this changes the database only; nothing reaches the
-        running daemon until a human generates and activates a config.
+        `data` may be partial — omitted fields keep their current value. For a
+        user, `password` is the **plaintext** password; the server hashes it.
+        Never pre-hash it.
+
+        As with `create_entity`, this changes the database only; nothing reaches
+        the running daemon until a human generates and activates a config.
         """
         p = principal_from(ctx)
         _allow_write(p, f"Updating a {entity_type}")
