@@ -183,7 +183,7 @@ Constraints that are load-bearing:
 
 Machine credentials for MCP. Hashed with HMAC-SHA256 keyed on `SECRET_KEY` (**not** a password hash — argon2 and bcrypt both embed a random salt, which makes indexed lookup impossible, and their deliberate 50-250ms of blocking CPU would land on every MCP tool call). Superuser-gated CRUD at `/api/v1/api_keys`, soft revoke, audit-logged. Plaintext is returned exactly once at creation. Scopes: `mcp:read`, `mcp:generate`, `mcp:validate`, `mcp:secrets`.
 
-Managed in the UI under **User Settings → API Keys** (`frontend/src/components/UserSettings/{ApiKeys,AddApiKey,RevokeApiKey}.tsx`), a tab added to `settings.tsx` only when `currentUser.is_superuser`. The create form uses `noValidate` so react-hook-form owns validation — Chakra's `Field required` sets a native `required` that would otherwise block submit before RHF runs. The scope checkboxes deliberately sit outside a `Field`, whose context would point every nested input's `aria-labelledby` at the Field label.
+Managed in the UI under **User Settings → API Keys** (`frontend/src/components/UserSettings/{ApiKeys,AddApiKey,RevokeApiKey,McpGuideModal,McpClientGuide}.tsx`), a tab added to `settings.tsx` only when `currentUser.is_superuser`. The create form uses `noValidate` so react-hook-form owns validation — Chakra's `Field required` sets a native `required` that would otherwise block submit before RHF runs. The scope checkboxes deliberately sit outside a `Field`, whose context would point every nested input's `aria-labelledby` at the Field label.
 
 ### Password Hashing
 

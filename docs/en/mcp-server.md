@@ -102,17 +102,138 @@ arbitrary text to a privileged parser.
 
 ## Connecting a client
 
+### 1. Claude Code (CLI)
+
+Add the HTTP MCP endpoint directly using the `claude` CLI:
+
 ```bash
 claude mcp add --transport http tacacs-ng https://api.example.com/mcp/ \
   --header "Authorization: Bearer tngk_..."
 ```
 
-Then ask, for example:
+Or add to your project `.claude.json` / user configuration:
 
-- "Which TACACS hosts are configured?"
-- "Render the config from the database and check that it compiles."
-- "What would change if the config were regenerated right now?"
-- "Draft a read-only profile for Juniper devices and validate it."
+```json
+{
+  "mcpServers": {
+    "tacacs-ng": {
+      "url": "https://api.example.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer tngk_..."
+      }
+    }
+  }
+}
+```
+
+### 2. Claude Desktop
+
+Claude Desktop connects over stdio. Use the [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) bridge to proxy to the Streamable HTTP endpoint:
+
+Edit `claude_desktop_config.json`:
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "tacacs-ng": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://api.example.com/mcp/",
+        "--header",
+        "Authorization: Bearer tngk_..."
+      ]
+    }
+  }
+}
+```
+
+*Restart Claude Desktop after saving the configuration file.*
+
+### 3. Google Antigravity
+
+Add the server to your global config (`~/.gemini/config/mcp_config.json`) or workspace configuration (`.agents/mcp_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "tacacs-ng": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://api.example.com/mcp/",
+        "--header",
+        "Authorization: Bearer tngk_..."
+      ]
+    }
+  }
+}
+```
+
+Antigravity automatically discovers and lists active tools. You can verify the tools in the IDE under **Additional Options (...) → MCP Servers**.
+
+### 4. Gemini CLI & Gemini Code Assist
+
+Register with the Gemini CLI:
+
+```bash
+gemini mcp add tacacs-ng --url https://api.example.com/mcp/ \
+  --header "Authorization: Bearer tngk_..."
+```
+
+Or configure in `~/.gemini/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "tacacs-ng": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://api.example.com/mcp/",
+        "--header",
+        "Authorization: Bearer tngk_..."
+      ]
+    }
+  }
+}
+```
+
+### 5. Cursor & Windsurf
+
+Add to `.cursor/mcp.json` or configure under **Cursor Settings → Features → MCP**:
+
+```json
+{
+  "mcpServers": {
+    "tacacs-ng": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://api.example.com/mcp/",
+        "--header",
+        "Authorization: Bearer tngk_..."
+      ]
+    }
+  }
+}
+```
+
+### Example Questions & Workflows
+
+Once connected, ask the assistant:
+
+- "Which TACACS hosts and user groups are currently configured?"
+- "Render the full config preview from the database and verify that it passes validation."
+- "What would change in the config if regenerated right now? (diff vs active)"
+- "Draft a read-only profile for Juniper routers and validate the syntax."
 
 ## Tools
 

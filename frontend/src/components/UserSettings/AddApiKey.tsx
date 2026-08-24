@@ -15,9 +15,9 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
-import { FiAlertTriangle, FiCopy, FiPlus } from "react-icons/fi"
+import { FiAlertTriangle, FiCheck, FiCopy, FiPlus } from "react-icons/fi"
 
-import { type ApiKeyCreated, ApiKeysService, OpenAPI } from "@/client"
+import { type ApiKeyCreated, ApiKeysService } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -33,6 +33,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
+import McpClientGuide from "./McpClientGuide"
 
 interface ScopeOption {
   value: string
@@ -150,8 +151,9 @@ const AddApiKey = () => {
 
   return (
     <DialogRoot
-      size={{ base: "xs", md: "lg" }}
+      size={{ base: "xs", md: "lg", lg: "xl" }}
       placement="center"
+      scrollBehavior="inside"
       open={isOpen}
       onOpenChange={({ open }) => (open ? setIsOpen(true) : closeAll())}
     >
@@ -162,7 +164,7 @@ const AddApiKey = () => {
         </Button>
       </DialogTrigger>
 
-      <DialogContent>
+      <DialogContent maxH="85vh">
         {created ? (
           <>
             <DialogCloseTrigger />
@@ -207,44 +209,57 @@ const AddApiKey = () => {
                           size="sm"
                           aria-label="Copy API key"
                         >
-                          <FiCopy />
+                          <Clipboard.Indicator
+                            copied={<FiCheck color="green" />}
+                          >
+                            <FiCopy />
+                          </Clipboard.Indicator>
                         </IconButton>
                       </Clipboard.Trigger>
                     </Clipboard.Root>
                   </HStack>
                 </Field>
 
-                <Field
-                  label="Connect an MCP client"
-                  helperText="Requires MCP_ENABLED=true on the backend."
-                >
-                  <Code
-                    w="full"
-                    p={2}
-                    borderRadius="md"
-                    wordBreak="break-all"
-                    whiteSpace="pre-wrap"
-                  >
-                    {`claude mcp add --transport http tacacs-ng ${OpenAPI.BASE}/mcp/ --header "Authorization: Bearer ${created.plaintext_key}"`}
-                  </Code>
-                </Field>
+                <HStack gap={4} wrap="wrap" justify="space-between">
+                  <Box>
+                    <Text fontSize="xs" color="gray.500" mb={1}>
+                      Scopes
+                    </Text>
+                    <HStack gap={1} wrap="wrap">
+                      {created.scopes
+                        ?.split(",")
+                        .filter(Boolean)
+                        .map((scope) => (
+                          <Badge
+                            key={scope}
+                            colorPalette={
+                              scope === "mcp:secrets" ? "orange" : "blue"
+                            }
+                            variant="subtle"
+                            size="sm"
+                          >
+                            {scope}
+                          </Badge>
+                        ))}
+                    </HStack>
+                  </Box>
 
-                <HStack gap={2} wrap="wrap">
-                  {created.scopes
-                    ?.split(",")
-                    .filter(Boolean)
-                    .map((scope) => (
-                      <Badge key={scope} colorPalette="blue" variant="subtle">
-                        {scope}
-                      </Badge>
-                    ))}
+                  <Box>
+                    <Text fontSize="xs" color="gray.500" mb={1}>
+                      Allowed source IPs
+                    </Text>
+                    <Text fontSize="xs" fontFamily="mono">
+                      {created.allowed_ips || "Any"}
+                    </Text>
+                  </Box>
                 </HStack>
 
-                <Field label="Allowed source IPs">
-                  <Text fontSize="sm" fontFamily="mono">
-                    {created.allowed_ips || "Any"}
+                <Box pt={1}>
+                  <Text fontSize="sm" fontWeight="semibold" mb={2}>
+                    Connect an MCP client
                   </Text>
-                </Field>
+                  <McpClientGuide apiKey={created.plaintext_key} />
+                </Box>
               </VStack>
             </DialogBody>
             <DialogFooter gap={2}>
@@ -254,12 +269,23 @@ const AddApiKey = () => {
             </DialogFooter>
           </>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            noValidate
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              maxHeight: "85vh",
+              overflow: "hidden",
+              width: "100%",
+              flex: 1,
+            }}
+          >
             <DialogCloseTrigger />
-            <DialogHeader>
+            <DialogHeader flexShrink={0}>
               <DialogTitle>Create API Key</DialogTitle>
             </DialogHeader>
-            <DialogBody>
+            <DialogBody overflowY="auto" flex="1">
               <Text mb={4} fontSize="sm" color="gray.500">
                 Machine credential for the read-only MCP server. It cannot log
                 in to this UI and cannot modify anything.
@@ -351,7 +377,7 @@ const AddApiKey = () => {
                   <Textarea
                     {...register("allowed_ips")}
                     placeholder={"203.0.113.4\n198.51.100.0/24\n2001:db8::/32"}
-                    rows={3}
+                    rows={2}
                   />
                 </Field>
 
@@ -378,7 +404,7 @@ const AddApiKey = () => {
               </VStack>
             </DialogBody>
 
-            <DialogFooter gap={2}>
+            <DialogFooter gap={2} flexShrink={0}>
               <DialogActionTrigger asChild>
                 <Button
                   variant="subtle"

@@ -16,6 +16,7 @@ import { type ApiKeyPublic, ApiKeysService } from "@/client"
 import { Tooltip } from "../ui/tooltip"
 import AddApiKey from "./AddApiKey"
 import EditApiKeyAllowedIps from "./EditApiKeyAllowedIps"
+import McpGuideModal from "./McpGuideModal"
 import RevokeApiKey from "./RevokeApiKey"
 
 type KeyStatus = "Active" | "Revoked" | "Expired"
@@ -63,7 +64,10 @@ const ApiKeys = () => {
             in to this UI and cannot change any configuration.
           </Text>
         </VStack>
-        <AddApiKey />
+        <HStack gap={2}>
+          <McpGuideModal />
+          <AddApiKey />
+        </HStack>
       </Flex>
 
       {!isLoading && apiKeys.length === 0 ? (

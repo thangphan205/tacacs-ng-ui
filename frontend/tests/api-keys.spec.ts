@@ -82,6 +82,26 @@ test("Created key is shown exactly once, then listed by prefix", async ({
   await expect(row.getByText(plaintext.slice(0, 20))).toBeVisible()
 })
 
+test("MCP Setup Guide button opens dialog with client tabs", async ({
+  page,
+}) => {
+  await openApiKeysTab(page)
+  await page.getByRole("button", { name: "MCP Setup Guide" }).click()
+
+  const dialog = page.getByRole("dialog")
+  await expect(dialog).toBeVisible()
+  await expect(
+    dialog.getByRole("heading", { name: "MCP Client Setup Guide" }),
+  ).toBeVisible()
+  await expect(dialog.getByRole("tab", { name: "Claude Code" })).toBeVisible()
+  await expect(dialog.getByRole("tab", { name: "Claude Desktop" })).toBeVisible()
+  await expect(dialog.getByRole("tab", { name: "Antigravity" })).toBeVisible()
+  await expect(dialog.getByRole("tab", { name: "Gemini" })).toBeVisible()
+
+  await dialog.getByRole("button", { name: "Close" }).click()
+  await expect(dialog).toHaveCount(0)
+})
+
 test("Revoking a key marks it revoked and removes the revoke action", async ({
   page,
 }) => {
