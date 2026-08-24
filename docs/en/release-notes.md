@@ -12,8 +12,21 @@
 
 * 🐛 **`generate_tacacs_ng_config()` no longer writes a stray file into the working directory.** Every call — including the read-only `GET /tacacs_configs/preview` — wrote `<cwd>/tacacs-ng.conf`, so four uvicorn workers raced on the same path, and the `OSError` fallback created a `NamedTemporaryFile(delete=False)` that was never cleaned up. The generator is now side-effect free and the stale committed artifact is removed.
 
+### Security Fixes
+
+* 🔒 **Login password hashing migrated from passlib + bcrypt to `pwdlib[argon2,bcrypt]`**, matching the upstream `full-stack-fastapi-template`. New passwords are hashed with **argon2id**; existing `$2b$` bcrypt hashes stay verifiable and are transparently rewritten to argon2 on the owner's next successful login. The rewrite is skipped on `NODE_ROLE=standby` (read-only replica) and is best-effort — a failed write leaves the old hash in place and never turns a valid login into an error. **No database migration is required**: `user.hashed_password` is an unbounded `VARCHAR`, and argon2 hashes (~97 chars) fit where bcrypt's 60 did.
+
+  The `bcrypt==4.3.0` pin is lifted, so the deferred bcrypt 5.0 Dependabot PR can now be closed as already applied. passlib is retained **solely** for `sha512_crypt` in `crud/tacacs_users.py`, whose `$6$rounds=...$` output format is dictated by tac_plus-ng; its `[bcrypt]` extra is dropped, and `CryptContext(schemes=["sha512_crypt"])` never imports passlib's bcrypt backend, so bcrypt 5.x is safe alongside it. A regression test asserts that backend stays unloaded.
+
+* 🔒 **Fixed an unauthenticated 500 on `/login/access-token`.** bcrypt 5.0 raises `ValueError` for secrets longer than 72 bytes instead of truncating them, and the OAuth2 password form field is length-unbounded — so once the pin was lifted, an over-long password submitted against any account still holding a bcrypt hash would have crashed the endpoint. `verify_password` now treats both that error and an unrecognised hash format as a failed login.
+
+### Upgrades
+
+* ⬆️ **bcrypt 4.3.0 → 5.0.0**, unblocked by the password-hashing migration above.
+
 ### Internal
 
+* 🔇 The `AttributeError: module 'bcrypt' has no attribute '__about__'` warning that appeared in every test run is gone — passlib no longer touches bcrypt at all.
 * fix: latest-changes workflow fails on every run — missing token secret. PR [#262](https://github.com/thangphan205/tacacs-ng-ui/pull/262) by [@thangphan205](https://github.com/thangphan205).
 
 ## v0.5.3
