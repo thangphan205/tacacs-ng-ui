@@ -18,6 +18,7 @@
 
 ### Fixes
 
+* fix: emit `password pap = login` for local TACACS users. PR [#264](https://github.com/thangphan205/tacacs-ng-ui/pull/264) by [@thangphan205](https://github.com/thangphan205).
 * 🐛 **`generate_tacacs_ng_config()` no longer writes a stray file into the working directory.** Every call — including the read-only `GET /tacacs_configs/preview` — wrote `<cwd>/tacacs-ng.conf`, so four uvicorn workers raced on the same path, and the `OSError` fallback created a `NamedTemporaryFile(delete=False)` that was never cleaned up. The generator is now side-effect free and the stale committed artifact is removed.
 
 ### Upgrades
