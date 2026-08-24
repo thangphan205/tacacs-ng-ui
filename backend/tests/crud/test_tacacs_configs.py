@@ -1,13 +1,13 @@
 from sqlmodel import Session, select
+
 from app.crud.tacacs_configs import generate_tacacs_ng_config
 from app.models import (
     Host,
     TacacsGroup,
-    TacacsUser,
-    Profile,
-    Ruleset,
     TacacsNgSetting,
+    TacacsUser,
 )
+
 
 def test_generate_config_filtering(db: Session) -> None:
     # Ensure settings exist
@@ -97,3 +97,53 @@ def test_generate_config_filtering(db: Session) -> None:
 
     assert "user USER_ACTIVE" in config
     assert "user USER_INACTIVE" not in config
+
+
+def test_generate_config_pap_login_for_local_users(db: Session) -> None:
+    """Local users must get `password pap = login`, MAVIS users must not.
+
+    Without it, tac_plus-ng has no PAP credential for a locally defined user
+    and falls through to `pap backend = mavis`, so PAP auth fails for anyone
+    who does not also exist in LDAP. See issue #260.
+    """
+    user_clear = TacacsUser(
+        username="USER_PAP_CLEAR",
+        password_type="clear",
+        password="pwd1",
+        member="GROUP_PAP",
+        generate_config=True,
+    )
+    user_crypt = TacacsUser(
+        username="USER_PAP_CRYPT",
+        password_type="crypt",
+        password="$6$rounds=656000$abc$def",
+        member="GROUP_PAP",
+        generate_config=True,
+    )
+    user_mavis = TacacsUser(
+        username="USER_PAP_MAVIS",
+        password_type="mavis",
+        member="GROUP_PAP",
+        generate_config=True,
+    )
+    db.add(user_clear)
+    db.add(user_crypt)
+    db.add(user_mavis)
+    db.commit()
+
+    config: str
+    try:
+        config = generate_tacacs_ng_config(session=db)
+    finally:
+        db.delete(user_clear)
+        db.delete(user_crypt)
+        db.delete(user_mavis)
+        db.commit()
+
+    def user_block(username: str) -> str:
+        start = config.index(f"user {username} {{")
+        return config[start : config.index("}", start)]
+
+    assert "password pap = login" in user_block("USER_PAP_CLEAR")
+    assert "password pap = login" in user_block("USER_PAP_CRYPT")
+    assert "password pap = login" not in user_block("USER_PAP_MAVIS")
