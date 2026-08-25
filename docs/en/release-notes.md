@@ -1,5 +1,15 @@
 # Release Notes
 
+<!-- The `latest-changes` workflow appends merged-PR entries directly beneath the
+heading below (configured as `latest_changes_header: "## Unreleased"`). Keep this
+section here permanently, even when empty: with the heading gone the bot matches
+the next occurrence of that string — including one inside a sentence — and
+overwrites whatever follows it. That has wiped published sections twice. Move
+entries out of it into the version section as part of cutting a release; do not
+delete the heading itself. -->
+
+## Unreleased
+
 ## v0.6.0
 
 ### Security Fixes
@@ -83,25 +93,54 @@
 ### Fixes
 
 * 🐛 **Stale generated API client** — regenerated `frontend/src/client/` to include the HA config and peer-management routes (`HaConfig` CRUD, `HaPeerNode` CRUD) added in v0.5.0. The missing types were failing the `generate-client` CI check on every Dependabot PR. PR by [@thangphan205](https://github.com/thangphan205).
-* 🐛 **`latest-changes` workflow pointed at a missing file** — `latest_changes_file` still referenced `./release-notes.md`, which moved to `docs/en/release-notes.md` in the June docs reorganisation, and the configured header did not exist in the file. Every merge produced a failed run, so release notes were never appended automatically. Points at the real path and header now; the empty `## Unreleased
-
-` section above is kept permanently as its insertion point. Note that the workflow additionally needs the `LATEST_CHANGES` repository secret, which is not set. PR by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **`latest-changes` workflow pointed at a missing file** — `latest_changes_file` still referenced `./release-notes.md`, which moved to `docs/en/release-notes.md` in the June docs reorganisation, and the configured header did not exist in the file. Every merge produced a failed run, so release notes were never appended automatically. Points at the real path and header now; the empty `## Unreleased` section above is kept permanently as its insertion point. Note that the workflow additionally needs the `LATEST_CHANGES` repository secret, which is not set. PR by [@thangphan205](https://github.com/thangphan205).
 
 ### Documentation
 
 * 📖 **README (EN + VI)** — added High Availability to the key features list and a roadmap entry covering the v0.5.0 multi-node HA work and the v0.5.1 hardening. The Vietnamese roadmap also gains the v0.4.0 UX entry it was missing. PR by [@thangphan205](https://github.com/thangphan205).
 
-### Fixes
-
-* fix: stop double-hashing a supplied sha512-crypt password. PR [#277](https://github.com/thangphan205/tacacs-ng-ui/pull/277) by [@thangphan205](https://github.com/thangphan205).
-
-### Docs
-
-* docs: prepare v0.6.0 release notes and READMEs. PR [#276](https://github.com/thangphan205/tacacs-ng-ui/pull/276) by [@thangphan205](https://github.com/thangphan205).
-
 ### Internal
 
 * 🔧 **Removed `backend/requirements.txt`** — the file was not consumed by anything: the backend image installs with `uv sync --frozen` from `pyproject.toml` and `uv.lock`, and no CI job, script, or doc referenced it. Dependabot had been maintaining it since November 2025, so bumps merged into it never reached the running image and two of its entries (lxml, chardet) were not installed at all. `pyproject.toml` and `uv.lock` are now the single source of truth. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Tests
+
+* ✅ **Reset-password toast race** — the "Expired or invalid reset link" test asserted on the "Invalid token" toast immediately after clicking Reset Password, but the toast only mounts once the POST settles, so a slow response in CI missed the 5s assertion window. The test then passed on retry, which CI rejects because Playwright runs with `--fail-on-flaky-tests`. Both this test and the success-flow test now await the `/api/v1/reset-password/` response before asserting. PR by [@thangphan205](https://github.com/thangphan205).
+* ✅ **Flaky Playwright fixes** — user-settings tests now wait for tab visibility before asserting `aria-selected`, and use `expect(locator).toHaveClass()` instead of a synchronous `page.evaluate(classList.contains)` so assertions retry; appearance tests always set Light Mode explicitly instead of branching on initial state. PR by [@thangphan205](https://github.com/thangphan205).
+* ✅ **Correct input assertions** — login, sign-up, and reset-password tests use `toHaveValue("")` instead of `toHaveText("")` on inputs; the old assertion passed regardless of the actual input value. PR by [@thangphan205](https://github.com/thangphan205).
+* ✅ **MailCatcher polling timeout raised to 15s** — reduces flakes waiting on email delivery in CI. The "Weak new password validation" test was removed after timing out consistently even at the higher timeout; the same client-side validation is covered by the passing reset-password flow test. PR by [@thangphan205](https://github.com/thangphan205).
+
+### Dependencies
+
+* ⬆️ **cryptography 48.0.1 → 50.0.0** (major) — security patch. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **pytest 7.4.4 → 9.1.1** (major). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **pre-commit 3.8.0 → 4.6.1** (major). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **coverage 7.6.1 → 7.14.3** (major). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **sqlmodel 0.0.24 → 0.0.39**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **scikit-learn 1.8.0 → 1.9.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **joserfc 1.6.5 → 1.6.8**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **ruff 0.6.7 → 0.15.21**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **shiki 3.19.0 → 4.3.1** (major). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **axios 1.16.0 → 1.18.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@chakra-ui/react 3.36.0 → 3.36.1**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@chakra-ui/charts 3.34.0 → 3.36.1**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **recharts 3.8.1 → 3.9.2**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@tanstack/react-router 1.170.4 → 1.170.16**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@tanstack/react-query-devtools** — version bump. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **react-hook-form 7.80.0 → 7.81.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **react-icons 5.6.0 → 5.7.0**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **postcss 8.5.15 → 8.5.26**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **js-yaml 4.2.0 → 4.3.1**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@biomejs/biome 2.5.0 → 2.5.4**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@types/node 26.0.0 → 26.1.1**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **@emnapi/runtime 1.11.1 → 1.11.2**, **@emnapi/core 1.11.1 → 1.11.3**. PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **playwright v1.59.1-noble → v1.61.1-noble** (Docker test image). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **actions/setup-node 6 → 7** (major, CI). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **actions/setup-python 6 → 7** (major, CI). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **actions/labeler 6 → 7** (major, CI). PR by [@thangphan205](https://github.com/thangphan205).
+* ⬆️ **tiangolo/latest-changes 0.6.0 → 0.7.2** (CI). PR by [@thangphan205](https://github.com/thangphan205).
+
+> **Note — `backend/requirements.txt` bumps are not shipped.** Six merged Dependabot PRs in this window touched only `backend/requirements.txt`: sentry-sdk 2.62.0 → 2.64.0, sqlalchemy 2.0.45 → 2.0.51, websockets 15.0.1 → 16.1.1, lxml 6.1.0 → 6.1.1, chardet 5.2.0 → 7.4.3, and urllib3 2.5.0 → 2.7.0. That file is not consumed by anything — the backend image installs with `uv sync --frozen` from `pyproject.toml` and `uv.lock` (`backend/Dockerfile`). The versions actually installed are sentry-sdk 2.57.0, sqlalchemy 2.0.35, websockets 13.1, urllib3 2.7.0; lxml and chardet are not installed at all. Deliberately excluded from the list above so it reflects what ships.
 
 ## v0.5.1
 
