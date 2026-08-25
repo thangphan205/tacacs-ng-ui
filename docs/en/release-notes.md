@@ -16,6 +16,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ bump vite from 8.1.0 to 8.2.2 in /frontend. PR [#266](https://github.com/thangphan205/tacacs-ng-ui/pull/266) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump @tanstack/router-plugin from 1.139.1 to 1.168.34 in /frontend. PR [#269](https://github.com/thangphan205/tacacs-ng-ui/pull/269) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump recharts from 3.9.2 to 3.10.1 in /frontend. PR [#270](https://github.com/thangphan205/tacacs-ng-ui/pull/270) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ update sentry-sdk[fastapi] requirement from <3.0.0,>=1.40.6 to >=2.68.0,<3.0.0 in /backend. PR [#271](https://github.com/thangphan205/tacacs-ng-ui/pull/271) by [@dependabot[bot]](https://github.com/apps/dependabot).
