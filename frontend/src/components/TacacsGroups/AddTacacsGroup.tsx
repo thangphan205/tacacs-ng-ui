@@ -12,9 +12,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FiInfo, FiPlus, FiSettings, FiType, FiUsers } from "react-icons/fi"
-
+import type { ApiError } from "@/api"
 import { type TacacsGroupCreate, TacacsGroupsService } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -76,7 +75,7 @@ const AddTacacsGroup = () => {
 
   const mutation = useMutation({
     mutationFn: (data: TacacsGroupCreate) =>
-      TacacsGroupsService.createTacacsGroup({ requestBody: data }),
+      TacacsGroupsService.createTacacsGroup({ tacacsGroupCreate: data }),
     onSuccess: () => {
       showSuccessToast("TacacsGroup created successfully.")
       reset()

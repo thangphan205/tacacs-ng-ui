@@ -1,8 +1,11 @@
 // Note: the `PrivateService` is only available when generating the client
 // for local environments
-import { OpenAPI, PrivateService } from "../../src/client"
+import { PrivateService } from "../../src/client"
+import { client } from "../../src/client/client.gen"
 
-OpenAPI.BASE = `${process.env.VITE_API_URL}`
+// These tests run under Node, so the client is configured here rather than
+// through `src/api.ts`, which reads `import.meta.env`.
+client.setConfig({ baseUrl: `${process.env.VITE_API_URL}` })
 
 export const createUser = async ({
   email,
@@ -12,7 +15,7 @@ export const createUser = async ({
   password: string
 }) => {
   return await PrivateService.createUser({
-    requestBody: {
+    privateUserCreate: {
       email,
       password,
       is_verified: true,

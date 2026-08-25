@@ -1,4 +1,4 @@
-import { OpenAPI } from "@/client"
+import { apiBaseUrl, getAccessToken } from "@/api"
 
 export interface HaPeer {
   id: string
@@ -49,10 +49,8 @@ export async function fetchWithAuth<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
-  const token = await (typeof OpenAPI.TOKEN === "function"
-    ? OpenAPI.TOKEN({} as never)
-    : Promise.resolve(OpenAPI.TOKEN ?? ""))
-  const res = await fetch(`${OpenAPI.BASE}${path}`, {
+  const token = getAccessToken()
+  const res = await fetch(`${apiBaseUrl()}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",

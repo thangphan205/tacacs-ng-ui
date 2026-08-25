@@ -44,7 +44,8 @@ import {
   YAxis,
 } from "recharts"
 
-import type { AaaStatisticsDateRangePublic, ApiError } from "@/client"
+import type { ApiError } from "@/api"
+import type { AaaStatisticsDateRangePublic } from "@/client"
 import { AaaStatisticsService } from "@/client"
 import PageHeader from "@/components/Common/PageHeader"
 import useCustomToast from "@/hooks/useCustomToast"
@@ -272,7 +273,7 @@ function TodayStatsTab() {
     queryKey: ["aaa_statistics", selectedNode],
     queryFn: () =>
       AaaStatisticsService.readAaaStatistics({
-        nodeName: selectedNode || undefined,
+        node_name: selectedNode || undefined,
       }),
     refetchInterval: 5 * 60 * 1000, // refresh every 5 minutes
   })
@@ -567,8 +568,8 @@ function RangeStatsTab() {
     queryKey: ["aaa_statistics_range", startDate, endDate, selectedNode],
     queryFn: () =>
       AaaStatisticsService.readAaaStatisticsRange({
-        rangeDate: `${startDate},${endDate}`,
-        nodeName: selectedNode || undefined,
+        range_date: `${startDate},${endDate}`,
+        node_name: selectedNode || undefined,
       }),
     refetchInterval: 5 * 60 * 1000, // refresh every 5 minutes
   })
@@ -888,8 +889,8 @@ function NodeCard({
     queryKey: ["aaa_node_stats", nodeName, startDate, endDate],
     queryFn: () =>
       AaaStatisticsService.readAaaStatisticsRange({
-        rangeDate: `${startDate},${endDate}`,
-        nodeName,
+        range_date: `${startDate},${endDate}`,
+        node_name: nodeName,
       }),
     refetchInterval: 5 * 60 * 1000, // refresh every 5 minutes
   })

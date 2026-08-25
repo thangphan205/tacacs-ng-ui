@@ -395,9 +395,9 @@ export default function TacacsLogEventsTable() {
     ],
     queryFn: () =>
       TacacsLogsService.listLogEvents({
-        dateFrom,
-        dateTo,
-        logType: logType === "all" ? undefined : logType,
+        date_from: dateFrom,
+        date_to: dateTo,
+        log_type: logType === "all" ? undefined : logType,
         result: result || undefined,
         search: search || undefined,
         skip: (page - 1) * perPage,

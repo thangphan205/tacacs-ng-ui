@@ -23,13 +23,13 @@ import {
   FiPlus,
   FiSliders,
 } from "react-icons/fi"
+import type { ApiError } from "@/api"
 import {
   ProfilesService,
   type RulesetScriptSetCreate,
   RulesetscriptsetsService,
   RulesetscriptsService,
 } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -159,7 +159,9 @@ const AddRulesetScriptSet = ({
 
   const mutation = useMutation({
     mutationFn: (data: RulesetScriptSetCreate) =>
-      RulesetscriptsetsService.createRulesetscriptset({ requestBody: data }),
+      RulesetscriptsetsService.createRulesetscriptset({
+        rulesetScriptSetCreate: data,
+      }),
     onSuccess: () => {
       showSuccessToast("RulesetScriptSet created successfully.")
       reset({

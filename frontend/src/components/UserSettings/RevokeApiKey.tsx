@@ -3,9 +3,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { FiSlash } from "react-icons/fi"
-
+import type { ApiError } from "@/api"
 import { type ApiKeyPublic, ApiKeysService } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {

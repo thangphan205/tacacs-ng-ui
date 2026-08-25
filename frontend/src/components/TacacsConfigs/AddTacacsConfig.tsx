@@ -11,9 +11,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
-
+import type { ApiError } from "@/api"
 import { type TacacsConfigCreate, TacacsConfigsService } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -47,7 +46,7 @@ const AddTacacsConfig = () => {
 
   const mutation = useMutation({
     mutationFn: (data: TacacsConfigCreate) =>
-      TacacsConfigsService.createTacacsConfig({ requestBody: data }),
+      TacacsConfigsService.createTacacsConfig({ tacacsConfigCreate: data }),
     onSuccess: () => {
       showSuccessToast("TacacsConfig created successfully.")
       reset()

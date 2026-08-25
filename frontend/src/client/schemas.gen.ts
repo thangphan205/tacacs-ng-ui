@@ -339,7 +339,13 @@ export const AccountingStatisticPublicSchema = {
         }
     },
     type: 'object',
-    required: ['username', 'nas_ip', 'user_source_ip', 'id', 'updated_at'],
+    required: [
+        'username',
+        'nas_ip',
+        'user_source_ip',
+        'id',
+        'updated_at'
+    ],
     title: 'AccountingStatisticPublic'
 } as const;
 
@@ -347,7 +353,7 @@ export const AccountingStatisticsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/AccountingStatisticPublic'
+                $ref: '#/components/schemas/AccountingStatisticPublic'
             },
             type: 'array',
             title: 'Data'
@@ -358,7 +364,10 @@ export const AccountingStatisticsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'AccountingStatisticsPublic'
 } as const;
 
@@ -453,7 +462,12 @@ export const AlertEventPublicSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'rule_id', 'channel_id', 'created_at'],
+    required: [
+        'id',
+        'rule_id',
+        'channel_id',
+        'created_at'
+    ],
     title: 'AlertEventPublic'
 } as const;
 
@@ -461,7 +475,7 @@ export const AlertEventsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/AlertEventPublic'
+                $ref: '#/components/schemas/AlertEventPublic'
             },
             type: 'array',
             title: 'Data'
@@ -472,7 +486,10 @@ export const AlertEventsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'AlertEventsPublic'
 } as const;
 
@@ -549,7 +566,12 @@ export const AlertRuleCreateSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'log_type', 'condition_field', 'condition_operator'],
+    required: [
+        'name',
+        'log_type',
+        'condition_field',
+        'condition_operator'
+    ],
     title: 'AlertRuleCreate'
 } as const;
 
@@ -653,7 +675,16 @@ export const AlertRulePublicSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'log_type', 'condition_field', 'condition_operator', 'id', 'last_fired_at', 'created_at', 'updated_at'],
+    required: [
+        'name',
+        'log_type',
+        'condition_field',
+        'condition_operator',
+        'id',
+        'last_fired_at',
+        'created_at',
+        'updated_at'
+    ],
     title: 'AlertRulePublic'
 } as const;
 
@@ -778,7 +809,7 @@ export const AlertRulesPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/AlertRulePublic'
+                $ref: '#/components/schemas/AlertRulePublic'
             },
             type: 'array',
             title: 'Data'
@@ -789,7 +820,10 @@ export const AlertRulesPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'AlertRulesPublic'
 } as const;
 
@@ -809,14 +843,14 @@ export const AlertStatisticsSchema = {
         },
         by_severity: {
             items: {
-                '$ref': '#/components/schemas/AlertStatisticsSeverityItem'
+                $ref: '#/components/schemas/AlertStatisticsSeverityItem'
             },
             type: 'array',
             title: 'By Severity'
         },
         by_rule: {
             items: {
-                '$ref': '#/components/schemas/AlertStatisticsRuleItem'
+                $ref: '#/components/schemas/AlertStatisticsRuleItem'
             },
             type: 'array',
             title: 'By Rule'
@@ -831,7 +865,15 @@ export const AlertStatisticsSchema = {
         }
     },
     type: 'object',
-    required: ['total', 'sent', 'failed', 'by_severity', 'by_rule', 'last_24h', 'last_7d'],
+    required: [
+        'total',
+        'sent',
+        'failed',
+        'by_severity',
+        'by_rule',
+        'last_24h',
+        'last_7d'
+    ],
     title: 'AlertStatistics'
 } as const;
 
@@ -847,7 +889,10 @@ export const AlertStatisticsRuleItemSchema = {
         }
     },
     type: 'object',
-    required: ['rule_name', 'count'],
+    required: [
+        'rule_name',
+        'count'
+    ],
     title: 'AlertStatisticsRuleItem'
 } as const;
 
@@ -863,7 +908,10 @@ export const AlertStatisticsSeverityItemSchema = {
         }
     },
     type: 'object',
-    required: ['severity', 'count'],
+    required: [
+        'severity',
+        'count'
+    ],
     title: 'AlertStatisticsSeverityItem'
 } as const;
 
@@ -927,7 +975,14 @@ export const AnomalyDetectionResultPublicSchema = {
         }
     },
     type: 'object',
-    required: ['subject_type', 'subject_value', 'anomaly_score', 'id', 'created_at', 'updated_at'],
+    required: [
+        'subject_type',
+        'subject_value',
+        'anomaly_score',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'AnomalyDetectionResultPublic'
 } as const;
 
@@ -935,7 +990,7 @@ export const AnomalyDetectionResultsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/AnomalyDetectionResultPublic'
+                $ref: '#/components/schemas/AnomalyDetectionResultPublic'
             },
             type: 'array',
             title: 'Data'
@@ -946,7 +1001,10 @@ export const AnomalyDetectionResultsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'AnomalyDetectionResultsPublic'
 } as const;
 
@@ -1044,7 +1102,9 @@ export const ApiKeyCreateSchema = {
         }
     },
     type: 'object',
-    required: ['name'],
+    required: [
+        'name'
+    ],
     title: 'ApiKeyCreate'
 } as const;
 
@@ -1151,7 +1211,17 @@ export const ApiKeyCreatedSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'id', 'user_id', 'key_prefix', 'last_used_at', 'revoked_at', 'created_at', 'updated_at', 'plaintext_key'],
+    required: [
+        'name',
+        'id',
+        'user_id',
+        'key_prefix',
+        'last_used_at',
+        'revoked_at',
+        'created_at',
+        'updated_at',
+        'plaintext_key'
+    ],
     title: 'ApiKeyCreated',
     description: 'Returned only by the create endpoint — the one time the secret exists.'
 } as const;
@@ -1255,7 +1325,16 @@ export const ApiKeyPublicSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'id', 'user_id', 'key_prefix', 'last_used_at', 'revoked_at', 'created_at', 'updated_at'],
+    required: [
+        'name',
+        'id',
+        'user_id',
+        'key_prefix',
+        'last_used_at',
+        'revoked_at',
+        'created_at',
+        'updated_at'
+    ],
     title: 'ApiKeyPublic'
 } as const;
 
@@ -1263,7 +1342,7 @@ export const ApiKeysPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/ApiKeyPublic'
+                $ref: '#/components/schemas/ApiKeyPublic'
             },
             type: 'array',
             title: 'Data'
@@ -1274,7 +1353,10 @@ export const ApiKeysPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'ApiKeysPublic'
 } as const;
 
@@ -1387,7 +1469,15 @@ export const AuditLogPublicSchema = {
         }
     },
     type: 'object',
-    required: ['action', 'entity_type', 'id', 'user_id', 'user_email', 'ip_address', 'created_at'],
+    required: [
+        'action',
+        'entity_type',
+        'id',
+        'user_id',
+        'user_email',
+        'ip_address',
+        'created_at'
+    ],
     title: 'AuditLogPublic'
 } as const;
 
@@ -1395,7 +1485,7 @@ export const AuditLogsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/AuditLogPublic'
+                $ref: '#/components/schemas/AuditLogPublic'
             },
             type: 'array',
             title: 'Data'
@@ -1406,7 +1496,10 @@ export const AuditLogsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'AuditLogsPublic'
 } as const;
 
@@ -1431,7 +1524,12 @@ export const AuthProviderConfigPublicSchema = {
         }
     },
     type: 'object',
-    required: ['provider', 'enabled', 'config', 'secret_is_set'],
+    required: [
+        'provider',
+        'enabled',
+        'config',
+        'secret_is_set'
+    ],
     title: 'AuthProviderConfigPublic'
 } as const;
 
@@ -1526,7 +1624,13 @@ export const AuthenticationStatisticPublicSchema = {
         }
     },
     type: 'object',
-    required: ['username', 'nas_ip', 'user_source_ip', 'id', 'updated_at'],
+    required: [
+        'username',
+        'nas_ip',
+        'user_source_ip',
+        'id',
+        'updated_at'
+    ],
     title: 'AuthenticationStatisticPublic'
 } as const;
 
@@ -1534,7 +1638,7 @@ export const AuthenticationStatisticsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/AuthenticationStatisticPublic'
+                $ref: '#/components/schemas/AuthenticationStatisticPublic'
             },
             type: 'array',
             title: 'Data'
@@ -1545,7 +1649,10 @@ export const AuthenticationStatisticsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'AuthenticationStatisticsPublic'
 } as const;
 
@@ -1599,7 +1706,13 @@ export const AuthorizationStatisticPublicSchema = {
         }
     },
     type: 'object',
-    required: ['username', 'nas_ip', 'user_source_ip', 'id', 'updated_at'],
+    required: [
+        'username',
+        'nas_ip',
+        'user_source_ip',
+        'id',
+        'updated_at'
+    ],
     title: 'AuthorizationStatisticPublic'
 } as const;
 
@@ -1607,7 +1720,7 @@ export const AuthorizationStatisticsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/AuthorizationStatisticPublic'
+                $ref: '#/components/schemas/AuthorizationStatisticPublic'
             },
             type: 'array',
             title: 'Data'
@@ -1618,7 +1731,10 @@ export const AuthorizationStatisticsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'AuthorizationStatisticsPublic'
 } as const;
 
@@ -1673,7 +1789,10 @@ export const Body_login_login_access_tokenSchema = {
         }
     },
     type: 'object',
-    required: ['username', 'password'],
+    required: [
+        'username',
+        'password'
+    ],
     title: 'Body_login-login_access_token'
 } as const;
 
@@ -1701,7 +1820,10 @@ export const ConfigurationOptionCreateSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'config_option'],
+    required: [
+        'name',
+        'config_option'
+    ],
     title: 'ConfigurationOptionCreate'
 } as const;
 
@@ -1744,7 +1866,13 @@ export const ConfigurationOptionPublicSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'config_option', 'id', 'created_at', 'updated_at'],
+    required: [
+        'name',
+        'config_option',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'ConfigurationOptionPublic'
 } as const;
 
@@ -1772,7 +1900,10 @@ export const ConfigurationOptionUpdateSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'config_option'],
+    required: [
+        'name',
+        'config_option'
+    ],
     title: 'ConfigurationOptionUpdate'
 } as const;
 
@@ -1780,7 +1911,7 @@ export const ConfigurationOptionsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/ConfigurationOptionPublic'
+                $ref: '#/components/schemas/ConfigurationOptionPublic'
             },
             type: 'array',
             title: 'Data'
@@ -1791,7 +1922,10 @@ export const ConfigurationOptionsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'ConfigurationOptionsPublic'
 } as const;
 
@@ -1799,7 +1933,7 @@ export const HTTPValidationErrorSchema = {
     properties: {
         detail: {
             items: {
-                '$ref': '#/components/schemas/ValidationError'
+                $ref: '#/components/schemas/ValidationError'
             },
             type: 'array',
             title: 'Detail'
@@ -1844,7 +1978,10 @@ export const HaConfigPublicSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'updated_at'],
+    required: [
+        'id',
+        'updated_at'
+    ],
     title: 'HaConfigPublic'
 } as const;
 
@@ -1865,7 +2002,10 @@ export const HaConfigUpdateSchema = {
             anyOf: [
                 {
                     type: 'string',
-                    enum: ['auto', 'manual']
+                    enum: [
+                        'auto',
+                        'manual'
+                    ]
                 },
                 {
                     type: 'null'
@@ -1919,7 +2059,10 @@ export const HaPeerNodeCreateSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'url'],
+    required: [
+        'name',
+        'url'
+    ],
     title: 'HaPeerNodeCreate'
 } as const;
 
@@ -1957,7 +2100,13 @@ export const HaPeerNodePublicSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'url', 'id', 'created_at', 'updated_at'],
+    required: [
+        'name',
+        'url',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'HaPeerNodePublic'
 } as const;
 
@@ -2005,7 +2154,7 @@ export const HaPeerNodesPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/HaPeerNodePublic'
+                $ref: '#/components/schemas/HaPeerNodePublic'
             },
             type: 'array',
             title: 'Data'
@@ -2016,7 +2165,10 @@ export const HaPeerNodesPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'HaPeerNodesPublic'
 } as const;
 
@@ -2127,7 +2279,10 @@ export const HostCreateSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'secret_key'],
+    required: [
+        'name',
+        'secret_key'
+    ],
     title: 'HostCreate'
 } as const;
 
@@ -2253,7 +2408,13 @@ export const HostPublicSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'secret_key', 'id', 'created_at', 'updated_at'],
+    required: [
+        'name',
+        'secret_key',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'HostPublic'
 } as const;
 
@@ -2364,7 +2525,10 @@ export const HostUpdateSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'secret_key'],
+    required: [
+        'name',
+        'secret_key'
+    ],
     title: 'HostUpdate'
 } as const;
 
@@ -2372,7 +2536,7 @@ export const HostsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/HostPublic'
+                $ref: '#/components/schemas/HostPublic'
             },
             type: 'array',
             title: 'Data'
@@ -2383,7 +2547,10 @@ export const HostsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'HostsPublic'
 } as const;
 
@@ -2409,7 +2576,9 @@ export const ItemCreateSchema = {
         }
     },
     type: 'object',
-    required: ['title'],
+    required: [
+        'title'
+    ],
     title: 'ItemCreate'
 } as const;
 
@@ -2455,7 +2624,13 @@ export const ItemPublicSchema = {
         }
     },
     type: 'object',
-    required: ['title', 'id', 'owner_id', 'created_at', 'updated_at'],
+    required: [
+        'title',
+        'id',
+        'owner_id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'ItemPublic'
 } as const;
 
@@ -2495,7 +2670,7 @@ export const ItemsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/ItemPublic'
+                $ref: '#/components/schemas/ItemPublic'
             },
             type: 'array',
             title: 'Data'
@@ -2506,7 +2681,10 @@ export const ItemsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'ItemsPublic'
 } as const;
 
@@ -2524,7 +2702,10 @@ export const MavisCreateSchema = {
         }
     },
     type: 'object',
-    required: ['mavis_key', 'mavis_value'],
+    required: [
+        'mavis_key',
+        'mavis_value'
+    ],
     title: 'MavisCreate'
 } as const;
 
@@ -2599,7 +2780,13 @@ export const MavisPublicSchema = {
         }
     },
     type: 'object',
-    required: ['mavis_key', 'mavis_value', 'id', 'created_at', 'updated_at'],
+    required: [
+        'mavis_key',
+        'mavis_value',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'MavisPublic'
 } as const;
 
@@ -2617,7 +2804,10 @@ export const MavisUpdateSchema = {
         }
     },
     type: 'object',
-    required: ['mavis_key', 'mavis_value'],
+    required: [
+        'mavis_key',
+        'mavis_value'
+    ],
     title: 'MavisUpdate'
 } as const;
 
@@ -2625,7 +2815,7 @@ export const MavisesPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/MavisPublic'
+                $ref: '#/components/schemas/MavisPublic'
             },
             type: 'array',
             title: 'Data'
@@ -2636,7 +2826,10 @@ export const MavisesPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'MavisesPublic'
 } as const;
 
@@ -2648,7 +2841,9 @@ export const MessageSchema = {
         }
     },
     type: 'object',
-    required: ['message'],
+    required: [
+        'message'
+    ],
     title: 'Message'
 } as const;
 
@@ -2666,7 +2861,10 @@ export const NewPasswordSchema = {
         }
     },
     type: 'object',
-    required: ['token', 'new_password'],
+    required: [
+        'token',
+        'new_password'
+    ],
     title: 'NewPassword'
 } as const;
 
@@ -2694,7 +2892,10 @@ export const NotificationChannelCreateSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'channel_type'],
+    required: [
+        'name',
+        'channel_type'
+    ],
     title: 'NotificationChannelCreate'
 } as const;
 
@@ -2737,7 +2938,13 @@ export const NotificationChannelPublicSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'channel_type', 'id', 'created_at', 'updated_at'],
+    required: [
+        'name',
+        'channel_type',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'NotificationChannelPublic'
 } as const;
 
@@ -2796,7 +3003,7 @@ export const NotificationChannelsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/NotificationChannelPublic'
+                $ref: '#/components/schemas/NotificationChannelPublic'
             },
             type: 'array',
             title: 'Data'
@@ -2807,7 +3014,10 @@ export const NotificationChannelsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'NotificationChannelsPublic'
 } as const;
 
@@ -2820,7 +3030,9 @@ export const PasskeyAuthenticateCompleteRequestSchema = {
         }
     },
     type: 'object',
-    required: ['credential'],
+    required: [
+        'credential'
+    ],
     title: 'PasskeyAuthenticateCompleteRequest'
 } as const;
 
@@ -2845,7 +3057,9 @@ export const PasskeyRegisterCompleteRequestSchema = {
         }
     },
     type: 'object',
-    required: ['credential'],
+    required: [
+        'credential'
+    ],
     title: 'PasskeyRegisterCompleteRequest'
 } as const;
 
@@ -2872,7 +3086,11 @@ export const PrivateUserCreateSchema = {
         }
     },
     type: 'object',
-    required: ['email', 'password', 'full_name'],
+    required: [
+        'email',
+        'password',
+        'full_name'
+    ],
     title: 'PrivateUserCreate'
 } as const;
 
@@ -2906,7 +3124,10 @@ export const ProfileCreateSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'action'],
+    required: [
+        'name',
+        'action'
+    ],
     title: 'ProfileCreate'
 } as const;
 
@@ -2997,7 +3218,13 @@ export const ProfilePublicSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'action', 'id', 'created_at', 'updated_at'],
+    required: [
+        'name',
+        'action',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'ProfilePublic'
 } as const;
 
@@ -3048,7 +3275,12 @@ export const ProfileScriptCreateSchema = {
         }
     },
     type: 'object',
-    required: ['condition', 'key', 'value', 'action'],
+    required: [
+        'condition',
+        'key',
+        'value',
+        'action'
+    ],
     title: 'ProfileScriptCreate'
 } as const;
 
@@ -3118,7 +3350,16 @@ export const ProfileScriptPublicSchema = {
         }
     },
     type: 'object',
-    required: ['condition', 'key', 'value', 'action', 'profile_id', 'id', 'created_at', 'updated_at'],
+    required: [
+        'condition',
+        'key',
+        'value',
+        'action',
+        'profile_id',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'ProfileScriptPublic'
 } as const;
 
@@ -3151,7 +3392,11 @@ export const ProfileScriptSetCreateSchema = {
         }
     },
     type: 'object',
-    required: ['key', 'value', 'profilescript_id'],
+    required: [
+        'key',
+        'value',
+        'profilescript_id'
+    ],
     title: 'ProfileScriptSetCreate'
 } as const;
 
@@ -3233,7 +3478,14 @@ export const ProfileScriptSetPublicSchema = {
         }
     },
     type: 'object',
-    required: ['key', 'value', 'profilescript_id', 'id', 'created_at', 'updated_at'],
+    required: [
+        'key',
+        'value',
+        'profilescript_id',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'ProfileScriptSetPublic'
 } as const;
 
@@ -3266,7 +3518,11 @@ export const ProfileScriptSetUpdateSchema = {
         }
     },
     type: 'object',
-    required: ['key', 'value', 'profilescript_id'],
+    required: [
+        'key',
+        'value',
+        'profilescript_id'
+    ],
     title: 'ProfileScriptSetUpdate'
 } as const;
 
@@ -3274,7 +3530,7 @@ export const ProfileScriptSetsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/ProfileScriptSetPublic'
+                $ref: '#/components/schemas/ProfileScriptSetPublic'
             },
             type: 'array',
             title: 'Data'
@@ -3285,7 +3541,10 @@ export const ProfileScriptSetsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'ProfileScriptSetsPublic'
 } as const;
 
@@ -3336,7 +3595,12 @@ export const ProfileScriptUpdateSchema = {
         }
     },
     type: 'object',
-    required: ['condition', 'key', 'value', 'action'],
+    required: [
+        'condition',
+        'key',
+        'value',
+        'action'
+    ],
     title: 'ProfileScriptUpdate'
 } as const;
 
@@ -3344,7 +3608,7 @@ export const ProfileScriptsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/ProfileScriptPublic'
+                $ref: '#/components/schemas/ProfileScriptPublic'
             },
             type: 'array',
             title: 'Data'
@@ -3355,7 +3619,10 @@ export const ProfileScriptsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'ProfileScriptsPublic'
 } as const;
 
@@ -3389,7 +3656,10 @@ export const ProfileUpdateSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'action'],
+    required: [
+        'name',
+        'action'
+    ],
     title: 'ProfileUpdate'
 } as const;
 
@@ -3397,7 +3667,7 @@ export const ProfilesPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/ProfilePublic'
+                $ref: '#/components/schemas/ProfilePublic'
             },
             type: 'array',
             title: 'Data'
@@ -3408,7 +3678,10 @@ export const ProfilesPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'ProfilesPublic'
 } as const;
 
@@ -3447,7 +3720,10 @@ export const RulesetCreateSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'action'],
+    required: [
+        'name',
+        'action'
+    ],
     title: 'RulesetCreate'
 } as const;
 
@@ -3543,7 +3819,13 @@ export const RulesetPublicSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'action', 'id', 'created_at', 'updated_at'],
+    required: [
+        'name',
+        'action',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'RulesetPublic'
 } as const;
 
@@ -3587,7 +3869,13 @@ export const RulesetScriptCreateSchema = {
         }
     },
     type: 'object',
-    required: ['condition', 'key', 'value', 'action', 'ruleset_id'],
+    required: [
+        'condition',
+        'key',
+        'value',
+        'action',
+        'ruleset_id'
+    ],
     title: 'RulesetScriptCreate'
 } as const;
 
@@ -3657,7 +3945,16 @@ export const RulesetScriptPublicSchema = {
         }
     },
     type: 'object',
-    required: ['condition', 'key', 'value', 'action', 'ruleset_id', 'id', 'created_at', 'updated_at'],
+    required: [
+        'condition',
+        'key',
+        'value',
+        'action',
+        'ruleset_id',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'RulesetScriptPublic'
 } as const;
 
@@ -3691,7 +3988,11 @@ export const RulesetScriptSetCreateSchema = {
         }
     },
     type: 'object',
-    required: ['key', 'value', 'rulesetscript_id'],
+    required: [
+        'key',
+        'value',
+        'rulesetscript_id'
+    ],
     title: 'RulesetScriptSetCreate'
 } as const;
 
@@ -3774,7 +4075,14 @@ export const RulesetScriptSetPublicSchema = {
         }
     },
     type: 'object',
-    required: ['key', 'value', 'rulesetscript_id', 'id', 'created_at', 'updated_at'],
+    required: [
+        'key',
+        'value',
+        'rulesetscript_id',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'RulesetScriptSetPublic'
 } as const;
 
@@ -3808,7 +4116,11 @@ export const RulesetScriptSetUpdateSchema = {
         }
     },
     type: 'object',
-    required: ['key', 'value', 'rulesetscript_id'],
+    required: [
+        'key',
+        'value',
+        'rulesetscript_id'
+    ],
     title: 'RulesetScriptSetUpdate'
 } as const;
 
@@ -3816,7 +4128,7 @@ export const RulesetScriptSetsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/RulesetScriptSetPublic'
+                $ref: '#/components/schemas/RulesetScriptSetPublic'
             },
             type: 'array',
             title: 'Data'
@@ -3827,7 +4139,10 @@ export const RulesetScriptSetsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'RulesetScriptSetsPublic'
 } as const;
 
@@ -3871,7 +4186,13 @@ export const RulesetScriptUpdateSchema = {
         }
     },
     type: 'object',
-    required: ['condition', 'key', 'value', 'action', 'ruleset_id'],
+    required: [
+        'condition',
+        'key',
+        'value',
+        'action',
+        'ruleset_id'
+    ],
     title: 'RulesetScriptUpdate'
 } as const;
 
@@ -3879,7 +4200,7 @@ export const RulesetScriptsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/RulesetScriptPublic'
+                $ref: '#/components/schemas/RulesetScriptPublic'
             },
             type: 'array',
             title: 'Data'
@@ -3890,7 +4211,10 @@ export const RulesetScriptsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'RulesetScriptsPublic'
 } as const;
 
@@ -3929,7 +4253,10 @@ export const RulesetUpdateSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'action'],
+    required: [
+        'name',
+        'action'
+    ],
     title: 'RulesetUpdate'
 } as const;
 
@@ -3937,7 +4264,7 @@ export const RulesetsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/RulesetPublic'
+                $ref: '#/components/schemas/RulesetPublic'
             },
             type: 'array',
             title: 'Data'
@@ -3948,7 +4275,10 @@ export const RulesetsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'RulesetsPublic'
 } as const;
 
@@ -3972,7 +4302,9 @@ export const TacacsConfigCreateSchema = {
         }
     },
     type: 'object',
-    required: ['filename'],
+    required: [
+        'filename'
+    ],
     title: 'TacacsConfigCreate'
 } as const;
 
@@ -4001,7 +4333,10 @@ export const TacacsConfigPreviewPublicSchema = {
         }
     },
     type: 'object',
-    required: ['created_at', 'updated_at'],
+    required: [
+        'created_at',
+        'updated_at'
+    ],
     title: 'TacacsConfigPreviewPublic'
 } as const;
 
@@ -4055,7 +4390,13 @@ export const TacacsConfigPublicSchema = {
         }
     },
     type: 'object',
-    required: ['filename', 'id', 'active', 'created_at', 'updated_at'],
+    required: [
+        'filename',
+        'id',
+        'active',
+        'created_at',
+        'updated_at'
+    ],
     title: 'TacacsConfigPublic'
 } as const;
 
@@ -4115,7 +4456,7 @@ export const TacacsConfigsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/TacacsConfigPublic'
+                $ref: '#/components/schemas/TacacsConfigPublic'
             },
             type: 'array',
             title: 'Data'
@@ -4126,7 +4467,10 @@ export const TacacsConfigsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'TacacsConfigsPublic'
 } as const;
 
@@ -4155,7 +4499,9 @@ export const TacacsGroupCreateSchema = {
         }
     },
     type: 'object',
-    required: ['group_name'],
+    required: [
+        'group_name'
+    ],
     title: 'TacacsGroupCreate'
 } as const;
 
@@ -4199,7 +4545,12 @@ export const TacacsGroupPublicSchema = {
         }
     },
     type: 'object',
-    required: ['group_name', 'id', 'created_at', 'updated_at'],
+    required: [
+        'group_name',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'TacacsGroupPublic'
 } as const;
 
@@ -4228,7 +4579,9 @@ export const TacacsGroupUpdateSchema = {
         }
     },
     type: 'object',
-    required: ['group_name'],
+    required: [
+        'group_name'
+    ],
     title: 'TacacsGroupUpdate'
 } as const;
 
@@ -4236,7 +4589,7 @@ export const TacacsGroupsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/TacacsGroupPublic'
+                $ref: '#/components/schemas/TacacsGroupPublic'
             },
             type: 'array',
             title: 'Data'
@@ -4247,7 +4600,10 @@ export const TacacsGroupsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'TacacsGroupsPublic'
 } as const;
 
@@ -4258,17 +4614,22 @@ export const TacacsLogDailySummarySchema = {
             title: 'Date'
         },
         authentication: {
-            '$ref': '#/components/schemas/TacacsLogTypeSummary'
+            $ref: '#/components/schemas/TacacsLogTypeSummary'
         },
         authorization: {
-            '$ref': '#/components/schemas/TacacsLogTypeSummary'
+            $ref: '#/components/schemas/TacacsLogTypeSummary'
         },
         accounting: {
-            '$ref': '#/components/schemas/TacacsLogTypeSummary'
+            $ref: '#/components/schemas/TacacsLogTypeSummary'
         }
     },
     type: 'object',
-    required: ['date', 'authentication', 'authorization', 'accounting'],
+    required: [
+        'date',
+        'authentication',
+        'authorization',
+        'accounting'
+    ],
     title: 'TacacsLogDailySummary'
 } as const;
 
@@ -4337,7 +4698,15 @@ export const TacacsLogEventSchema = {
         }
     },
     type: 'object',
-    required: ['timestamp', 'log_type', 'username', 'nas_ip', 'client_ip', 'result', 'message'],
+    required: [
+        'timestamp',
+        'log_type',
+        'username',
+        'nas_ip',
+        'client_ip',
+        'result',
+        'message'
+    ],
     title: 'TacacsLogEvent'
 } as const;
 
@@ -4345,7 +4714,7 @@ export const TacacsLogEventsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/TacacsLogEvent'
+                $ref: '#/components/schemas/TacacsLogEvent'
             },
             type: 'array',
             title: 'Data'
@@ -4356,7 +4725,10 @@ export const TacacsLogEventsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'TacacsLogEventsPublic'
 } as const;
 
@@ -4368,7 +4740,9 @@ export const TacacsLogLatestDateSchema = {
         }
     },
     type: 'object',
-    required: ['date'],
+    required: [
+        'date'
+    ],
     title: 'TacacsLogLatestDate'
 } as const;
 
@@ -4412,7 +4786,12 @@ export const TacacsLogPublicSchema = {
         }
     },
     type: 'object',
-    required: ['filename', 'filepath', 'id', 'updated_at'],
+    required: [
+        'filename',
+        'filepath',
+        'id',
+        'updated_at'
+    ],
     title: 'TacacsLogPublic'
 } as const;
 
@@ -4462,7 +4841,7 @@ export const TacacsLogsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/TacacsLogPublic'
+                $ref: '#/components/schemas/TacacsLogPublic'
             },
             type: 'array',
             title: 'Data'
@@ -4473,7 +4852,10 @@ export const TacacsLogsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'TacacsLogsPublic'
 } as const;
 
@@ -4581,7 +4963,11 @@ export const TacacsNgSettingPublicSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'created_at', 'updated_at'],
+    required: [
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'TacacsNgSettingPublic'
 } as const;
 
@@ -4702,7 +5088,9 @@ export const TacacsServiceCreateSchema = {
         }
     },
     type: 'object',
-    required: ['name'],
+    required: [
+        'name'
+    ],
     title: 'TacacsServiceCreate'
 } as const;
 
@@ -4746,7 +5134,12 @@ export const TacacsServicePublicSchema = {
         }
     },
     type: 'object',
-    required: ['name', 'id', 'created_at', 'updated_at'],
+    required: [
+        'name',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
     title: 'TacacsServicePublic'
 } as const;
 
@@ -4775,7 +5168,9 @@ export const TacacsServiceUpdateSchema = {
         }
     },
     type: 'object',
-    required: ['name'],
+    required: [
+        'name'
+    ],
     title: 'TacacsServiceUpdate'
 } as const;
 
@@ -4783,7 +5178,7 @@ export const TacacsServicesPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/TacacsServicePublic'
+                $ref: '#/components/schemas/TacacsServicePublic'
             },
             type: 'array',
             title: 'Data'
@@ -4794,7 +5189,10 @@ export const TacacsServicesPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'TacacsServicesPublic'
 } as const;
 
@@ -4845,7 +5243,11 @@ export const TacacsUserCreateSchema = {
         }
     },
     type: 'object',
-    required: ['username', 'password_type', 'member'],
+    required: [
+        'username',
+        'password_type',
+        'member'
+    ],
     title: 'TacacsUserCreate'
 } as const;
 
@@ -4896,7 +5298,14 @@ export const TacacsUserPublicSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'username', 'password_type', 'member', 'created_at', 'updated_at'],
+    required: [
+        'id',
+        'username',
+        'password_type',
+        'member',
+        'created_at',
+        'updated_at'
+    ],
     title: 'TacacsUserPublic'
 } as const;
 
@@ -4981,7 +5390,7 @@ export const TacacsUsersPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/TacacsUserPublic'
+                $ref: '#/components/schemas/TacacsUserPublic'
             },
             type: 'array',
             title: 'Data'
@@ -4992,7 +5401,10 @@ export const TacacsUsersPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'TacacsUsersPublic'
 } as const;
 
@@ -5009,7 +5421,9 @@ export const TokenSchema = {
         }
     },
     type: 'object',
-    required: ['access_token'],
+    required: [
+        'access_token'
+    ],
     title: 'Token'
 } as const;
 
@@ -5029,7 +5443,10 @@ export const UpdatePasswordSchema = {
         }
     },
     type: 'object',
-    required: ['current_password', 'new_password'],
+    required: [
+        'current_password',
+        'new_password'
+    ],
     title: 'UpdatePassword'
 } as const;
 
@@ -5076,7 +5493,10 @@ export const UserCreateSchema = {
         }
     },
     type: 'object',
-    required: ['email', 'password'],
+    required: [
+        'email',
+        'password'
+    ],
     title: 'UserCreate'
 } as const;
 
@@ -5138,7 +5558,13 @@ export const UserPublicSchema = {
         }
     },
     type: 'object',
-    required: ['email', 'id', 'created_at', 'updated_at', 'password_login_disabled'],
+    required: [
+        'email',
+        'id',
+        'created_at',
+        'updated_at',
+        'password_login_disabled'
+    ],
     title: 'UserPublic'
 } as const;
 
@@ -5170,7 +5596,10 @@ export const UserRegisterSchema = {
         }
     },
     type: 'object',
-    required: ['email', 'password'],
+    required: [
+        'email',
+        'password'
+    ],
     title: 'UserRegister'
 } as const;
 
@@ -5274,7 +5703,7 @@ export const UsersPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/UserPublic'
+                $ref: '#/components/schemas/UserPublic'
             },
             type: 'array',
             title: 'Data'
@@ -5285,7 +5714,10 @@ export const UsersPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'UsersPublic'
 } as const;
 
@@ -5315,7 +5747,11 @@ export const ValidationErrorSchema = {
         }
     },
     type: 'object',
-    required: ['loc', 'msg', 'type'],
+    required: [
+        'loc',
+        'msg',
+        'type'
+    ],
     title: 'ValidationError'
 } as const;
 
@@ -5360,7 +5796,13 @@ export const WebAuthnCredentialPublicSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'credential_id', 'name', 'created_at', 'last_used_at'],
+    required: [
+        'id',
+        'credential_id',
+        'name',
+        'created_at',
+        'last_used_at'
+    ],
     title: 'WebAuthnCredentialPublic'
 } as const;
 
@@ -5368,7 +5810,7 @@ export const WebAuthnCredentialsPublicSchema = {
     properties: {
         data: {
             items: {
-                '$ref': '#/components/schemas/WebAuthnCredentialPublic'
+                $ref: '#/components/schemas/WebAuthnCredentialPublic'
             },
             type: 'array',
             title: 'Data'
@@ -5379,6 +5821,9 @@ export const WebAuthnCredentialsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['data', 'count'],
+    required: [
+        'data',
+        'count'
+    ],
     title: 'WebAuthnCredentialsPublic'
 } as const;

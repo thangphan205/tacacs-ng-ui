@@ -9,7 +9,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiEye } from "react-icons/fi"
 import type { HighlighterGeneric } from "shiki"
-import { type ApiError, TacacsConfigsService } from "@/client"
+import type { ApiError } from "@/api"
+import { TacacsConfigsService } from "@/client"
 import { useColorMode } from "@/components/ui/color-mode"
 import {
   DialogBody,

@@ -12,7 +12,7 @@ import { startRegistration } from "@simplewebauthn/browser"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 
-import { OpenAPI } from "@/client"
+import { apiBaseUrl } from "@/api"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 
@@ -32,7 +32,7 @@ async function fetchPasskeys(): Promise<{
   data: PasskeyItem[]
   count: number
 }> {
-  const res = await fetch(`${OpenAPI.BASE}/api/v1/passkeys/`, {
+  const res = await fetch(`${apiBaseUrl()}/api/v1/passkeys/`, {
     headers: authHeader(),
   })
   if (!res.ok) throw new Error("Failed to load passkeys")
@@ -40,7 +40,7 @@ async function fetchPasskeys(): Promise<{
 }
 
 async function beginRegistration() {
-  const res = await fetch(`${OpenAPI.BASE}/api/v1/passkeys/register/begin`, {
+  const res = await fetch(`${apiBaseUrl()}/api/v1/passkeys/register/begin`, {
     method: "POST",
     headers: authHeader(),
   })
@@ -49,7 +49,7 @@ async function beginRegistration() {
 }
 
 async function completeRegistration(credential: unknown, name: string | null) {
-  const res = await fetch(`${OpenAPI.BASE}/api/v1/passkeys/register/complete`, {
+  const res = await fetch(`${apiBaseUrl()}/api/v1/passkeys/register/complete`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeader() },
     body: JSON.stringify({ credential, name }),
@@ -62,7 +62,7 @@ async function completeRegistration(credential: unknown, name: string | null) {
 }
 
 async function removePasskey(id: string) {
-  const res = await fetch(`${OpenAPI.BASE}/api/v1/passkeys/${id}`, {
+  const res = await fetch(`${apiBaseUrl()}/api/v1/passkeys/${id}`, {
     method: "DELETE",
     headers: authHeader(),
   })

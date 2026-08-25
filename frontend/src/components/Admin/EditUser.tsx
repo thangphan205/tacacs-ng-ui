@@ -26,9 +26,8 @@ import {
   FiType,
   FiUserPlus,
 } from "react-icons/fi"
-
+import type { ApiError } from "@/api"
 import { type UserPublic, UsersService, type UserUpdate } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { emailPattern, handleError } from "@/utils"
@@ -138,7 +137,7 @@ const EditUser = ({ user }: EditUserProps) => {
 
   const mutation = useMutation({
     mutationFn: (data: UserUpdateForm) =>
-      UsersService.updateUser({ userId: user.id, requestBody: data }),
+      UsersService.updateUser({ user_id: user.id, userUpdate: data }),
     onSuccess: () => {
       showSuccessToast("User updated successfully.")
       reset()

@@ -17,8 +17,8 @@ import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 import { FiCode, FiInfo, FiSliders, FiType } from "react-icons/fi"
 
+import type { ApiError } from "@/api"
 import {
-  type ApiError,
   type ConfigurationOptionPublic,
   ConfigurationOptionsService,
 } from "@/client"
@@ -98,7 +98,7 @@ const EditConfigurationOption = ({
     mutationFn: (data: ConfigurationOptionUpdateForm) =>
       ConfigurationOptionsService.updateConfigurationOption({
         id: configuration_option.id,
-        requestBody: data,
+        configurationOptionUpdate: data,
       }),
     onSuccess: () => {
       showSuccessToast("ConfigurationOption updated successfully.")

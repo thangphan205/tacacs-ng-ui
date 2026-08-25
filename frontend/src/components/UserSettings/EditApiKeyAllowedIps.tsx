@@ -3,9 +3,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FiEdit2 } from "react-icons/fi"
-
+import type { ApiError } from "@/api"
 import { type ApiKeyPublic, ApiKeysService } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -44,7 +43,7 @@ const EditApiKeyAllowedIps = ({ apiKey }: { apiKey: ApiKeyPublic }) => {
     mutationFn: (data: FormValues) =>
       ApiKeysService.updateApiKeyAllowedIps({
         id: apiKey.id,
-        requestBody: {
+        apiKeyAllowedIpsUpdate: {
           allowed_ips:
             data.allowed_ips
               .split("\n")

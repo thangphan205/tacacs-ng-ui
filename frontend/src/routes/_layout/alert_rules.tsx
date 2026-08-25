@@ -130,7 +130,7 @@ function RuleDialog({
       ? (data: typeof form) =>
           AlertRulesService.updateAlertRule({
             id: rule.id,
-            requestBody: {
+            alertRuleUpdate: {
               name: data.name,
               description: data.description || undefined,
               log_type: data.log_type,
@@ -145,7 +145,7 @@ function RuleDialog({
           })
       : (data: typeof form) =>
           AlertRulesService.createAlertRule({
-            requestBody: {
+            alertRuleCreate: {
               name: data.name,
               description: data.description || undefined,
               log_type: data.log_type,

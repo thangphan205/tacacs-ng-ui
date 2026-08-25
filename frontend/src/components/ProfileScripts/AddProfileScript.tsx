@@ -22,13 +22,13 @@ import {
   FiShield,
   FiSliders,
 } from "react-icons/fi"
+import type { ApiError } from "@/api"
 import {
   type ProfileScriptCreate,
   ProfilescriptsService,
   ProfilesService,
   TacacsServicesService,
 } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -186,7 +186,7 @@ const AddProfileScript = ({
 
   const mutation = useMutation({
     mutationFn: (data: ProfileScriptCreate) =>
-      ProfilescriptsService.createProfilescript({ requestBody: data }),
+      ProfilescriptsService.createProfilescript({ profileScriptCreate: data }),
     onSuccess: () => {
       showSuccessToast("ProfileScript created successfully.")
       reset({

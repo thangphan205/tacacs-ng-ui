@@ -14,9 +14,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FiInfo, FiPlus, FiSettings, FiShield, FiType } from "react-icons/fi"
-
+import type { ApiError } from "@/api"
 import { type ProfileCreate, ProfilesService } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -93,7 +92,7 @@ const AddProfile = () => {
 
   const mutation = useMutation({
     mutationFn: (data: ProfileCreate) =>
-      ProfilesService.createProfile({ requestBody: data }),
+      ProfilesService.createProfile({ profileCreate: data }),
     onSuccess: () => {
       showSuccessToast("Profile created successfully.")
       reset()

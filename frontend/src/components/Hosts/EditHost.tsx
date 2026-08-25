@@ -28,7 +28,8 @@ import {
   FiSettings,
   FiType,
 } from "react-icons/fi"
-import { type ApiError, type HostPublic, HostsService } from "@/client"
+import type { ApiError } from "@/api"
+import { type HostPublic, HostsService } from "@/client"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -159,7 +160,7 @@ const EditHost = ({ host }: EditHostProps) => {
 
   const mutation = useMutation({
     mutationFn: (data: HostUpdateForm) =>
-      HostsService.updateHost({ id: host.id, requestBody: data }),
+      HostsService.updateHost({ id: host.id, hostUpdate: data }),
     onSuccess: () => {
       showSuccessToast("Host updated successfully.")
       reset()

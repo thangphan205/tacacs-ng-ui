@@ -10,7 +10,7 @@ import {
 } from "@chakra-ui/react"
 import { FiCheck, FiCopy, FiInfo } from "react-icons/fi"
 
-import { OpenAPI } from "@/client"
+import { apiBaseUrl } from "@/api"
 
 interface McpClientGuideProps {
   apiKey?: string
@@ -19,7 +19,7 @@ interface McpClientGuideProps {
 
 export function getMcpEndpointUrl(): string {
   const base =
-    OpenAPI.BASE ||
+    apiBaseUrl() ||
     (typeof window !== "undefined" ? window.location.origin : "")
   const cleanBase = base.replace(/\/+$/, "")
   return `${cleanBase}/mcp/`

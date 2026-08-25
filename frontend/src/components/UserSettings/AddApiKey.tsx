@@ -16,9 +16,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FiAlertTriangle, FiCheck, FiCopy, FiPlus } from "react-icons/fi"
-
+import type { ApiError } from "@/api"
 import { type ApiKeyCreated, ApiKeysService } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import { Checkbox } from "../ui/checkbox"
@@ -105,7 +104,7 @@ const AddApiKey = () => {
   const mutation = useMutation({
     mutationFn: (data: FormValues) =>
       ApiKeysService.createApiKey({
-        requestBody: {
+        apiKeyCreate: {
           name: data.name,
           description: data.description || null,
           scopes: scopes.join(","),

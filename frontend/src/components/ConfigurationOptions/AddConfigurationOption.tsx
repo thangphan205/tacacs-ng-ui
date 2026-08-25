@@ -15,12 +15,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FiCode, FiInfo, FiPlus, FiSliders, FiType } from "react-icons/fi"
-
+import type { ApiError } from "@/api"
 import {
   type ConfigurationOptionCreate,
   ConfigurationOptionsService,
 } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -82,7 +81,7 @@ const AddConfigurationOption = () => {
   const mutation = useMutation({
     mutationFn: (data: ConfigurationOptionCreate) =>
       ConfigurationOptionsService.createConfigurationOption({
-        requestBody: data,
+        configurationOptionCreate: data,
       }),
     onSuccess: () => {
       showSuccessToast("ConfigurationOption created successfully.")

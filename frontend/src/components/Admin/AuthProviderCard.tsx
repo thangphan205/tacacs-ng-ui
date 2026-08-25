@@ -12,7 +12,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 
-import { OpenAPI } from "@/client"
+import { apiBaseUrl } from "@/api"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 
@@ -45,7 +45,7 @@ function adminHeader() {
 
 async function fetchProvider(provider: string): Promise<ProviderConfig> {
   const res = await fetch(
-    `${OpenAPI.BASE}/api/v1/admin/auth-providers/${provider}`,
+    `${apiBaseUrl()}/api/v1/admin/auth-providers/${provider}`,
     { headers: adminHeader() },
   )
   if (!res.ok) throw new Error("Failed to fetch provider config")
@@ -61,7 +61,7 @@ async function saveProvider(
   },
 ): Promise<ProviderConfig> {
   const res = await fetch(
-    `${OpenAPI.BASE}/api/v1/admin/auth-providers/${provider}`,
+    `${apiBaseUrl()}/api/v1/admin/auth-providers/${provider}`,
     { method: "PUT", headers: adminHeader(), body: JSON.stringify(payload) },
   )
   if (!res.ok) {

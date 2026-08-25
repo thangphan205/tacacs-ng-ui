@@ -22,13 +22,13 @@ import {
   FiShield,
   FiSliders,
 } from "react-icons/fi"
+import type { ApiError } from "@/api"
 import {
   type RulesetScriptCreate,
   RulesetscriptsService,
   RulesetsService,
   TacacsGroupsService,
 } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -185,7 +185,7 @@ const AddRulesetScript = ({
   }
   const mutation = useMutation({
     mutationFn: (data: RulesetScriptCreate) =>
-      RulesetscriptsService.createRulesetscript({ requestBody: data }),
+      RulesetscriptsService.createRulesetscript({ rulesetScriptCreate: data }),
     onSuccess: () => {
       showSuccessToast("RulesetScript created successfully.")
       reset({

@@ -14,7 +14,8 @@ import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 import { FiDatabase, FiKey, FiType } from "react-icons/fi"
 
-import { type ApiError, MavisesService, type MavisPublic } from "@/client"
+import type { ApiError } from "@/api"
+import { MavisesService, type MavisPublic } from "@/client"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -78,7 +79,7 @@ const EditMavis = ({ mavis }: EditMavisProps) => {
 
   const mutation = useMutation({
     mutationFn: (data: MavisUpdateForm) =>
-      MavisesService.updateMavis({ id: mavis.id, requestBody: data }),
+      MavisesService.updateMavis({ id: mavis.id, mavisUpdate: data }),
     onSuccess: () => {
       showSuccessToast("Mavis updated successfully.")
       reset()
