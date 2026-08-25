@@ -23,8 +23,8 @@ import {
   FiSliders,
 } from "react-icons/fi"
 
+import type { ApiError } from "@/api"
 import {
-  type ApiError,
   type RulesetScriptPublic,
   RulesetscriptsService,
   RulesetsService,
@@ -199,7 +199,7 @@ const EditRulesetScript = ({
     mutationFn: (data: RulesetScriptUpdateForm) =>
       RulesetscriptsService.updateRulesetscript({
         id: rulesetscript.id,
-        requestBody: data,
+        rulesetScriptUpdate: data,
       }),
     onSuccess: () => {
       showSuccessToast("RulesetScript updated successfully.")

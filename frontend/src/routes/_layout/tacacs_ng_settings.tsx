@@ -24,11 +24,8 @@ import {
   FiSettings,
 } from "react-icons/fi"
 
-import {
-  type ApiError,
-  TacacsNgSettingsService,
-  type TacacsNgSettingUpdate,
-} from "@/client"
+import type { ApiError } from "@/api"
+import { TacacsNgSettingsService, type TacacsNgSettingUpdate } from "@/client"
 import PendingTacacsNgSettings from "@/components/Pending/PendingTacacsNgSettings"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field } from "@/components/ui/field"
@@ -99,7 +96,9 @@ function TacacsNgSettingsForm() {
 
   const mutation = useMutation({
     mutationFn: (data: TacacsNgSettingUpdate) =>
-      TacacsNgSettingsService.updateTacacsNgSettings({ requestBody: data }),
+      TacacsNgSettingsService.updateTacacsNgSettings({
+        tacacsNgSettingUpdate: data,
+      }),
     onSuccess: () => {
       showSuccessToast("TACACS+ NG Settings updated successfully.")
       queryClient.invalidateQueries({ queryKey: ["tacacs_ng_settings"] })

@@ -23,13 +23,12 @@ import {
   FiType,
   FiUsers,
 } from "react-icons/fi"
-
+import type { ApiError } from "@/api"
 import {
   TacacsGroupsService,
   type TacacsUserCreate,
   TacacsUsersService,
 } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -144,7 +143,7 @@ const AddTacacsUser = () => {
 
   const mutation = useMutation({
     mutationFn: (data: TacacsUserCreate) =>
-      TacacsUsersService.createTacacsUser({ requestBody: data }),
+      TacacsUsersService.createTacacsUser({ tacacsUserCreate: data }),
     onSuccess: () => {
       showSuccessToast("TacacsUser created successfully.")
       reset()

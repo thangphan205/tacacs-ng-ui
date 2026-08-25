@@ -19,9 +19,8 @@ import { useEffect, useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FcGoogle } from "react-icons/fc"
 import { FiGithub } from "react-icons/fi"
-
-import type { Body_login_login_access_token as AccessToken } from "@/client"
-import { OpenAPI } from "@/client"
+import { apiBaseUrl } from "@/api"
+import type { BodyLoginLoginAccessToken as AccessToken } from "@/client"
 import { Button } from "@/components/ui/button"
 import { Field } from "@/components/ui/field"
 import { PasswordInput } from "@/components/ui/password-input"
@@ -66,7 +65,7 @@ function Login() {
   })
 
   useEffect(() => {
-    fetch(`${OpenAPI.BASE}/api/v1/auth-providers/status`)
+    fetch(`${apiBaseUrl()}/api/v1/auth-providers/status`)
       .then((r) => r.json())
       .then((data: ProvidersStatus) => setProviders(data))
       .catch(() => {})
@@ -74,7 +73,7 @@ function Login() {
 
   const handleGoogleLogin = async () => {
     try {
-      const res = await fetch(`${OpenAPI.BASE}/api/v1/oauth/google/authorize`)
+      const res = await fetch(`${apiBaseUrl()}/api/v1/oauth/google/authorize`)
       const data = await res.json()
       if (!res.ok || !data.url) {
         handleError({ status: res.status, body: data } as never)
@@ -91,7 +90,7 @@ function Login() {
 
   const handleKeycloakLogin = async () => {
     try {
-      const res = await fetch(`${OpenAPI.BASE}/api/v1/oauth/keycloak/authorize`)
+      const res = await fetch(`${apiBaseUrl()}/api/v1/oauth/keycloak/authorize`)
       const data = await res.json()
       if (!res.ok || !data.url) {
         handleError({ status: res.status, body: data } as never)
@@ -109,7 +108,7 @@ function Login() {
   const handlePasskeyLogin = async () => {
     try {
       const beginRes = await fetch(
-        `${OpenAPI.BASE}/api/v1/passkeys/authenticate/begin`,
+        `${apiBaseUrl()}/api/v1/passkeys/authenticate/begin`,
         {
           method: "POST",
         },
@@ -121,7 +120,7 @@ function Login() {
       const credential = await startAuthentication({ optionsJSON: options })
 
       const completeRes = await fetch(
-        `${OpenAPI.BASE}/api/v1/passkeys/authenticate/complete`,
+        `${apiBaseUrl()}/api/v1/passkeys/authenticate/complete`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

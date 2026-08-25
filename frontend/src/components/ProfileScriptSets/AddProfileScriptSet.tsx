@@ -23,12 +23,12 @@ import {
   FiPlus,
   FiSliders,
 } from "react-icons/fi"
+import type { ApiError } from "@/api"
 import {
   type ProfileScriptSetCreate,
   ProfilescriptsetsService,
   ProfilescriptsService,
 } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -132,7 +132,9 @@ const AddProfileScriptSet = ({
 
   const mutation = useMutation({
     mutationFn: (data: ProfileScriptSetCreate) =>
-      ProfilescriptsetsService.createProfilescriptset({ requestBody: data }),
+      ProfilescriptsetsService.createProfilescriptset({
+        profileScriptSetCreate: data,
+      }),
     onSuccess: () => {
       showSuccessToast("ProfileScriptSet created successfully.")
       reset({

@@ -12,9 +12,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FiDatabase, FiKey, FiPlus, FiType } from "react-icons/fi"
-
+import type { ApiError } from "@/api"
 import { type MavisCreate, MavisesService } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -67,7 +66,7 @@ const AddMavis = () => {
 
   const mutation = useMutation({
     mutationFn: (data: MavisCreate) =>
-      MavisesService.createMavis({ requestBody: data }),
+      MavisesService.createMavis({ mavisCreate: data }),
     onSuccess: () => {
       showSuccessToast("Mavis created successfully.")
       reset()

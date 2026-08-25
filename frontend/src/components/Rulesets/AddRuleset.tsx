@@ -21,9 +21,8 @@ import {
   FiShield,
   FiType,
 } from "react-icons/fi"
-
+import type { ApiError } from "@/api"
 import { type RulesetCreate, RulesetsService } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -100,7 +99,7 @@ const AddRuleset = () => {
 
   const mutation = useMutation({
     mutationFn: (data: RulesetCreate) =>
-      RulesetsService.createRuleset({ requestBody: data }),
+      RulesetsService.createRuleset({ rulesetCreate: data }),
     onSuccess: () => {
       showSuccessToast("Ruleset created successfully.")
       reset()

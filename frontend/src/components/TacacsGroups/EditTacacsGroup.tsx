@@ -13,11 +13,8 @@ import { useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 import { FiInfo, FiSettings, FiType, FiUsers } from "react-icons/fi"
-import {
-  type ApiError,
-  type TacacsGroupPublic,
-  TacacsGroupsService,
-} from "@/client"
+import type { ApiError } from "@/api"
+import { type TacacsGroupPublic, TacacsGroupsService } from "@/client"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -92,7 +89,7 @@ const EditTacacsGroup = ({ tacacs_group }: EditTacacsGroupProps) => {
     mutationFn: (data: TacacsGroupUpdateForm) =>
       TacacsGroupsService.updateTacacsGroup({
         id: tacacs_group.id,
-        requestBody: data,
+        tacacsGroupUpdate: data,
       }),
     onSuccess: () => {
       showSuccessToast("TacacsGroup updated successfully.")

@@ -23,8 +23,8 @@ import {
   FiType,
   FiUsers,
 } from "react-icons/fi"
+import type { ApiError } from "@/api"
 import {
-  type ApiError,
   TacacsGroupsService,
   type TacacsUserPublic,
   TacacsUsersService,
@@ -165,7 +165,7 @@ const EditTacacsUser = ({ tacacs_user }: EditTacacsUserProps) => {
     mutationFn: (data: TacacsUserUpdateForm) =>
       TacacsUsersService.updateTacacsUser({
         id: tacacs_user.id,
-        requestBody: data,
+        tacacsUserUpdate: data,
       }),
     onSuccess: () => {
       showSuccessToast("TacacsUser updated successfully.")

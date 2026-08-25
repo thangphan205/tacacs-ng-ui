@@ -13,7 +13,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { LuFolder, LuKey, LuSquareCheck, LuUser } from "react-icons/lu"
 
-import { OpenAPI } from "@/client"
+import { apiBaseUrl } from "@/api"
 import AuthProviderCard from "@/components/Admin/AuthProviderCard"
 import {
   DialogBody,
@@ -65,7 +65,7 @@ function adminHeader() {
 
 async function fetchProvider(provider: string) {
   const res = await fetch(
-    `${OpenAPI.BASE}/api/v1/admin/auth-providers/${provider}`,
+    `${apiBaseUrl()}/api/v1/admin/auth-providers/${provider}`,
     { headers: adminHeader() },
   )
   if (!res.ok) throw new Error("Failed to fetch provider config")
@@ -86,7 +86,7 @@ async function saveProvider(
   },
 ) {
   const res = await fetch(
-    `${OpenAPI.BASE}/api/v1/admin/auth-providers/${provider}`,
+    `${apiBaseUrl()}/api/v1/admin/auth-providers/${provider}`,
     { method: "PUT", headers: adminHeader(), body: JSON.stringify(payload) },
   )
   if (!res.ok) {

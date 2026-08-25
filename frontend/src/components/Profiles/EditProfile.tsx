@@ -16,7 +16,8 @@ import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 import { FiInfo, FiSettings, FiShield, FiType } from "react-icons/fi"
 
-import { type ApiError, type ProfilePublic, ProfilesService } from "@/client"
+import type { ApiError } from "@/api"
+import { type ProfilePublic, ProfilesService } from "@/client"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -106,7 +107,7 @@ const EditProfile = ({ profile }: EditProfileProps) => {
 
   const mutation = useMutation({
     mutationFn: (data: ProfileUpdateForm) =>
-      ProfilesService.updateProfile({ id: profile.id, requestBody: data }),
+      ProfilesService.updateProfile({ id: profile.id, profileUpdate: data }),
     onSuccess: () => {
       showSuccessToast("Profile updated successfully.")
       reset()

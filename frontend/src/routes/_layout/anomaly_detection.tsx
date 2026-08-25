@@ -53,8 +53,8 @@ function getQueryOptions({ page, perPage, anomalyOnly }: QueryParams) {
       AnomalyDetectionService.readAnomalyResults({
         skip: (page - 1) * perPage,
         limit: perPage,
-        isAnomalyOnly: anomalyOnly,
-        sortBy: "anomaly_score",
+        is_anomaly_only: anomalyOnly,
+        sort_by: "anomaly_score",
       }),
     queryKey: ["anomaly_detection", { page, perPage, anomalyOnly }],
   }

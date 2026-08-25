@@ -28,8 +28,8 @@ import {
   FiSettings,
   FiType,
 } from "react-icons/fi"
+import type { ApiError } from "@/api"
 import { type HostCreate, HostsService } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -139,7 +139,7 @@ const AddHost = () => {
 
   const mutation = useMutation({
     mutationFn: (data: HostCreate) =>
-      HostsService.createHost({ requestBody: data }),
+      HostsService.createHost({ hostCreate: data }),
     onSuccess: () => {
       showSuccessToast("Host created successfully.")
       reset()

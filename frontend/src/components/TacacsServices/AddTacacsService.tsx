@@ -12,9 +12,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FiInfo, FiPlus, FiSettings, FiTool, FiType } from "react-icons/fi"
-
+import type { ApiError } from "@/api"
 import { type TacacsServiceCreate, TacacsServicesService } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -76,7 +75,7 @@ const AddTacacsService = () => {
 
   const mutation = useMutation({
     mutationFn: (data: TacacsServiceCreate) =>
-      TacacsServicesService.createTacacsService({ requestBody: data }),
+      TacacsServicesService.createTacacsService({ tacacsServiceCreate: data }),
     onSuccess: () => {
       showSuccessToast("TacacsService created successfully.")
       reset()

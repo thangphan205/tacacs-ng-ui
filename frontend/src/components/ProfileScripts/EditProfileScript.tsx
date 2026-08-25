@@ -23,8 +23,8 @@ import {
   FiSliders,
 } from "react-icons/fi"
 
+import type { ApiError } from "@/api"
 import {
-  type ApiError,
   type ProfileScriptPublic,
   ProfilescriptsService,
   ProfilesService,
@@ -197,7 +197,7 @@ const EditProfileScript = ({
     mutationFn: (data: ProfileScriptUpdateForm) =>
       ProfilescriptsService.updateProfilescript({
         id: profilescript.id,
-        requestBody: data,
+        profileScriptUpdate: data,
       }),
     onSuccess: () => {
       showSuccessToast("ProfileScript updated successfully.")

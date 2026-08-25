@@ -16,7 +16,8 @@ import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 import { FiInfo, FiSettings, FiShield, FiType } from "react-icons/fi"
 
-import { type ApiError, type RulesetPublic, RulesetsService } from "@/client"
+import type { ApiError } from "@/api"
+import { type RulesetPublic, RulesetsService } from "@/client"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -106,7 +107,7 @@ const EditRuleset = ({ ruleset }: EditRulesetProps) => {
 
   const mutation = useMutation({
     mutationFn: (data: RulesetUpdateForm) =>
-      RulesetsService.updateRuleset({ id: ruleset.id, requestBody: data }),
+      RulesetsService.updateRuleset({ id: ruleset.id, rulesetUpdate: data }),
     onSuccess: () => {
       showSuccessToast("Ruleset updated successfully.")
       reset()

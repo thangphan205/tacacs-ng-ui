@@ -48,11 +48,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import type {
-  AuditLogPublic,
-  CancelablePromise,
-  TacacsLogEvent,
-} from "@/client"
+import type { AuditLogPublic, TacacsLogEvent } from "@/client"
 import {
   AaaStatisticsService,
   AuditLogsService,
@@ -420,13 +416,19 @@ function TodayLogSummary() {
           label: `✓ ${data?.authentication?.success ?? 0} success`,
           color: "green",
         },
-        { label: `✗ ${data?.authentication?.failed ?? 0} failed`, color: "red" },
+        {
+          label: `✗ ${data?.authentication?.failed ?? 0} failed`,
+          color: "red",
+        },
       ],
     },
     {
       label: "Authorization",
       badges: [
-        { label: `✓ ${data?.authorization?.permit ?? 0} permit`, color: "teal" },
+        {
+          label: `✓ ${data?.authorization?.permit ?? 0} permit`,
+          color: "teal",
+        },
         { label: `✗ ${data?.authorization?.deny ?? 0} deny`, color: "orange" },
       ],
     },
@@ -510,7 +512,7 @@ interface ConfigItem {
   queryKey: string
   icon: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  fn: () => CancelablePromise<any>
+  fn: () => Promise<any>
 }
 
 const CONFIG_ITEMS: ConfigItem[] = [
@@ -733,8 +735,8 @@ function LastTacacsLogs() {
     queryKey: ["dashboard_last_tacacs_logs"],
     queryFn: () =>
       TacacsLogsService.listLogEvents({
-        dateFrom: sevenDaysAgo,
-        dateTo: today,
+        date_from: sevenDaysAgo,
+        date_to: today,
         limit: 20,
       }),
   })
@@ -883,7 +885,8 @@ function Dashboard() {
 
   const { data: rangeStats, isLoading: rangeLoading } = useQuery({
     queryKey: ["aaa_statistics_range", rangeDate],
-    queryFn: () => AaaStatisticsService.readAaaStatisticsRange({ rangeDate }),
+    queryFn: () =>
+      AaaStatisticsService.readAaaStatisticsRange({ range_date: rangeDate }),
     enabled: !!rangeDate,
     refetchInterval: 300_000,
   })

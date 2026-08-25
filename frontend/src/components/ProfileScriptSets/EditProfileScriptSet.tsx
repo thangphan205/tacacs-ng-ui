@@ -18,8 +18,8 @@ import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 import { FiCode, FiInfo, FiKey, FiList, FiSliders } from "react-icons/fi"
 
+import type { ApiError } from "@/api"
 import {
-  type ApiError,
   type ProfileScriptSetPublic,
   ProfilescriptsetsService,
   ProfilescriptsService,
@@ -134,7 +134,7 @@ const EditProfileScriptSet = ({
     mutationFn: (data: ProfileScriptSetUpdateForm) =>
       ProfilescriptsetsService.updateProfilescriptset({
         id: profilescriptset.id,
-        requestBody: data,
+        profileScriptSetUpdate: data,
       }),
     onSuccess: () => {
       showSuccessToast("ProfileScriptSet updated successfully.")

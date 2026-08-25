@@ -11,11 +11,8 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
-import {
-  type ApiError,
-  type TacacsConfigPublic,
-  TacacsConfigsService,
-} from "@/client"
+import type { ApiError } from "@/api"
+import { type TacacsConfigPublic, TacacsConfigsService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -62,7 +59,7 @@ const EditTacacsConfig = ({ tacacs_config }: EditTacacsConfigProps) => {
     mutationFn: (data: TacacsConfigUpdateForm) =>
       TacacsConfigsService.updateTacacsConfig({
         id: tacacs_config.id,
-        requestBody: {
+        tacacsConfigUpdate: {
           ...data,
           active: true,
         },

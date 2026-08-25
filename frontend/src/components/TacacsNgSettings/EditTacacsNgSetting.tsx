@@ -11,11 +11,8 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
-import {
-  type ApiError,
-  type TacacsNgSettingPublic,
-  TacacsNgSettingsService,
-} from "@/client"
+import type { ApiError } from "@/api"
+import { type TacacsNgSettingPublic, TacacsNgSettingsService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -83,7 +80,9 @@ const EditTacacsNgSetting = ({
 
   const mutation = useMutation({
     mutationFn: (data: TacacsNgSettingUpdateForm) =>
-      TacacsNgSettingsService.updateTacacsNgSettings({ requestBody: data }),
+      TacacsNgSettingsService.updateTacacsNgSettings({
+        tacacsNgSettingUpdate: data,
+      }),
     onSuccess: () => {
       showSuccessToast("TacacsNgSetting updated successfully.")
       reset()

@@ -125,11 +125,11 @@ function ChannelDialog({
       ? () =>
           NotificationChannelsService.updateNotificationChannel({
             id: channel.id,
-            requestBody: form,
+            notificationChannelUpdate: form,
           })
       : () =>
           NotificationChannelsService.createNotificationChannel({
-            requestBody: form,
+            notificationChannelCreate: form,
           }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notification_channels"] })

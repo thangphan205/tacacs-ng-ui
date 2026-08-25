@@ -7,14 +7,9 @@ import {
 import { createRouter, RouterProvider } from "@tanstack/react-router"
 import { StrictMode } from "react"
 import ReactDOM from "react-dom/client"
-import { ApiError, OpenAPI } from "./client"
+import { ApiError } from "./api"
 import { CustomProvider } from "./components/ui/provider"
 import { routeTree } from "./routeTree.gen"
-
-OpenAPI.BASE = import.meta.env.VITE_API_URL
-OpenAPI.TOKEN = async () => {
-  return localStorage.getItem("access_token") || ""
-}
 
 const handleApiError = (error: Error) => {
   if (error instanceof ApiError && error.status === 401) {

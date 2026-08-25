@@ -10,9 +10,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
-
+import type { ApiError } from "@/api"
 import { type ItemCreate, ItemsService } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -46,7 +45,7 @@ const AddItem = () => {
 
   const mutation = useMutation({
     mutationFn: (data: ItemCreate) =>
-      ItemsService.createItem({ requestBody: data }),
+      ItemsService.createItem({ itemCreate: data }),
     onSuccess: () => {
       showSuccessToast("Item created successfully.")
       reset()

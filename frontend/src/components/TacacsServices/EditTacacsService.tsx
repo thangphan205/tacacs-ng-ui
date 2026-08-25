@@ -14,11 +14,8 @@ import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 import { FiInfo, FiSettings, FiTool, FiType } from "react-icons/fi"
 
-import {
-  type ApiError,
-  type TacacsServicePublic,
-  TacacsServicesService,
-} from "@/client"
+import type { ApiError } from "@/api"
+import { type TacacsServicePublic, TacacsServicesService } from "@/client"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -93,7 +90,7 @@ const EditTacacsService = ({ tacacs_service }: EditTacacsServiceProps) => {
     mutationFn: (data: TacacsServiceUpdateForm) =>
       TacacsServicesService.updateTacacsService({
         id: tacacs_service.id,
-        requestBody: data,
+        tacacsServiceUpdate: data,
       }),
     onSuccess: () => {
       showSuccessToast("TacacsService updated successfully.")

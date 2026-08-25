@@ -27,7 +27,7 @@ const DeleteUser = ({ user }: { user: UserPublic }) => {
   } = useForm()
 
   const deleteUser = async (id: string) => {
-    await UsersService.deleteUser({ userId: id })
+    await UsersService.deleteUser({ user_id: id })
   }
 
   const mutation = useMutation({

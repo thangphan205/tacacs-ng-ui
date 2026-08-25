@@ -14,8 +14,8 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { FaCopy, FaDownload, FaEdit, FaEye, FaSave } from "react-icons/fa"
 import type { HighlighterGeneric } from "shiki"
+import type { ApiError } from "@/api"
 import {
-  type ApiError,
   type TacacsConfigPublic,
   TacacsConfigsService,
   type TacacsConfigUpdate,
@@ -82,7 +82,7 @@ const ShowTacacsConfig = ({
     mutationFn: (data: TacacsConfigUpdate) =>
       TacacsConfigsService.updateTacacsConfig({
         id: tacacs_config.id,
-        requestBody: data,
+        tacacsConfigUpdate: data,
       }),
     onError: (err: ApiError) => {
       handleError(err)

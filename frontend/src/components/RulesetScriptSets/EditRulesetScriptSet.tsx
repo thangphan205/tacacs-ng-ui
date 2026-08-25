@@ -18,8 +18,8 @@ import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 import { FiCode, FiInfo, FiKey, FiList, FiSliders } from "react-icons/fi"
 
+import type { ApiError } from "@/api"
 import {
-  type ApiError,
   ProfilesService,
   type RulesetScriptSetPublic,
   RulesetscriptsetsService,
@@ -165,7 +165,7 @@ const EditRulesetScriptSet = ({
     mutationFn: (data: RulesetScriptSetUpdateForm) =>
       RulesetscriptsetsService.updateRulesetscriptset({
         id: rulesetscriptset.id,
-        requestBody: data,
+        rulesetScriptSetUpdate: data,
       }),
     onSuccess: () => {
       showSuccessToast("RulesetScriptSet updated successfully.")

@@ -12,9 +12,8 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiBook, FiCheck, FiExternalLink, FiPlus } from "react-icons/fi"
-
+import type { ApiError } from "@/api"
 import { MavisesService } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -46,7 +45,7 @@ const LoadMavisTemplate = () => {
   const mutation = useMutation({
     mutationFn: (entry: MavisTemplateEntry) =>
       MavisesService.createMavis({
-        requestBody: {
+        mavisCreate: {
           mavis_key: entry.mavis_key,
           mavis_value: entry.mavis_value,
         },

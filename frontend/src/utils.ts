@@ -1,4 +1,4 @@
-import type { ApiError } from "./client"
+import type { ApiError } from "./api"
 import { toaster } from "./components/ui/toaster"
 
 export const emailPattern = {

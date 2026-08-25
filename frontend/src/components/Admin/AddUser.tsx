@@ -25,8 +25,8 @@ import {
   FiType,
   FiUserPlus,
 } from "react-icons/fi"
+import type { ApiError } from "@/api"
 import { type UserCreate, UsersService } from "@/client"
-import type { ApiError } from "@/client/core/ApiError"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { emailPattern, handleError } from "@/utils"
@@ -141,7 +141,7 @@ const AddUser = () => {
 
   const mutation = useMutation({
     mutationFn: (data: UserCreate) =>
-      UsersService.createUser({ requestBody: data }),
+      UsersService.createUser({ userCreate: data }),
     onSuccess: () => {
       showSuccessToast("User created successfully.")
       reset()
