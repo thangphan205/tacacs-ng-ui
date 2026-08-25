@@ -16,6 +16,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ bump shiki from 4.3.1 to 4.4.3 in /frontend. PR [#287](https://github.com/thangphan205/tacacs-ng-ui/pull/287) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ update fastapi[standard] requirement from <1.0.0,>=0.114.2 to >=0.141.1,<1.0.0 in /backend. PR [#286](https://github.com/thangphan205/tacacs-ng-ui/pull/286) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump react-dom and @types/react-dom in /frontend. PR [#288](https://github.com/thangphan205/tacacs-ng-ui/pull/288) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump react-error-boundary from 6.1.2 to 6.1.3 in /frontend. PR [#285](https://github.com/thangphan205/tacacs-ng-ui/pull/285) by [@dependabot[bot]](https://github.com/apps/dependabot).
