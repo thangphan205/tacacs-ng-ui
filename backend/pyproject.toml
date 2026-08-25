@@ -32,7 +32,7 @@ dependencies = [
     "cryptography>=50.0.0",
     "scikit-learn>=1.9.0,<2.0.0",
     "numpy>=2.5.2,<3.0.0",
-    "mcp>=1.29.0,<2.0.0",
+    "mcp>=2.0.0,<3.0.0",
 ]
 
 [dependency-groups]

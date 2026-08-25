@@ -180,9 +180,9 @@ Mounted at `settings.MCP_PATH` (default `/mcp`) directly on `app` in `main.py` �
 
 | File | Role |
 |---|---|
-| `server.py` | `build_mcp()` factory, `MCPMountApp` ASGI shim, `mcp_lifespan()` |
+| `server.py` | `build_mcp()` factory, `build_http_app()`, `MCPMountApp` ASGI shim, `mcp_lifespan()` |
 | `auth.py` | `ApiKeyAuthMiddleware` (401 before protocol handling), `principal_from(ctx)`, scope guards |
-| `tools.py` | the 15 tool registrations; `_require_read` / `_allow_write` / `_allow_unredacted` guards |
+| `tools.py` | the 15 tool registrations via `_tool()`; `_require_read` / `_allow_write` / `_allow_unredacted` guards |
 | `service.py` | read-side DB work — plain sync functions taking a `Session` |
 | `write_service.py` | write-side DB work — the `WRITABLE` registry adapting each entity's CRUD kwargs to one signature |
 | `redact.py` | two-pass secret masking |
@@ -191,9 +191,11 @@ Mounted at `settings.MCP_PATH` (default `/mcp`) directly on `app` in `main.py` �
 Constraints that are load-bearing:
 
 - **`stateless_http=True` is mandatory** — supervisord runs `uvicorn --workers 4`, four processes with no shared memory, so in-process session state would miss on most requests.
-- **Tools must be `async def` + `run_in_threadpool`** — FastMCP calls sync tool functions inline on the event loop.
-- **`transport_security` must be passed explicitly** — FastMCP auto-enables DNS-rebinding protection when `host` is loopback (its default), which rejects the `Host: api.<domain>` header behind Traefik.
-- **`session_manager.run()` is once-per-instance** — hence a fresh `FastMCP` per lifespan and the `MCPMountApp` shim. This is also why `tests/conftest.py`'s `client` fixture is session-scoped.
+- **The four transport settings live on `build_http_app()`, not the constructor** — `stateless_http`, `json_response`, `streamable_http_path` and `transport_security` were `FastMCP(...)` arguments before mcp 2.0; `MCPServer` takes them on `streamable_http_app()`. That call is also what lazily builds the session manager, so it must happen before `session_manager` is read.
+- **Tools must be `async def` + `run_in_threadpool`** — the server calls sync tool functions inline on the event loop.
+- **Anticipated failures must reach the model as `ToolError`** — mcp 2.x sends a tool's exception text to the client only for `ToolError`; everything else is treated as a crash and reported as a bare `Error executing tool <name>`. `_tool()` in `tools.py` wraps each registration and translates `McpAuthError` / `LookupError` / `ValueError`, so scope refusals and validation messages stay readable. `service.py` and `write_service.py` keep raising plain builtins — the transport-shaped exception is applied at the boundary, the same way `crud/` never raises `HTTPException`.
+- **`transport_security` must be passed explicitly** — DNS-rebinding protection is auto-enabled when `host` is loopback (its default), which rejects the `Host: api.<domain>` header behind Traefik.
+- **`session_manager.run()` is once-per-instance** — hence a fresh `MCPServer` per lifespan and the `MCPMountApp` shim. This is also why `tests/conftest.py`'s `client` fixture is session-scoped.
 - **Write tools check the node role themselves** — `require_primary_node()` is a FastAPI dependency and MCP tools are not routes, so `_allow_write()` repeats the standby check inline.
 
 ### API Keys (`backend/app/crud/api_keys.py`)
