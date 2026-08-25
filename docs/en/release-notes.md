@@ -16,6 +16,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ bump pygments from 2.18.0 to 2.20.0 in /backend. PR [#282](https://github.com/thangphan205/tacacs-ng-ui/pull/282) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump coverage from 7.14.3 to 7.15.4 in /backend. PR [#281](https://github.com/thangphan205/tacacs-ng-ui/pull/281) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump emails from 1.1.1 to 1.1.2 in /backend. PR [#279](https://github.com/thangphan205/tacacs-ng-ui/pull/279) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump webauthn from 2.5.1 to 3.0.0 in /backend. PR [#268](https://github.com/thangphan205/tacacs-ng-ui/pull/268) by [@dependabot[bot]](https://github.com/apps/dependabot).
