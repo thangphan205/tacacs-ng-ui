@@ -1,7 +1,7 @@
 """MCP tool, resource and prompt registrations.
 
 Every tool is `async def` and offloads its work with `run_in_threadpool`:
-FastMCP invokes synchronous tool functions inline on the event loop, so a
+the MCP server invokes synchronous tool functions inline on the event loop, so a
 blocking DB query or a 10-second `tac_plus-ng -P` subprocess would freeze one
 of the four uvicorn workers.
 
@@ -13,10 +13,13 @@ Writes reach entity tables only. No tool here saves a config file, activates a
 config or reloads tac_plus-ng — a human does that from the TACACS Configs page.
 """
 
+import functools
 import logging
+from collections.abc import Awaitable, Callable
 from typing import Annotated, Any, Literal
 
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.mcpserver import Context, MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 from sqlmodel import Session
 from starlette.concurrency import run_in_threadpool
@@ -137,9 +140,47 @@ def _audit_write(
         log.warning("Failed to audit MCP write", exc_info=True)
 
 
-def register(server: FastMCP) -> None:
-    @server.tool()
-    async def whoami(ctx: Context) -> dict[str, Any]:  # type: ignore[type-arg]
+# Failures these tools raise on purpose, whose text the model needs to read:
+# an auth refusal, a missing entity, an invalid or duplicate payload.
+_ANTICIPATED = (McpAuthError, LookupError, ValueError)
+
+
+def _tool(
+    server: MCPServer,
+) -> Callable[[Callable[..., Awaitable[Any]]], Callable[..., Awaitable[Any]]]:
+    """Register a tool, translating anticipated failures into `ToolError`.
+
+    mcp 2.x reserves `ToolError` for failures a tool saw coming: its message
+    reaches the model and the server logs it at INFO. Every *other* exception
+    is treated as a crash — the model is told only "Error executing tool
+    <name>" and the traceback is logged at ERROR. That default is right for
+    real bugs, but it would swallow the scope refusals and validation messages
+    these tools exist to report.
+
+    The translation lives here rather than in `service`/`write_service` for the
+    same reason `crud/` never raises `HTTPException`: those modules stay plain
+    DB helpers raising `LookupError`/`ValueError`, and the transport-shaped
+    exception is applied at the boundary.
+    """
+
+    def decorate(fn: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
+        @functools.wraps(fn)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return await fn(*args, **kwargs)
+            except _ANTICIPATED as exc:
+                raise ToolError(str(exc)) from exc
+
+        # `functools.wraps` sets `__wrapped__`, so the SDK still reads the
+        # wrapped signature when it builds the input schema.
+        return server.tool()(wrapper)
+
+    return decorate
+
+
+def register(server: MCPServer) -> None:
+    @_tool(server)
+    async def whoami(ctx: Context) -> dict[str, Any]:
         """Identify the API key this session is authenticated with.
 
         `can_write` reports whether entity writes are permitted. Even when it is
@@ -160,9 +201,9 @@ def register(server: FastMCP) -> None:
             "can_activate_config": False,
         }
 
-    @server.tool()
+    @_tool(server)
     async def list_entities(
-        ctx: Context,  # type: ignore[type-arg]
+        ctx: Context,
         entity_type: EntityType,
         search: str | None = None,
         limit: Annotated[int, Field(ge=1, le=MAX_PAGE_SIZE)] = 100,
@@ -190,9 +231,9 @@ def register(server: FastMCP) -> None:
 
         return await run_in_threadpool(_run)
 
-    @server.tool()
+    @_tool(server)
     async def describe_entity(
-        ctx: Context,  # type: ignore[type-arg]
+        ctx: Context,
         entity_type: EntityType,
         name: str,
         include_children: bool = True,
@@ -212,8 +253,8 @@ def register(server: FastMCP) -> None:
 
         return await run_in_threadpool(_run)
 
-    @server.tool()
-    async def get_tacacs_settings(ctx: Context) -> dict[str, Any]:  # type: ignore[type-arg]
+    @_tool(server)
+    async def get_tacacs_settings(ctx: Context) -> dict[str, Any]:
         """Read the tac_plus-ng daemon settings (listen address, instances, logs)."""
         p = principal_from(ctx)
         _require_read(p)
@@ -224,9 +265,9 @@ def register(server: FastMCP) -> None:
 
         return await run_in_threadpool(_run)
 
-    @server.tool()
+    @_tool(server)
     async def generate_config_preview(
-        ctx: Context,  # type: ignore[type-arg]
+        ctx: Context,
         redact_secrets: bool = True,
     ) -> dict[str, Any]:
         """Render the full tac_plus-ng config from current database state.
@@ -249,9 +290,9 @@ def register(server: FastMCP) -> None:
 
         return await run_in_threadpool(_run)
 
-    @server.tool()
+    @_tool(server)
     async def generate_config_section(
-        ctx: Context,  # type: ignore[type-arg]
+        ctx: Context,
         section: Section,
         redact_secrets: bool = True,
     ) -> dict[str, Any]:
@@ -270,9 +311,9 @@ def register(server: FastMCP) -> None:
 
         return await run_in_threadpool(_run)
 
-    @server.tool()
+    @_tool(server)
     async def validate_config_text(
-        ctx: Context,  # type: ignore[type-arg]
+        ctx: Context,
         text: str,
     ) -> dict[str, Any]:
         """Syntax-check arbitrary config text with `tac_plus-ng -P`.
@@ -307,8 +348,8 @@ def register(server: FastMCP) -> None:
             timeout=settings.MCP_VALIDATE_TIMEOUT_SECONDS,
         )
 
-    @server.tool()
-    async def validate_generated_config(ctx: Context) -> dict[str, Any]:  # type: ignore[type-arg]
+    @_tool(server)
+    async def validate_generated_config(ctx: Context) -> dict[str, Any]:
         """Validate the real, unredacted config built from the database.
 
         Prefer this over `validate_config_text` when the question is "does what
@@ -326,8 +367,8 @@ def register(server: FastMCP) -> None:
 
         return await run_in_threadpool(_run)
 
-    @server.tool()
-    async def list_saved_configs(ctx: Context) -> dict[str, Any]:  # type: ignore[type-arg]
+    @_tool(server)
+    async def list_saved_configs(ctx: Context) -> dict[str, Any]:
         """List saved config files and report which one is active."""
         p = principal_from(ctx)
         _require_read(p)
@@ -338,9 +379,9 @@ def register(server: FastMCP) -> None:
 
         return await run_in_threadpool(_run)
 
-    @server.tool()
+    @_tool(server)
     async def read_saved_config(
-        ctx: Context,  # type: ignore[type-arg]
+        ctx: Context,
         filename: str,
         redact_secrets: bool = True,
     ) -> dict[str, Any]:
@@ -359,9 +400,9 @@ def register(server: FastMCP) -> None:
 
         return await run_in_threadpool(_run)
 
-    @server.tool()
+    @_tool(server)
     async def validate_saved_config(
-        ctx: Context,  # type: ignore[type-arg]
+        ctx: Context,
         filename: str,
     ) -> dict[str, Any]:
         """Syntax-check a saved config file by name."""
@@ -374,9 +415,9 @@ def register(server: FastMCP) -> None:
             timeout=settings.MCP_VALIDATE_TIMEOUT_SECONDS,
         )
 
-    @server.tool()
+    @_tool(server)
     async def diff_generated_vs_active(
-        ctx: Context,  # type: ignore[type-arg]
+        ctx: Context,
         redact_secrets: bool = True,
     ) -> dict[str, Any]:
         """Diff the config generated from the database against the live file.
@@ -397,9 +438,9 @@ def register(server: FastMCP) -> None:
 
         return await run_in_threadpool(_run)
 
-    @server.tool()
+    @_tool(server)
     async def create_entity(
-        ctx: Context,  # type: ignore[type-arg]
+        ctx: Context,
         entity_type: EntityType,
         data: dict[str, Any],
     ) -> dict[str, Any]:
@@ -432,9 +473,9 @@ def register(server: FastMCP) -> None:
             "next_step": NEXT_STEP,
         }
 
-    @server.tool()
+    @_tool(server)
     async def update_entity(
-        ctx: Context,  # type: ignore[type-arg]
+        ctx: Context,
         entity_type: EntityType,
         name: str,
         data: dict[str, Any],
@@ -467,9 +508,9 @@ def register(server: FastMCP) -> None:
             "next_step": NEXT_STEP,
         }
 
-    @server.tool()
+    @_tool(server)
     async def delete_entity(
-        ctx: Context,  # type: ignore[type-arg]
+        ctx: Context,
         entity_type: EntityType,
         name: str,
         confirm: bool = False,

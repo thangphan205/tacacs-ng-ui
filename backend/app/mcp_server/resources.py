@@ -5,7 +5,7 @@ reliably emits tac_plus (v4) syntax or invents directives that tac_plus-ng does
 not accept. It documents exactly the grammar this application emits.
 """
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from sqlmodel import Session
 
 from app.core.db import engine
@@ -259,7 +259,7 @@ Constraints you must respect:
 """
 
 
-def register(server: FastMCP) -> None:
+def register(server: MCPServer) -> None:
     @server.resource(
         "tacacs://syntax/reference",
         name="tac_plus-ng syntax reference",

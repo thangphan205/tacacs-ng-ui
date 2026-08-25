@@ -2,8 +2,9 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
+from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.types import Receive, Scope, Send
 
@@ -25,14 +26,31 @@ _INSTRUCTIONS = (
 # The live server for the current lifespan. Rebuilt on every lifespan run
 # because StreamableHTTPSessionManager.run() may only be called once per
 # instance, and lifespan runs more than once under --reload and in tests.
-_active: FastMCP | None = None
+_active: MCPServer | None = None
 
 
-def build_mcp() -> FastMCP:
-    """Construct a fully-populated FastMCP instance."""
-    server = FastMCP(
+def build_mcp() -> MCPServer:
+    """Construct a fully-populated MCPServer instance."""
+    server = MCPServer(
         name="tacacs-ng",
         instructions=_INSTRUCTIONS,
+    )
+
+    from app.mcp_server import tools
+
+    tools.register(server)
+    return server
+
+
+def build_http_app(server: MCPServer) -> Starlette:
+    """Build the streamable-HTTP app, and with it the session manager.
+
+    These four settings lived on the `FastMCP` constructor before mcp 2.0.
+    `MCPServer` takes them here instead, and this call is also what lazily
+    constructs the session manager, which the `session_manager` property
+    refuses to hand out beforehand.
+    """
+    return server.streamable_http_app(
         # Required: supervisord runs `uvicorn --workers 4`, four separate
         # processes with no shared memory. In stateful mode a client that
         # initializes on one worker would be round-robined to another and get
@@ -43,24 +61,19 @@ def build_mcp() -> FastMCP:
         json_response=True,
         # The mount path already carries the "/mcp" segment.
         streamable_http_path="/",
-        # FastMCP auto-enables DNS-rebinding protection when `host` is a
-        # loopback name, and `host` defaults to 127.0.0.1. Behind traefik the
-        # Host header is api.<domain>, which that guard would reject.
+        # DNS-rebinding protection is auto-enabled when `host` is a loopback
+        # name, and `host` defaults to 127.0.0.1. Behind traefik the Host
+        # header is api.<domain>, which that guard would reject.
         transport_security=TransportSecuritySettings(
             enable_dns_rebinding_protection=False
         ),
     )
 
-    from app.mcp_server import tools
-
-    tools.register(server)
-    return server
-
 
 class MCPMountApp:
     """ASGI shim resolving the live session manager per request.
 
-    Kept separate from the FastMCP instance so the app object can be mounted
+    Kept separate from the MCPServer instance so the app object can be mounted
     once at import time while the session manager is rebuilt per lifespan.
     """
 
@@ -79,9 +92,7 @@ class MCPMountApp:
 async def mcp_lifespan() -> AsyncIterator[None]:
     global _active
     server = build_mcp()
-    # Side effect: lazily constructs the session manager, which the
-    # `session_manager` property refuses to hand out before this call.
-    server.streamable_http_app()
+    build_http_app(server)
     async with server.session_manager.run():
         _active = server
         log.info("MCP server mounted at %s", settings.MCP_PATH)
