@@ -16,6 +16,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ bump webauthn from 2.5.1 to 3.0.0 in /backend. PR [#268](https://github.com/thangphan205/tacacs-ng-ui/pull/268) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ update psycopg[binary] requirement from <4.0.0,>=3.1.13 to >=3.3.4,<4.0.0 in /backend. PR [#267](https://github.com/thangphan205/tacacs-ng-ui/pull/267) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump @playwright/test from 1.61.1 to 1.62.1 in /frontend. PR [#250](https://github.com/thangphan205/tacacs-ng-ui/pull/250) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump vite from 8.1.0 to 8.2.2 in /frontend. PR [#266](https://github.com/thangphan205/tacacs-ng-ui/pull/266) by [@dependabot[bot]](https://github.com/apps/dependabot).
