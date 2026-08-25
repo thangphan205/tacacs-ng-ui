@@ -16,6 +16,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ bump @playwright/test from 1.61.1 to 1.62.1 in /frontend. PR [#250](https://github.com/thangphan205/tacacs-ng-ui/pull/250) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump vite from 8.1.0 to 8.2.2 in /frontend. PR [#266](https://github.com/thangphan205/tacacs-ng-ui/pull/266) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump @tanstack/router-plugin from 1.139.1 to 1.168.34 in /frontend. PR [#269](https://github.com/thangphan205/tacacs-ng-ui/pull/269) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump recharts from 3.9.2 to 3.10.1 in /frontend. PR [#270](https://github.com/thangphan205/tacacs-ng-ui/pull/270) by [@dependabot[bot]](https://github.com/apps/dependabot).
