@@ -4,7 +4,7 @@ version = "0.6.0"
 description = ""
 requires-python = ">=3.12,<4.0"
 dependencies = [
-    "fastapi[standard]<1.0.0,>=0.114.2",
+    "fastapi[standard]>=0.141.1,<1.0.0",
     "python-multipart>=0.0.32,<1.0.0",
     "email-validator<3.0.0.0,>=2.1.0.post1",
     # Retained only for sha512_crypt in crud/tacacs_users.py — tac_plus-ng parses
