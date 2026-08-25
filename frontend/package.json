@@ -34,7 +34,7 @@
     "@emnapi/runtime": "^1.11.3",
     "@hey-api/openapi-ts": "0.99.0",
     "@playwright/test": "1.62.1",
-    "@tanstack/router-devtools": "^1.167.0",
+    "@tanstack/router-devtools": "^1.167.1",
     "@tanstack/router-plugin": "^1.168.34",
     "@types/diff": "^8.0.0",
     "@types/node": "^26.2.0",
