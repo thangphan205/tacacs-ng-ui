@@ -14,6 +14,10 @@ delete the heading itself. -->
 
 * docs: restore release notes wiped by latest-changes, restore its anchor. PR [#278](https://github.com/thangphan205/tacacs-ng-ui/pull/278) by [@thangphan205](https://github.com/thangphan205).
 
+### Internal
+
+* ⬆ update pwdlib[argon2,bcrypt] requirement from <0.4.0,>=0.3.0 to >=0.3.1,<0.4.0 in /backend. PR [#274](https://github.com/thangphan205/tacacs-ng-ui/pull/274) by [@dependabot[bot]](https://github.com/apps/dependabot).
+
 ## Unreleased
 
 ## v0.6.0
