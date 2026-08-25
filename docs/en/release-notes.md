@@ -16,6 +16,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ bump axios from 1.18.0 to 1.19.0 in /frontend. PR [#272](https://github.com/thangphan205/tacacs-ng-ui/pull/272) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ update pwdlib[argon2,bcrypt] requirement from <0.4.0,>=0.3.0 to >=0.3.1,<0.4.0 in /backend. PR [#274](https://github.com/thangphan205/tacacs-ng-ui/pull/274) by [@dependabot[bot]](https://github.com/apps/dependabot).
 
 ## Unreleased
