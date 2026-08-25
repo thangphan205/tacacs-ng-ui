@@ -16,6 +16,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ bump react-dom and @types/react-dom in /frontend. PR [#288](https://github.com/thangphan205/tacacs-ng-ui/pull/288) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump react-error-boundary from 6.1.2 to 6.1.3 in /frontend. PR [#285](https://github.com/thangphan205/tacacs-ng-ui/pull/285) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump @tanstack/router-devtools from 1.167.0 to 1.167.1 in /frontend. PR [#280](https://github.com/thangphan205/tacacs-ng-ui/pull/280) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump pygments from 2.18.0 to 2.20.0 in /backend. PR [#282](https://github.com/thangphan205/tacacs-ng-ui/pull/282) by [@dependabot[bot]](https://github.com/apps/dependabot).
