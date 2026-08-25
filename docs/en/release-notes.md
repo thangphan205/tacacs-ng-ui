@@ -16,6 +16,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ bump recharts from 3.9.2 to 3.10.1 in /frontend. PR [#270](https://github.com/thangphan205/tacacs-ng-ui/pull/270) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ update sentry-sdk[fastapi] requirement from <3.0.0,>=1.40.6 to >=2.68.0,<3.0.0 in /backend. PR [#271](https://github.com/thangphan205/tacacs-ng-ui/pull/271) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump mypy from 1.11.2 to 2.3.1 in /backend. PR [#273](https://github.com/thangphan205/tacacs-ng-ui/pull/273) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump axios from 1.18.0 to 1.19.0 in /frontend. PR [#272](https://github.com/thangphan205/tacacs-ng-ui/pull/272) by [@dependabot[bot]](https://github.com/apps/dependabot).
