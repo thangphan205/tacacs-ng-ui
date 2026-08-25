@@ -1,12 +1,18 @@
 # Release Notes
 
 <!-- The `latest-changes` workflow appends merged-PR entries directly beneath the
-heading below (configured as `latest_changes_header: "## Unreleased"`). Keep this
+heading below (configured as `latest_changes_header: "## Unreleased
+
+"`). Keep this
 section here permanently, even when empty: with the heading gone the bot matches
 the next occurrence of that string — including one inside a sentence — and
 overwrites whatever follows it. That has wiped published sections twice. Move
 entries out of it into the version section as part of cutting a release; do not
 delete the heading itself. -->
+
+### Docs
+
+* docs: restore release notes wiped by latest-changes, restore its anchor. PR [#278](https://github.com/thangphan205/tacacs-ng-ui/pull/278) by [@thangphan205](https://github.com/thangphan205).
 
 ## Unreleased
 
