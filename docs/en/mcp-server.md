@@ -26,15 +26,19 @@ MCP_ENABLED=false
 ```
 
 Restart the backend after changing it either way. The endpoint is served by
-the existing FastAPI app on port 8000, so the Traefik router for
-`api.${DOMAIN}` already covers it — no new container, no new port, no new
-labels.
+the existing FastAPI app on port 8000 and reached through the frontend's
+nginx, which proxies the `/mcp` prefix (along with `/api`, `/docs` and
+`/redoc`) to the backend. It therefore lives on the same URL as the UI — no
+new container, no new port, no new Traefik labels.
 
 The canonical URL carries a trailing slash:
 
 ```
-https://api.${DOMAIN}/mcp/
+https://${DOMAIN}/mcp/
 ```
+
+The proxied prefix is `/mcp`, hardcoded in `frontend/nginx-backend-proxy.conf`.
+If you change `MCP_PATH`, change it there too.
 
 `POST /mcp` (no slash) answers with a 307 redirect to `/mcp/`. Most clients
 follow it, but prefer the slash form.
@@ -60,7 +64,7 @@ also be edited later, from the same row, without reissuing the key.
 ### From the API
 
 ```bash
-curl -s -X POST https://api.example.com/api/v1/api_keys/ \
+curl -s -X POST https://tacacs.example.com/api/v1/api_keys/ \
   -H "Authorization: Bearer $JWT" \
   -H "Content-Type: application/json" \
   -d '{
@@ -123,7 +127,7 @@ mint a key that grants nothing.
 Add the HTTP MCP endpoint directly using the `claude` CLI:
 
 ```bash
-claude mcp add --transport http tacacs-ng https://api.example.com/mcp/ \
+claude mcp add --transport http tacacs-ng https://tacacs.example.com/mcp/ \
   --header "Authorization: Bearer tngk_..."
 ```
 
@@ -133,7 +137,7 @@ Or add to your project `.claude.json` / user configuration:
 {
   "mcpServers": {
     "tacacs-ng": {
-      "url": "https://api.example.com/mcp/",
+      "url": "https://tacacs.example.com/mcp/",
       "headers": {
         "Authorization": "Bearer tngk_..."
       }
@@ -159,7 +163,7 @@ Edit `claude_desktop_config.json`:
       "args": [
         "-y",
         "mcp-remote",
-        "https://api.example.com/mcp/",
+        "https://tacacs.example.com/mcp/",
         "--header",
         "Authorization: Bearer tngk_..."
       ]
@@ -182,7 +186,7 @@ Add the server to your global config (`~/.gemini/config/mcp_config.json`) or wor
       "args": [
         "-y",
         "mcp-remote",
-        "https://api.example.com/mcp/",
+        "https://tacacs.example.com/mcp/",
         "--header",
         "Authorization: Bearer tngk_..."
       ]
@@ -198,7 +202,7 @@ Antigravity automatically discovers and lists active tools. You can verify the t
 Register with the Gemini CLI:
 
 ```bash
-gemini mcp add tacacs-ng --url https://api.example.com/mcp/ \
+gemini mcp add tacacs-ng --url https://tacacs.example.com/mcp/ \
   --header "Authorization: Bearer tngk_..."
 ```
 
@@ -212,7 +216,7 @@ Or configure in `~/.gemini/settings.json`:
       "args": [
         "-y",
         "mcp-remote",
-        "https://api.example.com/mcp/",
+        "https://tacacs.example.com/mcp/",
         "--header",
         "Authorization: Bearer tngk_..."
       ]
@@ -233,7 +237,7 @@ Add to `.cursor/mcp.json` or configure under **Cursor Settings → Features → 
       "args": [
         "-y",
         "mcp-remote",
-        "https://api.example.com/mcp/",
+        "https://tacacs.example.com/mcp/",
         "--header",
         "Authorization: Bearer tngk_..."
       ]

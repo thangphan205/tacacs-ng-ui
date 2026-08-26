@@ -80,11 +80,11 @@ Add HA variables to Zone A's `.env`:
 NODE_ROLE=primary
 SCHEDULER_ENABLED=true
 SYNC_MODE=auto            # or: manual
-PEER_BACKEND_URL=https://api-b.yourdomain.com   # Zone B internal API URL — must include http:// or https://
+PEER_BACKEND_URL=https://tacacs-b.yourdomain.com   # Zone B internal API URL — must include http:// or https://
 INTERNAL_SYNC_TOKEN=<generate-with: openssl rand -hex 32>
 ```
 
-> **`PEER_BACKEND_URL` must include the scheme.** Use `http://172.25.x.x:8000` for direct IP access or `https://api-b.yourdomain.com` for domain-based setups. Omitting the scheme (e.g. `172.25.x.x:8000`) causes httpx to fail silently and peer health checks to always return unreachable.
+> **`PEER_BACKEND_URL` must include the scheme.** Use `http://172.25.x.x:8000` for direct IP access or `https://tacacs-b.yourdomain.com` for domain-based setups. Omitting the scheme (e.g. `172.25.x.x:8000`) causes httpx to fail silently and peer health checks to always return unreachable.
 
 Run the one-click setup script (handles stack startup + replication config):
 
@@ -141,7 +141,9 @@ Zone B `.env` — same base settings as Zone A, plus:
 NODE_ROLE=standby
 SCHEDULER_ENABLED=false           # alerts, ML scoring, cron run on Zone A only
 SYNC_MODE=auto                    # or: manual
-PEER_BACKEND_URL=https://api-a.yourdomain.com   # Zone A URL — must include http:// or https://
+PEER_BACKEND_URL=https://tacacs-a.yourdomain.com   # Zone A URL — must include http:// or https://
+                                                  # (each node's single URL; http://<ip>:8000 also
+                                                  #  works and skips the nginx proxy hop)
 INTERNAL_SYNC_TOKEN=<same-value-as-zone-a>
 PRIMARY_DB_HOST=<ZONE_A_IP>       # IP only, no port (e.g. 172.25.245.214)
 REPLICATION_PASSWORD=your-replication-password
@@ -251,7 +253,7 @@ Zone B does **not** auto-reload. The DB replicates continuously (users, policies
 - **Dashboard:** Click **"Sync to Zone B"** button on the TACACS+ Configuration page (visible only on primary node with manual sync mode)
 - **API:**
   ```bash
-  curl -X POST https://api-a.yourdomain.com/api/v1/sync/push-config \
+  curl -X POST https://tacacs-a.yourdomain.com/api/v1/sync/push-config \
     -H "Authorization: Bearer <your-token>"
   ```
 
@@ -333,11 +335,11 @@ The loop also calls all peers in `PEER_NODES` on the same interval, so standby s
 ```bash
 # Force-collect stats for today across all nodes
 curl -X POST -H "Authorization: Bearer <token>" \
-  https://api-a.yourdomain.com/api/v1/aaa_statistics/run/
+  https://tacacs-a.yourdomain.com/api/v1/aaa_statistics/run/
 
 # Collect for a specific date
 curl -X POST -H "Authorization: Bearer <token>" \
-  "https://api-a.yourdomain.com/api/v1/aaa_statistics/run/?date=2026-06-25"
+  "https://tacacs-a.yourdomain.com/api/v1/aaa_statistics/run/?date=2026-06-25"
 ```
 
 The endpoint runs own-node scripts and then calls each peer in `PEER_NODES`.
@@ -346,7 +348,7 @@ The endpoint runs own-node scripts and then calls each peer in `PEER_NODES`.
 
 ```bash
 curl -H "Authorization: Bearer <token>" \
-  https://api-a.yourdomain.com/api/v1/aaa_statistics/nodes/
+  https://tacacs-a.yourdomain.com/api/v1/aaa_statistics/nodes/
 # ["dc1-primary", "dc2-standby", "dc3-standby"]
 ```
 
@@ -598,21 +600,21 @@ All HA settings except `NODE_ROLE` and `INTERNAL_SYNC_TOKEN` are now editable vi
 
 ```bash
 # List peers
-curl -H "Authorization: Bearer <token>" https://api-a.yourdomain.com/api/v1/sync/peers
+curl -H "Authorization: Bearer <token>" https://tacacs-a.yourdomain.com/api/v1/sync/peers
 
 # Add a peer
 curl -X POST -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
   -d '{"name": "DC3-Standby", "url": "http://dc3:8000", "enabled": true}' \
-  https://api-a.yourdomain.com/api/v1/sync/peers
+  https://tacacs-a.yourdomain.com/api/v1/sync/peers
 
 # Disable a peer (temporarily exclude from sync)
 curl -X PATCH -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
   -d '{"enabled": false}' \
-  https://api-a.yourdomain.com/api/v1/sync/peers/<peer-id>
+  https://tacacs-a.yourdomain.com/api/v1/sync/peers/<peer-id>
 
 # Remove a peer
 curl -X DELETE -H "Authorization: Bearer <token>" \
-  https://api-a.yourdomain.com/api/v1/sync/peers/<peer-id>
+  https://tacacs-a.yourdomain.com/api/v1/sync/peers/<peer-id>
 ```
 
 ---
@@ -693,7 +695,7 @@ All HA variables are optional. Defaults run as a standard single-node deployment
 
 ```bash
 curl -H "Authorization: Bearer <token>" \
-  https://api-a.yourdomain.com/api/v1/sync/ha-info
+  https://tacacs-a.yourdomain.com/api/v1/sync/ha-info
 ```
 
 Response:
@@ -709,13 +711,13 @@ Response:
     {
       "id": "550e8400-e29b-41d4-a716-446655440000",
       "name": "DC2-Standby",
-      "url": "https://api-b.yourdomain.com",
+      "url": "https://tacacs-b.yourdomain.com",
       "enabled": true,
       "available": true,
       "last_push_at": "2026-06-25T08:12:34.567890+00:00"
     }
   ],
-  "peer_backend_url": "https://api-b.yourdomain.com",
+  "peer_backend_url": "https://tacacs-b.yourdomain.com",
   "peer_available": true,
   "last_sync_at": "2026-06-25T08:12:34.567890+00:00"
 }
@@ -727,7 +729,7 @@ Response:
 
 ```bash
 curl -X POST -H "Authorization: Bearer <token>" \
-  https://api-a.yourdomain.com/api/v1/sync/push-config
+  https://tacacs-a.yourdomain.com/api/v1/sync/push-config
 ```
 
 Response shows per-peer result:
@@ -735,7 +737,7 @@ Response shows per-peer result:
 ```json
 {
   "results": [
-    {"peer": "DC2-Standby", "url": "https://api-b.yourdomain.com", "status": "ok"},
+    {"peer": "DC2-Standby", "url": "https://tacacs-b.yourdomain.com", "status": "ok"},
     {"peer": "DC3-Standby", "url": "https://api-c.yourdomain.com", "status": "error"}
   ]
 }

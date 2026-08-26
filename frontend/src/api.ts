@@ -25,7 +25,13 @@ export class ApiError extends Error {
   }
 }
 
-export const apiBaseUrl = (): string => import.meta.env.VITE_API_URL
+/**
+ * Empty by default: the SPA and the API share one origin, so every request is
+ * origin-relative and the built image is domain-agnostic. Set `VITE_API_URL`
+ * at build time only to point the bundle at a backend on another origin.
+ */
+export const apiBaseUrl = (): string =>
+  (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "")
 
 export const getAccessToken = (): string =>
   localStorage.getItem("access_token") || ""

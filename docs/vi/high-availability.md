@@ -80,11 +80,11 @@ Thêm các biến HA vào `.env` của Zone A:
 NODE_ROLE=primary
 SCHEDULER_ENABLED=true
 SYNC_MODE=auto            # hoặc: manual
-PEER_BACKEND_URL=https://api-b.yourdomain.com   # URL API nội bộ của Zone B — bắt buộc có http:// hoặc https://
+PEER_BACKEND_URL=https://tacacs-b.yourdomain.com   # URL API nội bộ của Zone B — bắt buộc có http:// hoặc https://
 INTERNAL_SYNC_TOKEN=<tạo bằng: openssl rand -hex 32>
 ```
 
-> **`PEER_BACKEND_URL` bắt buộc phải có scheme.** Dùng `http://172.25.x.x:8000` cho kết nối IP trực tiếp hoặc `https://api-b.yourdomain.com` cho domain. Bỏ scheme (ví dụ `172.25.x.x:8000`) khiến httpx fail và peer health check luôn báo unreachable.
+> **`PEER_BACKEND_URL` bắt buộc phải có scheme.** Dùng `http://172.25.x.x:8000` cho kết nối IP trực tiếp hoặc `https://tacacs-b.yourdomain.com` cho domain. Bỏ scheme (ví dụ `172.25.x.x:8000`) khiến httpx fail và peer health check luôn báo unreachable.
 
 Chạy script setup một lệnh (tự động khởi động stack + cấu hình replication):
 
@@ -141,7 +141,7 @@ cp .env.example .env
 NODE_ROLE=standby
 SCHEDULER_ENABLED=false           # alert, ML scoring, cron chạy trên Zone A
 SYNC_MODE=auto                    # hoặc: manual
-PEER_BACKEND_URL=https://api-a.yourdomain.com   # URL Zone A — bắt buộc có http:// hoặc https://
+PEER_BACKEND_URL=https://tacacs-a.yourdomain.com   # URL Zone A — bắt buộc có http:// hoặc https://
 INTERNAL_SYNC_TOKEN=<cùng giá trị với zone-a>
 PRIMARY_DB_HOST=<ZONE_A_IP>       # Chỉ IP, không có port (ví dụ 172.25.245.214)
 REPLICATION_PASSWORD=your-replication-password
@@ -251,7 +251,7 @@ Zone B **không** tự động reload. DB vẫn replicate liên tục (users, po
 - **Dashboard:** Nhấn nút **"Sync to Zone B"** trên trang TACACS+ Configuration (chỉ hiển thị trên primary node với manual sync mode)
 - **API:**
   ```bash
-  curl -X POST https://api-a.yourdomain.com/api/v1/sync/push-config \
+  curl -X POST https://tacacs-a.yourdomain.com/api/v1/sync/push-config \
     -H "Authorization: Bearer <your-token>"
   ```
 
@@ -333,11 +333,11 @@ Vòng lặp cũng gọi tất cả peer trong `PEER_NODES` cùng chu kỳ, giúp
 ```bash
 # Thu thập thống kê cho hôm nay trên tất cả node
 curl -X POST -H "Authorization: Bearer <token>" \
-  https://api-a.yourdomain.com/api/v1/aaa_statistics/run/
+  https://tacacs-a.yourdomain.com/api/v1/aaa_statistics/run/
 
 # Thu thập cho ngày cụ thể
 curl -X POST -H "Authorization: Bearer <token>" \
-  "https://api-a.yourdomain.com/api/v1/aaa_statistics/run/?date=2026-06-25"
+  "https://tacacs-a.yourdomain.com/api/v1/aaa_statistics/run/?date=2026-06-25"
 ```
 
 ---
@@ -588,21 +588,21 @@ Tất cả cài đặt HA trừ `NODE_ROLE` và `INTERNAL_SYNC_TOKEN` có thể 
 
 ```bash
 # Liệt kê peer
-curl -H "Authorization: Bearer <token>" https://api-a.yourdomain.com/api/v1/sync/peers
+curl -H "Authorization: Bearer <token>" https://tacacs-a.yourdomain.com/api/v1/sync/peers
 
 # Thêm peer
 curl -X POST -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
   -d '{"name": "DC3-Standby", "url": "http://dc3:8000", "enabled": true}' \
-  https://api-a.yourdomain.com/api/v1/sync/peers
+  https://tacacs-a.yourdomain.com/api/v1/sync/peers
 
 # Tắt tạm thời một peer
 curl -X PATCH -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
   -d '{"enabled": false}' \
-  https://api-a.yourdomain.com/api/v1/sync/peers/<peer-id>
+  https://tacacs-a.yourdomain.com/api/v1/sync/peers/<peer-id>
 
 # Xóa peer
 curl -X DELETE -H "Authorization: Bearer <token>" \
-  https://api-a.yourdomain.com/api/v1/sync/peers/<peer-id>
+  https://tacacs-a.yourdomain.com/api/v1/sync/peers/<peer-id>
 ```
 
 ---
@@ -683,7 +683,7 @@ Tất cả biến HA đều tùy chọn. Mặc định chạy như triển khai 
 
 ```bash
 curl -H "Authorization: Bearer <token>" \
-  https://api-a.yourdomain.com/api/v1/sync/ha-info
+  https://tacacs-a.yourdomain.com/api/v1/sync/ha-info
 ```
 
 Kết quả:
@@ -699,13 +699,13 @@ Kết quả:
     {
       "id": "550e8400-e29b-41d4-a716-446655440000",
       "name": "DC2-Standby",
-      "url": "https://api-b.yourdomain.com",
+      "url": "https://tacacs-b.yourdomain.com",
       "enabled": true,
       "available": true,
       "last_push_at": "2026-06-25T08:12:34.567890+00:00"
     }
   ],
-  "peer_backend_url": "https://api-b.yourdomain.com",
+  "peer_backend_url": "https://tacacs-b.yourdomain.com",
   "peer_available": true,
   "last_sync_at": "2026-06-25T08:12:34.567890+00:00"
 }
@@ -717,7 +717,7 @@ Kết quả:
 
 ```bash
 curl -X POST -H "Authorization: Bearer <token>" \
-  https://api-a.yourdomain.com/api/v1/sync/push-config
+  https://tacacs-a.yourdomain.com/api/v1/sync/push-config
 ```
 
 Kết quả hiển thị từng peer:
@@ -725,7 +725,7 @@ Kết quả hiển thị từng peer:
 ```json
 {
   "results": [
-    {"peer": "DC2-Standby", "url": "https://api-b.yourdomain.com", "status": "ok"},
+    {"peer": "DC2-Standby", "url": "https://tacacs-b.yourdomain.com", "status": "ok"},
     {"peer": "DC3-Standby", "url": "https://api-c.yourdomain.com", "status": "error"}
   ]
 }

@@ -24,6 +24,22 @@
 
 ---
 
+> [!IMPORTANT]
+> ### ⚠️ Upgrading to 0.6.0 — every URL changes
+>
+> The dashboard, the API, Swagger and the MCP endpoint now share **one URL**.
+> `dashboard.<domain>` and `api.<domain>` no longer route.
+>
+> - `VITE_API_URL` must be **empty**, and the frontend image **must be rebuilt** — it is baked in at build time.
+> - `FRONTEND_HOST` must name the single URL; it drives CORS, passkeys, OAuth and email links.
+> - **Existing passkeys break if you change the host.** Keep them by setting `DOMAIN` to your current dashboard host.
+> - OAuth redirect URIs must be re-registered with Google / Keycloak.
+> - MCP clients must be re-pointed to `https://<domain>/mcp/`; existing API keys stay valid.
+>
+> Full checklist: [Upgrading to 0.6.0](docs/en/deployment.md#upgrading-to-060).
+
+---
+
 ### What is TACACS-NG-UI?
 
 **tacacs-ng-ui** is a next-generation full-stack web application designed to simplify the administration and management of [tac_plus-ng](https://github.com/MarcJHuber/event-driven-servers), the modern event-driven TACACS+ daemon. 
@@ -275,15 +291,19 @@ Username: admin@example.com   # FIRST_SUPERUSER in .env
 Password: <FIRST_SUPERUSER_PASSWORD in .env>
 ```
 
-Development URLs, for local development.
+Development URLs, for local development. The frontend proxies `/api`, `/mcp`,
+`/docs` and `/redoc` to the backend, so everything the app needs is on one
+origin — port 8000 stays published for direct backend access.
 
-Frontend: <http://localhost:5173>
+Frontend (and API, Swagger, MCP): <http://localhost:5173>
 
-Backend: <http://localhost:8000>
+Automatic Interactive Docs (Swagger UI): <http://localhost:5173/docs>
 
-Automatic Interactive Docs (Swagger UI): <http://localhost:8000/docs>
+Automatic Alternative Docs (ReDoc): <http://localhost:5173/redoc>
 
-Automatic Alternative Docs (ReDoc): <http://localhost:8000/redoc>
+MCP endpoint: <http://localhost:5173/mcp/>
+
+Backend, direct: <http://localhost:8000>
 
 Adminer: <http://localhost:8080>
 
@@ -301,14 +321,16 @@ cd tacacs-ng-ui
 cp .env.example .env
 ```
 
-Edit `.env` — change these 4 values:
+Edit `.env` — change these 3 values:
 
 ```bash
 DOMAIN=192.168.8.8
 FRONTEND_HOST=http://192.168.8.8:5173
-VITE_API_URL=http://192.168.8.8:8000
 SECRET_KEY=<run: openssl rand -hex 32>
 ```
+
+`VITE_API_URL` stays empty: the UI calls its own origin and the frontend
+proxies through to the backend, so one URL serves everything.
 
 Then build and start:
 
@@ -317,14 +339,15 @@ docker compose build
 docker compose up -d
 ```
 
-Access: <http://192.168.8.8:5173> with the credentials set in `.env`:
+Access — the UI, the API, Swagger (`/docs`) and MCP (`/mcp/`) all live under
+<http://192.168.8.8:5173>, with the credentials set in `.env`:
 
 ```bash
 Username: admin@example.com   # FIRST_SUPERUSER in .env
 Password: <FIRST_SUPERUSER_PASSWORD in .env>
 ```
 
-> **Note:** `FRONTEND_HOST` is automatically added to the CORS allow-list — no need to edit `BACKEND_CORS_ORIGINS` separately.
+> **Note:** `FRONTEND_HOST` drives the CORS allow-list, the WebAuthn/passkey origin, the OAuth redirect and the links in outgoing emails — it must match what the browser shows, port included. `BACKEND_CORS_ORIGINS` needs no edit.
 
 ## Deploy on a remote server: with domain name
 

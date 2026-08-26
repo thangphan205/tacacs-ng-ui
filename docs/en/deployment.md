@@ -1,11 +1,23 @@
 # Deployment Guide
 
+> ### ⚠️ Upgrading from an earlier version?
+>
+> **0.6.0 changes every URL.** The dashboard, the API, Swagger and MCP now share
+> one host; `dashboard.` and `api.` no longer route. Existing passkeys break if
+> you change the host, and OAuth redirect URIs must be re-registered with your
+> provider. Read [Upgrading to 0.6.0](#upgrading-to-060) **before** pulling.
+
 ## Prerequisites
 
 - Remote server with [Docker Engine](https://docs.docker.com/engine/install/) (not Docker Desktop) and Docker Compose v2
-- A domain with DNS A record pointing to the server IP
-- Wildcard subdomain configured (e.g. `*.yourdomain.com`) — used for `dashboard.`, `api.`, `traefik.`, `adminer.`
+- A domain with DNS A record pointing to the server IP — this one host serves the UI, the API, Swagger and MCP
+- A second DNS record (or a wildcard) for the operator tools, `traefik.` and `adminer.`
 - Ports `80` and `443` open on the server firewall
+
+> **Note on the wildcard.** A `*.yourdomain.com` certificate matches a single
+> label, so if you set `DOMAIN=tacacs.yourdomain.com` the tools would land on
+> `adminer.tacacs.yourdomain.com` and fall outside it. Set `TOOLS_DOMAIN=yourdomain.com`
+> to keep them at `adminer.yourdomain.com` instead.
 
 ---
 
@@ -34,7 +46,8 @@ docker network create traefik-public
 **Set environment variables and start Traefik:**
 
 ```bash
-export DOMAIN=yourdomain.com
+export DOMAIN=tacacs.yourdomain.com
+export TOOLS_DOMAIN=yourdomain.com   # host for the traefik dashboard: traefik.yourdomain.com
 export EMAIL=admin@yourdomain.com
 export USERNAME=admin
 export PASSWORD=changethis
@@ -61,7 +74,14 @@ cp .env.example .env
 **Minimum required changes in `.env`:**
 
 ```bash
-DOMAIN=yourdomain.com
+# The single URL the application is served on.
+DOMAIN=tacacs.yourdomain.com
+# Must match what the browser shows, scheme included: it drives CORS, the
+# WebAuthn/passkey origin, the OAuth redirect and the links in outgoing emails.
+FRONTEND_HOST=https://tacacs.yourdomain.com
+# Keeps adminer./traefik. on the base domain (see the note above).
+TOOLS_DOMAIN=yourdomain.com
+
 ENVIRONMENT=production
 PROJECT_NAME="TACACS+ NG UI"
 
@@ -127,14 +147,23 @@ docker compose -f docker-compose.yml ps
 
 ### Production URLs
 
+The application is served from **one URL**. The frontend's nginx proxies
+`/api`, `/mcp`, `/docs` and `/redoc` through to the backend, so there is no
+separate API host to remember or to configure in an MCP client.
+
 Replace `yourdomain.com` with your domain:
 
 | Service | URL |
 |---------|-----|
-| Dashboard | `https://dashboard.yourdomain.com` |
-| API / Swagger | `https://api.yourdomain.com/docs` |
+| Dashboard | `https://tacacs.yourdomain.com` |
+| API | `https://tacacs.yourdomain.com/api/v1` |
+| Swagger | `https://tacacs.yourdomain.com/docs` |
+| MCP endpoint | `https://tacacs.yourdomain.com/mcp/` |
 | Adminer (DB UI) | `https://adminer.yourdomain.com` |
 | Traefik dashboard | `https://traefik.yourdomain.com` |
+
+The last two follow `TOOLS_DOMAIN` when it is set, and nest under `DOMAIN`
+otherwise.
 
 ---
 
@@ -196,7 +225,7 @@ Go to **Repository → Settings → Secrets and variables → Actions** and add:
 
 | Secret | Description |
 |--------|-------------|
-| `DOMAIN_PRODUCTION` | Your production domain (e.g. `yourdomain.com`) |
+| `DOMAIN_PRODUCTION` | The single host the app is served on (e.g. `tacacs.yourdomain.com`). The workflow derives `FRONTEND_HOST` from it |
 | `STACK_NAME_PRODUCTION` | Docker Compose project name (e.g. `tacacs-ng-ui`) |
 | `SECRET_KEY` | FastAPI JWT secret key |
 | `FIRST_SUPERUSER` | Initial admin email |
@@ -218,7 +247,10 @@ All variables with their defaults (from `.env.example`):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DOMAIN` | `localhost` | Base domain for all services |
+| `DOMAIN` | `localhost` | The single host serving the UI, API, Swagger and MCP |
+| `TOOLS_DOMAIN` | *(unset)* | Base domain for `adminer.` and `traefik.`; falls back to `DOMAIN` |
+| `FRONTEND_HOST` | `http://localhost:5173` | Full URL of the app — drives CORS, WebAuthn origin, OAuth redirect, email links |
+| `VITE_API_URL` | `""` | Leave empty so the bundle calls its own origin; set only to target a backend elsewhere |
 | `ENVIRONMENT` | `local` | `local`, `staging`, or `production` |
 | `PROJECT_NAME` | `TACACS+ NG UI` | Display name in UI and emails |
 | `STACK_NAME` | `tacacs-ng-ui` | Docker Compose project name |
@@ -226,7 +258,7 @@ All variables with their defaults (from `.env.example`):
 | `SECRET_KEY` | *(required)* | JWT signing key — generate with `openssl rand -hex 32` |
 | `FIRST_SUPERUSER` | *(required)* | Initial admin email |
 | `FIRST_SUPERUSER_PASSWORD` | *(required)* | Initial admin password |
-| `BACKEND_CORS_ORIGINS` | `""` | Comma-separated list of allowed CORS origins |
+| `BACKEND_CORS_ORIGINS` | `""` | Extra allowed CORS origins; rarely needed now the UI is same-origin |
 | `USERS_OPEN_REGISTRATION` | `true` | Allow public signup |
 | `POSTGRES_SERVER` | `localhost` | PostgreSQL hostname (leave as `db` for Docker Compose) |
 | `POSTGRES_PORT` | `5432` | PostgreSQL port |
@@ -260,6 +292,107 @@ All variables with their defaults (from `.env.example`):
 | `AUDIT_LOG_MAX_ROWS` | `0` | Keep only N most recent rows (0 = no limit) |
 
 For **High Availability** variables (`NODE_ROLE`, `SCHEDULER_ENABLED`, `SYNC_MODE`, etc.) see [high-availability.md](high-availability.md).
+
+---
+
+## Upgrading to 0.6.0
+
+0.6.0 collapses the four subdomains into one URL. Nothing in the database
+changes — this is entirely DNS, `.env`, and one mandatory image rebuild. Take
+the backup in [Step 1](#step-1--backup-always-do-this-first) below first.
+
+### Decide which host becomes the single URL
+
+This is the one decision that matters, because **`WEBAUTHN_RP_ID` is derived
+from `FRONTEND_HOST`'s hostname**, and a passkey registered under one host
+cannot be used under another.
+
+| | Keeps existing passkeys | Notes |
+|---|---|---|
+| `DOMAIN=dashboard.example.com` | ✅ yes | Users see the URL they already had; the API and MCP move onto it |
+| `DOMAIN=example.com` (or any new host) | ❌ no | Cleaner URL, but every enrolled passkey must be re-registered |
+
+Password and OAuth logins are unaffected either way. If you have passkey users
+and no strong preference, keep the existing dashboard host.
+
+### 1. DNS
+
+The single URL needs its own A record pointing at Traefik. Previously only
+`dashboard.` and `api.` did — if you relied on a wildcard, confirm it actually
+covers the host you chose. `api.<domain>` can be retired once no client uses it.
+
+### 2. `.env`
+
+```dotenv
+# Was your base domain; now it IS the application's host.
+DOMAIN=tacacs.example.com
+
+# New in 0.6.0. Leave blank to nest adminer./traefik. under DOMAIN; set it to
+# the base domain to keep them under an existing *.example.com wildcard.
+TOOLS_DOMAIN=example.com
+
+# Previously undocumented, and easy to have left at its localhost default —
+# which silently broke CORS, passkeys, OAuth and the links in outgoing emails.
+FRONTEND_HOST=https://tacacs.example.com
+
+# MUST be empty. The bundle now calls its own origin.
+VITE_API_URL=
+
+# Move onto the single URL.
+GOOGLE_REDIRECT_URI=https://tacacs.example.com/api/v1/oauth/google/callback
+KEYCLOAK_REDIRECT_URI=https://tacacs.example.com/api/v1/oauth/keycloak/callback
+```
+
+`BACKEND_CORS_ORIGINS` can be trimmed: the UI is now same-origin with the API,
+and same-origin requests are never preflighted.
+
+### 3. Rebuild the frontend — not optional
+
+`VITE_API_URL` is compiled into the bundle at build time. A restart alone leaves
+the old API host baked in, and every request goes to a hostname that no longer
+resolves.
+
+```bash
+git pull origin main
+docker compose -f docker-compose.yml build backend frontend
+docker compose -f docker-compose.yml up -d
+```
+
+### 4. Re-register the OAuth redirect URIs
+
+Update the authorised redirect URI in the **Google Cloud Console** and in your
+**Keycloak client** to match the values above. A stale redirect URI fails at the
+provider, so the error appears on their consent screen, not in this application.
+
+### 5. Re-point MCP clients
+
+Change `https://api.<domain>/mcp/` to `https://<domain>/mcp/` in each client's
+configuration. **Existing API keys stay valid** — only the URL changes. The
+in-app guide under **User Settings → API Keys** always shows the correct URL for
+the deployment you are looking at.
+
+### 6. HA peers
+
+Any peer URL naming `api.<domain>` must be updated — to the peer's single URL,
+or to `http://<ip>:8000`, which reaches the backend directly and skips the proxy
+hop. Check both `PEER_BACKEND_URL`/`PEER_NODES` in `.env` and the `HaPeerNode`
+rows already in the database (`GET /api/v1/sync/peers`).
+
+### 7. Verify
+
+```bash
+curl -sf https://tacacs.example.com/api/v1/utils/health-check/   # API through the proxy
+curl -sI https://tacacs.example.com/docs                         # Swagger
+curl -si -X POST https://tacacs.example.com/mcp/                 # 401 without a key
+```
+
+Then log in, and — if you use them — confirm a passkey and an OAuth login still
+work before you consider the upgrade done.
+
+### If it goes wrong
+
+Nothing here touches the database, so a rollback is `git checkout <previous
+tag>`, restore the old `.env`, and rebuild. No migration to reverse.
 
 ---
 

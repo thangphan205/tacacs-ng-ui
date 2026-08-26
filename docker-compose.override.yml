@@ -1,8 +1,9 @@
 services:
-  # Local services are available on their ports, but also available on:
-  # http://api.localhost.tiangolo.com: backend
-  # http://dashboard.localhost.tiangolo.com: frontend
-  # etc. To enable it, update .env, set:
+  # Local services are available on their ports, but the whole application is
+  # also served from a single host through traefik:
+  # http://localhost.tiangolo.com: frontend + /api + /docs + /mcp
+  # http://adminer.localhost.tiangolo.com: adminer
+  # To enable it, update .env, set:
   # DOMAIN=localhost.tiangolo.com
   proxy:
     image: traefik:v3.7
@@ -94,7 +95,9 @@ services:
     build:
       context: ./frontend
       args:
-        - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+        # Empty by default — the bundle is origin-relative and nginx proxies
+        # /api, /mcp, /docs and /redoc through to the backend.
+        - VITE_API_URL=${VITE_API_URL:-}
         - NODE_ENV=development
 
   playwright:
@@ -102,7 +105,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.playwright
       args:
-        - VITE_API_URL=http://backend:8000
+        # Origin-relative, like every other build of the frontend.
+        - VITE_API_URL=
         - NODE_ENV=production
     ipc: host
     depends_on:
@@ -111,7 +115,13 @@ services:
     env_file:
       - .env
     environment:
-      - VITE_API_URL=http://backend:8000
+      # The test helpers run under Node, so they need an absolute URL rather
+      # than the origin-relative one the bundle uses.
+      - PLAYWRIGHT_API_URL=http://backend:8000
+      # playwright.config.ts starts `npm run dev` as its webServer, so the
+      # browser reaches the API through Vite's proxy — which has to name the
+      # backend by its compose service, not localhost.
+      - VITE_DEV_API_PROXY=http://backend:8000
       - MAILCATCHER_HOST=http://mailcatcher:1080
       # For the reports when run locally
       - PLAYWRIGHT_HTML_HOST=0.0.0.0

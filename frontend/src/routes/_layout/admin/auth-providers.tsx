@@ -37,7 +37,7 @@ const googleFields = [
   {
     key: "redirect_uri",
     label: "Redirect URI",
-    placeholder: "https://api.example.com/api/v1/oauth/google/callback",
+    placeholder: "https://tacacs.example.com/api/v1/oauth/google/callback",
   },
 ]
 
@@ -52,7 +52,7 @@ const keycloakFields = [
   {
     key: "redirect_uri",
     label: "Redirect URI",
-    placeholder: "https://api.example.com/api/v1/oauth/keycloak/callback",
+    placeholder: "https://tacacs.example.com/api/v1/oauth/keycloak/callback",
   },
 ]
 

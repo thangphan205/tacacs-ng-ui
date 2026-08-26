@@ -15,6 +15,10 @@ jobs:
     env:
       ENVIRONMENT: staging
       DOMAIN: ${{ secrets.DOMAIN_STAGING }}
+      # One URL serves the UI, the API, Swagger and MCP — the frontend's nginx
+      # proxies /api, /mcp, /docs and /redoc to the backend.
+      FRONTEND_HOST: https://${{ secrets.DOMAIN_STAGING }}
+      VITE_API_URL: ""
       STACK_NAME: ${{ secrets.STACK_NAME_STAGING }}
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
       FIRST_SUPERUSER: ${{ secrets.FIRST_SUPERUSER }}

@@ -113,9 +113,18 @@ The generated `client/core/` directory from the legacy plugin is gone: `ApiError
 
 Docker Compose services: `db` (PostgreSQL 18), `backend` (FastAPI + supervisord + tac_plus-ng + cron), `frontend` (Vite/Nginx), `traefik` (reverse proxy), `adminer` (DB UI), `mailcatcher` (SMTP testing).
 
+**Single-URL routing.** The whole application is served from one host. The backend carries **no Traefik labels** — `frontend/nginx-backend-proxy.conf` proxies `/api`, `/mcp`, `/docs` and `/redoc` to `backend:8000`, and `vite.config.ts` mirrors those prefixes in `server.proxy` for `npm run dev`. Consequences:
+
+- `VITE_API_URL` is **empty by default**, so `apiBaseUrl()` returns `""` and every request is origin-relative — the frontend image is domain-agnostic and needs no rebuild when the domain changes. It is baked in at build time, so setting it *does* require one.
+- `MCP_PATH` (default `/mcp`) is mirrored by hand in the nginx conf; changing one means changing the other.
+- The proxy uses `resolver 127.0.0.11` with a **variable** `proxy_pass` so nginx re-resolves `backend` per request instead of caching its IP at startup — and still starts when the backend is down.
+- uvicorn runs with `--forwarded-allow-ips=*` (`backend/supervisord.conf`). Without it uvicorn ignores `X-Forwarded-Proto` from the non-loopback proxy peer, and Starlette's `Mount` slash-redirect answers `POST /mcp` with an absolute `http://` `Location` that Traefik turns into a body-dropping 301.
+- `DOMAIN` is the app's host, not a base domain. `TOOLS_DOMAIN` (falling back to `DOMAIN`) carries `adminer.` and `traefik.`, so they can stay under an existing wildcard cert.
+- Playwright's Node-side helpers (`frontend/tests/utils/privateApi.ts`) need an absolute URL and read **`PLAYWRIGHT_API_URL`**, not `VITE_API_URL`.
+
 Local dev URLs:
-- Frontend: http://localhost:5173
-- Backend / Swagger: http://localhost:8000/docs
+- App — UI, `/api/v1`, `/docs`, `/mcp/`: http://localhost:5173
+- Backend, direct (bypasses the proxy): http://localhost:8000
 - Adminer: http://localhost:8080
 - Traefik: http://localhost:8090
 - MailCatcher: http://localhost:1080
@@ -194,7 +203,7 @@ Constraints that are load-bearing:
 - **The four transport settings live on `build_http_app()`, not the constructor** — `stateless_http`, `json_response`, `streamable_http_path` and `transport_security` were `FastMCP(...)` arguments before mcp 2.0; `MCPServer` takes them on `streamable_http_app()`. That call is also what lazily builds the session manager, so it must happen before `session_manager` is read.
 - **Tools must be `async def` + `run_in_threadpool`** — the server calls sync tool functions inline on the event loop.
 - **Anticipated failures must reach the model as `ToolError`** — mcp 2.x sends a tool's exception text to the client only for `ToolError`; everything else is treated as a crash and reported as a bare `Error executing tool <name>`. `_tool()` in `tools.py` wraps each registration and translates `McpAuthError` / `LookupError` / `ValueError`, so scope refusals and validation messages stay readable. `service.py` and `write_service.py` keep raising plain builtins — the transport-shaped exception is applied at the boundary, the same way `crud/` never raises `HTTPException`.
-- **`transport_security` must be passed explicitly** — DNS-rebinding protection is auto-enabled when `host` is loopback (its default), which rejects the `Host: api.<domain>` header behind Traefik.
+- **`transport_security` must be passed explicitly** — DNS-rebinding protection is auto-enabled when `host` is loopback (its default), which rejects the public `Host` header forwarded by nginx and Traefik.
 - **`session_manager.run()` is once-per-instance** — hence a fresh `MCPServer` per lifespan and the `MCPMountApp` shim. This is also why `tests/conftest.py`'s `client` fixture is session-scoped.
 - **Write tools check the node role themselves** — `require_primary_node()` is a FastAPI dependency and MCP tools are not routes, so `_allow_write()` repeats the standby check inline.
 

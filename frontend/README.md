@@ -105,12 +105,16 @@ JWT token stored in `localStorage.access_token`. Configured in `main.tsx`. Auto-
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VITE_API_URL` | *(empty — uses same origin)* | Backend base URL for local dev against a remote API |
+| `VITE_API_URL` | *(empty — uses same origin)* | Backend base URL. Leave empty: the dev server and the production nginx both proxy `/api`, `/mcp`, `/docs` and `/redoc` to the backend. Set it only to call a backend on another origin, which then also needs `BACKEND_CORS_ORIGINS`. |
+| `VITE_DEV_API_PROXY` | `http://localhost:8000` | Where `npm run dev` forwards those proxied paths |
+| `PLAYWRIGHT_API_URL` | `http://localhost:8000` | Absolute URL for the Node-side test helpers, which cannot use a relative one |
 
 Set in `frontend/.env`:
 
 ```env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=
+VITE_DEV_API_PROXY=http://localhost:8000
+PLAYWRIGHT_API_URL=http://localhost:8000
 ```
 
 ## End-to-End Testing

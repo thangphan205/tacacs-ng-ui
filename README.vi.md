@@ -8,6 +8,22 @@
 
 ---
 
+> [!IMPORTANT]
+> ### ⚠️ Nâng cấp lên 0.6.0 — toàn bộ URL thay đổi
+>
+> Dashboard, API, Swagger và MCP endpoint giờ dùng chung **một URL**.
+> `dashboard.<domain>` và `api.<domain>` không còn route nữa.
+>
+> - `VITE_API_URL` phải **để trống**, và image frontend **bắt buộc phải build lại** — biến này được biên dịch vào bundle lúc build.
+> - `FRONTEND_HOST` phải là URL duy nhất đó; nó quyết định CORS, passkey, OAuth và link trong email.
+> - **Passkey đã đăng ký sẽ hỏng nếu bạn đổi host.** Giữ nguyên bằng cách đặt `DOMAIN` là host dashboard hiện tại.
+> - Redirect URI của OAuth phải đăng ký lại với Google / Keycloak.
+> - Các MCP client phải trỏ lại về `https://<domain>/mcp/`; API key hiện có vẫn dùng được.
+>
+> Checklist đầy đủ: [Nâng cấp lên 0.6.0](docs/vi/deployment.md#nâng-cấp-lên-060).
+
+---
+
 **tacacs-ng-ui** là ứng dụng web full-stack hiện đại, cung cấp giao diện đồ họa thân thiện để quản lý cấu hình TACACS+ server. Ứng dụng giúp đơn giản hóa việc quản trị xác thực, phân quyền và kế toán (AAA) cho thiết bị mạng thông qua dashboard web trực quan.
 
 Được xây dựng trên nền tảng công nghệ hiện đại với backend FastAPI và frontend React, đảm bảo hiệu suất cao, khả năng mở rộng và dễ bảo trì cho quản trị viên mạng.
@@ -238,12 +254,16 @@ Password: <FIRST_SUPERUSER_PASSWORD trong .env>
 
 URL phát triển cục bộ:
 
+Frontend proxy `/api`, `/mcp`, `/docs` và `/redoc` sang backend, nên mọi thứ ứng
+dụng cần đều nằm trên một origin — cổng 8000 vẫn mở để truy cập backend trực tiếp.
+
 | Dịch vụ | URL |
 |---|---|
-| Frontend | <http://localhost:5173> |
-| Backend | <http://localhost:8000> |
-| Swagger UI | <http://localhost:8000/docs> |
-| ReDoc | <http://localhost:8000/redoc> |
+| Frontend (và API, Swagger, MCP) | <http://localhost:5173> |
+| Swagger UI | <http://localhost:5173/docs> |
+| ReDoc | <http://localhost:5173/redoc> |
+| MCP endpoint | <http://localhost:5173/mcp/> |
+| Backend, trực tiếp | <http://localhost:8000> |
 | Adminer | <http://localhost:8080> |
 | Traefik UI | <http://localhost:8090> |
 | MailCatcher | <http://localhost:1080> |
@@ -258,14 +278,16 @@ cd tacacs-ng-ui
 cp .env.example .env
 ```
 
-Chỉnh sửa `.env` — thay 4 giá trị sau:
+Chỉnh sửa `.env` — thay 3 giá trị sau:
 
 ```bash
 DOMAIN=192.168.8.8
 FRONTEND_HOST=http://192.168.8.8:5173
-VITE_API_URL=http://192.168.8.8:8000
 SECRET_KEY=<chạy: openssl rand -hex 32>
 ```
+
+`VITE_API_URL` để trống: UI gọi chính origin của nó và frontend proxy sang
+backend, nên một URL duy nhất phục vụ tất cả.
 
 Build và khởi động:
 
@@ -274,9 +296,10 @@ docker compose build
 docker compose up -d
 ```
 
-Truy cập: <http://192.168.8.8:5173> với thông tin đăng nhập trong `.env`.
+Truy cập — UI, API, Swagger (`/docs`) và MCP (`/mcp/`) đều nằm dưới
+<http://192.168.8.8:5173>, với thông tin đăng nhập trong `.env`.
 
-> **Lưu ý:** `FRONTEND_HOST` được tự động thêm vào danh sách CORS — không cần chỉnh sửa `BACKEND_CORS_ORIGINS` riêng.
+> **Lưu ý:** `FRONTEND_HOST` quyết định danh sách CORS, origin của WebAuthn/passkey, redirect OAuth và link trong email gửi đi — nó phải khớp chính xác với URL trên trình duyệt, kể cả cổng. `BACKEND_CORS_ORIGINS` không cần chỉnh sửa.
 
 ## Triển Khai Với Tên Miền
 

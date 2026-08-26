@@ -13,6 +13,11 @@ jobs:
     env:
       ENVIRONMENT: production
       DOMAIN: ${{ secrets.DOMAIN_PRODUCTION }}
+      # The whole application is served from https://${DOMAIN}/ — the frontend's
+      # nginx proxies /api, /mcp, /docs and /redoc to the backend, so the bundle
+      # is origin-relative and FRONTEND_HOST is simply that one URL.
+      FRONTEND_HOST: https://${{ secrets.DOMAIN_PRODUCTION }}
+      VITE_API_URL: ""
       STACK_NAME: ${{ secrets.STACK_NAME_PRODUCTION }}
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
       FIRST_SUPERUSER: ${{ secrets.FIRST_SUPERUSER }}

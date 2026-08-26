@@ -21,11 +21,17 @@ Lần khởi động đầu mất ~1 phút để DB khởi tạo và migrations 
 
 ### URL Cục Bộ
 
+Frontend phục vụ toàn bộ ứng dụng: nginx của nó (và proxy của Vite dev server
+khi chạy `npm run dev`) chuyển tiếp `/api`, `/mcp`, `/docs` và `/redoc` sang
+backend, nên trình duyệt chỉ làm việc với một origin duy nhất.
+
 | Service | URL |
 |---------|-----|
 | Frontend (React) | http://localhost:5173 |
-| Backend API | http://localhost:8000 |
-| Swagger UI | http://localhost:8000/docs |
+| Backend API | http://localhost:5173/api/v1 |
+| Swagger UI | http://localhost:5173/docs |
+| MCP endpoint | http://localhost:5173/mcp/ |
+| Backend, trực tiếp (bỏ qua proxy) | http://localhost:8000 |
 | Adminer (DB UI) | http://localhost:8080 |
 | Traefik dashboard | http://localhost:8090 |
 | MailCatcher (SMTP) | http://localhost:1080 |
@@ -130,11 +136,16 @@ npm install
 npm run dev       # Vite dev server trên :5173
 ```
 
-Đặt `VITE_API_URL=http://localhost:8000` trong `.env` hoặc export:
+Không cần cấu hình URL API: bundle gọi chính origin của nó, và Vite dev server
+proxy `/api`, `/mcp`, `/docs`, `/redoc` sang backend. Nếu backend không nằm ở
+`http://localhost:8000`, trỏ proxy sang đúng địa chỉ:
 
 ```bash
-VITE_API_URL=http://localhost:8000 npm run dev
+VITE_DEV_API_PROXY=http://localhost:9000 npm run dev
 ```
+
+Đặt `VITE_API_URL` sẽ khiến bundle gọi thẳng origin đó, bỏ qua proxy — khi đó
+origin này cũng phải có trong `BACKEND_CORS_ORIGINS`.
 
 ### Lint và format
 
@@ -167,7 +178,8 @@ Cần có backend venv cục bộ (`uv sync` trong `backend/`). Gọi `python -c
 | `frontend/src/client/` | OpenAPI client tự động tạo. Không chỉnh sửa thủ công. |
 | `frontend/src/routes/` | TanStack Router file-based routing. `_layout.tsx` bọc tất cả routes cần xác thực. |
 | `frontend/src/components/` | Chakra UI v3 components. Ưu tiên reusable hơn per-entity duplicates. |
-| `frontend/src/main.tsx` | Cấu hình OpenAPI base URL (`VITE_API_URL`) và JWT token từ `localStorage`. |
+| `frontend/src/api.ts` | Cấu hình base URL của client (trống = cùng origin, xem `VITE_API_URL`) và JWT từ `localStorage`; định nghĩa `ApiError`. |
+| `frontend/src/main.tsx` | Kết nối router và React Query; tự động đăng xuất khi gặp 401. |
 
 Server state: TanStack React Query v5. Dark mode: next-themes.
 
@@ -211,18 +223,20 @@ docker compose build backend             # rebuild một image
 
 ## Kiểm Tra Với Tên Miền Thật (tùy chọn)
 
-Để kiểm tra subdomain routing cục bộ (giống hành vi Traefik production), đặt trong `.env`:
+Để kiểm tra host-based routing cục bộ (giống hành vi Traefik production), đặt trong `.env`:
 
 ```dotenv
 DOMAIN=localhost.tiangolo.com
+FRONTEND_HOST=http://localhost.tiangolo.com
 ```
 
 `localhost.tiangolo.com` và tất cả subdomain của nó phân giải về `127.0.0.1`. Traefik sẽ route:
 
-- `http://dashboard.localhost.tiangolo.com` → frontend
-- `http://api.localhost.tiangolo.com` → backend
+- `http://localhost.tiangolo.com` → toàn bộ ứng dụng (UI, `/api`, `/docs`, `/mcp/`)
+- `http://adminer.localhost.tiangolo.com` → adminer
 
-Restart sau khi thay đổi `DOMAIN`:
+Build lại frontend sau khi đổi `FRONTEND_HOST` để origin của passkey/OAuth khớp
+với URL trên trình duyệt. Restart sau khi thay đổi `DOMAIN`:
 
 ```bash
 docker compose watch

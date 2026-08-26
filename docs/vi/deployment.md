@@ -1,11 +1,23 @@
 # Hướng Dẫn Triển Khai
 
+> ### ⚠️ Đang nâng cấp từ phiên bản cũ hơn?
+>
+> **0.6.0 thay đổi toàn bộ URL.** Dashboard, API, Swagger và MCP giờ dùng chung
+> một host; `dashboard.` và `api.` không còn route nữa. Passkey đã đăng ký sẽ hỏng
+> nếu bạn đổi host, và redirect URI của OAuth phải được đăng ký lại với nhà cung
+> cấp. Đọc [Nâng cấp lên 0.6.0](#nâng-cấp-lên-060) **trước khi** pull.
+
 ## Yêu Cầu
 
 - Server từ xa với [Docker Engine](https://docs.docker.com/engine/install/) (không phải Docker Desktop) và Docker Compose v2
-- Tên miền với DNS A record trỏ đến IP server
-- Wildcard subdomain đã cấu hình (ví dụ `*.yourdomain.com`) — dùng cho `dashboard.`, `api.`, `traefik.`, `adminer.`
+- Tên miền với DNS A record trỏ đến IP server — chính host này phục vụ UI, API, Swagger và MCP
+- Một DNS record thứ hai (hoặc wildcard) cho các công cụ vận hành: `traefik.` và `adminer.`
 - Cổng `80` và `443` mở trên firewall server
+
+> **Lưu ý về wildcard.** Chứng chỉ `*.yourdomain.com` chỉ khớp một nhãn, nên nếu
+> đặt `DOMAIN=tacacs.yourdomain.com` thì các công cụ sẽ nằm ở
+> `adminer.tacacs.yourdomain.com` và không được wildcard bao phủ. Đặt
+> `TOOLS_DOMAIN=yourdomain.com` để giữ chúng ở `adminer.yourdomain.com`.
 
 ---
 
@@ -34,7 +46,8 @@ docker network create traefik-public
 **Đặt biến môi trường và khởi động Traefik:**
 
 ```bash
-export DOMAIN=yourdomain.com
+export DOMAIN=tacacs.yourdomain.com
+export TOOLS_DOMAIN=yourdomain.com   # host cho traefik dashboard: traefik.yourdomain.com
 export EMAIL=admin@yourdomain.com
 export USERNAME=admin
 export PASSWORD=changethis
@@ -61,7 +74,14 @@ cp .env.example .env
 **Các thay đổi tối thiểu cần thiết trong `.env`:**
 
 ```bash
-DOMAIN=yourdomain.com
+# URL duy nhất mà ứng dụng được phục vụ.
+DOMAIN=tacacs.yourdomain.com
+# Phải khớp chính xác với URL trên trình duyệt, kể cả scheme: nó quyết định CORS,
+# origin của WebAuthn/passkey, redirect OAuth và link trong email gửi đi.
+FRONTEND_HOST=https://tacacs.yourdomain.com
+# Giữ adminer./traefik. ở tên miền gốc (xem lưu ý ở trên).
+TOOLS_DOMAIN=yourdomain.com
+
 ENVIRONMENT=production
 PROJECT_NAME="TACACS+ NG UI"
 
@@ -127,14 +147,22 @@ docker compose -f docker-compose.yml ps
 
 ### URL Production
 
+Ứng dụng được phục vụ từ **một URL duy nhất**. Nginx của frontend proxy
+`/api`, `/mcp`, `/docs` và `/redoc` sang backend, nên không còn host API riêng
+cần nhớ hay cấu hình trong MCP client.
+
 Thay `yourdomain.com` bằng tên miền của bạn:
 
 | Service | URL |
 |---------|-----|
-| Dashboard | `https://dashboard.yourdomain.com` |
-| API / Swagger | `https://api.yourdomain.com/docs` |
+| Dashboard | `https://tacacs.yourdomain.com` |
+| API | `https://tacacs.yourdomain.com/api/v1` |
+| Swagger | `https://tacacs.yourdomain.com/docs` |
+| MCP endpoint | `https://tacacs.yourdomain.com/mcp/` |
 | Adminer (DB UI) | `https://adminer.yourdomain.com` |
 | Traefik dashboard | `https://traefik.yourdomain.com` |
+
+Hai mục cuối theo `TOOLS_DOMAIN` khi được đặt, ngược lại nằm dưới `DOMAIN`.
 
 ---
 
@@ -196,7 +224,7 @@ Vào **Repository → Settings → Secrets and variables → Actions** và thêm
 
 | Secret | Mô tả |
 |--------|-------|
-| `DOMAIN_PRODUCTION` | Tên miền production (ví dụ `yourdomain.com`) |
+| `DOMAIN_PRODUCTION` | Host duy nhất phục vụ ứng dụng (ví dụ `tacacs.yourdomain.com`). Workflow suy ra `FRONTEND_HOST` từ nó |
 | `STACK_NAME_PRODUCTION` | Tên Docker Compose project (ví dụ `tacacs-ng-ui`) |
 | `SECRET_KEY` | FastAPI JWT secret key |
 | `FIRST_SUPERUSER` | Email admin ban đầu |
@@ -218,7 +246,10 @@ Tất cả biến với giá trị mặc định (từ `.env.example`):
 
 | Biến | Mặc định | Mô tả |
 |------|----------|-------|
-| `DOMAIN` | `localhost` | Domain gốc cho tất cả service |
+| `DOMAIN` | `localhost` | Host duy nhất phục vụ UI, API, Swagger và MCP |
+| `TOOLS_DOMAIN` | *(trống)* | Domain gốc cho `adminer.` và `traefik.`; mặc định lấy theo `DOMAIN` |
+| `FRONTEND_HOST` | `http://localhost:5173` | URL đầy đủ của ứng dụng — quyết định CORS, origin WebAuthn, redirect OAuth, link email |
+| `VITE_API_URL` | `""` | Để trống để bundle gọi chính origin của nó; chỉ đặt khi backend nằm ở origin khác |
 | `ENVIRONMENT` | `local` | `local`, `staging`, hoặc `production` |
 | `PROJECT_NAME` | `TACACS+ NG UI` | Tên hiển thị trong UI và email |
 | `STACK_NAME` | `tacacs-ng-ui` | Tên Docker Compose project |
@@ -226,7 +257,7 @@ Tất cả biến với giá trị mặc định (từ `.env.example`):
 | `SECRET_KEY` | *(bắt buộc)* | JWT signing key — tạo bằng `openssl rand -hex 32` |
 | `FIRST_SUPERUSER` | *(bắt buộc)* | Email admin ban đầu |
 | `FIRST_SUPERUSER_PASSWORD` | *(bắt buộc)* | Mật khẩu admin ban đầu |
-| `BACKEND_CORS_ORIGINS` | `""` | Danh sách CORS origins cho phép, phân cách bằng dấu phẩy |
+| `BACKEND_CORS_ORIGINS` | `""` | Origin CORS bổ sung; hiếm khi cần vì UI đã cùng origin với API |
 | `USERS_OPEN_REGISTRATION` | `true` | Cho phép đăng ký công khai |
 | `POSTGRES_SERVER` | `localhost` | Hostname PostgreSQL (để là `db` cho Docker Compose) |
 | `POSTGRES_PORT` | `5432` | Cổng PostgreSQL |
@@ -260,6 +291,105 @@ Tất cả biến với giá trị mặc định (từ `.env.example`):
 | `AUDIT_LOG_MAX_ROWS` | `0` | Chỉ giữ N dòng gần nhất (0 = không giới hạn) |
 
 Các biến **High Availability** (`NODE_ROLE`, `SCHEDULER_ENABLED`, `SYNC_MODE`, v.v.) xem tại [high-availability.md](high-availability.md).
+
+---
+
+## Nâng cấp lên 0.6.0
+
+0.6.0 gộp bốn subdomain thành một URL duy nhất. Database không thay đổi gì —
+toàn bộ công việc nằm ở DNS, `.env`, và một lần build lại image bắt buộc. Hãy
+backup theo [Bước 1](#bước-1--backup-luôn-làm-trước) bên dưới trước.
+
+### Chọn host nào làm URL duy nhất
+
+Đây là quyết định quan trọng nhất, vì **`WEBAUTHN_RP_ID` được suy ra từ hostname
+của `FRONTEND_HOST`**, và passkey đăng ký dưới host này không dùng được ở host khác.
+
+| | Giữ được passkey cũ | Ghi chú |
+|---|---|---|
+| `DOMAIN=dashboard.example.com` | ✅ có | Người dùng vẫn thấy URL quen thuộc; API và MCP chuyển về đó |
+| `DOMAIN=example.com` (hoặc host mới) | ❌ không | URL gọn hơn, nhưng mọi passkey đã đăng ký phải đăng ký lại |
+
+Đăng nhập bằng mật khẩu và OAuth không bị ảnh hưởng trong cả hai trường hợp. Nếu
+bạn có người dùng passkey và không có lý do đặc biệt, hãy giữ host dashboard hiện tại.
+
+### 1. DNS
+
+URL duy nhất cần A record riêng trỏ về Traefik. Trước đây chỉ `dashboard.` và
+`api.` có — nếu bạn dựa vào wildcard, hãy kiểm tra nó thực sự bao phủ host bạn
+chọn. `api.<domain>` có thể gỡ bỏ khi không còn client nào dùng.
+
+### 2. `.env`
+
+```dotenv
+# Trước là tên miền gốc; giờ chính là host của ứng dụng.
+DOMAIN=tacacs.example.com
+
+# Mới trong 0.6.0. Để trống thì adminer./traefik. nằm dưới DOMAIN; đặt bằng tên
+# miền gốc để giữ chúng trong wildcard *.example.com sẵn có.
+TOOLS_DOMAIN=example.com
+
+# Trước đây không được nhắc tới trong tài liệu, nên rất dễ còn nguyên giá trị
+# localhost mặc định — làm hỏng CORS, passkey, OAuth và link trong email gửi đi.
+FRONTEND_HOST=https://tacacs.example.com
+
+# BẮT BUỘC để trống. Bundle giờ gọi chính origin của nó.
+VITE_API_URL=
+
+# Chuyển về URL duy nhất.
+GOOGLE_REDIRECT_URI=https://tacacs.example.com/api/v1/oauth/google/callback
+KEYCLOAK_REDIRECT_URI=https://tacacs.example.com/api/v1/oauth/keycloak/callback
+```
+
+`BACKEND_CORS_ORIGINS` có thể rút gọn: UI giờ cùng origin với API, và request
+cùng origin không bao giờ bị preflight.
+
+### 3. Build lại frontend — không được bỏ qua
+
+`VITE_API_URL` được biên dịch vào bundle lúc build. Chỉ restart thôi thì host API
+cũ vẫn nằm trong bundle, và mọi request sẽ đi tới hostname không còn phân giải được.
+
+```bash
+git pull origin main
+docker compose -f docker-compose.yml build backend frontend
+docker compose -f docker-compose.yml up -d
+```
+
+### 4. Đăng ký lại redirect URI của OAuth
+
+Cập nhật authorised redirect URI trong **Google Cloud Console** và trong
+**Keycloak client** cho khớp các giá trị ở trên. Redirect URI cũ sẽ lỗi ngay tại
+nhà cung cấp, nên thông báo lỗi hiện trên màn hình của họ chứ không phải ứng dụng này.
+
+### 5. Trỏ lại các MCP client
+
+Đổi `https://api.<domain>/mcp/` thành `https://<domain>/mcp/` trong cấu hình của
+từng client. **API key hiện có vẫn dùng được** — chỉ URL thay đổi. Hướng dẫn
+trong ứng dụng tại **User Settings → API Keys** luôn hiển thị URL đúng với
+deployment bạn đang xem.
+
+### 6. HA peers
+
+Mọi peer URL có dạng `api.<domain>` phải được cập nhật — sang URL duy nhất của
+peer đó, hoặc sang `http://<ip>:8000` để đi thẳng tới backend, bỏ qua proxy. Kiểm
+tra cả `PEER_BACKEND_URL`/`PEER_NODES` trong `.env` lẫn các bản ghi `HaPeerNode`
+đã có trong database (`GET /api/v1/sync/peers`).
+
+### 7. Kiểm tra
+
+```bash
+curl -sf https://tacacs.example.com/api/v1/utils/health-check/   # API qua proxy
+curl -sI https://tacacs.example.com/docs                         # Swagger
+curl -si -X POST https://tacacs.example.com/mcp/                 # 401 khi không có key
+```
+
+Sau đó đăng nhập, và — nếu bạn dùng — xác nhận passkey và OAuth vẫn hoạt động
+trước khi coi như đã nâng cấp xong.
+
+### Nếu có sự cố
+
+Không có thay đổi nào chạm tới database, nên rollback chỉ là `git checkout <tag
+cũ>`, khôi phục `.env` cũ và build lại. Không có migration nào phải hoàn tác.
 
 ---
 

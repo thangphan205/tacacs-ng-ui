@@ -40,6 +40,38 @@ delete the heading itself. -->
 
 ## v0.6.0
 
+### ⚠️ Breaking Changes
+
+* 💥 **One URL now serves the whole application.** The UI, the REST API, Swagger and the MCP endpoint all live under a single host. `dashboard.${DOMAIN}` and `api.${DOMAIN}` **no longer route** — Traefik publishes `${DOMAIN}` itself, and the frontend's nginx proxies `/api`, `/mcp`, `/docs` and `/redoc` through to the backend.
+
+  | | Before | After |
+  |---|---|---|
+  | Dashboard | `https://dashboard.example.com` | `https://example.com` |
+  | API | `https://api.example.com/api/v1` | `https://example.com/api/v1` |
+  | Swagger | `https://api.example.com/docs` | `https://example.com/docs` |
+  | MCP | `https://api.example.com/mcp/` | `https://example.com/mcp/` |
+
+  `DOMAIN` changes meaning with it: it was a *base* domain that got prefixed, and is now the application's host. Two variables must be set explicitly — the deployment guide never mentioned them before, so a domain deploy silently ran with `FRONTEND_HOST=http://localhost:5173`, breaking CORS, passkeys, OAuth and email links:
+
+  ```dotenv
+  DOMAIN=tacacs.example.com
+  FRONTEND_HOST=https://tacacs.example.com
+  VITE_API_URL=                      # must be EMPTY — the bundle now calls its own origin
+  TOOLS_DOMAIN=example.com           # new: keeps adminer./traefik. under an existing wildcard
+  ```
+
+  **`VITE_API_URL` is baked in at build time**, so `docker compose build frontend` is mandatory — a restart alone leaves the old API host compiled into the bundle. See [Upgrading to 0.6.0](deployment.md#upgrading-to-060) for the full checklist.
+
+* 💥 **Existing passkeys break if the host changes.** `WEBAUTHN_RP_ID` is derived from `FRONTEND_HOST`'s hostname, and a credential registered under `dashboard.example.com` cannot be used under `example.com` — every enrolled passkey stops working and has to be re-registered. **To keep them working, set `DOMAIN` to your existing dashboard host** (`DOMAIN=dashboard.example.com`): the URL is then unchanged, and only the API and MCP move onto it. Password and OAuth logins are unaffected either way.
+
+* 💥 **OAuth redirect URIs move.** `GOOGLE_REDIRECT_URI` and `KEYCLOAK_REDIRECT_URI` become `https://${DOMAIN}/api/v1/oauth/{google,keycloak}/callback`, and the same values must be re-registered in the Google Cloud Console and the Keycloak client — a stale redirect URI fails at the provider, not in this application.
+
+* 💥 **MCP clients must be re-pointed** from `https://api.<domain>/mcp/` to `https://<domain>/mcp/`. Existing API keys stay valid; only the URL changes. `MCP_PATH` is now mirrored by hand in `frontend/nginx-backend-proxy.conf`, so changing it means changing both.
+
+* 💥 **HA peer URLs** naming `api.<domain>` must be updated — either to the peer's single URL, or to `http://<ip>:8000`, which reaches the backend directly and skips the proxy hop. This applies to `PEER_BACKEND_URL`/`PEER_NODES` and to any `HaPeerNode` rows already in the database.
+
+* 🔒 **uvicorn now runs with `--forwarded-allow-ips=*`.** Without it uvicorn ignores `X-Forwarded-Proto` from a non-loopback peer, so the backend would treat an https request as http and answer `POST /mcp` with an absolute `http://` redirect that Traefik turns into a 301 — and most HTTP clients drop the request body on a 301. The flag means `X-Forwarded-*` is trusted from anything that can reach port 8000; the production compose file does not publish that port, but if you publish it yourself, restrict it to the proxy or pin the flag to your compose network's CIDR.
+
 ### Security Fixes
 
 * 🔒 **Login password hashing migrated from passlib + bcrypt to `pwdlib[argon2,bcrypt]`**, matching the upstream `full-stack-fastapi-template`. New passwords are hashed with **argon2id**; existing `$2b$` bcrypt hashes stay verifiable and are transparently rewritten to argon2 on the owner's next successful login. The rewrite is skipped on `NODE_ROLE=standby` (read-only replica) and is best-effort — a failed write leaves the old hash in place and never turns a valid login into an error. **No database migration is required**: `user.hashed_password` is an unbounded `VARCHAR`, and argon2 hashes (~97 chars) fit where bcrypt's 60 did.

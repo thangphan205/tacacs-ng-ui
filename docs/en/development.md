@@ -21,11 +21,17 @@ First startup takes ~1 minute while the DB initialises and migrations run.
 
 ### Local URLs
 
+The frontend serves the whole application: its nginx (and, under
+`npm run dev`, Vite's dev-server proxy) forwards `/api`, `/mcp`, `/docs` and
+`/redoc` to the backend, so the browser only ever talks to one origin.
+
 | Service | URL |
 |---------|-----|
 | Frontend (React) | http://localhost:5173 |
-| Backend API | http://localhost:8000 |
-| Swagger UI | http://localhost:8000/docs |
+| Backend API | http://localhost:5173/api/v1 |
+| Swagger UI | http://localhost:5173/docs |
+| MCP endpoint | http://localhost:5173/mcp/ |
+| Backend, direct (bypasses the proxy) | http://localhost:8000 |
 | Adminer (DB UI) | http://localhost:8080 |
 | Traefik dashboard | http://localhost:8090 |
 | MailCatcher (SMTP) | http://localhost:1080 |
@@ -130,11 +136,16 @@ npm install
 npm run dev       # Vite dev server on :5173
 ```
 
-Set `VITE_API_URL=http://localhost:8000` in `.env` or export it:
+No API URL to configure: the bundle calls its own origin, and Vite's dev server
+proxies `/api`, `/mcp`, `/docs` and `/redoc` to the backend. If your backend is
+not on `http://localhost:8000`, point the proxy at it:
 
 ```bash
-VITE_API_URL=http://localhost:8000 npm run dev
+VITE_DEV_API_PROXY=http://localhost:9000 npm run dev
 ```
+
+Setting `VITE_API_URL` instead makes the bundle call that origin directly,
+bypassing the proxy — you then also need that origin in `BACKEND_CORS_ORIGINS`.
 
 ### Lint and format
 
@@ -167,7 +178,8 @@ Requires local backend venv (`uv sync` in `backend/`). Calls `python -c "import 
 | `frontend/src/client/` | Auto-generated OpenAPI client. Never edit manually. |
 | `frontend/src/routes/` | TanStack Router file-based routing. `_layout.tsx` wraps all authenticated routes. |
 | `frontend/src/components/` | Chakra UI v3 components. Prefer reusable over per-entity duplicates. |
-| `frontend/src/main.tsx` | Configures OpenAPI base URL (`VITE_API_URL`) and JWT token from `localStorage`. |
+| `frontend/src/api.ts` | Configures the client base URL (empty = same origin, see `VITE_API_URL`) and the JWT from `localStorage`; defines `ApiError`. |
+| `frontend/src/main.tsx` | Wires the router and React Query; auto-logout on a 401. |
 
 Server state: TanStack React Query v5. Dark mode: next-themes.
 
@@ -211,16 +223,20 @@ docker compose build backend             # rebuild one image
 
 ## Testing with a Real Domain (optional)
 
-To test subdomain routing locally (mirrors production Traefik behaviour), set in `.env`:
+To test host-based Traefik routing locally (mirrors production behaviour), set in `.env`:
 
 ```dotenv
 DOMAIN=localhost.tiangolo.com
+FRONTEND_HOST=http://localhost.tiangolo.com
 ```
 
 `localhost.tiangolo.com` and all its subdomains resolve to `127.0.0.1`. Traefik will then route:
 
-- `http://dashboard.localhost.tiangolo.com` → frontend
-- `http://api.localhost.tiangolo.com` → backend
+- `http://localhost.tiangolo.com` → the whole application (UI, `/api`, `/docs`, `/mcp/`)
+- `http://adminer.localhost.tiangolo.com` → adminer
+
+Rebuild the frontend after changing `FRONTEND_HOST` so the passkey/OAuth origin
+matches what the browser shows.
 
 Restart after changing `DOMAIN`:
 
