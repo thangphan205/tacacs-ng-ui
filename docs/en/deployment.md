@@ -90,13 +90,6 @@ SECRET_KEY=<generate: openssl rand -hex 32>
 FIRST_SUPERUSER=admin@yourdomain.com
 FIRST_SUPERUSER_PASSWORD=<strong-password>
 
-# Only administrators may create accounts. `.env.example` ships this as `True`
-# for dev and lab use, so it is easy to carry into production by accident —
-# which would let anyone reaching the URL self-register on your TACACS+ admin
-# panel. The first admin is seeded from FIRST_SUPERUSER above, so nothing
-# depends on open sign-up.
-USERS_OPEN_REGISTRATION=False
-
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=<strong-password>
 POSTGRES_DB=app
@@ -211,6 +204,43 @@ real user needs. If you want brute-force resistance, add a second Traefik
 router with a higher `priority` matching `PathPrefix(/api/v1/login)` and a much
 stricter limit (for example `average=5, period=1m`).
 
+### Disabling Open Registration
+
+Open registration is **on by default** (`USERS_OPEN_REGISTRATION=True`): anyone
+who can reach the URL may create their own account at `/signup`. That is
+convenient for a lab or an internal deployment where everyone who can reach the
+host is already trusted.
+
+To restrict account creation to administrators, set it in `.env` and recreate
+the backend:
+
+```bash
+# .env
+USERS_OPEN_REGISTRATION=False
+```
+
+```bash
+docker compose -f docker-compose.yml up -d backend
+```
+
+A plain restart is not enough — the value is passed through the `environment:`
+block in `docker-compose.yml`, so the container has to be recreated to pick it
+up. `up -d` does that for you.
+
+**What changes:** `POST /api/v1/users/signup` starts returning `400` with
+`"Open user registration is forbidden on this server"`.
+
+> **The login page still shows a "Sign up" link.** The frontend does not read
+> this setting, so the form stays reachable and the rejection only appears
+> after the user fills it in and submits. Nothing is created, but the dead end
+> is worth knowing about before someone reports it as a bug.
+
+**Creating users once it is off:** sign in as the superuser from
+`FIRST_SUPERUSER` and use **Admin → Users Management** in the UI, or call
+`POST /api/v1/users/` with a superuser token.
+
+To turn it back on, set the value to `True` and run the same `up -d` command.
+
 ---
 
 ## Step 4 — Database Migrations (updates)
@@ -322,7 +352,7 @@ All variables with their defaults (from `.env.example`):
 | `FIRST_SUPERUSER` | *(required)* | Initial admin email |
 | `FIRST_SUPERUSER_PASSWORD` | *(required)* | Initial admin password |
 | `BACKEND_CORS_ORIGINS` | `""` | Extra allowed CORS origins; rarely needed now the UI is same-origin |
-| `USERS_OPEN_REGISTRATION` | `True` in `.env.example` | Allow public self-registration — **set to `False` in production**. The application's own default is `False`; only the shipped example file turns it on, for dev and lab use |
+| `USERS_OPEN_REGISTRATION` | `True` | Anyone reaching the URL may create their own account. Set to `False` to restrict account creation to administrators — see [Disabling Open Registration](#disabling-open-registration) |
 | `POSTGRES_SERVER` | `localhost` | PostgreSQL hostname (leave as `db` for Docker Compose) |
 | `POSTGRES_PORT` | `5432` | PostgreSQL port |
 | `POSTGRES_USER` | `postgres` | PostgreSQL user |

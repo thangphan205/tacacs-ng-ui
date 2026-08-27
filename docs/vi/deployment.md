@@ -90,12 +90,6 @@ SECRET_KEY=<tạo bằng: openssl rand -hex 32>
 FIRST_SUPERUSER=admin@yourdomain.com
 FIRST_SUPERUSER_PASSWORD=<mật-khẩu-mạnh>
 
-# Chỉ admin mới được tạo tài khoản. `.env.example` để sẵn `True` cho môi trường
-# dev/lab, nên rất dễ mang nhầm lên production — khi đó bất kỳ ai vào được URL
-# đều tự đăng ký được trên trang quản trị TACACS+ của bạn. Admin đầu tiên đã
-# được seed từ FIRST_SUPERUSER ở trên, nên không có gì phụ thuộc vào đăng ký mở.
-USERS_OPEN_REGISTRATION=False
-
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=<mật-khẩu-mạnh>
 POSTGRES_DB=app
@@ -209,6 +203,41 @@ chống brute-force, thêm một router Traefik thứ hai với `priority` cao h
 `PathPrefix(/api/v1/login)` và đặt hạn mức chặt hơn nhiều (ví dụ
 `average=5, period=1m`).
 
+### Tắt Đăng Ký Mở
+
+Đăng ký mở **được bật sẵn** (`USERS_OPEN_REGISTRATION=True`): bất kỳ ai vào được
+URL đều có thể tự tạo tài khoản tại `/signup`. Điều này tiện cho môi trường lab
+hoặc nội bộ, nơi ai vào được host thì đã là người tin cậy.
+
+Để chỉ cho admin tạo tài khoản, đặt giá trị trong `.env` rồi tạo lại container
+backend:
+
+```bash
+# .env
+USERS_OPEN_REGISTRATION=False
+```
+
+```bash
+docker compose -f docker-compose.yml up -d backend
+```
+
+Restart thường là không đủ — giá trị được truyền qua khối `environment:` trong
+`docker-compose.yml`, nên container phải được tạo lại mới nhận. Lệnh `up -d` lo
+việc đó.
+
+**Thay đổi gì:** `POST /api/v1/users/signup` bắt đầu trả về `400` kèm
+`"Open user registration is forbidden on this server"`.
+
+> **Trang đăng nhập vẫn hiện link "Sign up".** Frontend không đọc cấu hình này,
+> nên form vẫn vào được và chỉ báo lỗi sau khi người dùng điền và bấm gửi.
+> Không có gì được tạo ra, nhưng nên biết trước để khỏi bị báo nhầm là bug.
+
+**Tạo user sau khi đã tắt:** đăng nhập bằng superuser từ `FIRST_SUPERUSER` rồi
+dùng **Admin → Users Management** trên UI, hoặc gọi `POST /api/v1/users/` với
+token superuser.
+
+Muốn bật lại thì đặt giá trị `True` và chạy đúng lệnh `up -d` ở trên.
+
 ---
 
 ## Bước 4 — Database Migrations (cập nhật)
@@ -320,7 +349,7 @@ Tất cả biến với giá trị mặc định (từ `.env.example`):
 | `FIRST_SUPERUSER` | *(bắt buộc)* | Email admin ban đầu |
 | `FIRST_SUPERUSER_PASSWORD` | *(bắt buộc)* | Mật khẩu admin ban đầu |
 | `BACKEND_CORS_ORIGINS` | `""` | Origin CORS bổ sung; hiếm khi cần vì UI đã cùng origin với API |
-| `USERS_OPEN_REGISTRATION` | `True` trong `.env.example` | Cho phép tự đăng ký công khai — **đặt `False` ở production**. Mặc định của chính ứng dụng là `False`; chỉ file example bật lên, phục vụ dev/lab |
+| `USERS_OPEN_REGISTRATION` | `True` | Bất kỳ ai vào được URL đều tự tạo tài khoản được. Đặt `False` để chỉ admin mới tạo được tài khoản — xem [Tắt Đăng Ký Mở](#tắt-đăng-ký-mở) |
 | `POSTGRES_SERVER` | `localhost` | Hostname PostgreSQL (để là `db` cho Docker Compose) |
 | `POSTGRES_PORT` | `5432` | Cổng PostgreSQL |
 | `POSTGRES_USER` | `postgres` | User PostgreSQL |
