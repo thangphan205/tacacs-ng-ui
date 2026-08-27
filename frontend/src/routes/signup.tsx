@@ -12,10 +12,13 @@ import {
   createFileRoute,
   Link as RouterLink,
   redirect,
+  useNavigate,
 } from "@tanstack/react-router"
+import { useEffect } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FiCheck, FiLock, FiUser } from "react-icons/fi"
 
+import { apiBaseUrl } from "@/api"
 import type { UserRegister } from "@/client"
 import { Button } from "@/components/ui/button"
 import { Field } from "@/components/ui/field"
@@ -42,6 +45,29 @@ interface UserRegisterForm extends UserRegister {
 
 function SignUp() {
   const { signUpMutation } = useAuth()
+  const navigate = useNavigate()
+
+  // Send people away when the server has open registration off, rather than
+  // leaving them a form whose submit can only come back 400. Deliberately not
+  // done in beforeLoad: awaiting a fetch there blocks every navigation to this
+  // route, including the common case where registration is on. Only act on an
+  // answer that actually says "off" — if the check fails, the form stays, and
+  // POST /users/signup is what really enforces the setting either way.
+  useEffect(() => {
+    let cancelled = false
+    fetch(`${apiBaseUrl()}/api/v1/auth-providers/status`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { open_registration?: boolean } | null) => {
+        if (!cancelled && data?.open_registration === false) {
+          navigate({ to: "/login" })
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [navigate])
+
   const {
     register,
     handleSubmit,

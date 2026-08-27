@@ -92,6 +92,10 @@ def auth_providers_status(session: SessionDep) -> dict[str, bool]:
         "google": _enabled("google", settings.GOOGLE_CLIENT_ID),
         "keycloak": _enabled("keycloak", settings.KEYCLOAK_CLIENT_ID),
         "passkey": db_map.get("passkey", True),
+        # Lets the login page hide its "Sign up" link, and the signup route
+        # turn people away, instead of offering a form that can only fail.
+        # This is presentation only — POST /users/signup enforces the setting.
+        "open_registration": settings.USERS_OPEN_REGISTRATION,
     }
 
 

@@ -227,13 +227,13 @@ A plain restart is not enough — the value is passed through the `environment:`
 block in `docker-compose.yml`, so the container has to be recreated to pick it
 up. `up -d` does that for you.
 
-**What changes:** `POST /api/v1/users/signup` starts returning `400` with
-`"Open user registration is forbidden on this server"`.
+**What changes:** the login page drops its "Sign up" link, `/signup` redirects
+to the login page if anyone reaches it directly, and `POST /api/v1/users/signup`
+returns `400` with `"Open user registration is forbidden on this server"`.
 
-> **The login page still shows a "Sign up" link.** The frontend does not read
-> this setting, so the form stays reachable and the rejection only appears
-> after the user fills it in and submits. Nothing is created, but the dead end
-> is worth knowing about before someone reports it as a bug.
+The first two are presentation, read from the public
+`GET /api/v1/auth-providers/status` endpoint. The endpoint is what actually
+enforces the setting, so a stale page or a direct API call still gets refused.
 
 **Creating users once it is off:** sign in as the superuser from
 `FIRST_SUPERUSER` and use **Admin → Users Management** in the UI, or call

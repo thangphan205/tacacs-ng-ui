@@ -225,12 +225,13 @@ Restart thường là không đủ — giá trị được truyền qua khối `
 `docker-compose.yml`, nên container phải được tạo lại mới nhận. Lệnh `up -d` lo
 việc đó.
 
-**Thay đổi gì:** `POST /api/v1/users/signup` bắt đầu trả về `400` kèm
-`"Open user registration is forbidden on this server"`.
+**Thay đổi gì:** trang đăng nhập bỏ link "Sign up", `/signup` chuyển hướng về
+trang đăng nhập nếu có ai vào thẳng, và `POST /api/v1/users/signup` trả về `400`
+kèm `"Open user registration is forbidden on this server"`.
 
-> **Trang đăng nhập vẫn hiện link "Sign up".** Frontend không đọc cấu hình này,
-> nên form vẫn vào được và chỉ báo lỗi sau khi người dùng điền và bấm gửi.
-> Không có gì được tạo ra, nhưng nên biết trước để khỏi bị báo nhầm là bug.
+Hai điều đầu chỉ là hiển thị, đọc từ endpoint công khai
+`GET /api/v1/auth-providers/status`. Chính endpoint signup mới là nơi thực thi,
+nên trang bị cache cũ hay gọi API trực tiếp vẫn bị từ chối.
 
 **Tạo user sau khi đã tắt:** đăng nhập bằng superuser từ `FIRST_SUPERUSER` rồi
 dùng **Admin → Users Management** trên UI, hoặc gọi `POST /api/v1/users/` với

@@ -34,6 +34,7 @@ interface ProvidersStatus {
   google: boolean
   keycloak: boolean
   passkey: boolean
+  open_registration: boolean
 }
 
 export const Route = createFileRoute("/login")({
@@ -52,6 +53,7 @@ function Login() {
     google: false,
     keycloak: false,
     passkey: false,
+    open_registration: false,
   })
 
   const {
@@ -300,12 +302,14 @@ function Login() {
             </Button>
           )}
 
-          <Text fontSize="sm" color="gray.600" textAlign="center" mt={2}>
-            Don't have an account yet?{" "}
-            <Link asChild className="main-link" textDecoration="underline">
-              <RouterLink to="/signup">Sign up</RouterLink>
-            </Link>
-          </Text>
+          {providers.open_registration && (
+            <Text fontSize="sm" color="gray.600" textAlign="center" mt={2}>
+              Don't have an account yet?{" "}
+              <Link asChild className="main-link" textDecoration="underline">
+                <RouterLink to="/signup">Sign up</RouterLink>
+              </Link>
+            </Text>
+          )}
 
           <Link
             as="a"
