@@ -24,53 +24,74 @@
 
 ## Step 1 — Set Up Traefik (once per server)
 
-Traefik handles HTTPS termination and Let's Encrypt certificate renewal. It runs as a separate Docker Compose stack and is shared across all stacks on the server.
+Traefik handles HTTPS termination and Let's Encrypt certificate renewal. It runs
+as its own Compose project, so its lifecycle stays independent of the
+application, and one instance serves every stack on the server.
 
-**On the remote server:**
-
-```bash
-mkdir -p /root/code/traefik-public
-```
-
-**Copy the Traefik compose file from your local machine:**
-
-```bash
-rsync -a docker-compose.traefik.yml root@your-server.example.com:/root/code/traefik-public/
-```
-
-**Create the shared Docker network:**
-
-```bash
-docker network create traefik-public
-```
-
-**Set environment variables and start Traefik:**
-
-```bash
-export DOMAIN=tacacs.yourdomain.com
-export TOOLS_DOMAIN=yourdomain.com   # host for the traefik dashboard: traefik.yourdomain.com
-export EMAIL=admin@yourdomain.com
-export USERNAME=admin
-export PASSWORD=changethis
-export HASHED_PASSWORD=$(openssl passwd -apr1 "$PASSWORD")
-
-cd /root/code/traefik-public
-docker compose -f docker-compose.traefik.yml up -d
-```
-
-Verify Traefik is running: `https://traefik.yourdomain.com` (HTTP Basic Auth with username/password above).
-
----
-
-## Step 2 — Configure `.env`
-
-Clone the repo and configure environment variables:
+Clone the repository first. Traefik reads the same `.env` as the application, so
+a single checkout carries both:
 
 ```bash
 git clone https://github.com/thangphan205/tacacs-ng-ui
 cd tacacs-ng-ui
 cp .env.example .env
 ```
+
+That one file is all Traefik needs — no separate directory, no copied compose
+file, and nothing to re-export after you log out. Fill in the `── Traefik ──`
+section near the bottom of `.env`:
+
+```dotenv
+# Let's Encrypt contact address for certificate expiry notices.
+EMAIL=admin@yourdomain.com
+
+# HTTP Basic Auth for the Traefik dashboard.
+USERNAME=admin
+HASHED_PASSWORD=$$apr1$$xxxxxxxx$$yyyyyyyyyyyyyyyyyyyyyy
+```
+
+`DOMAIN` and `TOOLS_DOMAIN` are the same values Step 2 sets — they are read from
+this one file, so there is nothing to keep in sync by hand.
+
+Generate the password hash with every `$` doubled:
+
+```bash
+htpasswd -nB admin | sed -e 's/\$/\$\$/g'
+```
+
+> **The doubling is required, and skipping it fails silently.** Compose
+> interpolates `$` inside `.env` values, so a raw `$apr1$I.9.f7f.$Twb1x…`
+> reaches Traefik as `.9.f7f.…` — a mangled hash that rejects every password
+> without logging a reason. Written as `$$`, Compose produces the literal `$`
+> Traefik needs. (This applies to `.env` only. A value passed as a shell
+> `export` is taken verbatim and must *not* be doubled.)
+
+Create the shared network and start Traefik from the repository root:
+
+```bash
+docker network create traefik-public
+docker compose -p traefik-public -f docker-compose.traefik.yml up -d
+```
+
+> **`-p traefik-public` is not optional.** Without it the Traefik stack inherits
+> the same Compose project name as the application, each stack then reports the
+> other's containers as orphans, and a `--remove-orphans` on either one deletes
+> the other.
+
+Verify Traefik is running: `https://traefik.yourdomain.com` (Basic Auth with the
+username and password above).
+
+> **Running several different applications behind one Traefik?** Keep the
+> compose file in its own directory with its own `.env` instead, so restarting
+> Traefik never depends on this repository being checked out. The `-p` flag and
+> the `$$` rule apply exactly the same way.
+
+---
+
+## Step 2 — Configure `.env`
+
+Step 1 created `.env` from the example and filled in its Traefik section. Now
+set the rest.
 
 **Minimum required changes in `.env`:**
 

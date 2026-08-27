@@ -24,53 +24,73 @@
 
 ## Bước 1 — Cài Đặt Traefik (một lần cho mỗi server)
 
-Traefik xử lý HTTPS termination và tự động gia hạn chứng chỉ Let's Encrypt. Nó chạy như một Docker Compose stack riêng biệt và dùng chung cho tất cả stack trên server.
+Traefik xử lý HTTPS termination và tự động gia hạn chứng chỉ Let's Encrypt. Nó
+chạy như một Compose project riêng, nên vòng đời của nó độc lập với ứng dụng, và
+một instance phục vụ mọi stack trên server.
 
-**Trên server từ xa:**
-
-```bash
-mkdir -p /root/code/traefik-public
-```
-
-**Copy file Traefik compose từ máy local:**
-
-```bash
-rsync -a docker-compose.traefik.yml root@your-server.example.com:/root/code/traefik-public/
-```
-
-**Tạo Docker network dùng chung:**
-
-```bash
-docker network create traefik-public
-```
-
-**Đặt biến môi trường và khởi động Traefik:**
-
-```bash
-export DOMAIN=tacacs.yourdomain.com
-export TOOLS_DOMAIN=yourdomain.com   # host cho traefik dashboard: traefik.yourdomain.com
-export EMAIL=admin@yourdomain.com
-export USERNAME=admin
-export PASSWORD=changethis
-export HASHED_PASSWORD=$(openssl passwd -apr1 "$PASSWORD")
-
-cd /root/code/traefik-public
-docker compose -f docker-compose.traefik.yml up -d
-```
-
-Kiểm tra Traefik đang chạy: `https://traefik.yourdomain.com` (HTTP Basic Auth với username/password ở trên).
-
----
-
-## Bước 2 — Cấu Hình `.env`
-
-Clone repo và cấu hình biến môi trường:
+Trước tiên hãy clone repository. Traefik đọc cùng file `.env` với ứng dụng, nên
+một bản checkout duy nhất mang cả hai:
 
 ```bash
 git clone https://github.com/thangphan205/tacacs-ng-ui
 cd tacacs-ng-ui
 cp .env.example .env
 ```
+
+Chỉ một file đó là đủ cho Traefik — không cần thư mục riêng, không phải copy
+file compose, và không phải export lại sau khi đăng xuất. Điền phần
+`── Traefik ──` gần cuối file `.env`:
+
+```dotenv
+# Địa chỉ liên hệ Let's Encrypt để nhận thông báo chứng chỉ sắp hết hạn.
+EMAIL=admin@yourdomain.com
+
+# HTTP Basic Auth cho trang Traefik dashboard.
+USERNAME=admin
+HASHED_PASSWORD=$$apr1$$xxxxxxxx$$yyyyyyyyyyyyyyyyyyyyyy
+```
+
+`DOMAIN` và `TOOLS_DOMAIN` chính là giá trị Bước 2 đặt — đọc từ cùng một file,
+nên không có gì phải giữ đồng bộ thủ công.
+
+Tạo hash mật khẩu với mọi ký tự `$` được nhân đôi:
+
+```bash
+htpasswd -nB admin | sed -e 's/\$/\$\$/g'
+```
+
+> **Bắt buộc phải nhân đôi, và nếu bỏ qua thì lỗi diễn ra âm thầm.** Compose
+> nội suy `$` bên trong giá trị của `.env`, nên chuỗi thô
+> `$apr1$I.9.f7f.$Twb1x…` tới tay Traefik chỉ còn `.9.f7f.…` — một hash méo mó
+> từ chối mọi mật khẩu mà không ghi log lý do. Viết `$$` thì Compose sinh ra
+> đúng một ký tự `$`. (Chỉ áp dụng cho `.env`. Giá trị truyền bằng `export` của
+> shell được dùng nguyên văn và **không** được nhân đôi.)
+
+Tạo network dùng chung rồi khởi động Traefik từ thư mục gốc của repo:
+
+```bash
+docker network create traefik-public
+docker compose -p traefik-public -f docker-compose.traefik.yml up -d
+```
+
+> **`-p traefik-public` là bắt buộc.** Thiếu nó, stack Traefik sẽ mang cùng tên
+> Compose project với ứng dụng, mỗi stack sẽ coi container của stack kia là
+> orphan, và một lệnh `--remove-orphans` ở bên nào cũng xóa mất bên còn lại.
+
+Kiểm tra Traefik đang chạy: `https://traefik.yourdomain.com` (Basic Auth với
+username/password ở trên).
+
+> **Chạy nhiều ứng dụng khác nhau sau cùng một Traefik?** Hãy để file compose ở
+> thư mục riêng kèm `.env` riêng, để việc khởi động lại Traefik không phụ thuộc
+> vào repo này có đang được checkout hay không. Cờ `-p` và quy tắc `$$` vẫn áp
+> dụng y hệt.
+
+---
+
+## Bước 2 — Cấu Hình `.env`
+
+Bước 1 đã tạo `.env` từ file example và điền phần Traefik. Giờ đặt nốt phần còn
+lại.
 
 **Các thay đổi tối thiểu cần thiết trong `.env`:**
 
