@@ -10,32 +10,6 @@ overwrites whatever follows it. That has wiped published sections twice. Move
 entries out of it into the version section as part of cutting a release; do not
 delete the heading itself. -->
 
-### Docs
-
-* docs: restore release notes wiped by latest-changes, restore its anchor. PR [#278](https://github.com/thangphan205/tacacs-ng-ui/pull/278) by [@thangphan205](https://github.com/thangphan205).
-
-### Internal
-
-* ⬆ Migrate MCP server to mcp 2.0. PR [#290](https://github.com/thangphan205/tacacs-ng-ui/pull/290) by [@thangphan205](https://github.com/thangphan205).
-* ⬆ bump shiki from 4.3.1 to 4.4.3 in /frontend. PR [#287](https://github.com/thangphan205/tacacs-ng-ui/pull/287) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ update fastapi[standard] requirement from <1.0.0,>=0.114.2 to >=0.141.1,<1.0.0 in /backend. PR [#286](https://github.com/thangphan205/tacacs-ng-ui/pull/286) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ bump react-dom and @types/react-dom in /frontend. PR [#288](https://github.com/thangphan205/tacacs-ng-ui/pull/288) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ bump react-error-boundary from 6.1.2 to 6.1.3 in /frontend. PR [#285](https://github.com/thangphan205/tacacs-ng-ui/pull/285) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ bump @tanstack/router-devtools from 1.167.0 to 1.167.1 in /frontend. PR [#280](https://github.com/thangphan205/tacacs-ng-ui/pull/280) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ bump pygments from 2.18.0 to 2.20.0 in /backend. PR [#282](https://github.com/thangphan205/tacacs-ng-ui/pull/282) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ bump coverage from 7.14.3 to 7.15.4 in /backend. PR [#281](https://github.com/thangphan205/tacacs-ng-ui/pull/281) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ bump emails from 1.1.1 to 1.1.2 in /backend. PR [#279](https://github.com/thangphan205/tacacs-ng-ui/pull/279) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ bump webauthn from 2.5.1 to 3.0.0 in /backend. PR [#268](https://github.com/thangphan205/tacacs-ng-ui/pull/268) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ update psycopg[binary] requirement from <4.0.0,>=3.1.13 to >=3.3.4,<4.0.0 in /backend. PR [#267](https://github.com/thangphan205/tacacs-ng-ui/pull/267) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ bump @playwright/test from 1.61.1 to 1.62.1 in /frontend. PR [#250](https://github.com/thangphan205/tacacs-ng-ui/pull/250) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ bump vite from 8.1.0 to 8.2.2 in /frontend. PR [#266](https://github.com/thangphan205/tacacs-ng-ui/pull/266) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ bump @tanstack/router-plugin from 1.139.1 to 1.168.34 in /frontend. PR [#269](https://github.com/thangphan205/tacacs-ng-ui/pull/269) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ bump recharts from 3.9.2 to 3.10.1 in /frontend. PR [#270](https://github.com/thangphan205/tacacs-ng-ui/pull/270) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ update sentry-sdk[fastapi] requirement from <3.0.0,>=1.40.6 to >=2.68.0,<3.0.0 in /backend. PR [#271](https://github.com/thangphan205/tacacs-ng-ui/pull/271) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ bump mypy from 1.11.2 to 2.3.1 in /backend. PR [#273](https://github.com/thangphan205/tacacs-ng-ui/pull/273) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ bump axios from 1.18.0 to 1.19.0 in /frontend. PR [#272](https://github.com/thangphan205/tacacs-ng-ui/pull/272) by [@dependabot[bot]](https://github.com/apps/dependabot).
-* ⬆ update pwdlib[argon2,bcrypt] requirement from <0.4.0,>=0.3.0 to >=0.3.1,<0.4.0 in /backend. PR [#274](https://github.com/thangphan205/tacacs-ng-ui/pull/274) by [@dependabot[bot]](https://github.com/apps/dependabot).
-
 ## Unreleased
 
 ## v0.6.0
@@ -119,6 +93,7 @@ delete the heading itself. -->
 ### Docs
 
 * docs: restore release notes wiped by the newly-fixed latest-changes bot. PR [#263](https://github.com/thangphan205/tacacs-ng-ui/pull/263) by [@thangphan205](https://github.com/thangphan205).
+* docs: restore release notes wiped by latest-changes, restore its anchor. PR [#278](https://github.com/thangphan205/tacacs-ng-ui/pull/278) by [@thangphan205](https://github.com/thangphan205).
 
 ### Internal
 
@@ -126,6 +101,25 @@ delete the heading itself. -->
 
 * 🔇 The `AttributeError: module 'bcrypt' has no attribute '__about__'` warning that appeared in every test run is gone — passlib no longer touches bcrypt at all.
 * fix: latest-changes workflow fails on every run — missing token secret. PR [#262](https://github.com/thangphan205/tacacs-ng-ui/pull/262) by [@thangphan205](https://github.com/thangphan205).
+* ⬆ Migrate MCP server to mcp 2.0. PR [#290](https://github.com/thangphan205/tacacs-ng-ui/pull/290) by [@thangphan205](https://github.com/thangphan205).
+* ⬆ bump shiki from 4.3.1 to 4.4.3 in /frontend. PR [#287](https://github.com/thangphan205/tacacs-ng-ui/pull/287) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ update fastapi[standard] requirement from <1.0.0,>=0.114.2 to >=0.141.1,<1.0.0 in /backend. PR [#286](https://github.com/thangphan205/tacacs-ng-ui/pull/286) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ bump react-dom and @types/react-dom in /frontend. PR [#288](https://github.com/thangphan205/tacacs-ng-ui/pull/288) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ bump react-error-boundary from 6.1.2 to 6.1.3 in /frontend. PR [#285](https://github.com/thangphan205/tacacs-ng-ui/pull/285) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ bump @tanstack/router-devtools from 1.167.0 to 1.167.1 in /frontend. PR [#280](https://github.com/thangphan205/tacacs-ng-ui/pull/280) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ bump pygments from 2.18.0 to 2.20.0 in /backend. PR [#282](https://github.com/thangphan205/tacacs-ng-ui/pull/282) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ bump coverage from 7.14.3 to 7.15.4 in /backend. PR [#281](https://github.com/thangphan205/tacacs-ng-ui/pull/281) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ bump emails from 1.1.1 to 1.1.2 in /backend. PR [#279](https://github.com/thangphan205/tacacs-ng-ui/pull/279) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ bump webauthn from 2.5.1 to 3.0.0 in /backend. PR [#268](https://github.com/thangphan205/tacacs-ng-ui/pull/268) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ update psycopg[binary] requirement from <4.0.0,>=3.1.13 to >=3.3.4,<4.0.0 in /backend. PR [#267](https://github.com/thangphan205/tacacs-ng-ui/pull/267) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ bump @playwright/test from 1.61.1 to 1.62.1 in /frontend. PR [#250](https://github.com/thangphan205/tacacs-ng-ui/pull/250) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ bump vite from 8.1.0 to 8.2.2 in /frontend. PR [#266](https://github.com/thangphan205/tacacs-ng-ui/pull/266) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ bump @tanstack/router-plugin from 1.139.1 to 1.168.34 in /frontend. PR [#269](https://github.com/thangphan205/tacacs-ng-ui/pull/269) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ bump recharts from 3.9.2 to 3.10.1 in /frontend. PR [#270](https://github.com/thangphan205/tacacs-ng-ui/pull/270) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ update sentry-sdk[fastapi] requirement from <3.0.0,>=1.40.6 to >=2.68.0,<3.0.0 in /backend. PR [#271](https://github.com/thangphan205/tacacs-ng-ui/pull/271) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ bump mypy from 1.11.2 to 2.3.1 in /backend. PR [#273](https://github.com/thangphan205/tacacs-ng-ui/pull/273) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ bump axios from 1.18.0 to 1.19.0 in /frontend. PR [#272](https://github.com/thangphan205/tacacs-ng-ui/pull/272) by [@dependabot[bot]](https://github.com/apps/dependabot).
+* ⬆ update pwdlib[argon2,bcrypt] requirement from <0.4.0,>=0.3.0 to >=0.3.1,<0.4.0 in /backend. PR [#274](https://github.com/thangphan205/tacacs-ng-ui/pull/274) by [@dependabot[bot]](https://github.com/apps/dependabot).
 
 ## v0.5.3
 
