@@ -165,6 +165,44 @@ Replace `yourdomain.com` with your domain:
 The last two follow `TOOLS_DOMAIN` when it is set, and nest under `DOMAIN`
 otherwise.
 
+### Rate Limiting
+
+Traefik rate-limits the application URL out of the box — no extra setup. The
+middleware is defined on the `frontend` service in `docker-compose.yml`, so it
+travels with the app: nothing to change in `docker-compose.traefik.yml`, and
+nothing to re-copy to the server when you tune it.
+
+Because everything is served from one URL, one budget covers the SPA, the API,
+Swagger and MCP alike:
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `RATE_LIMIT_AVERAGE` | `100` | Requests allowed per period, per source IP |
+| `RATE_LIMIT_PERIOD` | `1s` | The window the average is measured over |
+| `RATE_LIMIT_BURST` | `200` | How many may arrive in one spike |
+
+Change them in `.env` and re-run `docker compose -f docker-compose.yml up -d`;
+only the frontend container is recreated. Over-limit requests get `429 Too Many
+Requests`.
+
+**Counting is per source IP.** Everyone behind a single office NAT shares one
+bucket, so a large team on one egress address needs a higher `AVERAGE` than the
+numbers suggest.
+
+**If legitimate users see `429`, raise `RATE_LIMIT_BURST` first.** The frontend
+build code-splits into a few hundred asset chunks and Nginx sets no
+`Cache-Control`, so a cold load or a hard reload arrives as one large short
+spike. That is a burst problem, not a rate problem.
+
+**What this does and does not stop.** It caps floods and scripted hammering
+from any one IP, which keeps the backend, the database and the outgoing mail
+path from being saturated. It does **not** meaningfully stop slow credential
+stuffing against `/api/v1/login/access-token` or key guessing against `/mcp` —
+at 100 requests per second an attacker still gets far more attempts than any
+real user needs. If you want brute-force resistance, add a second Traefik
+router with a higher `priority` matching `PathPrefix(/api/v1/login)` and a much
+stricter limit (for example `average=5, period=1m`).
+
 ---
 
 ## Step 4 — Database Migrations (updates)
@@ -251,6 +289,9 @@ All variables with their defaults (from `.env.example`):
 | `TOOLS_DOMAIN` | *(unset)* | Base domain for `adminer.` and `traefik.`; falls back to `DOMAIN` |
 | `FRONTEND_HOST` | `http://localhost:5173` | Full URL of the app — drives CORS, WebAuthn origin, OAuth redirect, email links |
 | `VITE_API_URL` | `""` | Leave empty so the bundle calls its own origin; set only to target a backend elsewhere |
+| `RATE_LIMIT_AVERAGE` | `100` | Requests per `RATE_LIMIT_PERIOD` per source IP, at the Traefik edge |
+| `RATE_LIMIT_PERIOD` | `1s` | Window the average is measured over |
+| `RATE_LIMIT_BURST` | `200` | Bucket depth for short spikes (cold page loads) |
 | `ENVIRONMENT` | `local` | `local`, `staging`, or `production` |
 | `PROJECT_NAME` | `TACACS+ NG UI` | Display name in UI and emails |
 | `STACK_NAME` | `tacacs-ng-ui` | Docker Compose project name |

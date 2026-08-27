@@ -164,6 +164,44 @@ Thay `yourdomain.com` bằng tên miền của bạn:
 
 Hai mục cuối theo `TOOLS_DOMAIN` khi được đặt, ngược lại nằm dưới `DOMAIN`.
 
+### Giới Hạn Tốc Độ (Rate Limiting)
+
+Traefik giới hạn tốc độ cho URL ứng dụng ngay từ đầu — không cần cài đặt thêm.
+Middleware được khai báo trên service `frontend` trong `docker-compose.yml`, nên
+nó đi kèm ứng dụng: không phải sửa `docker-compose.traefik.yml`, cũng không phải
+copy lại lên server mỗi khi bạn chỉnh thông số.
+
+Vì mọi thứ được phục vụ từ một URL duy nhất, một hạn mức duy nhất áp dụng cho cả
+SPA, API, Swagger và MCP:
+
+| Biến | Mặc định | Ý nghĩa |
+|------|----------|---------|
+| `RATE_LIMIT_AVERAGE` | `100` | Số request cho phép mỗi period, tính theo từng IP nguồn |
+| `RATE_LIMIT_PERIOD` | `1s` | Khoảng thời gian dùng để tính mức trung bình |
+| `RATE_LIMIT_BURST` | `200` | Số request được phép dồn trong một đợt |
+
+Đổi giá trị trong `.env` rồi chạy lại `docker compose -f docker-compose.yml up -d`;
+chỉ container frontend được tạo lại. Request vượt hạn mức nhận `429 Too Many
+Requests`.
+
+**Đếm theo từng IP nguồn.** Mọi người sau cùng một NAT văn phòng dùng chung một
+hạn mức, nên một đội đông đi ra bằng một địa chỉ duy nhất cần `AVERAGE` cao hơn
+con số nhìn qua tưởng là đủ.
+
+**Nếu người dùng thật gặp `429`, hãy tăng `RATE_LIMIT_BURST` trước.** Bản build
+frontend chia thành vài trăm chunk và Nginx không đặt `Cache-Control`, nên tải
+nguội hoặc hard reload sẽ đến như một đợt dồn ngắn nhưng lớn. Đó là vấn đề burst,
+không phải vấn đề rate.
+
+**Cái này chặn được gì và không chặn được gì.** Nó chặn flood và các script quét
+dồn dập từ một IP, giữ cho backend, database và đường gửi mail không bị bão hòa.
+Nó **không** thực sự chặn được credential stuffing chậm rãi vào
+`/api/v1/login/access-token` hay dò key vào `/mcp` — ở mức 100 request mỗi giây,
+kẻ tấn công vẫn có nhiều lượt thử hơn bất kỳ người dùng thật nào cần. Nếu muốn
+chống brute-force, thêm một router Traefik thứ hai với `priority` cao hơn khớp
+`PathPrefix(/api/v1/login)` và đặt hạn mức chặt hơn nhiều (ví dụ
+`average=5, period=1m`).
+
 ---
 
 ## Bước 4 — Database Migrations (cập nhật)
@@ -250,6 +288,9 @@ Tất cả biến với giá trị mặc định (từ `.env.example`):
 | `TOOLS_DOMAIN` | *(trống)* | Domain gốc cho `adminer.` và `traefik.`; mặc định lấy theo `DOMAIN` |
 | `FRONTEND_HOST` | `http://localhost:5173` | URL đầy đủ của ứng dụng — quyết định CORS, origin WebAuthn, redirect OAuth, link email |
 | `VITE_API_URL` | `""` | Để trống để bundle gọi chính origin của nó; chỉ đặt khi backend nằm ở origin khác |
+| `RATE_LIMIT_AVERAGE` | `100` | Số request mỗi `RATE_LIMIT_PERIOD` cho mỗi IP nguồn, tại lớp Traefik |
+| `RATE_LIMIT_PERIOD` | `1s` | Khoảng thời gian dùng để tính mức trung bình |
+| `RATE_LIMIT_BURST` | `200` | Sức chứa cho các đợt dồn ngắn (tải trang lần đầu) |
 | `ENVIRONMENT` | `local` | `local`, `staging`, hoặc `production` |
 | `PROJECT_NAME` | `TACACS+ NG UI` | Tên hiển thị trong UI và email |
 | `STACK_NAME` | `tacacs-ng-ui` | Tên Docker Compose project |

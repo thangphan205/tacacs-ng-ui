@@ -165,8 +165,25 @@ services:
       - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-https.tls=true
       - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-https.tls.certresolver=le
 
+      # Rate limit, per source IP. Everything the app serves — the SPA, /api,
+      # /docs and /mcp — arrives through this one router, so this is the whole
+      # edge budget. Tunable via .env; see .env.example.
+      #
+      # sourceCriterion is deliberately left at its default (the request's
+      # remote address). traefik terminates the client connection itself, so
+      # that already is the real client IP; setting ipstrategy.depth would make
+      # it read X-Forwarded-For instead, which a client can forge to get a
+      # fresh bucket per request. Only set depth if a CDN or load balancer is
+      # ever put in front of traefik, and then to the exact number of hops.
+      - traefik.http.middlewares.${STACK_NAME?Variable not set}-ratelimit.ratelimit.average=${RATE_LIMIT_AVERAGE:-100}
+      - traefik.http.middlewares.${STACK_NAME?Variable not set}-ratelimit.ratelimit.period=${RATE_LIMIT_PERIOD:-1s}
+      - traefik.http.middlewares.${STACK_NAME?Variable not set}-ratelimit.ratelimit.burst=${RATE_LIMIT_BURST:-200}
+
       # Enable redirection for HTTP and HTTPS
-      - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.middlewares=https-redirect
+      # ratelimit comes first: https-redirect answers with a 301 and ends the
+      # chain, so a middleware after it would never run.
+      - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.middlewares=${STACK_NAME?Variable not set}-ratelimit,https-redirect
+      - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-https.middlewares=${STACK_NAME?Variable not set}-ratelimit
 volumes:
   app-db-data:
   tacacs_data_volume:
