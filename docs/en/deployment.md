@@ -12,7 +12,8 @@
 - Remote server with [Docker Engine](https://docs.docker.com/engine/install/) (not Docker Desktop) and Docker Compose v2
 - A domain with DNS A record pointing to the server IP — this one host serves the UI, the API, Swagger and MCP
 - A second DNS record (or a wildcard) for the operator tools, `traefik.` and `adminer.`
-- Ports `80` and `443` open on the server firewall
+- Ports `80` and `443` open on the server firewall — HTTP/HTTPS for the application
+- Port `49/tcp` reachable from your network devices — this is TACACS+ itself, published by the `backend` container. It does not go through Traefik, and without it no switch or router can authenticate.
 
 > **Note on the wildcard.** A `*.yourdomain.com` certificate matches a single
 > label, so if you set `DOMAIN=tacacs.yourdomain.com` the tools would land on
@@ -88,6 +89,13 @@ PROJECT_NAME="TACACS+ NG UI"
 SECRET_KEY=<generate: openssl rand -hex 32>
 FIRST_SUPERUSER=admin@yourdomain.com
 FIRST_SUPERUSER_PASSWORD=<strong-password>
+
+# Only administrators may create accounts. `.env.example` ships this as `True`
+# for dev and lab use, so it is easy to carry into production by accident —
+# which would let anyone reaching the URL self-register on your TACACS+ admin
+# panel. The first admin is seeded from FIRST_SUPERUSER above, so nothing
+# depends on open sign-up.
+USERS_OPEN_REGISTRATION=False
 
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=<strong-password>
@@ -207,18 +215,32 @@ stricter limit (for example `average=5, period=1m`).
 
 ## Step 4 — Database Migrations (updates)
 
-When deploying a new version that includes schema changes:
+**There is no manual migration step.** The `prestart` container runs
+`alembic upgrade head` on its own, and `backend` will not start until it has
+exited successfully — `depends_on: prestart: condition: service_completed_successfully`
+in `docker-compose.yml`. So a normal deploy applies any new revisions in the
+right order:
 
 ```bash
-# Pull new image
-docker compose -f docker-compose.yml pull backend
+git pull origin main
 
-# Apply migrations
-docker compose -f docker-compose.yml exec backend alembic upgrade head
+# Images are built locally: DOCKER_IMAGE_BACKEND/FRONTEND default to plain
+# `backend`/`frontend` tags with no registry behind them. Only use
+# `docker compose pull` if you have set those to a registry path.
+docker compose -f docker-compose.yml build backend frontend
 
-# Restart
 docker compose -f docker-compose.yml up -d
 ```
+
+Rebuild `frontend` too, not just `backend` — the SPA is compiled into the
+image, so a backend-only rebuild leaves the old assets being served.
+
+> **Do not run `alembic upgrade head` by hand against a running container.** It
+> executes inside the *old* image, which does not yet contain the new revision
+> files, so it reports success while applying nothing.
+
+See [Upgrading to a New Version](#upgrading-to-a-new-version) for the full
+procedure, including the backup to take first.
 
 ---
 
@@ -300,7 +322,7 @@ All variables with their defaults (from `.env.example`):
 | `FIRST_SUPERUSER` | *(required)* | Initial admin email |
 | `FIRST_SUPERUSER_PASSWORD` | *(required)* | Initial admin password |
 | `BACKEND_CORS_ORIGINS` | `""` | Extra allowed CORS origins; rarely needed now the UI is same-origin |
-| `USERS_OPEN_REGISTRATION` | `true` | Allow public signup |
+| `USERS_OPEN_REGISTRATION` | `True` in `.env.example` | Allow public self-registration — **set to `False` in production**. The application's own default is `False`; only the shipped example file turns it on, for dev and lab use |
 | `POSTGRES_SERVER` | `localhost` | PostgreSQL hostname (leave as `db` for Docker Compose) |
 | `POSTGRES_PORT` | `5432` | PostgreSQL port |
 | `POSTGRES_USER` | `postgres` | PostgreSQL user |
@@ -485,18 +507,25 @@ TACACS+ authentication is interrupted for ~5–10 seconds during backend restart
 ### Step 5 — Verify
 
 ```bash
+# Confirm prestart ran the migrations and exited cleanly
+docker compose logs prestart | tail -20
+
 # Confirm backend started cleanly
 docker compose logs --tail=20 backend
 
-# Confirm DB migration applied
+# Confirm which revision is applied
 export $(grep -v '^#' .env | xargs)
-docker compose exec db psql -U $POSTGRES_USER -c \
-  "SELECT version_num, is_current FROM alembic_version_view;" 2>/dev/null \
-  || docker compose exec db psql -U $POSTGRES_USER $POSTGRES_DB -c \
-       "SELECT version_num FROM alembic_version;"
+docker compose exec db psql -U $POSTGRES_USER $POSTGRES_DB -c \
+  "SELECT version_num FROM alembic_version;"
 
-# Confirm API is healthy
-curl -s http://localhost:8000/api/v1/utils/health-check/ | grep '"status"'
+# Confirm the API is healthy. Port 8000 is deliberately not published in
+# production (only 49/tcp for TACACS+ is), so ask the container itself.
+# The endpoint returns the bare JSON value `true`.
+docker compose exec backend \
+  curl -sf http://localhost:8000/api/v1/utils/health-check/
+
+# From outside, go through the public URL instead:
+curl -sf https://tacacs.yourdomain.com/api/v1/utils/health-check/
 ```
 
 ### Rollback

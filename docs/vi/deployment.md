@@ -12,7 +12,8 @@
 - Server từ xa với [Docker Engine](https://docs.docker.com/engine/install/) (không phải Docker Desktop) và Docker Compose v2
 - Tên miền với DNS A record trỏ đến IP server — chính host này phục vụ UI, API, Swagger và MCP
 - Một DNS record thứ hai (hoặc wildcard) cho các công cụ vận hành: `traefik.` và `adminer.`
-- Cổng `80` và `443` mở trên firewall server
+- Cổng `80` và `443` mở trên firewall server — HTTP/HTTPS cho ứng dụng
+- Cổng `49/tcp` cho các thiết bị mạng truy cập được — đây chính là TACACS+, do container `backend` publish. Nó không đi qua Traefik, và nếu không mở thì không switch hay router nào xác thực được.
 
 > **Lưu ý về wildcard.** Chứng chỉ `*.yourdomain.com` chỉ khớp một nhãn, nên nếu
 > đặt `DOMAIN=tacacs.yourdomain.com` thì các công cụ sẽ nằm ở
@@ -88,6 +89,12 @@ PROJECT_NAME="TACACS+ NG UI"
 SECRET_KEY=<tạo bằng: openssl rand -hex 32>
 FIRST_SUPERUSER=admin@yourdomain.com
 FIRST_SUPERUSER_PASSWORD=<mật-khẩu-mạnh>
+
+# Chỉ admin mới được tạo tài khoản. `.env.example` để sẵn `True` cho môi trường
+# dev/lab, nên rất dễ mang nhầm lên production — khi đó bất kỳ ai vào được URL
+# đều tự đăng ký được trên trang quản trị TACACS+ của bạn. Admin đầu tiên đã
+# được seed từ FIRST_SUPERUSER ở trên, nên không có gì phụ thuộc vào đăng ký mở.
+USERS_OPEN_REGISTRATION=False
 
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=<mật-khẩu-mạnh>
@@ -206,18 +213,32 @@ chống brute-force, thêm một router Traefik thứ hai với `priority` cao h
 
 ## Bước 4 — Database Migrations (cập nhật)
 
-Khi triển khai phiên bản mới có thay đổi schema:
+**Không có bước migration thủ công.** Container `prestart` tự chạy
+`alembic upgrade head`, và `backend` chỉ khởi động sau khi `prestart` kết thúc
+thành công — `depends_on: prestart: condition: service_completed_successfully`
+trong `docker-compose.yml`. Vì vậy một lần deploy bình thường đã áp dụng đúng
+thứ tự mọi revision mới:
 
 ```bash
-# Pull image mới
-docker compose -f docker-compose.yml pull backend
+git pull origin main
 
-# Áp dụng migrations
-docker compose -f docker-compose.yml exec backend alembic upgrade head
+# Image được build tại chỗ: DOCKER_IMAGE_BACKEND/FRONTEND mặc định chỉ là tag
+# `backend`/`frontend`, không có registry phía sau. Chỉ dùng
+# `docker compose pull` nếu bạn đã trỏ hai biến đó tới một registry.
+docker compose -f docker-compose.yml build backend frontend
 
-# Restart
 docker compose -f docker-compose.yml up -d
 ```
+
+Hãy build lại cả `frontend`, không chỉ `backend` — SPA được biên dịch vào
+image, nên nếu chỉ build backend thì assets cũ vẫn được phục vụ.
+
+> **Đừng chạy `alembic upgrade head` thủ công trên container đang chạy.** Lệnh
+> đó chạy bên trong image *cũ*, nơi chưa có file revision mới, nên nó báo thành
+> công mà thực tế không áp dụng gì cả.
+
+Xem [Nâng Cấp Lên Phiên Bản Mới](#nâng-cấp-lên-phiên-bản-mới) để biết quy trình
+đầy đủ, gồm cả bước backup phải làm trước.
 
 ---
 
@@ -299,7 +320,7 @@ Tất cả biến với giá trị mặc định (từ `.env.example`):
 | `FIRST_SUPERUSER` | *(bắt buộc)* | Email admin ban đầu |
 | `FIRST_SUPERUSER_PASSWORD` | *(bắt buộc)* | Mật khẩu admin ban đầu |
 | `BACKEND_CORS_ORIGINS` | `""` | Origin CORS bổ sung; hiếm khi cần vì UI đã cùng origin với API |
-| `USERS_OPEN_REGISTRATION` | `true` | Cho phép đăng ký công khai |
+| `USERS_OPEN_REGISTRATION` | `True` trong `.env.example` | Cho phép tự đăng ký công khai — **đặt `False` ở production**. Mặc định của chính ứng dụng là `False`; chỉ file example bật lên, phục vụ dev/lab |
 | `POSTGRES_SERVER` | `localhost` | Hostname PostgreSQL (để là `db` cho Docker Compose) |
 | `POSTGRES_PORT` | `5432` | Cổng PostgreSQL |
 | `POSTGRES_USER` | `postgres` | User PostgreSQL |
@@ -482,16 +503,25 @@ TACACS+ bị gián đoạn ~5–10 giây trong lúc backend restart.
 ### Bước 5 — Kiểm tra
 
 ```bash
+# Xác nhận prestart đã chạy migration và thoát sạch
+docker compose logs prestart | tail -20
+
 # Xác nhận backend khởi động sạch
 docker compose logs --tail=20 backend
 
-# Xác nhận migration đã áp dụng
+# Xác nhận revision đang được áp dụng
 export $(grep -v '^#' .env | xargs)
 docker compose exec db psql -U $POSTGRES_USER $POSTGRES_DB -c \
   "SELECT version_num FROM alembic_version;"
 
-# Xác nhận API healthy
-curl -s http://localhost:8000/api/v1/utils/health-check/ | grep '"status"'
+# Xác nhận API healthy. Cổng 8000 cố ý không được publish ở production (chỉ có
+# 49/tcp cho TACACS+), nên hãy hỏi thẳng container.
+# Endpoint trả về đúng giá trị JSON `true`.
+docker compose exec backend \
+  curl -sf http://localhost:8000/api/v1/utils/health-check/
+
+# Từ bên ngoài thì đi qua URL công khai:
+curl -sf https://tacacs.yourdomain.com/api/v1/utils/health-check/
 ```
 
 ### Rollback
