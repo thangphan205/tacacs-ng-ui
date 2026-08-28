@@ -85,11 +85,11 @@ Cộng đồng Reddit: <https://www.reddit.com/r/tacacs_ng_ui/>
 
 Bạn có thể đăng ký tài khoản và sử dụng TACACS server này để test với lab mô phỏng.
 
-- **Dashboard:** <https://dashboard.tacacs.9ping.cloud>
-- **IP TACACS Server:** Ping dashboard.tacacs.9ping.cloud để lấy IP TACACS Server.
+- **Dashboard:** <https://tacacs.9ping.cloud>
+- **IP TACACS Server:** Ping tacacs.9ping.cloud để lấy IP TACACS Server.
 
 ```bash
-ping dashboard.tacacs.9ping.cloud
+ping tacacs.9ping.cloud
 ```
 
 - **TACACS key:** `change_this`

@@ -113,11 +113,11 @@ Reddit Community: <https://www.reddit.com/r/tacacs_ng_ui/>
 
 You can sign up and use this tacacs server to test with your simulator lab.
 
-- **Dashboard:** <https://dashboard.tacacs.9ping.cloud>
-- **IP TACACS Server:** Ping dashboard.tacacs.9ping.cloud to get IP TACACS Server.
+- **Dashboard:** <https://tacacs.9ping.cloud>
+- **IP TACACS Server:** Ping tacacs.9ping.cloud to get IP TACACS Server.
 
 ```bash
-ping dashboard.tacacs.9ping.cloud 
+ping tacacs.9ping.cloud 
 ```
 
 - **TACACS key:** `change_this`
