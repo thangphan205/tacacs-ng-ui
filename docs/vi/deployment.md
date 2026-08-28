@@ -234,6 +234,11 @@ Thay `yourdomain.com` bằng tên miền của bạn:
 | Traefik dashboard | `https://traefik.yourdomain.com` |
 
 Hai mục cuối theo `TOOLS_DOMAIN` khi được đặt, ngược lại nằm dưới `DOMAIN`.
+Cả hai đều nằm sau cùng một HTTP Basic Auth — `USERNAME` và mật khẩu từ Bước 1.
+Adminer là một form đăng nhập database nằm trên Internet công cộng, nên tuyệt đối
+không được để lộ nếu thiếu lớp chặn đó; nếu production không cần DB client trên
+trình duyệt, hãy xóa hẳn service `adminer` khỏi `docker-compose.yml` và truy cập
+Postgres qua SSH tunnel.
 
 ### Giới Hạn Tốc Độ (Rate Limiting)
 

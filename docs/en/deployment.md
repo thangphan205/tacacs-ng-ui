@@ -234,7 +234,11 @@ Replace `yourdomain.com` with your domain:
 | Traefik dashboard | `https://traefik.yourdomain.com` |
 
 The last two follow `TOOLS_DOMAIN` when it is set, and nest under `DOMAIN`
-otherwise.
+otherwise. Both are behind the same HTTP Basic Auth — the `USERNAME` and
+password from Step 1. Adminer is a database login form on the public internet,
+so it must never be reachable without that gate; if you do not need a browser DB
+client in production, delete the `adminer` service from `docker-compose.yml`
+outright and reach Postgres over an SSH tunnel instead.
 
 ### Rate Limiting
 

@@ -39,6 +39,12 @@ services:
       - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-https.entrypoints=https
       - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-https.tls=true
       - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-https.tls.certresolver=le
+      # admin-auth is the same HTTP Basic middleware the traefik dashboard uses,
+      # defined on the traefik container in docker-compose.traefik.yml. Both
+      # stacks share the one docker provider, so the name resolves across them.
+      # Without it adminer is a public database login form: reachable by anyone,
+      # brute-forceable, and exposed to whatever the floating `adminer` tag ships.
+      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-https.middlewares=admin-auth
       - traefik.http.services.${STACK_NAME?Variable not set}-adminer.loadbalancer.server.port=8080
 
   prestart:
