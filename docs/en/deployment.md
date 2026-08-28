@@ -94,6 +94,39 @@ docker compose -p traefik-public -f docker-compose.traefik.yml up -d
 > other's containers as orphans, and a `--remove-orphans` on either one deletes
 > the other.
 
+**Already started it without `-p`?** You will see `Found orphan containers
+([tacacs-ng-ui-traefik-1])` on every application `up`, and the container is named
+`tacacs-ng-ui-traefik-1` instead of `traefik-public-traefik-1`. Confirm with:
+
+```bash
+docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' tacacs-ng-ui-traefik-1
+```
+
+If that prints `tacacs-ng-ui`, move the container to its own project. Use
+`docker rm -f`, **not** `docker compose down` — `down` would also tear down the
+`tacacs-ng-ui_default` network the application containers are using:
+
+```bash
+docker rm -f tacacs-ng-ui-traefik-1
+docker compose -p traefik-public -f docker-compose.traefik.yml up -d
+```
+
+The new project gets a new, empty certificates volume, so Let's Encrypt issues a
+fresh certificate on the next request — normally fine, but it counts against the
+five-duplicate-certificates-per-week limit. To carry the existing ones over
+instead, run this after the `docker rm` and before the `up`:
+
+```bash
+docker volume create traefik-public_traefik-public-certificates
+docker run --rm \
+  -v tacacs-ng-ui_traefik-public-certificates:/from \
+  -v traefik-public_traefik-public-certificates:/to \
+  alpine sh -c 'cp -a /from/. /to/'
+```
+
+Once the new stack serves HTTPS, delete the stale volume:
+`docker volume rm tacacs-ng-ui_traefik-public-certificates`.
+
 Verify Traefik is running: `https://traefik.yourdomain.com` (Basic Auth with the
 username and password above).
 

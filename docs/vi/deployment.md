@@ -94,6 +94,39 @@ docker compose -p traefik-public -f docker-compose.traefik.yml up -d
 > Compose project với ứng dụng, mỗi stack sẽ coi container của stack kia là
 > orphan, và một lệnh `--remove-orphans` ở bên nào cũng xóa mất bên còn lại.
 
+**Lỡ khởi động mà thiếu `-p`?** Mỗi lần `up` ứng dụng sẽ thấy dòng `Found orphan
+containers ([tacacs-ng-ui-traefik-1])`, và container mang tên
+`tacacs-ng-ui-traefik-1` thay vì `traefik-public-traefik-1`. Kiểm tra bằng:
+
+```bash
+docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' tacacs-ng-ui-traefik-1
+```
+
+Nếu in ra `tacacs-ng-ui`, hãy chuyển container sang project riêng của nó. Dùng
+`docker rm -f`, **không** dùng `docker compose down` — `down` sẽ đồng thời gỡ
+luôn network `tacacs-ng-ui_default` mà các container ứng dụng đang dùng:
+
+```bash
+docker rm -f tacacs-ng-ui-traefik-1
+docker compose -p traefik-public -f docker-compose.traefik.yml up -d
+```
+
+Project mới sẽ tạo một volume chứng chỉ rỗng, nên Let's Encrypt cấp lại chứng chỉ
+ở request kế tiếp — thường không sao, nhưng có tính vào giới hạn năm chứng chỉ
+trùng nhau mỗi tuần. Muốn giữ lại chứng chỉ cũ, chạy đoạn sau giữa lệnh
+`docker rm` và lệnh `up`:
+
+```bash
+docker volume create traefik-public_traefik-public-certificates
+docker run --rm \
+  -v tacacs-ng-ui_traefik-public-certificates:/from \
+  -v traefik-public_traefik-public-certificates:/to \
+  alpine sh -c 'cp -a /from/. /to/'
+```
+
+Khi stack mới đã chạy HTTPS, xóa volume cũ:
+`docker volume rm tacacs-ng-ui_traefik-public-certificates`.
+
 Kiểm tra Traefik đang chạy: `https://traefik.yourdomain.com` (Basic Auth với
 username/password ở trên).
 
