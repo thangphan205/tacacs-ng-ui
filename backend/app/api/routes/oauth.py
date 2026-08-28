@@ -1,19 +1,26 @@
 import hashlib
 import hmac
+import json
+import logging
 import time
+from dataclasses import dataclass
 from datetime import timedelta
 from urllib.parse import urlencode
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from sqlmodel import Session
 
 from app.api.deps import SessionDep, get_client_ip
 from app.core.config import settings
-from app.core.security import create_access_token
+from app.core.security import create_access_token, decrypt_secret
 from app.crud import audit_logs as audit_logs_crud
+from app.crud import auth_providers as auth_providers_crud
 from app.crud.users import get_or_create_google_user, get_or_create_keycloak_user
 from app.models import AuditLogCreate
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/oauth", tags=["oauth"])
 
@@ -21,6 +28,99 @@ GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 GOOGLE_SCOPES = "openid email profile"
+
+
+# --- Credential resolution -------------------------------------------------
+#
+# A provider can be configured in two places: the AuthProviderConfig table,
+# written by Admin -> Authentication Providers, and the environment. The table
+# wins field by field, so a half-filled UI form still falls back to whatever the
+# environment supplies rather than blanking it out.
+#
+# GET /auth-providers/status already reads the table, so without this the login
+# page would offer a Google button that only ever leads to a 503.
+
+
+@dataclass(frozen=True)
+class _Creds:
+    client_id: str
+    client_secret: str
+    redirect_uri: str
+    auth_url: str
+    token_url: str
+    userinfo_url: str
+
+
+def _stored(session: Session, provider: str) -> tuple[dict[str, str], str | None]:
+    """Config dict and decrypted secret for a provider row. Empty when absent.
+
+    Raises 503 when the row exists but is switched off, so a disabled provider
+    refuses rather than silently falling back to stale environment values.
+    """
+    row = auth_providers_crud.get_provider_config(session=session, provider=provider)
+    if row is None:
+        return {}, None
+    if not row.enabled:
+        raise HTTPException(
+            status_code=503, detail=f"{provider.title()} sign-in is disabled"
+        )
+
+    try:
+        config = json.loads(row.config_json or "{}")
+    except json.JSONDecodeError:
+        logger.warning("Ignoring malformed config_json for provider %s", provider)
+        config = {}
+
+    secret: str | None = None
+    if row.encrypted_secret:
+        try:
+            secret = decrypt_secret(row.encrypted_secret)
+        except Exception:
+            # Fernet is keyed on SECRET_KEY: rotating it makes every stored
+            # secret undecryptable, and the fix is to re-enter it in the UI.
+            logger.exception("Cannot decrypt stored secret for provider %s", provider)
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    f"Stored {provider} client secret cannot be decrypted. "
+                    "Re-enter it under Admin -> Authentication Providers."
+                ),
+            ) from None
+    return config, secret
+
+
+def _google_creds(session: Session) -> _Creds:
+    config, secret = _stored(session, "google")
+    client_id = config.get("client_id") or settings.GOOGLE_CLIENT_ID
+    if not client_id:
+        raise HTTPException(status_code=503, detail="Google OAuth is not configured")
+    return _Creds(
+        client_id=client_id,
+        client_secret=secret or settings.GOOGLE_CLIENT_SECRET,
+        redirect_uri=config.get("redirect_uri") or settings.GOOGLE_REDIRECT_URI,
+        auth_url=GOOGLE_AUTH_URL,
+        token_url=GOOGLE_TOKEN_URL,
+        userinfo_url=GOOGLE_USERINFO_URL,
+    )
+
+
+def _keycloak_creds(session: Session) -> _Creds:
+    config, secret = _stored(session, "keycloak")
+    client_id = config.get("client_id") or settings.KEYCLOAK_CLIENT_ID
+    if not client_id:
+        raise HTTPException(status_code=503, detail="Keycloak is not configured")
+
+    server_url = (config.get("server_url") or settings.KEYCLOAK_SERVER_URL).rstrip("/")
+    realm = config.get("realm") or settings.KEYCLOAK_REALM
+    base = f"{server_url}/realms/{realm}/protocol/openid-connect"
+    return _Creds(
+        client_id=client_id,
+        client_secret=secret or settings.KEYCLOAK_CLIENT_SECRET,
+        redirect_uri=config.get("redirect_uri") or settings.KEYCLOAK_REDIRECT_URI,
+        auth_url=f"{base}/auth",
+        token_url=f"{base}/token",
+        userinfo_url=f"{base}/userinfo",
+    )
 
 
 def _make_state() -> str:
@@ -49,21 +149,18 @@ def _verify_state(state: str) -> bool:
 
 
 @router.get("/google/authorize")
-def google_authorize() -> dict[str, str]:
-    if not settings.GOOGLE_CLIENT_ID:
-        raise HTTPException(status_code=503, detail="Google OAuth is not configured")
+def google_authorize(session: SessionDep) -> dict[str, str]:
+    creds = _google_creds(session)
 
-    state = _make_state()
     params = {
-        "client_id": settings.GOOGLE_CLIENT_ID,
-        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+        "client_id": creds.client_id,
+        "redirect_uri": creds.redirect_uri,
         "response_type": "code",
         "scope": GOOGLE_SCOPES,
-        "state": state,
+        "state": _make_state(),
         "access_type": "online",
     }
-    url = GOOGLE_AUTH_URL + "?" + urlencode(params)
-    return {"url": url}
+    return {"url": creds.auth_url + "?" + urlencode(params)}
 
 
 @router.get("/google/callback")
@@ -76,15 +173,17 @@ def google_callback(
     if not _verify_state(state):
         raise HTTPException(status_code=400, detail="Invalid OAuth state")
 
+    creds = _google_creds(session)
+
     # Exchange code for tokens
     with httpx.Client() as client:
         token_resp = client.post(
-            GOOGLE_TOKEN_URL,
+            creds.token_url,
             data={
                 "code": code,
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+                "client_id": creds.client_id,
+                "client_secret": creds.client_secret,
+                "redirect_uri": creds.redirect_uri,
                 "grant_type": "authorization_code",
             },
         )
@@ -99,7 +198,7 @@ def google_callback(
     # Fetch user info
     with httpx.Client() as client:
         userinfo_resp = client.get(
-            GOOGLE_USERINFO_URL,
+            creds.userinfo_url,
             headers={"Authorization": f"Bearer {access_token}"},
         )
 
@@ -143,18 +242,17 @@ def google_callback(
 
 
 @router.get("/keycloak/authorize")
-def keycloak_authorize() -> dict[str, str]:
-    if not settings.KEYCLOAK_CLIENT_ID:
-        raise HTTPException(status_code=503, detail="Keycloak is not configured")
+def keycloak_authorize(session: SessionDep) -> dict[str, str]:
+    creds = _keycloak_creds(session)
 
     params = {
-        "client_id": settings.KEYCLOAK_CLIENT_ID,
-        "redirect_uri": settings.KEYCLOAK_REDIRECT_URI,
+        "client_id": creds.client_id,
+        "redirect_uri": creds.redirect_uri,
         "response_type": "code",
         "scope": "openid email profile",
         "state": _make_state(),
     }
-    return {"url": settings.KEYCLOAK_AUTH_URL + "?" + urlencode(params)}
+    return {"url": creds.auth_url + "?" + urlencode(params)}
 
 
 @router.get("/keycloak/callback")
@@ -167,14 +265,16 @@ def keycloak_callback(
     if not _verify_state(state):
         raise HTTPException(status_code=400, detail="Invalid OAuth state")
 
+    creds = _keycloak_creds(session)
+
     with httpx.Client() as client:
         token_resp = client.post(
-            settings.KEYCLOAK_TOKEN_URL,
+            creds.token_url,
             data={
                 "code": code,
-                "client_id": settings.KEYCLOAK_CLIENT_ID,
-                "client_secret": settings.KEYCLOAK_CLIENT_SECRET,
-                "redirect_uri": settings.KEYCLOAK_REDIRECT_URI,
+                "client_id": creds.client_id,
+                "client_secret": creds.client_secret,
+                "redirect_uri": creds.redirect_uri,
                 "grant_type": "authorization_code",
             },
         )
@@ -188,7 +288,7 @@ def keycloak_callback(
 
     with httpx.Client() as client:
         userinfo_resp = client.get(
-            settings.KEYCLOAK_USERINFO_URL,
+            creds.userinfo_url,
             headers={"Authorization": f"Bearer {access_token}"},
         )
 
