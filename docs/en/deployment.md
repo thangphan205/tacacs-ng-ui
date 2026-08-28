@@ -53,11 +53,27 @@ HASHED_PASSWORD=$$apr1$$xxxxxxxx$$yyyyyyyyyyyyyyyyyyyyyy
 `DOMAIN` and `TOOLS_DOMAIN` are the same values Step 2 sets — they are read from
 this one file, so there is nothing to keep in sync by hand.
 
-Generate the password hash with every `$` doubled:
+Generate the password hash with every `$` doubled. `openssl` is present on every
+stock Ubuntu and Debian image, so nothing needs installing. It prompts for the
+password on the terminal, so nothing lands in your shell history:
 
 ```bash
-htpasswd -nB admin | sed -e 's/\$/\$\$/g'
+openssl passwd -apr1 | sed -e 's/\$/\$\$/g'
 ```
+
+The output is the hash alone — paste it as `HASHED_PASSWORD`. The username is
+`USERNAME`, set separately; Traefik joins the two itself.
+
+> **Prefer bcrypt?** `htpasswd -nB` emits a stronger `$2y$` hash than the apr1
+> (MD5) scheme `openssl passwd -apr1` produces; Traefik accepts either, and apr1
+> behind HTTPS with a long random password is not the weak link. `htpasswd` lives
+> in `apache2-utils`, which is **not** installed by default on Ubuntu 24.04 or
+> Debian, and it prints `admin:` in front of the hash — `cut` removes it:
+>
+> ```bash
+> sudo apt install -y apache2-utils
+> htpasswd -nB admin | cut -d: -f2 | sed -e 's/\$/\$\$/g'
+> ```
 
 > **The doubling is required, and skipping it fails silently.** Compose
 > interpolates `$` inside `.env` values, so a raw `$apr1$I.9.f7f.$Twb1x…`

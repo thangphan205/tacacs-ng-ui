@@ -53,11 +53,28 @@ HASHED_PASSWORD=$$apr1$$xxxxxxxx$$yyyyyyyyyyyyyyyyyyyyyy
 `DOMAIN` và `TOOLS_DOMAIN` chính là giá trị Bước 2 đặt — đọc từ cùng một file,
 nên không có gì phải giữ đồng bộ thủ công.
 
-Tạo hash mật khẩu với mọi ký tự `$` được nhân đôi:
+Tạo hash mật khẩu với mọi ký tự `$` được nhân đôi. `openssl` có sẵn trên mọi bản
+Ubuntu và Debian tiêu chuẩn nên không phải cài thêm gì. Lệnh sẽ hỏi mật khẩu ngay
+trên terminal nên không có gì lọt vào lịch sử shell:
 
 ```bash
-htpasswd -nB admin | sed -e 's/\$/\$\$/g'
+openssl passwd -apr1 | sed -e 's/\$/\$\$/g'
 ```
+
+Kết quả in ra chỉ là phần hash — dán nguyên vào `HASHED_PASSWORD`. Tên đăng nhập
+nằm ở `USERNAME`, khai báo riêng; Traefik tự ghép hai giá trị lại.
+
+> **Muốn dùng bcrypt?** `htpasswd -nB` sinh hash `$2y$` mạnh hơn scheme apr1
+> (MD5) của `openssl passwd -apr1`; Traefik chấp nhận cả hai, và apr1 nằm sau
+> HTTPS với mật khẩu ngẫu nhiên đủ dài không phải là mắt xích yếu. Lệnh
+> `htpasswd` nằm trong gói `apache2-utils`, gói này **không** được cài sẵn trên
+> Ubuntu 24.04 hay Debian, và nó in thêm tiền tố `admin:` trước hash — dùng
+> `cut` để bỏ đi:
+>
+> ```bash
+> sudo apt install -y apache2-utils
+> htpasswd -nB admin | cut -d: -f2 | sed -e 's/\$/\$\$/g'
+> ```
 
 > **Bắt buộc phải nhân đôi, và nếu bỏ qua thì lỗi diễn ra âm thầm.** Compose
 > nội suy `$` bên trong giá trị của `.env`, nên chuỗi thô
