@@ -351,7 +351,20 @@ Password: <FIRST_SUPERUSER_PASSWORD in .env>
 
 ## Deploy on a remote server: with domain name
 
-please see [docs/en/deployment.md](docs/en/deployment.md)
+Point DNS at the server, then run the bootstrap script from the repository root:
+
+```bash
+git clone https://github.com/thangphan205/tacacs-ng-ui
+cd tacacs-ng-ui
+bash setup.sh
+```
+
+It writes `.env` with generated secrets, starts Traefik with HTTPS and Let's
+Encrypt, builds the images, runs the migrations, and prints the admin password
+once at the end. `bash setup.sh --help` lists the flags.
+
+For the manual steps, HA, upgrades and the environment variable reference, see
+[docs/en/deployment.md](docs/en/deployment.md).
 
 ## Configuration
 

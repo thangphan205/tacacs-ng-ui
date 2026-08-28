@@ -22,6 +22,54 @@
 
 ---
 
+## Bắt đầu nhanh — `setup.sh`
+
+Một lệnh làm trọn những gì phần thủ công bên dưới làm: ghi `.env` với các secret
+sinh mới, hash mật khẩu dashboard kèm quy tắc nhân đôi `$` mà Compose đòi hỏi,
+khởi động Traefik dưới đúng tên project riêng, build image, chạy migration và
+chờ health check.
+
+```bash
+git clone https://github.com/thangphan205/tacacs-ng-ui
+cd tacacs-ng-ui
+bash setup.sh
+```
+
+Script hỏi sáu thứ — domain ứng dụng, domain cho tools, email quản trị, email
+liên hệ Let's Encrypt, timezone và username dashboard — rồi tự sinh phần còn
+lại: `SECRET_KEY`, `POSTGRES_PASSWORD`, `INTERNAL_SYNC_TOKEN`, mật khẩu admin và
+thông tin Basic Auth của Traefik. Hai mật khẩu mà người dùng cần được in ra một
+lần duy nhất ở cuối.
+
+**Trỏ DNS về server trước khi chạy.** Script đối chiếu từng hostname với IP công
+khai của server rồi cảnh báo trước khi tiếp tục, vì Let's Encrypt không thể cấp
+chứng chỉ cho tên miền không phân giải về đây.
+
+| Cờ | Tác dụng |
+|---|---|
+| *(không có)* | Hỏi tương tác |
+| `--yes` | Không tương tác; mọi giá trị lấy từ biến môi trường hoặc giá trị mặc định |
+| `--config-only` | Chỉ ghi `.env` rồi dừng — tự deploy sau |
+| `--reconfigure` | Sinh lại `.env` đang có (file cũ được giữ thành `.env.bak`) |
+
+Chạy lại nhiều lần vẫn an toàn. `.env` đang có không bao giờ bị ghi đè nếu thiếu
+`--reconfigure`, và một container Traefik đang chạy sai Compose project sẽ được
+báo lại chứ không bị đụng tới.
+
+Chạy hoàn toàn tự động:
+
+```bash
+DOMAIN=tacacs.yourdomain.com \
+TOOLS_DOMAIN=yourdomain.com \
+FIRST_SUPERUSER=admin@yourdomain.com \
+bash setup.sh --yes
+```
+
+Từ đây trở xuống chính là những gì `setup.sh` tự động hoá. Đọc tiếp khi muốn làm
+thủ công, muốn chỉnh sửa về sau, hoặc cần tìm nguyên nhân một lần chạy thất bại.
+
+---
+
 ## Bước 1 — Cài Đặt Traefik (một lần cho mỗi server)
 
 Traefik xử lý HTTPS termination và tự động gia hạn chứng chỉ Let's Encrypt. Nó

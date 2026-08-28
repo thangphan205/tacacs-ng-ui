@@ -22,6 +22,54 @@
 
 ---
 
+## Quick Start — `setup.sh`
+
+One command does everything the manual steps below do: it writes `.env` with
+freshly generated secrets, hashes the dashboard password with the `$` doubling
+Compose requires, brings Traefik up under its own project name, builds the
+images, runs the migrations and waits for the health check.
+
+```bash
+git clone https://github.com/thangphan205/tacacs-ng-ui
+cd tacacs-ng-ui
+bash setup.sh
+```
+
+It asks for six things — the application domain, the tools domain, the admin
+email, the Let's Encrypt contact, the timezone and the dashboard username — and
+generates everything else: `SECRET_KEY`, `POSTGRES_PASSWORD`,
+`INTERNAL_SYNC_TOKEN`, the admin password and the Traefik Basic Auth
+credentials. The two passwords a human needs are printed once at the end.
+
+**Point DNS at the server before running it.** The script checks each hostname
+against the server's public IP and warns before continuing, because Let's
+Encrypt cannot issue a certificate for a name that does not resolve here.
+
+| Flag | Effect |
+|---|---|
+| *(none)* | Interactive prompts |
+| `--yes` | Non-interactive; every value comes from the environment or its default |
+| `--config-only` | Write `.env` and stop — deploy by hand afterwards |
+| `--reconfigure` | Regenerate an existing `.env` (the old one is kept as `.env.bak`) |
+
+Re-running is safe. An existing `.env` is never overwritten without
+`--reconfigure`, and a Traefik container already running under the wrong Compose
+project is reported rather than disturbed.
+
+Fully unattended:
+
+```bash
+DOMAIN=tacacs.yourdomain.com \
+TOOLS_DOMAIN=yourdomain.com \
+FIRST_SUPERUSER=admin@yourdomain.com \
+bash setup.sh --yes
+```
+
+Everything from here on is what `setup.sh` automates. Read it to do the steps by
+hand, to change something afterwards, or to work out why a run failed.
+
+---
+
 ## Step 1 — Set Up Traefik (once per server)
 
 Traefik handles HTTPS termination and Let's Encrypt certificate renewal. It runs
