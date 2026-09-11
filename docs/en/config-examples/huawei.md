@@ -2,6 +2,9 @@
 
 This guide details how to integrate a Huawei device running VRP (Versatile Routing Platform) with the `tacacs-ng-ui` server, including the required server-side configurations and device CLI commands.
 
+> [!NOTE]
+> This guide is based on Huawei CloudEngine data center switches (e.g., CE12800 / eNSP virtual environment). If you are configuring a **physical campus switch** (such as S5700, S5720, S5735, S6700 series running V200R022), please refer to the dedicated **[Huawei Physical Campus Switch Integration Guide](huawei-physical.md)**.
+
 ---
 
 ## 1. TACACS+ Server-Side Configuration (tacacs-ng-ui)

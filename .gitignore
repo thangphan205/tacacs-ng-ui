@@ -19,3 +19,8 @@ backend/tacacs_config/etc/config_*.cfg
 
 # Claude Code local settings
 .claude/
+
+# Device configuration dumps with sensitive credentials — never commit these
+docs/**/config-examples/*.conf
+docs/**/config-examples/*.cfg
+docs/**/config-examples/*.backup

@@ -36,8 +36,8 @@
   - [Thiết bị đã kiểm thử (GitHub Discussions)](https://github.com/thangphan205/tacacs-ng-ui/discussions/185)
   - [Cấu hình Juniper (Junos)](docs/vi/config-examples/juniper.md)
   - [Cấu hình Cisco (IOS/XE)](docs/vi/config-examples/cisco.md)
-  - [Cấu hình Arista (EOS)](docs/vi/config-examples/arista.md)
-  - [Cấu hình Huawei (VRP)](docs/vi/config-examples/huawei.md)
+  - [Cấu hình Huawei - Switch Ảo CE12800 (VRP)](docs/vi/config-examples/huawei.md)
+  - [Cấu hình Huawei - Switch Vật Lý Campus S-Series (VRP)](docs/vi/config-examples/huawei-physical.md)
 - [Công Nghệ Sử Dụng](#công-nghệ-sử-dụng)
 - [Hướng Dẫn Sử Dụng](#hướng-dẫn-sử-dụng)
 - [Triển Khai](#triển-khai-trên-localhost)
@@ -112,8 +112,8 @@ Dưới đây là các ví dụ cấu hình nhanh cho các nhà sản xuất thi
 
 * **Juniper Junos**: [docs/vi/config-examples/juniper.md](docs/vi/config-examples/juniper.md)
 * **Cisco IOS/XE**: [docs/vi/config-examples/cisco.md](docs/vi/config-examples/cisco.md)
-* **Arista EOS**: [docs/vi/config-examples/arista.md](docs/vi/config-examples/arista.md)
-* **Huawei VRP**: [docs/vi/config-examples/huawei.md](docs/vi/config-examples/huawei.md)
+* **Huawei VRP (Switch Ảo CloudEngine)**: [docs/vi/config-examples/huawei.md](docs/vi/config-examples/huawei.md)
+* **Huawei VRP (Switch Vật Lý Campus S-Series)**: [docs/vi/config-examples/huawei-physical.md](docs/vi/config-examples/huawei-physical.md)
 
 ---
 
