@@ -29,7 +29,7 @@ Configure `tacacs-ng-ui` to support the physical Huawei switch:
 
 ### A. Host Registration
 Navigate to **Hosts** -> **Add Host**:
-- **Host Name**: `PESCO-2ndF-24P-B` (or your switch hostname)
+- **Host Name**: `Huawei` (or your switch hostname)
 - **IP Address**: `10.11.1.104` (The switch source IP, e.g., `Vlanif101`)
 - **Shared Secret Key**: `<YOUR_TACACS_SECRET_KEY>` (e.g., `Netconsole123`)
 
