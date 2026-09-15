@@ -30,7 +30,7 @@ Configure `tacacs-ng-ui` to support the physical Huawei switch:
 ### A. Host Registration
 Navigate to **Hosts** -> **Add Host**:
 - **Host Name**: `Huawei` (or your switch hostname)
-- **IP Address**: `10.11.1.104` (The switch source IP, e.g., `Vlanif101`)
+- **IP Address**: `192.168.1.2` (The switch source IP, e.g., `Vlanif101`)
 - **Shared Secret Key**: `<YOUR_TACACS_SECRET_KEY>` (e.g., `Netconsole123`)
 
 ### B. Pre-seeded Profiles, Groups & Users
@@ -67,8 +67,8 @@ hwtacacs-server template tacacs_netadmin
  hwtacacs-server authorization <IP_TACACS_SERVER>
  hwtacacs-server accounting <IP_TACACS_SERVER>
  
- # Source IP of the management VLAN interface (e.g., Vlanif101: 10.11.1.104)
- hwtacacs-server source-ip 10.11.1.104
+ # Source IP of the management VLAN interface (e.g., Vlanif101: 192.168.1.2)
+ hwtacacs-server source-ip 192.168.1.2
  
  # Shared Secret Key matching tacacs-ng-ui host configuration
  hwtacacs-server shared-key simple <YOUR_TACACS_SECRET_KEY>
@@ -155,7 +155,7 @@ hwtacacs-server template tacacs_netadmin
  hwtacacs-server authentication <IP_TACACS_SERVER>
  hwtacacs-server authorization <IP_TACACS_SERVER>
  hwtacacs-server accounting <IP_TACACS_SERVER>
- hwtacacs-server source-ip 10.11.1.104
+ hwtacacs-server source-ip 192.168.1.2
  hwtacacs-server shared-key simple <YOUR_TACACS_SECRET_KEY>
  undo hwtacacs-server user-name domain-included
 #
@@ -203,7 +203,7 @@ Before logging out of your active session, test connectivity to TACACS+ from the
 test-aaa <username> <password> hwtacacs-template tacacs_netadmin
 ```
 - **Success output**: `Info: Account test succeeded.`
-- **Failure output**: Indicates an incorrect password, mismatched shared key, or network routing/firewall block between `10.11.1.104` and `<IP_TACACS_SERVER>:49`.
+- **Failure output**: Indicates an incorrect password, mismatched shared key, or network routing/firewall block between `192.168.1.2` and `<IP_TACACS_SERVER>:49`.
 
 ### Check HWTACACS Server Status & Statistics
 ```text

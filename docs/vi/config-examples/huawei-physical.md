@@ -27,8 +27,8 @@ Tài liệu này hướng dẫn chi tiết cách tích hợp **switch Huawei v�
 
 ### A. Thêm Host Thiết Bị
 Truy cập **Hosts** -> **Add Host**:
-- **Host Name**: `PESCO-2ndF-24P-B` (hoặc tên switch của bạn)
-- **IP Address**: `10.11.1.104` (IP nguồn cổng quản trị của switch, ví dụ `Vlanif101`)
+- **Host Name**: `Huawei` (hoặc tên switch của bạn)
+- **IP Address**: `192.168.1.2` (IP nguồn cổng quản trị của switch, ví dụ `Vlanif101`)
 - **Shared Secret Key**: `<TACACS_SECRET_KEY>` (ví dụ `Netconsole123`)
 
 ### B. Profiles, Groups & Users Sẵn Có
@@ -63,8 +63,8 @@ hwtacacs-server template tacacs_netadmin
  hwtacacs-server authorization <IP_TACACS_SERVER>
  hwtacacs-server accounting <IP_TACACS_SERVER>
  
- # IP nguồn cổng quản trị (theo cấu hình hiện tại là Vlanif101: 10.11.1.104)
- hwtacacs-server source-ip 10.11.1.104
+ # IP nguồn cổng quản trị (theo cấu hình hiện tại là Vlanif101: 192.168.1.2)
+ hwtacacs-server source-ip 192.168.1.2
  
  # Shared key khớp với cấu hình Host trên tacacs-ng-ui
  hwtacacs-server shared-key simple <TACACS_SECRET_KEY>
@@ -150,7 +150,7 @@ hwtacacs-server template tacacs_netadmin
  hwtacacs-server authentication <IP_TACACS_SERVER>
  hwtacacs-server authorization <IP_TACACS_SERVER>
  hwtacacs-server accounting <IP_TACACS_SERVER>
- hwtacacs-server source-ip 10.11.1.104
+ hwtacacs-server source-ip 192.168.1.2
  hwtacacs-server shared-key simple <TACACS_SECRET_KEY>
  undo hwtacacs-server user-name domain-included
 #
@@ -198,7 +198,7 @@ Từ user-view (`<Huawei>`), bạn có thể test tài khoản trước khi tho�
 test-aaa <username> <password> hwtacacs-template tacacs_netadmin
 ```
 - **Thành công**: `Info: Account test succeeded.`
-- **Thất bại**: Báo sai mật khẩu, sai secret key hoặc kết nối port 49 TCP giữa `10.11.1.104` và `<IP_TACACS_SERVER>` bị chặn.
+- **Thất bại**: Báo sai mật khẩu, sai secret key hoặc kết nối port 49 TCP giữa `192.168.1.2` và `<IP_TACACS_SERVER>` bị chặn.
 
 ### Kiểm tra trạng thái kết nối HWTACACS
 ```text
