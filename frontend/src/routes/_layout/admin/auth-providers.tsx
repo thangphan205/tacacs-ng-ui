@@ -221,6 +221,7 @@ function AuthProvidersPage() {
         <Tabs.Content value="google">
           <AuthProviderCard
             provider="google"
+            secretAfter="client_id"
             title="Google OAuth"
             fields={googleFields}
           />
@@ -228,6 +229,7 @@ function AuthProvidersPage() {
         <Tabs.Content value="keycloak">
           <AuthProviderCard
             provider="keycloak"
+            secretAfter="client_id"
             title="Keycloak OIDC"
             fields={keycloakFields}
           />
@@ -235,6 +237,7 @@ function AuthProvidersPage() {
         <Tabs.Content value="microsoft">
           <AuthProviderCard
             provider="microsoft"
+            secretAfter="client_id"
             title="Microsoft Entra ID"
             fields={microsoftFields}
           />
