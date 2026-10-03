@@ -12,6 +12,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ bump pydantic from 2.12.5 to 2.13.4 in /backend. PR [#299](https://github.com/thangphan205/tacacs-ng-ui/pull/299) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump mcp from 2.1.0 to 2.1.1 in /backend. PR [#300](https://github.com/thangphan205/tacacs-ng-ui/pull/300) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump pyjwt from 2.13.0 to 2.15.0 in /backend. PR [#302](https://github.com/thangphan205/tacacs-ng-ui/pull/302) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump virtualenv from 21.3.3 to 21.7.13 in /backend. PR [#304](https://github.com/thangphan205/tacacs-ng-ui/pull/304) by [@dependabot[bot]](https://github.com/apps/dependabot).
