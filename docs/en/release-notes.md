@@ -12,6 +12,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ bump @tanstack/react-query-devtools from 5.101.4 to 5.102.4 in /frontend. PR [#295](https://github.com/thangphan205/tacacs-ng-ui/pull/295) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump ruff from 0.16.3 to 0.16.4 in /backend. PR [#297](https://github.com/thangphan205/tacacs-ng-ui/pull/297) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump @types/react-dom from 19.2.4 to 19.2.5 in /frontend. PR [#298](https://github.com/thangphan205/tacacs-ng-ui/pull/298) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump pydantic from 2.12.5 to 2.13.4 in /backend. PR [#299](https://github.com/thangphan205/tacacs-ng-ui/pull/299) by [@dependabot[bot]](https://github.com/apps/dependabot).
