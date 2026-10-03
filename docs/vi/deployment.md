@@ -490,12 +490,16 @@ Tất cả biến với giá trị mặc định (từ `.env.example`):
 | `SENTRY_DSN` | *(tùy chọn)* | Sentry error tracking DSN |
 | `GOOGLE_CLIENT_ID` | *(tùy chọn)* | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | *(tùy chọn)* | Google OAuth client secret |
-| `GOOGLE_REDIRECT_URI` | *(tùy chọn)* | Google OAuth callback URL |
+| `GOOGLE_REDIRECT_URI` | *(tự suy ra)* | Tùy chọn; mặc định `<FRONTEND_HOST>/api/v1/oauth/google/callback` |
 | `KEYCLOAK_SERVER_URL` | *(tùy chọn)* | Keycloak server URL |
 | `KEYCLOAK_REALM` | *(tùy chọn)* | Keycloak realm name |
 | `KEYCLOAK_CLIENT_ID` | *(tùy chọn)* | Keycloak client ID |
 | `KEYCLOAK_CLIENT_SECRET` | *(tùy chọn)* | Keycloak client secret |
-| `KEYCLOAK_REDIRECT_URI` | *(tùy chọn)* | Keycloak callback URL |
+| `KEYCLOAK_REDIRECT_URI` | *(tự suy ra)* | Tùy chọn; mặc định `<FRONTEND_HOST>/api/v1/oauth/keycloak/callback` |
+| `MICROSOFT_CLIENT_ID` | *(tùy chọn)* | Application (client) ID của app registration trên Entra |
+| `MICROSOFT_CLIENT_SECRET` | *(tùy chọn)* | Giá trị client secret trên Entra |
+| `MICROSOFT_TENANT` | `common` | `common`, `organizations`, `consumers` hoặc tenant ID. Tài khoản local có sẵn chỉ tự liên kết theo email với single tenant hoặc tài khoản cá nhân |
+| `MICROSOFT_REDIRECT_URI` | *(tự suy ra)* | Tùy chọn; mặc định `<FRONTEND_HOST>/api/v1/oauth/microsoft/callback` |
 | `SIEM_WEBHOOK_URL` | *(tùy chọn)* | URL Splunk HEC hoặc Logstash HTTP input |
 | `SIEM_WEBHOOK_TOKEN` | *(tùy chọn)* | Splunk HEC token hoặc bearer token |
 | `SIEM_FORWARD_TACACS_EVENTS` | `false` | Chuyển tiếp sự kiện auth/authz/acct đến SIEM |

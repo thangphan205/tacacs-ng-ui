@@ -234,6 +234,9 @@ passlib survives only for the TACACS scheme because tac_plus-ng parses `$6$round
 
 - **Google OAuth2** — `google_id` column on User; HMAC-state validation
 - **Keycloak OIDC** — `keycloak_id` column on User; HMAC-state validation
+- **Microsoft (personal accounts + Entra ID)** — `microsoft_id` column on User. One provider; the `tenant` setting (`common`/`organizations`/`consumers`/tenant ID) picks who may sign in. Identity comes from the id_token (signature unchecked — it arrives straight from the token endpoint over TLS), matched on `aud`. **Existing accounts are linked by email only for a single tenant or a personal (MSA) account** — Entra's `email` claim is mutable and unverified, so linking on it in multi-tenant mode would allow account takeover (nOAuth); `get_or_create_microsoft_user` returns `None` and the route answers 403. Do not relax that.
+
+All three providers derive their redirect URI from `FRONTEND_HOST` when neither the admin form nor env sets one (`_default_redirect_uri` in `oauth.py`); the admin form prefills the same value via `FieldDef.defaultValue`.
 - **WebAuthn / Passkeys** — `WebAuthnCredential` + `WebAuthnChallenge` tables; `passkeys.py` CRUD
 
 ### High Availability (`backend/app/api/routes/sync.py`)

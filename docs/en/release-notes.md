@@ -10,6 +10,39 @@ overwrites whatever follows it. That has wiped published sections twice. Move
 entries out of it into the version section as part of cutting a release; do not
 delete the heading itself. -->
 
+## Unreleased
+
+## v0.6.1
+
+### Features
+
+* ✨ **Sign in with Microsoft — personal accounts and Entra ID.** A new `microsoft` authentication provider, alongside Google and Keycloak, with its own button on the login page and a **Microsoft Entra ID** tab under **Admin → Auth Providers**. One provider covers every case through its **Tenant** setting: `common` (work, school and personal accounts — the default), `organizations`, `consumers`, or a single tenant ID or domain. Credentials come from the admin form or from `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT` and `MICROSOFT_REDIRECT_URI`, field by field, exactly as for Google and Keycloak. Adds a nullable `user.microsoft_id` column (migration `7c4d9e2b1f30`, applied automatically at startup). See [Microsoft Entra ID setup](user-guide.md#microsoft-entra-id-setup).
+
+  **Existing local accounts are linked by email only when that email can be trusted** — a single-tenant setup, or a personal Microsoft account. Entra's `email` claim is mutable and unverified in a multi-tenant app, so linking on it under `common` or `organizations` would let an admin of any tenant take over a local account (the "nOAuth" attack). In that case the sign-in is refused with HTTP 403 and a message saying why; new users are still created normally. To let existing users sign in with Microsoft, restrict the tenant to your own organization. The id_token's signature is not verified — it arrives directly from Microsoft's token endpoint over TLS in exchange for the client secret — but its audience must match the application's client ID.
+
+* ✨ **Redirect URIs fill themselves in.** When neither the admin form nor the environment sets one, the backend derives the OAuth redirect URI for **Google, Keycloak and Microsoft** from `FRONTEND_HOST` (the application URL, itself built from `DOMAIN`): `<FRONTEND_HOST>/api/v1/oauth/<provider>/callback`. The admin form prefills the same value from the current site, with a hint to register that exact URI at the provider, and the Microsoft **Tenant** field prefills with `common`. A value already stored or set in `.env` still wins, so existing deployments behave exactly as before.
+
+* ✨ **The UI shows which build is running.** The sidebar footer and the login page display `branch@commit` next to the version, so a test server can be matched to a commit at a glance. The value is baked in at build time from the `GIT_BRANCH` and `GIT_COMMIT` build args — the Docker build context has no `.git` — and local builds read git directly. Export them before building: `GIT_BRANCH=$(git branch --show-current) GIT_COMMIT=$(git rev-parse --short HEAD) docker compose -f docker-compose.yml build frontend`. Left unset, the label is simply omitted.
+
+* 💄 **Admin forms and sidebar polish.** In each provider form the **Client Secret** now sits directly under the client ID — the two values you copy from the third party — ahead of the settings that belong to this application. The sidebar footer was redesigned: the profile card shows only name and email, and the version and build info moved to their own row with the full branch name visible (a tooltip in the collapsed sidebar).
+
+### Docs
+
+* 📝 The user guide (English and Vietnamese) gains a **Microsoft Entra ID setup** walkthrough and tenant table; the deployment guides list the new `MICROSOFT_*` variables and mark the three `*_REDIRECT_URI` variables as optional; both READMEs mention Microsoft sign-in.
+* docs: add a TACACS+ integration guide for Huawei physical campus switches, with an updated Vietnamese example.
+
+### Upgrading from 0.6.0
+
+No breaking changes. Rebuild and bring the stack up as usual — prestart applies the migration:
+
+```bash
+git pull origin main
+docker compose -f docker-compose.yml build backend frontend
+docker compose -f docker-compose.yml up -d
+```
+
+Nothing needs to be re-registered at Google or Keycloak. To enable Microsoft, create an Entra app registration with the redirect URI shown in the admin form, then fill in the tenant, client ID and secret under **Admin → Auth Providers**.
+
 ### Internal
 
 * ⬆ bump cryptography from 50.0.0 to 50.0.1 in /backend. PR [#293](https://github.com/thangphan205/tacacs-ng-ui/pull/293) by [@dependabot[bot]](https://github.com/apps/dependabot).
@@ -22,8 +55,6 @@ delete the heading itself. -->
 * ⬆ bump pyjwt from 2.13.0 to 2.15.0 in /backend. PR [#302](https://github.com/thangphan205/tacacs-ng-ui/pull/302) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump virtualenv from 21.3.3 to 21.7.13 in /backend. PR [#304](https://github.com/thangphan205/tacacs-ng-ui/pull/304) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump urllib3 from 2.7.0 to 2.8.0 in /backend. PR [#303](https://github.com/thangphan205/tacacs-ng-ui/pull/303) by [@dependabot[bot]](https://github.com/apps/dependabot).
-
-## Unreleased
 
 ## v0.6.0
 

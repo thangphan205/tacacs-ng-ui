@@ -97,7 +97,7 @@ Historically, managing TACACS+ servers required manually editing complex configu
 - **High Availability**: Run one primary with N standby nodes. Config changes fan out to every enabled peer, standbys follow via PostgreSQL streaming replication, and peers are added, disabled, or removed from the HA UI without restarting a service. Promotion to primary is a single click.
 - **MCP Server for LLM Clients**: A [Model Context Protocol](https://modelcontextprotocol.io) endpoint lets Claude Desktop, Claude Code, Antigravity, Gemini, Cursor or Windsurf inspect TACACS+ entities, render config previews and diffs, and syntax-check config text with the real `tac_plus-ng -P` parser — and, with a read-write key, create, update and delete entities. **It can never deploy**: no tool saves a config file, activates one, or reloads the daemon, so changes reach the daemon only after a human presses Generate and Activate in the UI. On by default (can be turned off), authenticated with scoped and revocable API keys, and secrets are redacted from every response.
 - **Scoped API Keys**: Machine credentials managed under User Settings. Two access levels (read-only or read-write), an independent opt-in for unredacted secrets, expiry, one-time plaintext display, soft revoke, and full audit logging. Each key can also be locked to an allowlist of source IPs/CIDRs, editable at any time without reissuing the key.
-- **Multi-Factor Auth**: Google OAuth, Keycloak OIDC, and Passkeys (WebAuthn) in addition to email/password.
+- **Multi-Factor Auth**: Google OAuth, Keycloak OIDC, Microsoft (personal accounts and Entra ID), and Passkeys (WebAuthn) in addition to email/password.
 - **Secure by Design**: PCI DSS-compliant password policy, JWT authentication, and email-based password recovery.
 - **Integrated Tooling**: Traefik reverse proxy, automatic API documentation via Swagger UI, and end-to-end testing with Playwright.
 
@@ -538,7 +538,7 @@ This includes using Docker Compose, custom local domains, `.env` configurations,
 
 To further enhance the security and utility of tacacs-ng-ui, the following roadmap has been established:
 
-1. **Modernized Authentication Framework**: ✅ Google OAuth (Authorization Code flow), ✅ Keycloak OIDC, and ✅ Passkeys (WebAuthn) for passwordless login are all supported as of v0.2.0.
+1. **Modernized Authentication Framework**: ✅ Google OAuth (Authorization Code flow), ✅ Keycloak OIDC, and ✅ Passkeys (WebAuthn) for passwordless login are all supported as of v0.2.0; ✅ Microsoft / Entra ID sign-in was added in v0.6.1.
 2. **Comprehensive Frontend Audit Logging**: ✅ Every UI action (create/update/delete/login/config-apply) is recorded with actor, IP, entity snapshot, and timestamp as of v0.2.1. Includes CSV export, search, and date-range filter.
 3. **Advanced Observability Dashboard**: ✅ Today's log summary, config overview cards, recent user activity, Top 5 pie charts (users/IPs) with Last 7 Days / Last 30 Days / Date Range filter, and AAA trend line chart — all shipped in v0.3.0. Structured TACACS log events viewer with date/type/result/username filters added in v0.3.0. Enhanced in v0.3.2 with clickable username drill-down, command/port columns, row-click detail drawer, and session timeline for auditing full command sequences.
 4. **SIEM Integration**: ✅ Real-time forwarding of TACACS+ log events via HTTP webhook (Splunk HEC format) and syslog (UDP/TCP) shipped in v0.3.0.

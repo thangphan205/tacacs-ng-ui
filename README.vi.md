@@ -69,7 +69,7 @@
 - **High Availability**: Chạy một node primary cùng N node standby. Thay đổi cấu hình được fan-out đến mọi peer đang bật, standby đồng bộ qua PostgreSQL streaming replication, và peer được thêm, tắt hoặc xóa ngay trên giao diện HA mà không cần khởi động lại dịch vụ. Thăng cấp standby lên primary chỉ bằng một cú nhấp.
 - **MCP Server cho LLM Client**: Endpoint [Model Context Protocol](https://modelcontextprotocol.io) cho phép Claude Desktop, Claude Code, Antigravity, Gemini, Cursor hoặc Windsurf xem các thực thể TACACS+, xem trước cấu hình và diff, kiểm tra cú pháp cấu hình bằng chính bộ phân tích `tac_plus-ng -P` — và với key read-write, tạo, sửa, xóa các thực thể. **Không bao giờ deploy được**: không có tool nào lưu file cấu hình, kích hoạt cấu hình hay reload daemon, nên thay đổi chỉ đến được daemon sau khi con người bấm Generate rồi Activate trên giao diện. Mặc định bật (có thể tắt), xác thực bằng API key có scope và có thể thu hồi, và mọi secret đều được che trong phản hồi.
 - **API Key Có Scope**: Thông tin đăng nhập cho máy, quản lý trong User Settings. Hai mức truy cập (chỉ đọc hoặc đọc-ghi), một tùy chọn riêng để lấy secret không che, thời hạn, hiển thị plaintext đúng một lần, thu hồi mềm và ghi audit log đầy đủ. Mỗi key còn có thể giới hạn theo danh sách IP/CIDR nguồn được phép, chỉnh sửa được bất cứ lúc nào mà không cần cấp lại key.
-- **Xác Thực Đa Yếu Tố**: Google OAuth, Keycloak OIDC và Passkeys (WebAuthn) ngoài email/mật khẩu.
+- **Xác Thực Đa Yếu Tố**: Google OAuth, Keycloak OIDC, Microsoft (tài khoản cá nhân và Entra ID) và Passkeys (WebAuthn) ngoài email/mật khẩu.
 - **Bảo Mật Theo Thiết Kế**: Chính sách mật khẩu tuân thủ PCI DSS, xác thực JWT và khôi phục mật khẩu qua email.
 - **Công Cụ Tích Hợp**: Traefik reverse proxy, tài liệu API tự động qua Swagger UI và kiểm thử end-to-end với Playwright.
 
@@ -415,7 +415,7 @@ Bao gồm Docker Compose, custom local domains, cấu hình `.env`, v.v.
 
 ## Lộ Trình Phát Triển
 
-1. **Framework Xác Thực Hiện Đại**: ✅ Google OAuth (Authorization Code flow), ✅ Keycloak OIDC và ✅ Passkeys (WebAuthn) cho đăng nhập không mật khẩu — hỗ trợ từ v0.2.0.
+1. **Framework Xác Thực Hiện Đại**: ✅ Google OAuth (Authorization Code flow), ✅ Keycloak OIDC và ✅ Passkeys (WebAuthn) cho đăng nhập không mật khẩu — hỗ trợ từ v0.2.0; ✅ đăng nhập Microsoft / Entra ID được thêm ở v0.6.1.
 2. **Audit Logging Frontend Toàn Diện**: ✅ Mọi hành động UI đều được ghi lại với actor, IP, snapshot thực thể và timestamp từ v0.2.1. Bao gồm xuất CSV, tìm kiếm và bộ lọc ngày.
 3. **Dashboard Quan Sát Nâng Cao**: ✅ Tóm tắt log hôm nay, thẻ tổng quan, hoạt động người dùng gần đây, biểu đồ Top 5 với bộ lọc 7/30 ngày — ra mắt trong v0.3.0. Cải tiến trong v0.3.2 với drill-down tên người dùng, cột lệnh/port, ngăn kéo chi tiết và timeline phiên.
 4. **Tích Hợp SIEM**: ✅ Chuyển tiếp thời gian thực qua HTTP webhook (Splunk HEC) và syslog (UDP/TCP) từ v0.3.0.

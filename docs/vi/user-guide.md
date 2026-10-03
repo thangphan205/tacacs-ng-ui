@@ -44,6 +44,7 @@ Các phương thức đăng nhập:
 - **Email + Mật khẩu** — phương thức mặc định
 - **Đăng nhập với Google** — yêu cầu cấu hình Google OAuth trong `.env`
 - **Đăng nhập với Keycloak** — yêu cầu cấu hình Keycloak OIDC
+- **Đăng nhập với Microsoft** — tài khoản Microsoft cá nhân và Entra ID; yêu cầu cấu hình provider Microsoft
 - **Passkeys** — đăng nhập không mật khẩu qua WebAuthn (sinh trắc học/hardware key)
 
 Thông tin đăng nhập admin mặc định được cấu hình qua `FIRST_SUPERUSER` và `FIRST_SUPERUSER_PASSWORD` trong file `.env`.
@@ -517,9 +518,29 @@ Mọi thay đổi cấu hình qua UI đều được ghi lại:
 
 | Provider | Cấu hình |
 |----------|----------|
-| `google` | Cần `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` trong `.env` |
+| `google` | Cần client ID và client secret (trên UI hoặc `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` trong `.env`). Redirect URI được điền sẵn từ URL của site |
 | `keycloak` | Cần URL Keycloak server, client ID và client secret |
+| `microsoft` | Cần tenant, application (client) ID và client secret. Xem [Cấu hình Microsoft Entra ID](#cấu-hình-microsoft-entra-id) |
 | `passkeys` | WebAuthn — không cần cấu hình thêm; người dùng đăng ký từ trang Settings |
+
+#### Cấu hình Microsoft Entra ID
+
+Một provider dùng cho cả tài khoản Microsoft cá nhân và tài khoản Entra ID (cơ quan/trường học).
+
+1. Trong **Entra admin center → App registrations → New registration**, chọn loại tài khoản được hỗ trợ phù hợp và thêm redirect URI loại **Web**, đúng giá trị đã điền sẵn trong form: `https://<domain-của-bạn>/api/v1/oauth/microsoft/callback`.
+2. Ở **Certificates & secrets**, tạo client secret và sao chép **Value** (không phải Secret ID — chỉ hiển thị một lần).
+3. Trong **Admin → Auth Providers → Microsoft Entra ID**, nhập **Tenant**, **Application (client) ID**, **Client Secret**, bấm **Save** rồi **Enable**.
+
+| Tenant | Ai đăng nhập được |
+|--------|-------------------|
+| `common` (mặc định) | Tài khoản cơ quan, trường học và cá nhân |
+| `organizations` | Tài khoản cơ quan/trường học của mọi tenant Entra |
+| `consumers` | Chỉ tài khoản Microsoft cá nhân |
+| tenant ID hoặc domain | Chỉ một tổ chức |
+
+> **Tài khoản đã có.** Người dùng có email trùng tài khoản local chỉ được tự liên kết ở lần đăng nhập Microsoft đầu tiên khi dùng **single tenant** hoặc tài khoản cá nhân. Với `common` hoặc `organizations`, đăng nhập bị từ chối (HTTP 403), vì claim email của Entra không được xác minh — liên kết theo email sẽ cho phép tenant khác chiếm tài khoản. Người dùng mới vẫn được tạo bình thường. Để người dùng hiện có đăng nhập bằng Microsoft, hãy giới hạn tenant về tổ chức của bạn.
+
+Người dùng mới được tạo không có quyền admin.
 
 ---
 

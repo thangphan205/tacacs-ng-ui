@@ -766,10 +766,29 @@ Configure which authentication methods are enabled for the dashboard:
 
 | Provider | Configuration |
 |----------|--------------|
-| `google` | Requires `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` in `.env` |
+| `google` | Requires client ID and client secret (UI or `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `.env`). The redirect URI is prefilled from the site URL |
 | `keycloak` | Requires Keycloak server URL, client ID, and client secret |
-| `microsoft` | Requires tenant, application (client) ID, and client secret |
+| `microsoft` | Requires tenant, application (client) ID, and client secret. See [Microsoft Entra ID setup](#microsoft-entra-id-setup) |
 | `passkeys` | WebAuthn — no extra config required; users register passkeys from their profile settings |
+
+#### Microsoft Entra ID setup
+
+One provider covers personal Microsoft accounts and Entra ID (work/school) accounts.
+
+1. In the **Entra admin center → App registrations → New registration**, pick the supported account types that match your goal, and add a **Web** redirect URI. Use the exact value prefilled in the form: `https://<your-domain>/api/v1/oauth/microsoft/callback`.
+2. Under **Certificates & secrets**, create a client secret and copy its **Value** (not the Secret ID — it is shown only once).
+3. In **Admin → Auth Providers → Microsoft Entra ID**, set the **Tenant**, **Application (client) ID** and **Client Secret**, click **Save**, then **Enable**.
+
+| Tenant | Who can sign in |
+|--------|-----------------|
+| `common` (default) | Work, school and personal accounts |
+| `organizations` | Work and school accounts from any Entra tenant |
+| `consumers` | Personal Microsoft accounts only |
+| a tenant ID or domain | One organization only |
+
+> **Existing accounts.** A person whose email already has a local account is linked to it on first Microsoft sign-in **only** with a single-tenant setup or a personal account. With `common` or `organizations` the sign-in is refused (HTTP 403) instead, because Entra's email claim is not verified and linking on it would let another tenant take over the account. New users are still created normally. To let existing users sign in with Microsoft, restrict the tenant to your own organization.
+
+New users are created without admin rights.
 
 ### Password Recovery
 
