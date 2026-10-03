@@ -14,6 +14,7 @@ import { FaBars } from "react-icons/fa"
 import {
   FiChevronLeft,
   FiChevronRight,
+  FiGitBranch,
   FiGithub,
   FiLogOut,
   FiSettings,
@@ -31,6 +32,15 @@ import {
 import { MenuContent, MenuItem, MenuRoot, MenuTrigger } from "../ui/menu"
 import { Tooltip } from "../ui/tooltip"
 import SidebarItems from "./SidebarItems"
+
+// "branch@commit" (or just "commit") injected at build time.
+const splitBuildInfo = (info: string) => {
+  const at = info.lastIndexOf("@")
+  return at === -1
+    ? { branch: "", commit: info }
+    : { branch: info.slice(0, at), commit: info.slice(at + 1) }
+}
+const build = __BUILD_INFO__ ? splitBuildInfo(__BUILD_INFO__) : null
 
 const SidebarFooter = ({
   email,
@@ -101,17 +111,6 @@ const SidebarFooter = ({
                   <Text fontSize="xs" color="fg.subtle" truncate maxW="100%">
                     {email || "user@example.com"}
                   </Text>
-                  {__BUILD_INFO__ && (
-                    <Text
-                      fontSize="2xs"
-                      color="fg.subtle"
-                      truncate
-                      maxW="100%"
-                      title={__BUILD_INFO__}
-                    >
-                      {__BUILD_INFO__}
-                    </Text>
-                  )}
                 </VStack>
               </Flex>
             ) : (
@@ -168,22 +167,55 @@ const SidebarFooter = ({
         </MenuContent>
       </MenuRoot>
 
-      {/* GitHub & Version Info */}
-      <Flex align="center" justify="center" gap={1.5} pt={2} color="fg.subtle">
-        <Link
-          href="https://github.com/thangphan205/tacacs-ng-ui"
-          target="_blank"
-          rel="noopener noreferrer"
-          display="flex"
-          alignItems="center"
-          gap={1.5}
-          fontSize="3xs"
-          _hover={{ color: "fg.muted" }}
-        >
-          <Icon as={FiGithub} />
-          {!isCollapsed && <Text>v{version}</Text>}
-        </Link>
-      </Flex>
+      {/* Version & build info */}
+      <Tooltip
+        content={`v${version}${__BUILD_INFO__ ? ` · ${__BUILD_INFO__}` : ""}`}
+        placement="right"
+        disabled={!isCollapsed}
+      >
+        <VStack align={isCollapsed ? "center" : "stretch"} gap={1} pt={1}>
+          <Link
+            href="https://github.com/thangphan205/tacacs-ng-ui"
+            target="_blank"
+            rel="noopener noreferrer"
+            display="flex"
+            alignItems="center"
+            justifyContent={isCollapsed ? "center" : "flex-start"}
+            gap={1.5}
+            px={isCollapsed ? 0 : 1}
+            fontSize="xs"
+            color="fg.muted"
+            _hover={{ color: "fg.default" }}
+          >
+            <Icon as={FiGithub} />
+            {!isCollapsed && <Text fontWeight="medium">v{version}</Text>}
+          </Link>
+
+          {!isCollapsed && build && (
+            <Flex
+              align="flex-start"
+              gap={1.5}
+              px={2}
+              py={1.5}
+              borderRadius="md"
+              bg="bg.muted"
+              color="fg.subtle"
+              fontSize="2xs"
+              data-testid="build-info"
+            >
+              <Icon as={FiGitBranch} mt="2px" flexShrink={0} />
+              <Box minW={0}>
+                {build.branch && (
+                  <Text wordBreak="break-all" color="fg.muted">
+                    {build.branch}
+                  </Text>
+                )}
+                <Text fontFamily="mono">{build.commit}</Text>
+              </Box>
+            </Flex>
+          )}
+        </VStack>
+      </Tooltip>
     </VStack>
   )
 }
