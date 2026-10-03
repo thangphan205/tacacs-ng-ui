@@ -24,3 +24,7 @@ backend/tacacs_config/etc/config_*.cfg
 docs/**/config-examples/*.conf
 docs/**/config-examples/*.cfg
 docs/**/config-examples/*.backup
+
+# Local deploy notes (host/credentials) - never commit
+server.txt
+credentials.txt
