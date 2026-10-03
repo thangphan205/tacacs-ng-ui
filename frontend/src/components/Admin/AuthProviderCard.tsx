@@ -28,6 +28,8 @@ interface FieldDef {
   label: string
   placeholder?: string
   hint?: string
+  /** Prefilled when nothing is stored yet; saved with the form. */
+  defaultValue?: string
 }
 
 interface AuthProviderCardProps {
@@ -92,10 +94,15 @@ const AuthProviderCard = ({
 
   useEffect(() => {
     if (data && !initialized) {
-      setFormConfig(data.config ?? {})
+      const defaults = Object.fromEntries(
+        fields
+          .filter((f) => f.defaultValue)
+          .map((f) => [f.key, f.defaultValue as string]),
+      )
+      setFormConfig({ ...defaults, ...(data.config ?? {}) })
       setInitialized(true)
     }
-  }, [data, initialized])
+  }, [data, initialized, fields])
 
   const saveMutation = useMutation({
     mutationFn: () =>

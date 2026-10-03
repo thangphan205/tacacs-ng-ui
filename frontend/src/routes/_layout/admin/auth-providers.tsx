@@ -62,7 +62,7 @@ const keycloakFields = [
   },
 ]
 
-// Default the backend derives from the app's own URL when the field is blank.
+// Prefilled in the form; the backend derives the same value if it is left blank.
 const microsoftRedirectUri = `${window.location.origin}/api/v1/oauth/microsoft/callback`
 
 const microsoftFields = [
@@ -76,7 +76,8 @@ const microsoftFields = [
     key: "redirect_uri",
     label: "Redirect URI",
     placeholder: microsoftRedirectUri,
-    hint: `Optional. Leave blank to use ${microsoftRedirectUri} — register this exact URI in your Entra app.`,
+    defaultValue: microsoftRedirectUri,
+    hint: "Prefilled from this site's URL. Register this exact URI in your Entra app (Authentication → Web).",
   },
 ]
 
