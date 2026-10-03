@@ -12,6 +12,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ bump pyjwt from 2.13.0 to 2.15.0 in /backend. PR [#302](https://github.com/thangphan205/tacacs-ng-ui/pull/302) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump virtualenv from 21.3.3 to 21.7.13 in /backend. PR [#304](https://github.com/thangphan205/tacacs-ng-ui/pull/304) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump urllib3 from 2.7.0 to 2.8.0 in /backend. PR [#303](https://github.com/thangphan205/tacacs-ng-ui/pull/303) by [@dependabot[bot]](https://github.com/apps/dependabot).
 
