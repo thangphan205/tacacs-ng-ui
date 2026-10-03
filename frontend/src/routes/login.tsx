@@ -365,6 +365,7 @@ function Login() {
             <Icon as={FiGithub} />
             <Text fontSize="xs" fontWeight="semibold">
               Version {version}
+              {__BUILD_INFO__ && ` (${__BUILD_INFO__})`}
             </Text>
           </Link>
         </Box>

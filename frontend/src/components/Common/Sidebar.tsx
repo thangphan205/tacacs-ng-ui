@@ -101,6 +101,17 @@ const SidebarFooter = ({
                   <Text fontSize="xs" color="fg.subtle" truncate maxW="100%">
                     {email || "user@example.com"}
                   </Text>
+                  {__BUILD_INFO__ && (
+                    <Text
+                      fontSize="2xs"
+                      color="fg.subtle"
+                      truncate
+                      maxW="100%"
+                      title={__BUILD_INFO__}
+                    >
+                      {__BUILD_INFO__}
+                    </Text>
+                  )}
                 </VStack>
               </Flex>
             ) : (

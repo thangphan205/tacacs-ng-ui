@@ -1,0 +1,3 @@
+Server: tacacs.9ping.cloud
+Username: ubuntu
+SSH Key: ~/cbjs/keygen/id_rsa
