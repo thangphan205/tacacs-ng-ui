@@ -265,3 +265,31 @@ def test_microsoft_redirect_uri_defaults_from_frontend_host(
     assert params["redirect_uri"] == [
         "https://tacacs.example.com/api/v1/oauth/microsoft/callback"
     ]
+
+
+@pytest.mark.parametrize("provider", ["google", "keycloak"])
+def test_google_keycloak_redirect_uri_defaults_from_frontend_host(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    provider: str,
+) -> None:
+    monkeypatch.setattr(settings, "FRONTEND_HOST", "https://tacacs.example.com")
+    monkeypatch.setattr(settings, f"{provider.upper()}_REDIRECT_URI", "")
+    auth_providers_crud.upsert_provider_config(
+        session=db,
+        provider=provider,
+        enabled=True,
+        config={
+            "client_id": "cid",
+            "server_url": "https://kc.example.com",
+            "realm": "r",
+        },
+        secret="s",
+    )
+    r = client.get(f"{settings.API_V1_STR}/oauth/{provider}/authorize")
+    assert r.status_code == 200, r.text
+    params = parse_qs(urlparse(r.json()["url"]).query)
+    assert params["redirect_uri"] == [
+        f"https://tacacs.example.com/api/v1/oauth/{provider}/callback"
+    ]

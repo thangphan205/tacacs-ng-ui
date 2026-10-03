@@ -491,12 +491,12 @@ All variables with their defaults (from `.env.example`):
 | `SENTRY_DSN` | *(optional)* | Sentry error tracking DSN |
 | `GOOGLE_CLIENT_ID` | *(optional)* | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | *(optional)* | Google OAuth client secret |
-| `GOOGLE_REDIRECT_URI` | *(optional)* | Google OAuth callback URL |
+| `GOOGLE_REDIRECT_URI` | *(derived)* | Optional; defaults to `<FRONTEND_HOST>/api/v1/oauth/google/callback` |
 | `KEYCLOAK_SERVER_URL` | *(optional)* | Keycloak server URL |
 | `KEYCLOAK_REALM` | *(optional)* | Keycloak realm name |
 | `KEYCLOAK_CLIENT_ID` | *(optional)* | Keycloak client ID |
 | `KEYCLOAK_CLIENT_SECRET` | *(optional)* | Keycloak client secret |
-| `KEYCLOAK_REDIRECT_URI` | *(optional)* | Keycloak callback URL |
+| `KEYCLOAK_REDIRECT_URI` | *(derived)* | Optional; defaults to `<FRONTEND_HOST>/api/v1/oauth/keycloak/callback` |
 | `MICROSOFT_CLIENT_ID` | *(optional)* | Entra app registration (client) ID |
 | `MICROSOFT_CLIENT_SECRET` | *(optional)* | Entra client secret value |
 | `MICROSOFT_TENANT` | `common` | `common`, `organizations`, `consumers`, or a tenant ID. Existing local accounts auto-link by email only for a single tenant or personal accounts |

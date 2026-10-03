@@ -38,13 +38,21 @@ export const Route = createFileRoute("/_layout/admin/auth-providers")({
   component: AuthProvidersPage,
 })
 
-const googleFields = [
-  { key: "client_id", label: "Client ID" },
-  {
+// Prefilled in the form; the backend derives the same value if it is left blank.
+const redirectUriField = (provider: string, where: string) => {
+  const uri = `${window.location.origin}/api/v1/oauth/${provider}/callback`
+  return {
     key: "redirect_uri",
     label: "Redirect URI",
-    placeholder: "https://tacacs.example.com/api/v1/oauth/google/callback",
-  },
+    placeholder: uri,
+    defaultValue: uri,
+    hint: `Prefilled from this site's URL. Register this exact URI in ${where}.`,
+  }
+}
+
+const googleFields = [
+  { key: "client_id", label: "Client ID" },
+  redirectUriField("google", "your Google Cloud OAuth client"),
 ]
 
 const keycloakFields = [
@@ -55,15 +63,8 @@ const keycloakFields = [
   },
   { key: "realm", label: "Realm", placeholder: "tacacs" },
   { key: "client_id", label: "Client ID" },
-  {
-    key: "redirect_uri",
-    label: "Redirect URI",
-    placeholder: "https://tacacs.example.com/api/v1/oauth/keycloak/callback",
-  },
+  redirectUriField("keycloak", "your Keycloak client (Valid redirect URIs)"),
 ]
-
-// Prefilled in the form; the backend derives the same value if it is left blank.
-const microsoftRedirectUri = `${window.location.origin}/api/v1/oauth/microsoft/callback`
 
 const microsoftFields = [
   {
@@ -72,13 +73,7 @@ const microsoftFields = [
     placeholder: "common, organizations, consumers, or a tenant ID",
   },
   { key: "client_id", label: "Application (client) ID" },
-  {
-    key: "redirect_uri",
-    label: "Redirect URI",
-    placeholder: microsoftRedirectUri,
-    defaultValue: microsoftRedirectUri,
-    hint: "Prefilled from this site's URL. Register this exact URI in your Entra app (Authentication → Web).",
-  },
+  redirectUriField("microsoft", "your Entra app (Authentication → Web)"),
 ]
 
 function adminHeader() {

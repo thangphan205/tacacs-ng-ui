@@ -94,6 +94,14 @@ def _stored(session: Session, provider: str) -> tuple[dict[str, str], str | None
     return config, secret
 
 
+def _default_redirect_uri(provider: str) -> str:
+    """Callback URL derived from the app's own URL (FRONTEND_HOST, i.e. DOMAIN).
+
+    Used when neither the UI nor the environment sets one.
+    """
+    return f"{settings.FRONTEND_HOST.rstrip('/')}{settings.API_V1_STR}/oauth/{provider}/callback"
+
+
 def _google_creds(session: Session) -> _Creds:
     config, secret = _stored(session, "google")
     client_id = config.get("client_id") or settings.GOOGLE_CLIENT_ID
@@ -102,7 +110,9 @@ def _google_creds(session: Session) -> _Creds:
     return _Creds(
         client_id=client_id,
         client_secret=secret or settings.GOOGLE_CLIENT_SECRET,
-        redirect_uri=config.get("redirect_uri") or settings.GOOGLE_REDIRECT_URI,
+        redirect_uri=config.get("redirect_uri")
+        or settings.GOOGLE_REDIRECT_URI
+        or _default_redirect_uri("google"),
         auth_url=GOOGLE_AUTH_URL,
         token_url=GOOGLE_TOKEN_URL,
         userinfo_url=GOOGLE_USERINFO_URL,
@@ -121,7 +131,9 @@ def _keycloak_creds(session: Session) -> _Creds:
     return _Creds(
         client_id=client_id,
         client_secret=secret or settings.KEYCLOAK_CLIENT_SECRET,
-        redirect_uri=config.get("redirect_uri") or settings.KEYCLOAK_REDIRECT_URI,
+        redirect_uri=config.get("redirect_uri")
+        or settings.KEYCLOAK_REDIRECT_URI
+        or _default_redirect_uri("keycloak"),
         auth_url=f"{base}/auth",
         token_url=f"{base}/token",
         userinfo_url=f"{base}/userinfo",
@@ -146,10 +158,9 @@ def _microsoft_creds(session: Session) -> tuple[_Creds, str]:
     creds = _Creds(
         client_id=client_id,
         client_secret=secret or settings.MICROSOFT_CLIENT_SECRET,
-        # Unset everywhere -> derive from the app's own URL (FRONTEND_HOST, i.e. DOMAIN)
         redirect_uri=config.get("redirect_uri")
         or settings.MICROSOFT_REDIRECT_URI
-        or f"{settings.FRONTEND_HOST.rstrip('/')}/api/v1/oauth/microsoft/callback",
+        or _default_redirect_uri("microsoft"),
         auth_url=f"{base}/authorize",
         token_url=f"{base}/token",
         userinfo_url="",  # identity comes from the id_token, not a userinfo call
