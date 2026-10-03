@@ -10,6 +10,10 @@ overwrites whatever follows it. That has wiped published sections twice. Move
 entries out of it into the version section as part of cutting a release; do not
 delete the heading itself. -->
 
+### Internal
+
+* ⬆ bump urllib3 from 2.7.0 to 2.8.0 in /backend. PR [#303](https://github.com/thangphan205/tacacs-ng-ui/pull/303) by [@dependabot[bot]](https://github.com/apps/dependabot).
+
 ## Unreleased
 
 ## v0.6.0
