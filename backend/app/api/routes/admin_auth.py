@@ -9,7 +9,7 @@ from app.models import AuthProviderConfigPublic, AuthProviderConfigUpdate
 
 router = APIRouter(prefix="/admin/auth-providers", tags=["admin"])
 
-_VALID_PROVIDERS = {"google", "keycloak", "passkey"}
+_VALID_PROVIDERS = {"google", "keycloak", "microsoft", "passkey"}
 
 
 @router.get(
@@ -19,7 +19,7 @@ _VALID_PROVIDERS = {"google", "keycloak", "passkey"}
 )
 def list_auth_providers(session: SessionDep) -> Any:
     rows = auth_providers_crud.get_all_provider_configs(session=session)
-    # Ensure all three providers appear, even if not yet in DB
+    # Ensure all providers appear, even if not yet in DB
     existing = {r.provider for r in rows}
     result = [auth_providers_crud.to_public(r) for r in rows]
     for provider in _VALID_PROVIDERS - existing:
@@ -91,6 +91,7 @@ def auth_providers_status(session: SessionDep) -> dict[str, bool]:
     return {
         "google": _enabled("google", settings.GOOGLE_CLIENT_ID),
         "keycloak": _enabled("keycloak", settings.KEYCLOAK_CLIENT_ID),
+        "microsoft": _enabled("microsoft", settings.MICROSOFT_CLIENT_ID),
         "passkey": db_map.get("passkey", True),
         # Lets the login page hide its "Sign up" link, and the signup route
         # turn people away, instead of offering a form that can only fail.

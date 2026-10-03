@@ -197,6 +197,14 @@ class Settings(BaseSettings):
     def KEYCLOAK_USERINFO_URL(self) -> str:
         return f"{self.KEYCLOAK_SERVER_URL}/realms/{self.KEYCLOAK_REALM}/protocol/openid-connect/userinfo"
 
+    # Microsoft (personal accounts and Entra ID)
+    # MICROSOFT_TENANT: "common" (work + personal), "organizations" (any Entra
+    # tenant), "consumers" (personal only), or a tenant GUID/domain (one tenant).
+    MICROSOFT_CLIENT_ID: str = ""
+    MICROSOFT_CLIENT_SECRET: str = ""
+    MICROSOFT_TENANT: str = "common"
+    MICROSOFT_REDIRECT_URI: str = ""
+
     # High Availability
     NODE_ROLE: Literal["primary", "standby"] = "primary"
     NODE_NAME: str = "primary"

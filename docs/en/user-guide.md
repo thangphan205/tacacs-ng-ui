@@ -46,6 +46,7 @@ Login options:
 - **Email + Password** — default method
 - **Sign in with Google** — requires Google OAuth configured in `.env`
 - **Sign in with Keycloak** — requires Keycloak OIDC configured
+- **Sign in with Microsoft** — personal Microsoft accounts and Entra ID; requires the Microsoft provider configured
 - **Passkeys** — passwordless login via WebAuthn (biometrics/hardware key)
 
 Default admin credentials are set via `FIRST_SUPERUSER` and `FIRST_SUPERUSER_PASSWORD` in your `.env` file.
@@ -767,6 +768,7 @@ Configure which authentication methods are enabled for the dashboard:
 |----------|--------------|
 | `google` | Requires `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` in `.env` |
 | `keycloak` | Requires Keycloak server URL, client ID, and client secret |
+| `microsoft` | Requires tenant, application (client) ID, and client secret |
 | `passkeys` | WebAuthn — no extra config required; users register passkeys from their profile settings |
 
 ### Password Recovery

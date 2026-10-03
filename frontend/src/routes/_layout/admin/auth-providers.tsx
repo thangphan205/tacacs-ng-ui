@@ -11,7 +11,13 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
-import { LuFolder, LuKey, LuSquareCheck, LuUser } from "react-icons/lu"
+import {
+  LuBuilding2,
+  LuFolder,
+  LuKey,
+  LuSquareCheck,
+  LuUser,
+} from "react-icons/lu"
 
 import { apiBaseUrl } from "@/api"
 import AuthProviderCard from "@/components/Admin/AuthProviderCard"
@@ -53,6 +59,20 @@ const keycloakFields = [
     key: "redirect_uri",
     label: "Redirect URI",
     placeholder: "https://tacacs.example.com/api/v1/oauth/keycloak/callback",
+  },
+]
+
+const microsoftFields = [
+  {
+    key: "tenant",
+    label: "Tenant",
+    placeholder: "common, organizations, consumers, or a tenant ID",
+  },
+  { key: "client_id", label: "Application (client) ID" },
+  {
+    key: "redirect_uri",
+    label: "Redirect URI",
+    placeholder: "https://tacacs.example.com/api/v1/oauth/microsoft/callback",
   },
 ]
 
@@ -119,6 +139,10 @@ function AuthProvidersPage() {
     queryKey: ["auth-provider", "keycloak"],
     queryFn: () => fetchProvider("keycloak"),
   })
+  const { data: microsoftData } = useQuery({
+    queryKey: ["auth-provider", "microsoft"],
+    queryFn: () => fetchProvider("microsoft"),
+  })
   const { data: passkeyData } = useQuery({
     queryKey: ["auth-provider", "passkey"],
     queryFn: () => fetchProvider("passkey"),
@@ -175,6 +199,11 @@ function AuthProvidersPage() {
             Keycloak OIDC
             <StatusBadge enabled={keycloakData?.enabled} />
           </Tabs.Trigger>
+          <Tabs.Trigger value="microsoft">
+            <LuBuilding2 />
+            Microsoft Entra ID
+            <StatusBadge enabled={microsoftData?.enabled} />
+          </Tabs.Trigger>
           <Tabs.Trigger value="passkey">
             <LuSquareCheck />
             Passkeys (WebAuthn)
@@ -199,6 +228,13 @@ function AuthProvidersPage() {
             provider="keycloak"
             title="Keycloak OIDC"
             fields={keycloakFields}
+          />
+        </Tabs.Content>
+        <Tabs.Content value="microsoft">
+          <AuthProviderCard
+            provider="microsoft"
+            title="Microsoft Entra ID"
+            fields={microsoftFields}
           />
         </Tabs.Content>
         <Tabs.Content value="passkey">

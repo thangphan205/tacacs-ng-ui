@@ -497,6 +497,10 @@ All variables with their defaults (from `.env.example`):
 | `KEYCLOAK_CLIENT_ID` | *(optional)* | Keycloak client ID |
 | `KEYCLOAK_CLIENT_SECRET` | *(optional)* | Keycloak client secret |
 | `KEYCLOAK_REDIRECT_URI` | *(optional)* | Keycloak callback URL |
+| `MICROSOFT_CLIENT_ID` | *(optional)* | Entra app registration (client) ID |
+| `MICROSOFT_CLIENT_SECRET` | *(optional)* | Entra client secret value |
+| `MICROSOFT_TENANT` | `common` | `common`, `organizations`, `consumers`, or a tenant ID. Existing local accounts auto-link by email only for a single tenant or personal accounts |
+| `MICROSOFT_REDIRECT_URI` | *(optional)* | Callback URL: `<FRONTEND_HOST>/api/v1/oauth/microsoft/callback` |
 | `SIEM_WEBHOOK_URL` | *(optional)* | Splunk HEC or Logstash HTTP input URL |
 | `SIEM_WEBHOOK_TOKEN` | *(optional)* | Splunk HEC token or bearer token |
 | `SIEM_FORWARD_TACACS_EVENTS` | `false` | Forward auth/authz/acct events to SIEM |

@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import hmac
 import json
@@ -17,7 +18,11 @@ from app.core.config import settings
 from app.core.security import create_access_token, decrypt_secret
 from app.crud import audit_logs as audit_logs_crud
 from app.crud import auth_providers as auth_providers_crud
-from app.crud.users import get_or_create_google_user, get_or_create_keycloak_user
+from app.crud.users import (
+    get_or_create_google_user,
+    get_or_create_keycloak_user,
+    get_or_create_microsoft_user,
+)
 from app.models import AuditLogCreate
 
 logger = logging.getLogger(__name__)
@@ -121,6 +126,52 @@ def _keycloak_creds(session: Session) -> _Creds:
         token_url=f"{base}/token",
         userinfo_url=f"{base}/userinfo",
     )
+
+
+# Tenant ID Microsoft issues for every personal (MSA) account.
+_MSA_TENANT_ID = "9188040d-6c67-4c5b-b112-36a304b66dad"
+_MICROSOFT_MULTI_TENANT = {"common", "organizations", "consumers"}
+MICROSOFT_SCOPES = "openid email profile"
+
+
+def _microsoft_creds(session: Session) -> tuple[_Creds, str]:
+    """Credentials plus the tenant segment ("common", a GUID, ...)."""
+    config, secret = _stored(session, "microsoft")
+    client_id = config.get("client_id") or settings.MICROSOFT_CLIENT_ID
+    if not client_id:
+        raise HTTPException(status_code=503, detail="Microsoft is not configured")
+
+    tenant = (config.get("tenant") or settings.MICROSOFT_TENANT or "common").strip()
+    base = f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0"
+    creds = _Creds(
+        client_id=client_id,
+        client_secret=secret or settings.MICROSOFT_CLIENT_SECRET,
+        redirect_uri=config.get("redirect_uri") or settings.MICROSOFT_REDIRECT_URI,
+        auth_url=f"{base}/authorize",
+        token_url=f"{base}/token",
+        userinfo_url="",  # identity comes from the id_token, not a userinfo call
+    )
+    return creds, tenant
+
+
+def _id_token_claims(id_token: str) -> dict[str, object]:
+    """Decode the id_token payload without checking its signature.
+
+    Safe here because the token was received straight from Microsoft's token
+    endpoint over TLS in exchange for our client secret (OIDC Core 3.1.3.7).
+    Never reuse this for a token that arrived any other way.
+    """
+    try:
+        payload = id_token.split(".")[1]
+        payload += "=" * (-len(payload) % 4)
+        claims = json.loads(base64.urlsafe_b64decode(payload))
+    except (IndexError, ValueError):
+        raise HTTPException(
+            status_code=400, detail="Invalid Microsoft id_token"
+        ) from None
+    if not isinstance(claims, dict):
+        raise HTTPException(status_code=400, detail="Invalid Microsoft id_token")
+    return claims
 
 
 def _make_state() -> str:
@@ -319,6 +370,128 @@ def keycloak_callback(
             entity_type="User",
             entity_id=str(user.id),
             description="Keycloak OIDC login",
+            user_agent=request.headers.get("user-agent"),
+        ),
+        user_id=user.id,
+        user_email=user.email,
+        ip_address=get_client_ip(request),
+    )
+    jwt = create_access_token(
+        subject=str(user.id),
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    redirect_url = f"{settings.FRONTEND_HOST}/oauth-callback?token={jwt}"
+    return RedirectResponse(url=redirect_url)
+
+
+@router.get("/microsoft/authorize")
+def microsoft_authorize(session: SessionDep) -> dict[str, str]:
+    creds, _ = _microsoft_creds(session)
+
+    params = {
+        "client_id": creds.client_id,
+        "redirect_uri": creds.redirect_uri,
+        "response_type": "code",
+        "response_mode": "query",
+        "scope": MICROSOFT_SCOPES,
+        "state": _make_state(),
+    }
+    return {"url": creds.auth_url + "?" + urlencode(params)}
+
+
+@router.get("/microsoft/callback")
+def microsoft_callback(
+    request: Request,
+    session: SessionDep,
+    state: str,
+    code: str | None = None,
+    error: str | None = None,
+    error_description: str | None = None,
+) -> RedirectResponse:
+    if not _verify_state(state):
+        raise HTTPException(status_code=400, detail="Invalid OAuth state")
+    if error or not code:
+        # e.g. the user declined consent, or the tenant admin blocked the app
+        raise HTTPException(
+            status_code=400,
+            detail=f"Microsoft sign-in failed: {error_description or error}",
+        )
+
+    creds, tenant = _microsoft_creds(session)
+
+    with httpx.Client() as client:
+        token_resp = client.post(
+            creds.token_url,
+            data={
+                "code": code,
+                "client_id": creds.client_id,
+                "client_secret": creds.client_secret,
+                "redirect_uri": creds.redirect_uri,
+                "grant_type": "authorization_code",
+                "scope": MICROSOFT_SCOPES,
+            },
+        )
+
+    if token_resp.status_code != 200:
+        raise HTTPException(
+            status_code=400, detail="Failed to exchange code with Microsoft"
+        )
+
+    id_token = token_resp.json().get("id_token")
+    if not id_token:
+        raise HTTPException(status_code=400, detail="Microsoft returned no id_token")
+
+    claims = _id_token_claims(id_token)
+    if claims.get("aud") != creds.client_id:
+        raise HTTPException(status_code=400, detail="Invalid Microsoft id_token")
+
+    microsoft_id = claims.get("sub")
+    # `email` is absent for many Entra users; preferred_username is the UPN
+    email = claims.get("email") or claims.get("preferred_username")
+    if (
+        not isinstance(microsoft_id, str)
+        or not isinstance(email, str)
+        or "@" not in email
+    ):
+        raise HTTPException(
+            status_code=400, detail="Microsoft account has no usable email address"
+        )
+    name = claims.get("name")
+    full_name = name if isinstance(name, str) else None
+
+    # Link an existing local account by email only when that email is trustworthy:
+    # a single tenant the admin owns, or a personal account (verified by Microsoft).
+    allow_email_link = (
+        tenant.lower() not in _MICROSOFT_MULTI_TENANT
+        or claims.get("tid") == _MSA_TENANT_ID
+    )
+    user = get_or_create_microsoft_user(
+        session=session,
+        email=email.lower(),
+        full_name=full_name,
+        microsoft_id=microsoft_id,
+        allow_email_link=allow_email_link,
+    )
+    if user is None:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "An account with this email already exists. Sign in with your "
+                "existing method, or restrict the Microsoft tenant to a single "
+                "tenant to allow linking."
+            ),
+        )
+
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+
+    audit_logs_crud.create_audit_log(
+        session=session,
+        audit_log_in=AuditLogCreate(
+            action="LOGIN_SUCCESS",
+            entity_type="User",
+            entity_id=str(user.id),
+            description="Microsoft Entra ID login",
             user_agent=request.headers.get("user-agent"),
         ),
         user_id=user.id,

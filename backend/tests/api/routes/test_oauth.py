@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -141,3 +142,107 @@ def test_provider_secret_is_never_exposed_by_admin_api(
     assert body["secret_is_set"] is True
     assert "top-secret-value" not in r.text
     assert "secret" not in body or body.get("secret") is None
+
+
+def _fake_id_token(claims: dict[str, object]) -> str:
+    import base64
+    import json
+
+    body = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip("=")
+    return f"e30.{body}.sig"
+
+
+def _configure_microsoft(db: Session, tenant: str) -> None:
+    auth_providers_crud.upsert_provider_config(
+        session=db,
+        provider="microsoft",
+        enabled=True,
+        config={
+            "client_id": "ms-client",
+            "tenant": tenant,
+            "redirect_uri": "https://tacacs.example.com/api/v1/oauth/microsoft/callback",
+        },
+        secret="ms-secret",
+    )
+
+
+def test_microsoft_authorize_unconfigured_returns_503(client: TestClient) -> None:
+    r = client.get(f"{settings.API_V1_STR}/oauth/microsoft/authorize")
+    assert r.status_code == 503
+    assert r.json()["detail"] == "Microsoft is not configured"
+
+
+def test_microsoft_authorize_uses_tenant(client: TestClient, db: Session) -> None:
+    _configure_microsoft(db, "contoso.onmicrosoft.com")
+    r = client.get(f"{settings.API_V1_STR}/oauth/microsoft/authorize")
+    assert r.status_code == 200, r.text
+    assert r.json()["url"].startswith(
+        "https://login.microsoftonline.com/contoso.onmicrosoft.com/oauth2/v2.0/authorize?"
+    )
+
+
+def _microsoft_callback(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, claims: dict[str, object]
+) -> Any:
+    import httpx
+
+    from app.api.routes import oauth
+
+    def fake_post(self: httpx.Client, url: str, **kwargs: Any) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"id_token": _fake_id_token(claims)},
+            request=httpx.Request("POST", url),
+        )
+
+    monkeypatch.setattr(httpx.Client, "post", fake_post)
+    return client.get(
+        f"{settings.API_V1_STR}/oauth/microsoft/callback",
+        params={"code": "abc", "state": oauth._make_state()},
+        follow_redirects=False,
+    )
+
+
+def test_microsoft_callback_creates_user(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _configure_microsoft(db, "contoso.onmicrosoft.com")
+    r = _microsoft_callback(
+        client,
+        monkeypatch,
+        {
+            "aud": "ms-client",
+            "sub": "sub-1",
+            "preferred_username": "New.User@Contoso.com",
+            "name": "New User",
+        },
+    )
+    assert r.status_code == 307, r.text
+    assert "/oauth-callback?token=" in r.headers["location"]
+
+
+def test_microsoft_multitenant_refuses_email_link(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _configure_microsoft(db, "organizations")
+    r = _microsoft_callback(
+        client,
+        monkeypatch,
+        {
+            "aud": "ms-client",
+            "sub": "sub-2",
+            "tid": "11111111-1111-1111-1111-111111111111",
+            "email": settings.FIRST_SUPERUSER,
+        },
+    )
+    assert r.status_code == 403, r.text
+
+
+def test_microsoft_callback_rejects_wrong_audience(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _configure_microsoft(db, "contoso.onmicrosoft.com")
+    r = _microsoft_callback(
+        client, monkeypatch, {"aud": "other", "sub": "s", "email": "a@b.com"}
+    )
+    assert r.status_code == 400

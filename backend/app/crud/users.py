@@ -155,6 +155,56 @@ def get_or_create_keycloak_user(
     return user
 
 
+def get_user_by_microsoft_id(*, session: Session, microsoft_id: str) -> User | None:
+    return session.exec(select(User).where(User.microsoft_id == microsoft_id)).first()
+
+
+def get_or_create_microsoft_user(
+    *,
+    session: Session,
+    email: str,
+    full_name: str | None,
+    microsoft_id: str,
+    allow_email_link: bool,
+) -> User | None:
+    """Find, link or create the user for a Microsoft identity.
+
+    Returns ``None`` when an account with this email exists but is not yet
+    linked and ``allow_email_link`` is false. Entra's ``email`` claim is
+    mutable and unverified in multi-tenant apps, so linking on it there would
+    let any tenant admin take over a local account (the "nOAuth" attack).
+    """
+    # 1. Already linked via microsoft_id
+    user = get_user_by_microsoft_id(session=session, microsoft_id=microsoft_id)
+    if user:
+        return user
+
+    # 2. Existing account with same email — link it, only when the email is trusted
+    user = get_user_by_email(session=session, email=email)
+    if user:
+        if not allow_email_link:
+            return None
+        user.microsoft_id = microsoft_id
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return user
+
+    # 3. New user — create with random unguessable password
+    user = User(
+        email=email,
+        full_name=full_name,
+        is_active=True,
+        is_superuser=False,
+        hashed_password=get_password_hash(secrets.token_hex(32)),
+        microsoft_id=microsoft_id,
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
 def create_item(*, session: Session, item_in: ItemCreate, owner_id: uuid.UUID) -> Item:
     db_item = Item.model_validate(item_in, update={"owner_id": owner_id})
     session.add(db_item)
