@@ -10,6 +10,9 @@ RUN npm install
 COPY ./ /app/
 
 ARG VITE_API_URL=${VITE_API_URL}
+# Build context has no .git; docker-compose.yml passes these in.
+ARG GIT_BRANCH=
+ARG GIT_COMMIT=
 
 RUN npm run build
 

@@ -11,7 +11,13 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
-import { LuFolder, LuKey, LuSquareCheck, LuUser } from "react-icons/lu"
+import {
+  LuBuilding2,
+  LuFolder,
+  LuKey,
+  LuSquareCheck,
+  LuUser,
+} from "react-icons/lu"
 
 import { apiBaseUrl } from "@/api"
 import AuthProviderCard from "@/components/Admin/AuthProviderCard"
@@ -32,13 +38,21 @@ export const Route = createFileRoute("/_layout/admin/auth-providers")({
   component: AuthProvidersPage,
 })
 
-const googleFields = [
-  { key: "client_id", label: "Client ID" },
-  {
+// Prefilled in the form; the backend derives the same value if it is left blank.
+const redirectUriField = (provider: string, where: string) => {
+  const uri = `${window.location.origin}/api/v1/oauth/${provider}/callback`
+  return {
     key: "redirect_uri",
     label: "Redirect URI",
-    placeholder: "https://tacacs.example.com/api/v1/oauth/google/callback",
-  },
+    placeholder: uri,
+    defaultValue: uri,
+    hint: `Prefilled from this site's URL. Register this exact URI in ${where}.`,
+  }
+}
+
+const googleFields = [
+  { key: "client_id", label: "Client ID" },
+  redirectUriField("google", "your Google Cloud OAuth client"),
 ]
 
 const keycloakFields = [
@@ -49,11 +63,19 @@ const keycloakFields = [
   },
   { key: "realm", label: "Realm", placeholder: "tacacs" },
   { key: "client_id", label: "Client ID" },
+  redirectUriField("keycloak", "your Keycloak client (Valid redirect URIs)"),
+]
+
+const microsoftFields = [
   {
-    key: "redirect_uri",
-    label: "Redirect URI",
-    placeholder: "https://tacacs.example.com/api/v1/oauth/keycloak/callback",
+    key: "tenant",
+    label: "Tenant",
+    placeholder: "common, organizations, consumers, or a tenant ID",
+    defaultValue: "common",
+    hint: "common = work and personal accounts. Use a tenant ID to allow one organization only.",
   },
+  { key: "client_id", label: "Application (client) ID" },
+  redirectUriField("microsoft", "your Entra app (Authentication → Web)"),
 ]
 
 function adminHeader() {
@@ -119,6 +141,10 @@ function AuthProvidersPage() {
     queryKey: ["auth-provider", "keycloak"],
     queryFn: () => fetchProvider("keycloak"),
   })
+  const { data: microsoftData } = useQuery({
+    queryKey: ["auth-provider", "microsoft"],
+    queryFn: () => fetchProvider("microsoft"),
+  })
   const { data: passkeyData } = useQuery({
     queryKey: ["auth-provider", "passkey"],
     queryFn: () => fetchProvider("passkey"),
@@ -175,6 +201,11 @@ function AuthProvidersPage() {
             Keycloak OIDC
             <StatusBadge enabled={keycloakData?.enabled} />
           </Tabs.Trigger>
+          <Tabs.Trigger value="microsoft">
+            <LuBuilding2 />
+            Microsoft Entra ID
+            <StatusBadge enabled={microsoftData?.enabled} />
+          </Tabs.Trigger>
           <Tabs.Trigger value="passkey">
             <LuSquareCheck />
             Passkeys (WebAuthn)
@@ -190,6 +221,7 @@ function AuthProvidersPage() {
         <Tabs.Content value="google">
           <AuthProviderCard
             provider="google"
+            secretAfter="client_id"
             title="Google OAuth"
             fields={googleFields}
           />
@@ -197,8 +229,17 @@ function AuthProvidersPage() {
         <Tabs.Content value="keycloak">
           <AuthProviderCard
             provider="keycloak"
+            secretAfter="client_id"
             title="Keycloak OIDC"
             fields={keycloakFields}
+          />
+        </Tabs.Content>
+        <Tabs.Content value="microsoft">
+          <AuthProviderCard
+            provider="microsoft"
+            secretAfter="client_id"
+            title="Microsoft Entra ID"
+            fields={microsoftFields}
           />
         </Tabs.Content>
         <Tabs.Content value="passkey">

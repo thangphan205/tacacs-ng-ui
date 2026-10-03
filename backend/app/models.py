@@ -66,6 +66,7 @@ class User(UserBase, TimestampModel, table=True):
     hashed_password: str
     google_id: str | None = Field(default=None, index=True, unique=True)
     keycloak_id: str | None = Field(default=None, index=True, unique=True)
+    microsoft_id: str | None = Field(default=None, index=True, unique=True)
     password_login_disabled: bool = Field(default=False)
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
     webauthn_credentials: list["WebAuthnCredential"] = Relationship(
@@ -83,6 +84,8 @@ class User(UserBase, TimestampModel, table=True):
             methods.append("Google")
         if self.keycloak_id:
             methods.append("Keycloak")
+        if self.microsoft_id:
+            methods.append("Microsoft")
         if self.webauthn_credentials:
             methods.append("Passkeys")
         return methods

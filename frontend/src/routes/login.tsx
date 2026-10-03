@@ -17,6 +17,7 @@ import {
 } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
+import { FaMicrosoft } from "react-icons/fa"
 import { FcGoogle } from "react-icons/fc"
 import { FiGithub } from "react-icons/fi"
 import { apiBaseUrl } from "@/api"
@@ -33,6 +34,7 @@ import { emailPattern, passwordRules } from "../utils"
 interface ProvidersStatus {
   google: boolean
   keycloak: boolean
+  microsoft: boolean
   passkey: boolean
   open_registration: boolean
 }
@@ -52,6 +54,7 @@ function Login() {
   const [providers, setProviders] = useState<ProvidersStatus>({
     google: false,
     keycloak: false,
+    microsoft: false,
     passkey: false,
     open_registration: false,
   })
@@ -93,6 +96,25 @@ function Login() {
   const handleKeycloakLogin = async () => {
     try {
       const res = await fetch(`${apiBaseUrl()}/api/v1/oauth/keycloak/authorize`)
+      const data = await res.json()
+      if (!res.ok || !data.url) {
+        handleError({ status: res.status, body: data } as never)
+        return
+      }
+      window.location.href = data.url
+    } catch {
+      handleError({
+        status: 0,
+        body: { detail: "Could not reach the server." },
+      } as never)
+    }
+  }
+
+  const handleMicrosoftLogin = async () => {
+    try {
+      const res = await fetch(
+        `${apiBaseUrl()}/api/v1/oauth/microsoft/authorize`,
+      )
       const data = await res.json()
       if (!res.ok || !data.url) {
         handleError({ status: res.status, body: data } as never)
@@ -156,7 +178,10 @@ function Login() {
   }
 
   const hasOAuthProviders =
-    providers.google || providers.keycloak || providers.passkey
+    providers.google ||
+    providers.keycloak ||
+    providers.microsoft ||
+    providers.passkey
 
   return (
     <Flex h="100vh" w="100vw" overflow="hidden" direction="row">
@@ -290,6 +315,19 @@ function Login() {
             </Button>
           )}
 
+          {providers.microsoft && (
+            <Button
+              variant="outline"
+              size="md"
+              onClick={handleMicrosoftLogin}
+              type="button"
+              w="full"
+            >
+              <FaMicrosoft />
+              Sign in with Microsoft
+            </Button>
+          )}
+
           {providers.passkey && (
             <Button
               variant="outline"
@@ -327,6 +365,7 @@ function Login() {
             <Icon as={FiGithub} />
             <Text fontSize="xs" fontWeight="semibold">
               Version {version}
+              {__BUILD_INFO__ && ` (${__BUILD_INFO__})`}
             </Text>
           </Link>
         </Box>

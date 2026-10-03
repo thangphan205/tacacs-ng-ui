@@ -10,7 +10,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { Fragment, useEffect, useState } from "react"
 
 import { apiBaseUrl } from "@/api"
 import useCustomToast from "@/hooks/useCustomToast"
@@ -27,12 +27,17 @@ interface FieldDef {
   key: string
   label: string
   placeholder?: string
+  hint?: string
+  /** Prefilled when nothing is stored yet; saved with the form. */
+  defaultValue?: string
 }
 
 interface AuthProviderCardProps {
   provider: string
   title: string
   fields: FieldDef[]
+  /** Render the client secret right after this field; default is after the last one. */
+  secretAfter?: string
   onEnabled?: () => void
 }
 
@@ -75,6 +80,7 @@ const AuthProviderCard = ({
   provider,
   title,
   fields,
+  secretAfter,
   onEnabled,
 }: AuthProviderCardProps) => {
   const queryClient = useQueryClient()
@@ -91,10 +97,15 @@ const AuthProviderCard = ({
 
   useEffect(() => {
     if (data && !initialized) {
-      setFormConfig(data.config ?? {})
+      const defaults = Object.fromEntries(
+        fields
+          .filter((f) => f.defaultValue)
+          .map((f) => [f.key, f.defaultValue as string]),
+      )
+      setFormConfig({ ...defaults, ...(data.config ?? {}) })
       setInitialized(true)
     }
-  }, [data, initialized])
+  }, [data, initialized, fields])
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -123,6 +134,30 @@ const AuthProviderCard = ({
     onError: (err: Error) => handleError(err as never),
   })
 
+  const secretField = (
+    <Box>
+      <Text fontSize="xs" mb={1} fontWeight="medium">
+        Client Secret{" "}
+        {data?.secret_is_set && (
+          <Text as="span" color="green.500">
+            (configured)
+          </Text>
+        )}
+      </Text>
+      <Input
+        size="sm"
+        type="password"
+        placeholder={
+          data?.secret_is_set ? "Leave blank to keep existing" : "Enter secret"
+        }
+        value={secret}
+        onChange={(e) => setSecret(e.target.value)}
+      />
+    </Box>
+  )
+
+  const secretKey = secretAfter ?? fields[fields.length - 1]?.key
+
   return (
     <Card.Root variant="outline" p={4}>
       <Card.Header pb={2}>
@@ -136,47 +171,31 @@ const AuthProviderCard = ({
       <Card.Body>
         <VStack align="stretch" gap={3}>
           {fields.map((field) => (
-            <Box key={field.key}>
-              <Text fontSize="xs" mb={1} fontWeight="medium">
-                {field.label}
-              </Text>
-              <Input
-                size="sm"
-                placeholder={field.placeholder ?? field.label}
-                value={formConfig[field.key] ?? ""}
-                onChange={(e) =>
-                  setFormConfig((prev) => ({
-                    ...prev,
-                    [field.key]: e.target.value,
-                  }))
-                }
-              />
-            </Box>
-          ))}
-
-          {fields.length > 0 && (
-            <Box>
-              <Text fontSize="xs" mb={1} fontWeight="medium">
-                Client Secret{" "}
-                {data?.secret_is_set && (
-                  <Text as="span" color="green.500">
-                    (configured)
+            <Fragment key={field.key}>
+              <Box>
+                <Text fontSize="xs" mb={1} fontWeight="medium">
+                  {field.label}
+                </Text>
+                <Input
+                  size="sm"
+                  placeholder={field.placeholder ?? field.label}
+                  value={formConfig[field.key] ?? ""}
+                  onChange={(e) =>
+                    setFormConfig((prev) => ({
+                      ...prev,
+                      [field.key]: e.target.value,
+                    }))
+                  }
+                />
+                {field.hint && (
+                  <Text fontSize="xs" mt={1} color="fg.muted">
+                    {field.hint}
                   </Text>
                 )}
-              </Text>
-              <Input
-                size="sm"
-                type="password"
-                placeholder={
-                  data?.secret_is_set
-                    ? "Leave blank to keep existing"
-                    : "Enter secret"
-                }
-                value={secret}
-                onChange={(e) => setSecret(e.target.value)}
-              />
-            </Box>
-          )}
+              </Box>
+              {field.key === secretKey && secretField}
+            </Fragment>
+          ))}
 
           {!isLoading && (
             <HStack justify="space-between" pt={2}>
