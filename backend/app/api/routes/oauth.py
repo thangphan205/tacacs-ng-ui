@@ -146,7 +146,10 @@ def _microsoft_creds(session: Session) -> tuple[_Creds, str]:
     creds = _Creds(
         client_id=client_id,
         client_secret=secret or settings.MICROSOFT_CLIENT_SECRET,
-        redirect_uri=config.get("redirect_uri") or settings.MICROSOFT_REDIRECT_URI,
+        # Unset everywhere -> derive from the app's own URL (FRONTEND_HOST, i.e. DOMAIN)
+        redirect_uri=config.get("redirect_uri")
+        or settings.MICROSOFT_REDIRECT_URI
+        or f"{settings.FRONTEND_HOST.rstrip('/')}/api/v1/oauth/microsoft/callback",
         auth_url=f"{base}/authorize",
         token_url=f"{base}/token",
         userinfo_url="",  # identity comes from the id_token, not a userinfo call

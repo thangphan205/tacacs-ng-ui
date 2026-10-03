@@ -246,3 +246,22 @@ def test_microsoft_callback_rejects_wrong_audience(
         client, monkeypatch, {"aud": "other", "sub": "s", "email": "a@b.com"}
     )
     assert r.status_code == 400
+
+
+def test_microsoft_redirect_uri_defaults_from_frontend_host(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "FRONTEND_HOST", "https://tacacs.example.com/")
+    auth_providers_crud.upsert_provider_config(
+        session=db,
+        provider="microsoft",
+        enabled=True,
+        config={"client_id": "ms-client"},
+        secret="ms-secret",
+    )
+    r = client.get(f"{settings.API_V1_STR}/oauth/microsoft/authorize")
+    assert r.status_code == 200, r.text
+    params = parse_qs(urlparse(r.json()["url"]).query)
+    assert params["redirect_uri"] == [
+        "https://tacacs.example.com/api/v1/oauth/microsoft/callback"
+    ]

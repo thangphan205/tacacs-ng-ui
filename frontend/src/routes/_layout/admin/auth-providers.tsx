@@ -62,6 +62,9 @@ const keycloakFields = [
   },
 ]
 
+// Default the backend derives from the app's own URL when the field is blank.
+const microsoftRedirectUri = `${window.location.origin}/api/v1/oauth/microsoft/callback`
+
 const microsoftFields = [
   {
     key: "tenant",
@@ -72,7 +75,8 @@ const microsoftFields = [
   {
     key: "redirect_uri",
     label: "Redirect URI",
-    placeholder: "https://tacacs.example.com/api/v1/oauth/microsoft/callback",
+    placeholder: microsoftRedirectUri,
+    hint: `Optional. Leave blank to use ${microsoftRedirectUri} — register this exact URI in your Entra app.`,
   },
 ]
 

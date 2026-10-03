@@ -27,6 +27,7 @@ interface FieldDef {
   key: string
   label: string
   placeholder?: string
+  hint?: string
 }
 
 interface AuthProviderCardProps {
@@ -151,6 +152,11 @@ const AuthProviderCard = ({
                   }))
                 }
               />
+              {field.hint && (
+                <Text fontSize="xs" mt={1} color="fg.muted">
+                  {field.hint}
+                </Text>
+              )}
             </Box>
           ))}
 
