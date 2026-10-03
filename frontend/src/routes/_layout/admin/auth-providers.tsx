@@ -71,6 +71,8 @@ const microsoftFields = [
     key: "tenant",
     label: "Tenant",
     placeholder: "common, organizations, consumers, or a tenant ID",
+    defaultValue: "common",
+    hint: "common = work and personal accounts. Use a tenant ID to allow one organization only.",
   },
   { key: "client_id", label: "Application (client) ID" },
   redirectUriField("microsoft", "your Entra app (Authentication → Web)"),
