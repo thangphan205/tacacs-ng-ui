@@ -44,7 +44,7 @@
     "dotenv": "^17.4.2",
     "shiki": "^4.4.3",
     "typescript": "^5.2.2",
-    "vite": "^8.2.2"
+    "vite": "^8.3.5"
   },
   "overrides": {
     "js-yaml": "^4.3.1",
