@@ -181,6 +181,7 @@ class Settings(BaseSettings):
     KEYCLOAK_CLIENT_ID: str = ""
     KEYCLOAK_CLIENT_SECRET: str = ""
     KEYCLOAK_REDIRECT_URI: str = ""
+    KEYCLOAK_ALLOWED_ROLE: str = ""
 
     @computed_field  # type: ignore[prop-decorator]
     @property

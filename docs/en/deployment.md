@@ -497,6 +497,7 @@ All variables with their defaults (from `.env.example`):
 | `KEYCLOAK_CLIENT_ID` | *(optional)* | Keycloak client ID |
 | `KEYCLOAK_CLIENT_SECRET` | *(optional)* | Keycloak client secret |
 | `KEYCLOAK_REDIRECT_URI` | *(derived)* | Optional; defaults to `<FRONTEND_HOST>/api/v1/oauth/keycloak/callback` |
+| `KEYCLOAK_ALLOWED_ROLE` | *(optional)* | Optional; role which allow user creation from Keycloak |
 | `MICROSOFT_CLIENT_ID` | *(optional)* | Entra app registration (client) ID |
 | `MICROSOFT_CLIENT_SECRET` | *(optional)* | Entra client secret value |
 | `MICROSOFT_TENANT` | `common` | `common`, `organizations`, `consumers`, or a tenant ID. Existing local accounts auto-link by email only for a single tenant or personal accounts |

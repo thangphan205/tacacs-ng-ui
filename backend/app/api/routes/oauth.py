@@ -363,6 +363,25 @@ def keycloak_callback(
         )
 
     userinfo = userinfo_resp.json()
+
+    if settings.KEYCLOAK_ALLOWED_ROLE:
+        # example:
+        # {
+        #   ...
+        #   "resource_access": {
+        #     "my-tacacs-client": {
+        #       "roles": ["viewer"]
+        #     }
+        #   },
+        #   ...
+        # }
+        roles = userinfo.get('resource_access', {}).get(creds.client_id, {}).get('roles', {})
+        if settings.KEYCLOAK_ALLOWED_ROLE not in roles:
+            raise HTTPException(
+                status_code=400,
+                detail="Failed to validate Keycloak allowed role at userinfo"
+            )
+
     keycloak_id: str = userinfo["sub"]
     email: str = userinfo["email"]
     full_name: str | None = userinfo.get("name")
