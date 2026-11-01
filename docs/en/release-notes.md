@@ -3,6 +3,7 @@
 <!-- The `latest-changes` workflow appends merged-PR entries directly beneath the
 heading below (configured as `latest_changes_header: "## Unreleased
 
+* ⬆ Bump pyasn1 from 0.6.4 to 0.6.5 in /backend. PR [#327](https://github.com/thangphan205/tacacs-ng-ui/pull/327) by [@dependabot[bot]](https://github.com/apps/dependabot).
 "`). Keep this
 section here permanently, even when empty: with the heading gone the bot matches
 the next occurrence of that string — including one inside a sentence — and
