@@ -15,6 +15,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump numpy from 2.5.2 to 2.5.3 in /backend. PR [#315](https://github.com/thangphan205/tacacs-ng-ui/pull/315) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump pydantic-settings from 2.14.2 to 2.15.0 in /backend. PR [#294](https://github.com/thangphan205/tacacs-ng-ui/pull/294) by [@dependabot[bot]](https://github.com/apps/dependabot).
 
 ## Unreleased
