@@ -18,6 +18,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump shiki from 4.4.3 to 4.5.0 in /frontend. PR [#311](https://github.com/thangphan205/tacacs-ng-ui/pull/311) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @tanstack/react-query from 5.102.4 to 5.104.1 in /frontend. PR [#314](https://github.com/thangphan205/tacacs-ng-ui/pull/314) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump numpy from 2.5.2 to 2.5.3 in /backend. PR [#315](https://github.com/thangphan205/tacacs-ng-ui/pull/315) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump pydantic-settings from 2.14.2 to 2.15.0 in /backend. PR [#294](https://github.com/thangphan205/tacacs-ng-ui/pull/294) by [@dependabot[bot]](https://github.com/apps/dependabot).
