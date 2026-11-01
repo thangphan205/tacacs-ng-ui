@@ -3,6 +3,7 @@
 <!-- The `latest-changes` workflow appends merged-PR entries directly beneath the
 heading below (configured as `latest_changes_header: "## Unreleased
 
+* ⬆ Bump vite from 8.2.2 to 8.3.5 in /frontend. PR [#319](https://github.com/thangphan205/tacacs-ng-ui/pull/319) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump seroval from 1.6.3 to 1.7.5 in /frontend. PR [#325](https://github.com/thangphan205/tacacs-ng-ui/pull/325) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump authlib from 1.7.2 to 1.9.1 in /backend. PR [#326](https://github.com/thangphan205/tacacs-ng-ui/pull/326) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump filelock from 3.29.0 to 4.2.1 in /backend. PR [#324](https://github.com/thangphan205/tacacs-ng-ui/pull/324) by [@dependabot[bot]](https://github.com/apps/dependabot).
