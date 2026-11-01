@@ -18,6 +18,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump actions/download-artifact from 4 to 7. PR [#305](https://github.com/thangphan205/tacacs-ng-ui/pull/305) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @biomejs/biome from 2.5.4 to 2.5.15 in /frontend. PR [#309](https://github.com/thangphan205/tacacs-ng-ui/pull/309) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump shiki from 4.4.3 to 4.5.0 in /frontend. PR [#311](https://github.com/thangphan205/tacacs-ng-ui/pull/311) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @tanstack/react-query from 5.102.4 to 5.104.1 in /frontend. PR [#314](https://github.com/thangphan205/tacacs-ng-ui/pull/314) by [@dependabot[bot]](https://github.com/apps/dependabot).
