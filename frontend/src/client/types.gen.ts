@@ -3617,6 +3617,66 @@ export type OauthKeycloakCallbackResponses = {
     200: unknown;
 };
 
+export type OauthMicrosoftAuthorizeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/oauth/microsoft/authorize';
+};
+
+export type OauthMicrosoftAuthorizeResponses = {
+    /**
+     * Response Oauth-Microsoft Authorize
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: string;
+    };
+};
+
+export type OauthMicrosoftAuthorizeResponse = OauthMicrosoftAuthorizeResponses[keyof OauthMicrosoftAuthorizeResponses];
+
+export type OauthMicrosoftCallbackData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * State
+         */
+        state: string;
+        /**
+         * Code
+         */
+        code?: string | null;
+        /**
+         * Error
+         */
+        error?: string | null;
+        /**
+         * Error Description
+         */
+        error_description?: string | null;
+    };
+    url: '/api/v1/oauth/microsoft/callback';
+};
+
+export type OauthMicrosoftCallbackErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type OauthMicrosoftCallbackError = OauthMicrosoftCallbackErrors[keyof OauthMicrosoftCallbackErrors];
+
+export type OauthMicrosoftCallbackResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type PasskeysRegisterBeginData = {
     body?: never;
     path?: never;
