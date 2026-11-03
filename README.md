@@ -49,9 +49,63 @@ Historically, managing TACACS+ servers required manually editing complex configu
 2. **Versioned Config Engine**: Compile and validate configuration snapshots directly from the UI. Features side-by-side diff comparisons, error syntax checking, and safe version rollbacks.
 3. **Observability & Log Auditing**: Monitor authentication, authorization, and accounting (AAA) stats in real-time, complete with a timeline view of auditing logs and user command histories.
 4. **Automated Threat Alerting**: Real-time alert rule evaluations paired with Machine Learning (IsolationForest) anomaly detection to secure infrastructure against abnormal activities.
+5. **AI-Assisted Configuration over MCP**: Describe what you want in plain language and let an LLM assistant create the entities and check the result with the real `tac_plus-ng` parser — [the easiest way to configure tacacs-ng-ui](#configure-with-an-ai-assistant-recommended).
+
+## Configure with an AI assistant (recommended)
+
+The quickest way to set up or change a TACACS+ configuration is to talk to it. tacacs-ng-ui ships a built-in [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server, so an assistant such as **Claude Code, Claude Desktop, Gemini, Cursor, Windsurf or Antigravity** can read your hosts, users, groups, profiles and rulesets, draft new ones, and syntax-check the result with the same `tac_plus-ng -P` parser the daemon uses — all from a chat.
+
+It is **on by default** and needs no extra container or port: MCP lives on the same URL as the UI, at `https://<your-domain>/mcp/`.
+
+> [!IMPORTANT]
+> **The assistant can never deploy.** No MCP tool saves a config file, activates one, or reloads the daemon. Whatever the assistant creates waits in the database until *you* open **TACACS Configs**, review the diff, and press **Generate** then **Activate**. The page flags pending changes, so nothing goes live silently.
+
+### Quick start
+
+1. **Create an API key.** Sign in as a superuser, open **User Settings → API Keys → Create API Key**, and pick an access level:
+   - **Read-only** — the assistant can look and validate, but changes nothing. Start here.
+   - **Read-write** — it can also create, update and delete entities. Use this to let it do the typing.
+
+   Copy the key (it is shown **once**). The dialog also gives you a ready-to-paste command.
+2. **Connect your assistant.** For Claude Code:
+
+   ```bash
+   claude mcp add --transport http tacacs-ng https://<your-domain>/mcp/ \
+     --header "Authorization: Bearer tngk_..."
+   ```
+
+   Other clients (Claude Desktop, Gemini, Cursor, Windsurf, Antigravity) are covered in the [MCP guide](docs/en/mcp-server.md#connecting-a-client).
+3. **Ask for what you want.** For example:
+   - *"List the hosts and groups I have, and tell me what a new Juniper router would need."*
+   - *"Create a host template `branch-template` with its key, then add `branch-01` … `branch-20` that inherit from it."*
+   - *"Add user `alice` to `tacacs_read_only`, expiring 2026-12-31."*
+   - *"Members of `admins` get priv-lvl 15 on the core switches only; deny everyone else. Validate it."*
+   - *"What would change if I regenerated the config now?"*
+4. **Review and deploy in the UI.** Open **TACACS Configs**, check the diff against the active config, then **Generate** and **Activate**.
+
+In Claude Code the `author_tacacs_config` prompt walks the assistant through the safe order — read the syntax reference, survey existing entities, draft, validate, iterate.
+
+### When to use the UI, and when to use MCP
+
+| Situation | Use |
+|---|---|
+| Everyday management — add a host, user or group, tweak a simple profile or ruleset, read logs and stats | **The web UI** |
+| Many similar entities at once, bulk changes, or "what would this change?" questions | **MCP** |
+| Anything beyond the UI's basic forms — nested `if`, `&&` / `\|\|`, regex, complex user or device filters | **Configuration Options** (raw `tac_plus-ng` text), which an assistant can draft and syntax-check for you |
+
+The web UI deliberately stays with the basic case; the advanced cases are written as raw `tac_plus-ng` text in a [Configuration Option](docs/en/user-guide.md#complex-rules) and validated before you activate.
+
+### Safe to try
+
+- **Scoped, revocable keys.** Read-only by default, optional expiry, optional source-IP allowlist, soft revoke, and every use is in the audit log (MCP changes are tagged `mcp/api-key:<key name>`).
+- **Secrets are redacted** from everything the assistant sees (`key = "***REDACTED***"`); unredacted output is a separate opt-in for superuser keys and is audited.
+- **Keep real shared secrets out of your prompts.** Whatever you type goes to your LLM provider, so let the assistant create a host without its key and set the key in the UI.
+
+**Full guide:** [docs/en/mcp-server.md](docs/en/mcp-server.md)
 
 ## Table of Contents
 
+- [Configure with an AI Assistant (MCP)](#configure-with-an-ai-assistant-recommended)
 - [Key Features](#key-features)
 - [Live Demo](#live-demo)
 - [Device Configuration Examples](#device-configuration-examples)
@@ -420,6 +474,8 @@ All models support per-zone LDAP server configuration via `MAVIS_OVERRIDE_*` env
 **Full guide:** [docs/en/high-availability.md](docs/en/high-availability.md)
 
 ## MCP Server
+
+> New here? See [Configure with an AI assistant](#configure-with-an-ai-assistant-recommended) for the five-minute quick start. This section is the reference.
 
 A [Model Context Protocol](https://modelcontextprotocol.io) endpoint lets an LLM client (Claude Desktop, Claude Code, Antigravity, Gemini, Cursor, Windsurf) inspect TACACS+ entities, render config previews and diffs, and syntax-check config text with the real `tac_plus-ng -P` parser. On by default (`MCP_ENABLED=true`; set to `false` to disable); authenticated with dedicated, revocable API keys, with secrets redacted from all output.
 

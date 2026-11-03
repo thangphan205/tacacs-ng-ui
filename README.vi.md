@@ -28,8 +28,61 @@
 
 Được xây dựng trên nền tảng công nghệ hiện đại với backend FastAPI và frontend React, đảm bảo hiệu suất cao, khả năng mở rộng và dễ bảo trì cho quản trị viên mạng.
 
+## Cấu hình bằng trợ lý AI (khuyến nghị)
+
+Cách nhanh nhất để thiết lập hoặc thay đổi cấu hình TACACS+ là "nói chuyện" với hệ thống. tacacs-ng-ui tích hợp sẵn một máy chủ [Model Context Protocol](https://modelcontextprotocol.io) (MCP), nên các trợ lý như **Claude Code, Claude Desktop, Gemini, Cursor, Windsurf hay Antigravity** có thể đọc host, user, group, profile và ruleset của bạn, soạn thực thể mới, và kiểm tra cú pháp bằng chính bộ phân tích `tac_plus-ng -P` mà daemon sử dụng — tất cả ngay trong khung chat.
+
+Tính năng này **bật mặc định**, không cần thêm container hay cổng: MCP dùng chung URL với giao diện, tại `https://<tên-miền-của-bạn>/mcp/`.
+
+> [!IMPORTANT]
+> **Trợ lý AI không bao giờ tự triển khai được.** Không có tool MCP nào lưu file cấu hình, kích hoạt cấu hình hay reload daemon. Mọi thứ trợ lý tạo ra nằm trong database cho đến khi *bạn* mở **TACACS Configs**, xem diff, rồi bấm **Generate** và **Activate**. Trang này báo các thay đổi đang chờ, nên không có gì có hiệu lực một cách âm thầm.
+
+### Bắt đầu nhanh
+
+1. **Tạo API key.** Đăng nhập bằng superuser, vào **User Settings → API Keys → Create API Key** và chọn mức truy cập:
+   - **Read-only** — trợ lý chỉ xem và kiểm tra, không thay đổi gì. Nên bắt đầu từ đây.
+   - **Read-write** — trợ lý còn có thể tạo, sửa, xóa thực thể. Dùng khi muốn nó nhập liệu thay bạn.
+
+   Sao chép key (chỉ hiển thị **một lần**). Hộp thoại cũng cung cấp sẵn một lệnh để dán.
+2. **Kết nối trợ lý.** Với Claude Code:
+
+   ```bash
+   claude mcp add --transport http tacacs-ng https://<tên-miền-của-bạn>/mcp/ \
+     --header "Authorization: Bearer tngk_..."
+   ```
+
+   Các client khác (Claude Desktop, Gemini, Cursor, Windsurf, Antigravity) có trong [hướng dẫn MCP](docs/en/mcp-server.md#connecting-a-client) (tiếng Anh).
+3. **Nói điều bạn muốn.** Ví dụ:
+   - *"Liệt kê các host và group hiện có, và cho biết một router Juniper mới cần những gì."*
+   - *"Tạo host mẫu `branch-template` kèm key, rồi thêm `branch-01` … `branch-20` kế thừa từ host đó."*
+   - *"Thêm user `alice` vào `tacacs_read_only`, hết hạn ngày 2026-12-31."*
+   - *"Thành viên nhóm `admins` có priv-lvl 15 chỉ trên các switch lõi; từ chối tất cả còn lại. Hãy kiểm tra cú pháp."*
+   - *"Nếu generate cấu hình ngay bây giờ thì có gì thay đổi?"*
+4. **Xem lại và triển khai trong giao diện.** Mở **TACACS Configs**, kiểm tra diff so với cấu hình đang chạy, rồi **Generate** và **Activate**.
+
+Trong Claude Code, prompt `author_tacacs_config` dẫn trợ lý đi theo trình tự an toàn — đọc tài liệu cú pháp, khảo sát thực thể hiện có, soạn thảo, kiểm tra, lặp lại.
+
+### Khi nào dùng giao diện web, khi nào dùng MCP
+
+| Tình huống | Nên dùng |
+|---|---|
+| Quản lý hằng ngày — thêm host, user, group, chỉnh profile hoặc ruleset đơn giản, xem log và thống kê | **Giao diện web** |
+| Tạo nhiều thực thể giống nhau, thay đổi hàng loạt, hoặc câu hỏi "thay đổi này ảnh hưởng gì?" | **MCP** |
+| Mọi thứ vượt quá biểu mẫu cơ bản của giao diện — `if` lồng nhau, `&&` / `\|\|`, regex, bộ lọc user/thiết bị phức tạp | **Configuration Options** (văn bản `tac_plus-ng` thô); trợ lý có thể soạn và kiểm tra cú pháp giúp bạn |
+
+Giao diện web chủ ý chỉ phục vụ trường hợp cơ bản; các trường hợp nâng cao được viết bằng văn bản `tac_plus-ng` thô trong một [Configuration Option](docs/en/user-guide.md#complex-rules) (tiếng Anh) và được kiểm tra trước khi bạn kích hoạt.
+
+### An toàn khi dùng thử
+
+- **Key có phạm vi, thu hồi được.** Mặc định chỉ đọc, có thể đặt thời hạn và danh sách IP nguồn được phép, thu hồi mềm; mọi lần dùng đều ghi vào audit log (thay đổi qua MCP được gắn nhãn `mcp/api-key:<tên key>`).
+- **Bí mật được che** trong mọi dữ liệu trợ lý nhìn thấy (`key = "***REDACTED***"`); xuất bí mật không che là một tùy chọn riêng, chỉ dành cho key của superuser và được ghi audit.
+- **Đừng đưa shared secret thật vào prompt.** Những gì bạn gõ được gửi tới nhà cung cấp LLM, nên hãy để trợ lý tạo host không có key và đặt key trong giao diện.
+
+**Hướng dẫn đầy đủ:** [docs/en/mcp-server.md](docs/en/mcp-server.md)
+
 ## Mục Lục
 
+- [Cấu hình bằng trợ lý AI (MCP)](#cấu-hình-bằng-trợ-lý-ai-khuyến-nghị)
 - [Tính Năng Nổi Bật](#tính-năng-nổi-bật)
 - [Demo Trực Tuyến](#demo-trực-tuyến)
 - [Cấu Hình Thiết Bị](#cấu-hình-thiết-bị)
@@ -353,6 +406,8 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
 ## MCP Server
+
+> Mới làm quen? Xem phần [Cấu hình bằng trợ lý AI](#cấu-hình-bằng-trợ-lý-ai-khuyến-nghị) để bắt đầu nhanh. Phần này là tài liệu tham chiếu.
 
 Endpoint [Model Context Protocol](https://modelcontextprotocol.io) cho phép LLM client (Claude Desktop, Claude Code, Antigravity, Gemini, Cursor, Windsurf) xem các thực thể TACACS+, xem trước cấu hình và diff, và kiểm tra cú pháp cấu hình bằng chính bộ phân tích `tac_plus-ng -P`. Mặc định bật (`MCP_ENABLED=true`; đặt `false` để tắt); xác thực bằng API key riêng, có thể thu hồi, và mọi secret đều được che trong phản hồi.
 
