@@ -268,6 +268,11 @@ def delete_entity(*, session: Session, entity_type: str, name: str) -> WriteResu
     if row is None:
         raise LookupError(f"No {entity_type} named '{name}'.")
 
+    if entity_type == "host":
+        delete_error = hosts_crud.check_can_delete(session=session, host=row)
+        if delete_error:
+            raise ValueError(delete_error)
+
     entity_id = str(row.id)  # type: ignore[attr-defined]
     old_values = row.model_dump_json(exclude=_AUDIT_EXCLUDE)
     session.delete(row)

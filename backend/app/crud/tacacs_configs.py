@@ -3,12 +3,14 @@ import os
 import subprocess
 import tempfile
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
+from app.crud import hosts as hosts_crud
 from app.crud import profiles, rulesets
 from app.models import (
     ConfigurationOption,
@@ -160,16 +162,16 @@ id = tac_plus-ng {{
     statement = select(Host).where(Host.generate_config == True)
     host_basic = session.exec(statement).all()
 
-    for host in host_basic:
-        host_info = host.model_dump()
-        hosts_template += """   
-    host = {host_name} {{
-        address = {host_address}
-        key = "{host_key}"
-    }}""".format(
-            host_name=host_info["name"],
-            host_address=host_info["ipv4_address"],
-            host_key=host_info["secret_key"],
+    for host in hosts_crud.order_hosts_parent_first(list(host_basic)):
+        host_lines = []
+        if host.parent:
+            host_lines.append(f"        parent = {host.parent}")
+        if host.ipv4_address:
+            host_lines.append(f"        address = {host.ipv4_address}")
+        if host.secret_key:
+            host_lines.append(f'        key = "{host.secret_key}"')
+        hosts_template += "\n    host = {name} {{\n{body}\n    }}".format(
+            name=host.name, body="\n".join(host_lines)
         )
 
     statement_configuration_group = select(ConfigurationOption).where(
@@ -206,8 +208,15 @@ id = tac_plus-ng {{
             )
         tacacs_users_template += "    # End of User Configuration Options\n"
 
+    # Accounts past their expiry date are left out, so the device stops
+    # authenticating them. The date is the last valid day.
+    today = datetime.now(timezone.utc).date()
     statement = select(TacacsUser).where(TacacsUser.generate_config == True)
-    tacacs_users_basic = session.exec(statement).all()
+    tacacs_users_basic = [
+        u
+        for u in session.exec(statement).all()
+        if u.account_expires_at is None or u.account_expires_at >= today
+    ]
 
     for tacacs_user in tacacs_users_basic:
         tacacs_user_info = tacacs_user.model_dump()

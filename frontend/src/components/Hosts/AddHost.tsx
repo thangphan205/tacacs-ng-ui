@@ -81,7 +81,7 @@ const fieldGuideItems: FieldGuideItem[] = [
     icon: FiLayers,
     label: "Parent Host",
     description:
-      "Optionally inherit settings from an existing host. The child host will use its parent's configuration as a fallback.",
+      "Optionally inherit from an existing host. The child is rendered with parent = <host> and inherits its key (and other settings) when it has none of its own.",
   },
   {
     icon: FiInfo,
@@ -112,6 +112,8 @@ const AddHost = () => {
     handleSubmit,
     reset,
     setValue,
+    getValues,
+    watch,
     control,
     formState: { errors, isValid, isSubmitting },
   } = useForm<HostCreate>({
@@ -131,6 +133,8 @@ const AddHost = () => {
       generate_config: true,
     },
   })
+
+  const parentValue = watch("parent")
 
   const { data: hostsData } = useQuery({
     queryKey: ["hosts"],
@@ -237,16 +241,23 @@ const AddHost = () => {
                       />
                     </Field>
                     <Field
-                      required
+                      required={!parentValue}
                       invalid={!!errors.secret_key}
                       errorText={errors.secret_key?.message}
                       label="Secret Key"
                     >
                       <Input
                         {...register("secret_key", {
-                          required: "Secret key is required.",
+                          validate: (value) =>
+                            !!value ||
+                            !!getValues("parent") ||
+                            "Secret key is required unless a parent host is set.",
                         })}
-                        placeholder="Shared secret key"
+                        placeholder={
+                          parentValue
+                            ? "Inherited from parent if empty"
+                            : "Shared secret key"
+                        }
                         type="password"
                       />
                     </Field>

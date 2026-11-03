@@ -21,6 +21,7 @@ import { SearchBox } from "@/components/Common/SearchBox"
 import { TacacsUserActionsMenu } from "@/components/Common/TacacsUserActionsMenu"
 import PendingTacacsUsers from "@/components/Pending/PendingTacacsUsers"
 import AddTacacsUser from "@/components/TacacsUsers/AddTacacsUser"
+import { ExpiryBadge } from "@/components/TacacsUsers/ExpiryBadge"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -125,7 +126,8 @@ function TacacsUsersTable() {
               <Table.ColumnHeader w="12%">Password Type</Table.ColumnHeader>
               <Table.ColumnHeader w="20%">Group Membership</Table.ColumnHeader>
               <Table.ColumnHeader w="12%">Generate</Table.ColumnHeader>
-              <Table.ColumnHeader w="18%">Description</Table.ColumnHeader>
+              <Table.ColumnHeader w="14%">Expires</Table.ColumnHeader>
+              <Table.ColumnHeader w="16%">Description</Table.ColumnHeader>
               <Table.ColumnHeader w="12%">Last Updated</Table.ColumnHeader>
               <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
             </Table.Row>
@@ -186,6 +188,9 @@ function TacacsUsersTable() {
                   >
                     {tacacs_user.generate_config ? "Yes" : "No"}
                   </Badge>
+                </Table.Cell>
+                <Table.Cell>
+                  <ExpiryBadge date={tacacs_user.account_expires_at} />
                 </Table.Cell>
                 <Table.Cell
                   color={!tacacs_user.description ? "gray" : "inherit"}

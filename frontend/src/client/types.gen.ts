@@ -1287,7 +1287,7 @@ export type HostCreate = {
     /**
      * Secret Key
      */
-    secret_key: string;
+    secret_key?: string | null;
     /**
      * Welcome Banner
      */
@@ -1337,7 +1337,7 @@ export type HostPublic = {
     /**
      * Secret Key
      */
-    secret_key: string;
+    secret_key?: string | null;
     /**
      * Welcome Banner
      */
@@ -1399,7 +1399,7 @@ export type HostUpdate = {
     /**
      * Secret Key
      */
-    secret_key: string;
+    secret_key?: string | null;
     /**
      * Welcome Banner
      */
@@ -3059,6 +3059,14 @@ export type TacacsUserCreate = {
      * Password
      */
     password?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Account Expires At
+     */
+    account_expires_at?: string | null;
 };
 
 /**
@@ -3089,6 +3097,14 @@ export type TacacsUserPublic = {
      * Description
      */
     description?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Account Expires At
+     */
+    account_expires_at?: string | null;
     /**
      * Created At
      */
@@ -3127,6 +3143,14 @@ export type TacacsUserUpdate = {
      * Password
      */
     password?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Account Expires At
+     */
+    account_expires_at?: string | null;
 };
 
 /**

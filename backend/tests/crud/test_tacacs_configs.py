@@ -147,3 +147,41 @@ def test_generate_config_pap_login_for_local_users(db: Session) -> None:
     assert "password pap = login" in user_block("USER_PAP_CLEAR")
     assert "password pap = login" in user_block("USER_PAP_CRYPT")
     assert "password pap = login" not in user_block("USER_PAP_MAVIS")
+
+
+def test_expired_users_are_left_out_of_generated_config(db: Session) -> None:
+    import uuid
+    from datetime import date, timedelta
+
+    tag = uuid.uuid4().hex[:8]
+    today = date.today()
+    rows = [
+        TacacsUser(
+            username=f"exp-{tag}",
+            password_type="clear",
+            password="p",
+            member="g",
+            account_expires_at=today - timedelta(days=2),
+        ),
+        TacacsUser(
+            username=f"last-{tag}",
+            password_type="clear",
+            password="p",
+            member="g",
+            account_expires_at=today + timedelta(days=1),
+        ),
+        TacacsUser(
+            username=f"open-{tag}", password_type="clear", password="p", member="g"
+        ),
+    ]
+    for row in rows:
+        db.add(row)
+    db.commit()
+    config = generate_tacacs_ng_config(session=db)
+    for row in rows:
+        db.delete(row)
+    db.commit()
+
+    assert f"user exp-{tag}" not in config
+    assert f"user last-{tag}" in config
+    assert f"user open-{tag}" in config

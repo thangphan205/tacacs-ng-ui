@@ -78,7 +78,10 @@ def create_host(
             detail="The host with this host name already exists in the system.",
         )
 
-    host = hosts.create_host(session=session, host_create=host_in)
+    try:
+        host = hosts.create_host(session=session, host_create=host_in)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     audit_logs_crud.log_entity_action(
         session=session,
         action="CREATE",
@@ -132,7 +135,10 @@ def update_host(
             detail="The host with this id does not exist in the system",
         )
     old_values = db_host.model_dump_json(exclude=_SENSITIVE)
-    db_host = hosts.update_host(session=session, db_host=db_host, host_in=host_in)
+    try:
+        db_host = hosts.update_host(session=session, db_host=db_host, host_in=host_in)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     audit_logs_crud.log_entity_action(
         session=session,
         action="UPDATE",
@@ -161,6 +167,9 @@ def delete_host(
     host = session.get(Host, id)
     if not host:
         raise HTTPException(status_code=404, detail="Host not found")
+    delete_error = hosts.check_can_delete(session=session, host=host)
+    if delete_error:
+        raise HTTPException(status_code=400, detail=delete_error)
 
     old_values = host.model_dump_json(exclude=_SENSITIVE)
     session.delete(host)
