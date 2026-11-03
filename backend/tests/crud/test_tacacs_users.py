@@ -195,3 +195,29 @@ def test_update_does_not_hash_a_supplied_digest(db: Session) -> None:
     finally:
         db.delete(user)
         db.commit()
+
+
+def test_email_and_expiry_round_trip_and_validation() -> None:
+    from datetime import date
+
+    import pytest
+    from pydantic import ValidationError
+
+    from app.models import TacacsUserCreate, TacacsUserUpdate
+
+    created = TacacsUserCreate(
+        username="u",
+        password_type="crypt",
+        member="g",
+        email="  a@example.com ",
+        account_expires_at=date(2030, 1, 1),
+    )
+    assert created.email == "a@example.com"
+    assert (
+        TacacsUserCreate(
+            username="u", password_type="crypt", member="g", email="  "
+        ).email
+        is None
+    )
+    with pytest.raises(ValidationError):
+        TacacsUserUpdate(email="not-an-email")

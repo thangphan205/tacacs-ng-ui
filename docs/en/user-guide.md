@@ -239,6 +239,8 @@ Groups are referenced in TACACS Users and Rulesets to apply policies to multiple
 | `password` | User's password (stored hashed) |
 | `password_type` | Protocol for password exchange — typically `pap` |
 | `member` | Group this user belongs to |
+| `email` | Optional contact address (informational; not emitted in the config) |
+| `account_expires_at` | Optional last valid day. After this date the user is left out of the generated config — it takes effect on the next Generate + Activate (the TACACS Configs page flags it as an unapplied change). The Users list shows the days remaining |
 | `description` | Optional description |
 
 **Notes:**
@@ -260,8 +262,8 @@ Groups are referenced in TACACS Users and Rulesets to apply policies to multiple
 | `name` | Identifier for the host (e.g., `core-switch-01`) |
 | `ipv4_address` | Device IP address (used to match TACACS requests) |
 | `ipv6_address` | Optional IPv6 address |
-| `secret_key` | Shared secret — must match the device's TACACS key config |
-| `parent` | Optional parent host for inheriting settings |
+| `secret_key` | Shared secret — must match the device's TACACS key config. Optional when `parent` is set (the child inherits the parent's key) |
+| `parent` | Optional parent host. Emitted as `parent = <host>`; the parent is written first, so one host (e.g. without an address) can act as a shared template for many devices |
 | `welcome_banner` | Message sent to the user on successful login |
 | `reject_banner` | Message sent on denied access |
 | `motd_banner` | Message of the day shown after login |
@@ -411,17 +413,14 @@ Add conditional rules within a ruleset.
 
 | Field | Description |
 |-------|-------------|
-| `condition` | Match expression (e.g., `$user == "admin"`, `$group == "network-admins"`) |
-| `key` | Attribute to set in response |
-| `value` | Attribute value |
-| `action` | `permit`, `deny`, or `set` |
+| `condition` | `if`, `elif` or `else` (`else` takes no test) |
+| `key` | Attribute to test, e.g. `service`, `host`, `member` |
+| `value` | Value the attribute is compared with (rendered as `if (key==value)`) |
+| `action` | `permit` or `deny` for this script block |
 
-**Common condition variables:**
-- `$user` — TACACS username
-- `$group` — User's group
-- `$nas` — NAS (device) IP address
-- `$service` — Requested service (e.g., `shell`, `exec`)
-- `$protocol` — Protocol (e.g., `telnet`, `ssh`)
+The UI covers a flat `if` / `elif` / `else` chain with a single equality test.
+For nested conditions, `&&` / `||`, regex or negation, see
+[Complex rules](#complex-rules-nested-if-and--or) below.
 
 **Example ruleset logic:**
 ```
@@ -836,13 +835,40 @@ Inject raw `tac_plus-ng` configuration blocks that are not covered by the UI fie
 
 | Field | Description |
 |-------|-------------|
-| `name` | Label for this config block |
-| `config_option` | Raw configuration text (appended to generated config) |
+| `name` | Scope the text is injected into: `host`, `group`, `user`, `profile` or `rule` (unique — one entry per scope) |
+| `config_option` | Raw configuration text, inserted verbatim into that section |
 | `description` | Optional description |
 
 Use this for advanced directives like custom ACLs, time-based access controls, or any `tac_plus-ng` feature not exposed in the UI.
 
 > **After adding custom options:** regenerate and activate config.
+
+### Complex rules (nested `if`, `&&` / `||`)
+
+The Rulesets UI intentionally stays with the basic case. Anything more
+elaborate — nested `if`, boolean combinations, regex, complex user/device
+filters — is written as raw `tac_plus-ng` text in a Configuration Option with
+`name = rule`; it is placed inside the generated `ruleset { }` block.
+
+```
+rule admin-from-mgmt {
+    enabled = yes
+    script {
+        if (member == admins) {
+            if (host == core-switch-01 || host == core-switch-02) {
+                set priv-lvl = 15
+                permit
+            }
+        }
+        deny
+    }
+}
+```
+
+Check the syntax before activating with the Generate / validate step in the UI,
+or with the MCP tools `validate_config_text` / `validate_generated_config`.
+An LLM client with `mcp:write` can author the option for you; it still cannot
+activate it — that stays a human step. See [MCP Server](mcp-server.md).
 
 ---
 

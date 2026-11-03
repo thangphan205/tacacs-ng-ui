@@ -78,6 +78,12 @@ def create_host(
             detail="The host with this host name already exists in the system.",
         )
 
+    parent_error = hosts.check_parent(
+        session=session, name=host_in.name, parent=host_in.parent
+    )
+    if parent_error:
+        raise HTTPException(status_code=400, detail=parent_error)
+
     host = hosts.create_host(session=session, host_create=host_in)
     audit_logs_crud.log_entity_action(
         session=session,
@@ -131,6 +137,11 @@ def update_host(
             status_code=404,
             detail="The host with this id does not exist in the system",
         )
+    parent_error = hosts.check_parent(
+        session=session, name=host_in.name, parent=host_in.parent
+    )
+    if parent_error:
+        raise HTTPException(status_code=400, detail=parent_error)
     old_values = db_host.model_dump_json(exclude=_SENSITIVE)
     db_host = hosts.update_host(session=session, db_host=db_host, host_in=host_in)
     audit_logs_crud.log_entity_action(

@@ -79,13 +79,21 @@ def ruleset_generator(session: Session) -> str:
                 )
 
             rulesetscript_info = rulesetscript.model_dump()
-            rulesetscript_template += """       {condition} ({key}=={value}){{
+            condition = rulesetscript_info["condition"].strip()
+            if condition == "else":
+                # `else` takes no test expression; `else (k==v)` is a syntax error.
+                header = "else"
+            else:
+                header = "{condition} ({key}=={value})".format(
+                    condition=condition,
+                    key=rulesetscript_info["key"],
+                    value=rulesetscript_info["value"],
+                )
+            rulesetscript_template += """       {header}{{
 {rulesetscriptset_template}
           {action}
         }}\n""".format(
-                condition=rulesetscript_info["condition"],
-                key=rulesetscript_info["key"],
-                value=rulesetscript_info["value"],
+                header=header,
                 rulesetscriptset_template=rulesetscriptset_template,
                 action=rulesetscript_info["action"],
             )

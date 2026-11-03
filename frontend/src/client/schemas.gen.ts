@@ -2204,8 +2204,15 @@ export const HostCreateSchema = {
             title: 'Ipv6 Address'
         },
         secret_key: {
-            type: 'string',
-            maxLength: 255,
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
             title: 'Secret Key'
         },
         welcome_banner: {
@@ -2282,8 +2289,7 @@ export const HostCreateSchema = {
     },
     type: 'object',
     required: [
-        'name',
-        'secret_key'
+        'name'
     ],
     title: 'HostCreate'
 } as const;
@@ -2318,8 +2324,15 @@ export const HostPublicSchema = {
             title: 'Ipv6 Address'
         },
         secret_key: {
-            type: 'string',
-            maxLength: 255,
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
             title: 'Secret Key'
         },
         welcome_banner: {
@@ -2412,7 +2425,6 @@ export const HostPublicSchema = {
     type: 'object',
     required: [
         'name',
-        'secret_key',
         'id',
         'created_at',
         'updated_at'
@@ -2450,8 +2462,15 @@ export const HostUpdateSchema = {
             title: 'Ipv6 Address'
         },
         secret_key: {
-            type: 'string',
-            maxLength: 255,
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
             title: 'Secret Key'
         },
         welcome_banner: {
@@ -2528,8 +2547,7 @@ export const HostUpdateSchema = {
     },
     type: 'object',
     required: [
-        'name',
-        'secret_key'
+        'name'
     ],
     title: 'HostUpdate'
 } as const;
@@ -5242,6 +5260,30 @@ export const TacacsUserCreateSchema = {
                 }
             ],
             title: 'Password'
+        },
+        email: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Email'
+        },
+        account_expires_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Account Expires At'
         }
     },
     type: 'object',
@@ -5287,6 +5329,29 @@ export const TacacsUserPublicSchema = {
                 }
             ],
             title: 'Description'
+        },
+        email: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Email'
+        },
+        account_expires_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Account Expires At'
         },
         created_at: {
             type: 'string',
@@ -5382,6 +5447,30 @@ export const TacacsUserUpdateSchema = {
                 }
             ],
             title: 'Password'
+        },
+        email: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Email'
+        },
+        account_expires_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Account Expires At'
         }
     },
     type: 'object',

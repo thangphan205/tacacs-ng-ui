@@ -26,3 +26,42 @@ def update_host(*, session: Session, db_host: Host, host_in: HostUpdate) -> Any:
     session.commit()
     session.refresh(db_host)
     return db_host
+
+
+def check_parent(*, session: Session, name: str, parent: str | None) -> str | None:
+    """Return an error message if ``parent`` is not a valid parent for host ``name``."""
+    if not parent:
+        return None
+    if parent == name:
+        return "A host cannot be its own parent."
+    seen = {name}
+    current: str | None = parent
+    while current:
+        if current in seen:
+            return "Parent host chain contains a cycle."
+        seen.add(current)
+        parent_host = get_host_by_name(session=session, name=current)
+        if parent_host is None:
+            return f"Parent host '{current}' does not exist."
+        current = parent_host.parent
+    return None
+
+
+def order_hosts_parent_first(hosts: list[Host]) -> list[Host]:
+    """Order hosts so every parent is emitted before its children."""
+    by_name = {h.name: h for h in hosts}
+    ordered: list[Host] = []
+    done: set[str] = set()
+
+    def visit(host: Host, trail: frozenset[str]) -> None:
+        if host.name in done or host.name in trail:
+            return
+        parent = by_name.get(host.parent) if host.parent else None
+        if parent is not None:
+            visit(parent, trail | {host.name})
+        done.add(host.name)
+        ordered.append(host)
+
+    for host in sorted(hosts, key=lambda h: h.name):
+        visit(host, frozenset())
+    return ordered

@@ -75,6 +75,18 @@ const fieldGuideItems: FieldGuideItem[] = [
   },
   {
     icon: FiInfo,
+    label: "Email",
+    description:
+      "Optional contact address for the account owner. Informational only — not included in the generated config.",
+  },
+  {
+    icon: FiInfo,
+    label: "Account Expires",
+    description:
+      "Optional last day the account may log in. Once this date has passed the user is left out of the generated config, so the change takes effect on the next Generate + Activate. Leave empty for no expiry.",
+  },
+  {
+    icon: FiInfo,
     label: "Description",
     description:
       "Optional notes about the user — e.g. employee name, department, or role. Not included in the generated config.",
@@ -106,6 +118,8 @@ const AddTacacsUser = () => {
     defaultValues: {
       username: "",
       description: "",
+      email: "",
+      account_expires_at: "",
       member: "",
       password_type: "crypt",
       generate_config: true,
@@ -158,7 +172,11 @@ const AddTacacsUser = () => {
   })
 
   const onSubmit: SubmitHandler<TacacsUserCreate> = (data) => {
-    mutation.mutate(data)
+    mutation.mutate({
+      ...data,
+      email: data.email || null,
+      account_expires_at: data.account_expires_at || null,
+    })
   }
 
   return (
@@ -308,6 +326,25 @@ const AddTacacsUser = () => {
                         </Select.Content>
                       </Select.Positioner>
                     </Select.Root>
+                  </Field>
+                  <Field
+                    invalid={!!errors.email}
+                    errorText={errors.email?.message}
+                    label="Email"
+                  >
+                    <Input
+                      {...register("email")}
+                      placeholder="user@example.com (optional)"
+                      type="email"
+                    />
+                  </Field>
+                  <Field
+                    invalid={!!errors.account_expires_at}
+                    errorText={errors.account_expires_at?.message}
+                    label="Account Expires"
+                    helperText="Last valid day. Leave empty for no expiry."
+                  >
+                    <Input {...register("account_expires_at")} type="date" />
                   </Field>
                   <Field
                     invalid={!!errors.description}

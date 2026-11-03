@@ -1,10 +1,10 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from ipaddress import ip_network
 from typing import Literal
 
 import sqlalchemy as sa
-from pydantic import EmailStr, field_validator
+from pydantic import EmailStr, TypeAdapter, field_validator, model_validator
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
 
@@ -260,7 +260,7 @@ class HostBase(SQLModel):
     name: str = Field(index=True, unique=True, max_length=255)
     ipv4_address: str | None = None
     ipv6_address: str | None = None
-    secret_key: str = Field(max_length=255)
+    secret_key: str | None = Field(default=None, max_length=255)
     welcome_banner: str | None = None
     reject_banner: str | None = None
     motd_banner: str | None = None
@@ -270,12 +270,25 @@ class HostBase(SQLModel):
     description: str | None = None
 
 
+def _require_key_or_parent(host: "HostBase") -> "HostBase":
+    # A host without a parent has nothing to inherit its key from.
+    if not host.secret_key and not host.parent:
+        raise ValueError("secret_key is required unless a parent host is set")
+    return host
+
+
 class HostCreate(HostBase):
-    pass
+    @model_validator(mode="after")
+    def _check_key_or_parent(self) -> "HostCreate":
+        _require_key_or_parent(self)
+        return self
 
 
 class HostUpdate(HostBase):
-    pass
+    @model_validator(mode="after")
+    def _check_key_or_parent(self) -> "HostUpdate":
+        _require_key_or_parent(self)
+        return self
 
 
 # Database model, database table inferred from class name
@@ -334,10 +347,34 @@ class TacacsUserBase(SQLModel):
     generate_config: bool = Field(default=True)
     description: str | None = None
     password: str | None = None
+    email: str | None = Field(default=None, max_length=255)
+    # Last day the account may log in. Past this date the user is left out of the
+    # generated config (takes effect on the next Generate + Activate).
+    account_expires_at: date | None = None
+
+
+_email_adapter: TypeAdapter[EmailStr] = TypeAdapter(EmailStr)
+
+
+def _normalise_email(value: str | None) -> str | None:
+    """Blank -> None; anything else must be a syntactically valid address.
+
+    Applied on Create/Update only, not on Base: the table and Public models also
+    inherit Base, and validating there would make a row with a malformed stored
+    address unreadable.
+    """
+    if value is None or not value.strip():
+        return None
+    return str(_email_adapter.validate_python(value.strip()))
 
 
 class TacacsUserCreate(TacacsUserBase):
     password: str | None = Field(default=None, max_length=255)
+
+    @field_validator("email")
+    @classmethod
+    def _check_email(cls, value: str | None) -> str | None:
+        return _normalise_email(value)
 
 
 class TacacsUserUpdate(SQLModel):
@@ -347,6 +384,13 @@ class TacacsUserUpdate(SQLModel):
     description: str | None = None
     generate_config: bool | None = Field(default=None)
     password: str | None = Field(default=None, max_length=255)
+    email: str | None = Field(default=None, max_length=255)
+    account_expires_at: date | None = None
+
+    @field_validator("email")
+    @classmethod
+    def _check_email(cls, value: str | None) -> str | None:
+        return _normalise_email(value)
 
 
 # Database model, database table inferred from class name
@@ -363,6 +407,8 @@ class TacacsUserPublic(SQLModel):
     member: str
     generate_config: bool = True
     description: str | None = None
+    email: str | None = None
+    account_expires_at: date | None = None
     created_at: datetime
     updated_at: datetime
 
