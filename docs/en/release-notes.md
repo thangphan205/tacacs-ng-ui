@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Docs
+
+* 📝 Lead the README with AI-assisted configuration over MCP. PR [#338](https://github.com/thangphan205/tacacs-ng-ui/pull/338) by [@thangphan205](https://github.com/thangphan205).
+
 ### Internal
 
 * 🔖 Release 0.6.2. PR [#337](https://github.com/thangphan205/tacacs-ng-ui/pull/337) by [@thangphan205](https://github.com/thangphan205).
