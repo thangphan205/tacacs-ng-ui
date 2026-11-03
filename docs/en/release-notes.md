@@ -18,6 +18,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump pydantic from 2.13.4 to 2.14.2 in /backend. PR [#310](https://github.com/thangphan205/tacacs-ng-ui/pull/310) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump actions/upload-artifact from 4 to 6. PR [#306](https://github.com/thangphan205/tacacs-ng-ui/pull/306) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump actions/download-artifact from 4 to 7. PR [#305](https://github.com/thangphan205/tacacs-ng-ui/pull/305) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @biomejs/biome from 2.5.4 to 2.5.15 in /frontend. PR [#309](https://github.com/thangphan205/tacacs-ng-ui/pull/309) by [@dependabot[bot]](https://github.com/apps/dependabot).
