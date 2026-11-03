@@ -162,10 +162,20 @@ id = tac_plus-ng {{
     statement = select(Host).where(Host.generate_config == True)
     host_basic = session.exec(statement).all()
 
+    rendered_host_names = {h.name for h in host_basic}
     for host in hosts_crud.order_hosts_parent_first(list(host_basic)):
         host_lines = []
-        if host.parent:
+        if host.parent in rendered_host_names:
             host_lines.append(f"        parent = {host.parent}")
+        elif host.parent:
+            # `parent` was free text and ignored before it was emitted, so older
+            # rows may name a host that no longer exists or is not rendered.
+            log.warning(
+                "Host %s: parent %r is not in the generated config; "
+                "leaving out the parent line",
+                host.name,
+                host.parent,
+            )
         if host.ipv4_address:
             host_lines.append(f"        address = {host.ipv4_address}")
         if host.secret_key:

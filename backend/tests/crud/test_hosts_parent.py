@@ -110,3 +110,20 @@ def test_crud_rejects_bad_parent_and_guards_children(db: Session) -> None:
     db.delete(c)
     db.delete(p)
     db.commit()
+
+
+def test_generated_config_ignores_dangling_parent(db: Session) -> None:
+    from app.crud.tacacs_configs import generate_tacacs_ng_config
+
+    name = f"legacy-{uuid.uuid4().hex[:8]}"
+    db.add(_host(name, parent="no-such-host", key="legacy-secret"))
+    db.commit()
+
+    config = generate_tacacs_ng_config(session=db)
+
+    db.delete(hosts_crud.get_host_by_name(session=db, name=name))
+    db.commit()
+
+    block = config[config.index(f"host = {name} {{") :].split("}", 1)[0]
+    assert "parent =" not in block
+    assert 'key = "legacy-secret"' in block
