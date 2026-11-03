@@ -420,7 +420,7 @@ Add conditional rules within a ruleset.
 
 The UI covers a flat `if` / `elif` / `else` chain with a single equality test.
 For nested conditions, `&&` / `||`, regex or negation, see
-[Complex rules](#complex-rules-nested-if-and--or) below.
+[Complex rules](#complex-rules) below.
 
 **Example ruleset logic:**
 ```
@@ -843,7 +843,7 @@ Use this for advanced directives like custom ACLs, time-based access controls, o
 
 > **After adding custom options:** regenerate and activate config.
 
-### Complex rules (nested `if`, `&&` / `||`)
+### Complex rules
 
 The Rulesets UI intentionally stays with the basic case. Anything more
 elaborate — nested `if`, boolean combinations, regex, complex user/device
