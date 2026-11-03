@@ -73,3 +73,40 @@ def test_generated_config_renders_parent_before_child(db: Session) -> None:
     child_block = config[config.index(f"host = {child} {{") :].split("}", 1)[0]
     assert f"parent = {parent}" in child_block
     assert "key =" not in child_block
+
+
+def test_crud_rejects_bad_parent_and_guards_children(db: Session) -> None:
+    from app.models import HostUpdate
+
+    tag = uuid.uuid4().hex[:8]
+    parent, child = f"gp-{tag}", f"gc-{tag}"
+
+    with pytest.raises(ValueError, match="does not exist"):
+        hosts_crud.create_host(
+            session=db,
+            host_create=HostCreate(name=child, ipv4_address="10.0.0.2", parent="nope"),
+        )
+
+    p = hosts_crud.create_host(
+        session=db,
+        host_create=HostCreate(name=parent, ipv4_address="10.0.0.1", secret_key="k"),
+    )
+    c = hosts_crud.create_host(
+        session=db,
+        host_create=HostCreate(name=child, ipv4_address="10.0.0.2", parent=parent),
+    )
+
+    assert "parent of" in (hosts_crud.check_can_delete(session=db, host=p) or "")
+    assert hosts_crud.check_can_delete(session=db, host=c) is None
+    with pytest.raises(ValueError, match="cannot be renamed"):
+        hosts_crud.update_host(
+            session=db,
+            db_host=p,
+            host_in=HostUpdate(
+                name=f"{parent}-x", ipv4_address="10.0.0.1", secret_key="k"
+            ),
+        )
+
+    db.delete(c)
+    db.delete(p)
+    db.commit()
