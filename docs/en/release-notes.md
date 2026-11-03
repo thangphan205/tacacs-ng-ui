@@ -1,7 +1,40 @@
 # Release Notes
 
 <!-- The `latest-changes` workflow appends merged-PR entries directly beneath the
-heading below (configured as `latest_changes_header: "## Unreleased
+level-2 "Unreleased" heading below (its `latest_changes_header` setting). Keep
+that heading here permanently, even when empty: with the heading gone the bot
+matches the next occurrence of its header string and overwrites whatever
+follows it. That has wiped published sections twice. Never write the heading
+text, with its leading hashes, anywhere else in this file, including in this
+comment: the bot matches the first occurrence, which put entries inside this
+comment before 0.6.2. Move entries out of it into the version section as part
+of cutting a release; do not delete the heading itself. -->
+
+## Unreleased
+
+## v0.6.2
+
+### Features
+
+* ✨ **Hosts can inherit from a parent host.** The **Parent Host** field was stored and shown in the UI but never reached the generated config. It is now emitted as `parent = <host>`, parents are written before their children, and a child with no key of its own inherits its parent's — so a shared key can live on one host (for example a template host with no address) instead of being repeated on every device. **Secret Key** is optional when a parent is set. The API and MCP reject a parent that does not exist, is the host itself, or forms a cycle, and refuse to delete or rename a host that other hosts use as their parent. PR [#336](https://github.com/thangphan205/tacacs-ng-ui/pull/336).
+
+* ✨ **TACACS+ users get an email address and an account expiry date.** Both are optional. The Users list has an **Expires** column showing the days remaining (red once expired, orange within a week). A user whose expiry date has passed is left out of the generated config; the date is the last valid day and is compared against the UTC date. Expiry takes effect on the next **Generate + Activate**, and the TACACS Configs page flags the difference as an unapplied change. Both fields are readable and writable over MCP. PR [#336](https://github.com/thangphan205/tacacs-ng-ui/pull/336).
+
+### Fixes
+
+* 🐛 An `else` ruleset script no longer renders as `else (key==value)`, which `tac_plus-ng` rejects as a syntax error. PR [#336](https://github.com/thangphan205/tacacs-ng-ui/pull/336).
+
+### Docs
+
+* 📝 The user guide documents **Complex rules** — nested `if`, `&&` / `||` and other conditions the Rulesets UI does not model — as a `rule`-scope Configuration Option, optionally authored over MCP. The ruleset condition table and the Configuration Option field table now match what the generator really does. Requests for a nested-condition builder, AND/OR operators and a self-service password portal were declined: the web UI covers the basic case, and the rest goes through Configuration Options and the MCP server.
+
+### Upgrading from 0.6.1
+
+Two Alembic migrations run on startup (`prestart.sh`): `host.secret_key` becomes nullable, and `tacacsuser` gains `email` and `account_expires_at`. Both are additive.
+
+**Check hosts that already have a Parent set.** The field used to be ignored, so existing rows may hold anything. A parent that is not part of the generated config is skipped with a warning in the backend log, and the host keeps its own key. A parent that does exist now takes effect, and `tac_plus-ng` will treat the child as inheriting from it. Review the **Parent Host** column before you regenerate and activate.
+
+### Internal
 
 * ⬆ Bump vite from 8.2.2 to 8.3.5 in /frontend. PR [#319](https://github.com/thangphan205/tacacs-ng-ui/pull/319) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump seroval from 1.6.3 to 1.7.5 in /frontend. PR [#325](https://github.com/thangphan205/tacacs-ng-ui/pull/325) by [@dependabot[bot]](https://github.com/apps/dependabot).
@@ -9,19 +42,6 @@ heading below (configured as `latest_changes_header: "## Unreleased
 * ⬆ Bump filelock from 3.29.0 to 4.2.1 in /backend. PR [#324](https://github.com/thangphan205/tacacs-ng-ui/pull/324) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump certifi from 2024.8.30 to 2026.10.19 in /backend. PR [#320](https://github.com/thangphan205/tacacs-ng-ui/pull/320) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump pyasn1 from 0.6.4 to 0.6.5 in /backend. PR [#327](https://github.com/thangphan205/tacacs-ng-ui/pull/327) by [@dependabot[bot]](https://github.com/apps/dependabot).
-"`). Keep this
-section here permanently, even when empty: with the heading gone the bot matches
-the next occurrence of that string — including one inside a sentence — and
-overwrites whatever follows it. That has wiped published sections twice. Move
-entries out of it into the version section as part of cutting a release; do not
-delete the heading itself. -->
-
-### Features
-
-* ✨ Host parent key inheritance, TACACS user email/expiry, ruleset else fix. PR [#336](https://github.com/thangphan205/tacacs-ng-ui/pull/336) by [@thangphan205](https://github.com/thangphan205).
-
-### Internal
-
 * ⬆ Update fastapi[standard] requirement from <1.0.0,>=0.141.1 to >=0.162.0,<1.0.0 in /backend. PR [#312](https://github.com/thangphan205/tacacs-ng-ui/pull/312) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump Playwright image and @playwright/test to 1.64.1 in /frontend. PR [#316](https://github.com/thangphan205/tacacs-ng-ui/pull/316) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump opentelemetry-api from 1.44.0 to 1.45.1 in /backend. PR [#323](https://github.com/thangphan205/tacacs-ng-ui/pull/323) by [@dependabot[bot]](https://github.com/apps/dependabot).
@@ -37,8 +57,6 @@ delete the heading itself. -->
 * ⬆ Bump @tanstack/react-query from 5.102.4 to 5.104.1 in /frontend. PR [#314](https://github.com/thangphan205/tacacs-ng-ui/pull/314) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump numpy from 2.5.2 to 2.5.3 in /backend. PR [#315](https://github.com/thangphan205/tacacs-ng-ui/pull/315) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ bump pydantic-settings from 2.14.2 to 2.15.0 in /backend. PR [#294](https://github.com/thangphan205/tacacs-ng-ui/pull/294) by [@dependabot[bot]](https://github.com/apps/dependabot).
-
-## Unreleased
 
 ## v0.6.1
 
