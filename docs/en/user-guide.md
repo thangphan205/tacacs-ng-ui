@@ -865,6 +865,9 @@ rule admin-from-mgmt {
 }
 ```
 
+The groups and hosts a rule refers to (`admins`, `core-switch-01` above) must
+already exist, or `tac_plus-ng` rejects the config.
+
 Check the syntax before activating with the Generate / validate step in the UI,
 or with the MCP tools `validate_config_text` / `validate_generated_config`.
 An LLM client with `mcp:write` can author the option for you; it still cannot
