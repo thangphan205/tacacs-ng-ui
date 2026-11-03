@@ -16,6 +16,10 @@ overwrites whatever follows it. That has wiped published sections twice. Move
 entries out of it into the version section as part of cutting a release; do not
 delete the heading itself. -->
 
+### Features
+
+* ✨ Host parent key inheritance, TACACS user email/expiry, ruleset else fix. PR [#336](https://github.com/thangphan205/tacacs-ng-ui/pull/336) by [@thangphan205](https://github.com/thangphan205).
+
 ### Internal
 
 * ⬆ Update fastapi[standard] requirement from <1.0.0,>=0.141.1 to >=0.162.0,<1.0.0 in /backend. PR [#312](https://github.com/thangphan205/tacacs-ng-ui/pull/312) by [@dependabot[bot]](https://github.com/apps/dependabot).
