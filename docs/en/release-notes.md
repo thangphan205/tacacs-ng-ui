@@ -18,6 +18,7 @@ delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump mako from 1.3.12 to 1.4.2 in /backend. PR [#329](https://github.com/thangphan205/tacacs-ng-ui/pull/329) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump joserfc from 1.6.8 to 1.7.6 in /backend. PR [#330](https://github.com/thangphan205/tacacs-ng-ui/pull/330) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump dnspython from 2.6.1 to 2.9.0 in /backend. PR [#328](https://github.com/thangphan205/tacacs-ng-ui/pull/328) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump pydantic from 2.13.4 to 2.14.2 in /backend. PR [#310](https://github.com/thangphan205/tacacs-ng-ui/pull/310) by [@dependabot[bot]](https://github.com/apps/dependabot).
