@@ -33,6 +33,7 @@ import {
   RulesetscriptsService,
   RulesetsService,
 } from "@/client"
+import MoveButtons from "@/components/Common/MoveButtons"
 import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { RulesetActionsMenu } from "@/components/Common/RulesetActionsMenu"
@@ -171,17 +172,20 @@ function RulesetsTable() {
                   <Table.ColumnHeader w="15%">
                     Fallback Action
                   </Table.ColumnHeader>
-                  <Table.ColumnHeader w="31%">Description</Table.ColumnHeader>
-                  <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
+                  <Table.ColumnHeader w="25%">Description</Table.ColumnHeader>
+                  <Table.ColumnHeader w="14%">Actions</Table.ColumnHeader>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
                 {rulesets?.map((ruleset) => {
                   const isExpanded = !!expandedRows[ruleset.id]
-                  const rulesetScripts =
+                  // Generator order: tac_plus-ng stops at the first matching
+                  // permit/deny, so the list must read exactly as it is emitted.
+                  const rulesetScripts = (
                     scriptsData?.data.filter(
                       (s) => s.ruleset_id === ruleset.id,
-                    ) || []
+                    ) ?? []
+                  ).sort((a, b) => a.position - b.position)
 
                   return (
                     <Fragment key={ruleset.id}>
@@ -211,6 +215,15 @@ function RulesetsTable() {
                           </Tooltip>
                         </Table.Cell>
                         <Table.Cell fontWeight="medium" truncate>
+                          <Text
+                            as="span"
+                            fontSize="xs"
+                            color="fg.muted"
+                            fontFamily="mono"
+                            mr={2}
+                          >
+                            #{ruleset.position + 1}
+                          </Text>
                           {ruleset.name}
                         </Table.Cell>
                         <Table.Cell>
@@ -241,7 +254,25 @@ function RulesetsTable() {
                           {ruleset.description || "N/A"}
                         </Table.Cell>
                         <Table.Cell>
-                          <RulesetActionsMenu ruleset={ruleset} />
+                          <Flex align="center" gap={1}>
+                            {/* Rules are tried in this order. Positions span
+                                every ruleset, so reordering is offered only on
+                                the unfiltered list, where neighbours are visible. */}
+                            {!search && (
+                              <MoveButtons
+                                index={ruleset.position}
+                                count={count}
+                                noun="rule"
+                                onMove={(position) =>
+                                  RulesetsService.moveRuleset({
+                                    id: ruleset.id,
+                                    positionMove: { position },
+                                  })
+                                }
+                              />
+                            )}
+                            <RulesetActionsMenu ruleset={ruleset} />
+                          </Flex>
                         </Table.Cell>
                       </Table.Row>
                       {isExpanded && (
@@ -283,7 +314,7 @@ function RulesetsTable() {
                               </Text>
                             ) : (
                               <VStack align="stretch" gap={3} w="full">
-                                {rulesetScripts.map((script) => {
+                                {rulesetScripts.map((script, index) => {
                                   const scriptSets =
                                     scriptSetsData?.data.filter(
                                       (ss) => ss.rulesetscript_id === script.id,
@@ -308,6 +339,14 @@ function RulesetsTable() {
                                           gap={2}
                                           wrap="wrap"
                                         >
+                                          <Text
+                                            fontSize="xs"
+                                            color="fg.muted"
+                                            fontFamily="mono"
+                                            minW="2ch"
+                                          >
+                                            #{index + 1}
+                                          </Text>
                                           <Badge
                                             colorPalette="teal"
                                             variant="solid"
@@ -332,6 +371,19 @@ function RulesetsTable() {
                                           )}
                                         </Flex>
                                         <Flex align="center" gap={1}>
+                                          <MoveButtons
+                                            index={index}
+                                            count={rulesetScripts.length}
+                                            noun="script"
+                                            onMove={(position) =>
+                                              RulesetscriptsService.moveRulesetscript(
+                                                {
+                                                  id: script.id,
+                                                  positionMove: { position },
+                                                },
+                                              )
+                                            }
+                                          />
                                           <EditRulesetScript
                                             rulesetscript={script}
                                             buttonElement={

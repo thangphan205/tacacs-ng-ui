@@ -429,6 +429,41 @@ condition: $group == "read-only"        action: permit   key: priv-lvl   value: 
 default action: deny
 ```
 
+#### Order matters: the first match wins
+
+tac_plus-ng tests the script blocks of a profile or a ruleset from top to
+bottom and stops at the first `permit` or `deny` it reaches. The rules inside
+the `ruleset { }` block are tried the same way. A broad block placed above a
+narrower one therefore hides it:
+
+```
+if (service==shell)     { set priv-lvl=1  ; permit }   # matches every shell session first
+if (device==CORE-SW-01) { set priv-lvl=15 ; permit }   # never reached
+```
+
+Put the specific blocks first and the catch-all last.
+
+- The **Script Structure** view of a profile or ruleset lists the blocks in the
+  order the generator writes them, numbered `#1`, `#2`, … Use the **↑ / ↓**
+  buttons on a block to move it.
+- The **Rulesets** list is shown in rule order. Its ↑ / ↓ buttons appear when no
+  search filter is active.
+- A new block or ruleset is appended at the end. Editing a block (its value, its
+  sets, its description) never changes its place.
+- An `elif` or `else` continues the `if` directly above it. A move that would
+  leave one without that `if` is refused.
+- A block with no **Script Sets** is still emitted, for example
+  `if (device==LAB-SW) { deny }`.
+
+The `check` step validates syntax only. It cannot tell that a block is in the
+wrong place, so review the **Preview** before you activate.
+
+Over the API, every script and ruleset has a 0-based `position`. Pass it on
+create to insert at that place (leave it out to append), or call
+`POST /api/v1/profilescripts/{id}/move`, `/rulesetscripts/{id}/move` or
+`/rulesets/{id}/move` with `{"position": n}`. The siblings are renumbered in the
+same transaction.
+
 > **After adding/editing profiles or rulesets:** regenerate and activate config.
 
 ---

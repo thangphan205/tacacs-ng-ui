@@ -1747,6 +1747,18 @@ export type PasskeyRegisterCompleteRequest = {
 };
 
 /**
+ * PositionMove
+ *
+ * Target of a reorder: the 0-based index among siblings, clamped to bounds.
+ */
+export type PositionMove = {
+    /**
+     * Position
+     */
+    position: number;
+};
+
+/**
  * PrivateUserCreate
  */
 export type PrivateUserCreate = {
@@ -1870,6 +1882,10 @@ export type ProfileScriptCreate = {
      * Profile Id
      */
     profile_id?: string | null;
+    /**
+     * Position
+     */
+    position?: number | null;
 };
 
 /**
@@ -1904,6 +1920,10 @@ export type ProfileScriptPublic = {
      * Id
      */
     id: string;
+    /**
+     * Position
+     */
+    position: number;
     /**
      * Profile Name
      */
@@ -2050,6 +2070,10 @@ export type ProfileScriptUpdate = {
      * Profile Id
      */
     profile_id?: string | null;
+    /**
+     * Position
+     */
+    position?: number | null;
 };
 
 /**
@@ -2126,6 +2150,10 @@ export type RulesetCreate = {
      * Description
      */
     description?: string | null;
+    /**
+     * Position
+     */
+    position?: number | null;
 };
 
 /**
@@ -2175,6 +2203,10 @@ export type RulesetPublic = {
      */
     id: string;
     /**
+     * Position
+     */
+    position: number;
+    /**
      * Created At
      */
     created_at: string;
@@ -2212,6 +2244,10 @@ export type RulesetScriptCreate = {
      * Ruleset Id
      */
     ruleset_id: string;
+    /**
+     * Position
+     */
+    position?: number | null;
 };
 
 /**
@@ -2246,6 +2282,10 @@ export type RulesetScriptPublic = {
      * Id
      */
     id: string;
+    /**
+     * Position
+     */
+    position: number;
     /**
      * Ruleset Name
      */
@@ -2392,6 +2432,10 @@ export type RulesetScriptUpdate = {
      * Ruleset Id
      */
     ruleset_id: string;
+    /**
+     * Position
+     */
+    position?: number | null;
 };
 
 /**
@@ -2432,6 +2476,10 @@ export type RulesetUpdate = {
      * Description
      */
     description?: string | null;
+    /**
+     * Position
+     */
+    position?: number | null;
 };
 
 /**
@@ -5582,6 +5630,36 @@ export type ProfilescriptsUpdateProfilescriptResponses = {
 
 export type ProfilescriptsUpdateProfilescriptResponse = ProfilescriptsUpdateProfilescriptResponses[keyof ProfilescriptsUpdateProfilescriptResponses];
 
+export type ProfilescriptsMoveProfilescriptData = {
+    body: PositionMove;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/profilescripts/{id}/move';
+};
+
+export type ProfilescriptsMoveProfilescriptErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ProfilescriptsMoveProfilescriptError = ProfilescriptsMoveProfilescriptErrors[keyof ProfilescriptsMoveProfilescriptErrors];
+
+export type ProfilescriptsMoveProfilescriptResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProfileScriptPublic;
+};
+
+export type ProfilescriptsMoveProfilescriptResponse = ProfilescriptsMoveProfilescriptResponses[keyof ProfilescriptsMoveProfilescriptResponses];
+
 export type ProfilescriptsetsReadProfilescriptsetsData = {
     body?: never;
     path?: never;
@@ -6057,6 +6135,36 @@ export type RulesetsUpdateRulesetResponses = {
 
 export type RulesetsUpdateRulesetResponse = RulesetsUpdateRulesetResponses[keyof RulesetsUpdateRulesetResponses];
 
+export type RulesetsMoveRulesetData = {
+    body: PositionMove;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/rulesets/{id}/move';
+};
+
+export type RulesetsMoveRulesetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RulesetsMoveRulesetError = RulesetsMoveRulesetErrors[keyof RulesetsMoveRulesetErrors];
+
+export type RulesetsMoveRulesetResponses = {
+    /**
+     * Successful Response
+     */
+    200: RulesetPublic;
+};
+
+export type RulesetsMoveRulesetResponse = RulesetsMoveRulesetResponses[keyof RulesetsMoveRulesetResponses];
+
 export type RulesetscriptsReadRulesetscriptsData = {
     body?: never;
     path?: never;
@@ -6209,6 +6317,36 @@ export type RulesetscriptsUpdateRulesetscriptResponses = {
 };
 
 export type RulesetscriptsUpdateRulesetscriptResponse = RulesetscriptsUpdateRulesetscriptResponses[keyof RulesetscriptsUpdateRulesetscriptResponses];
+
+export type RulesetscriptsMoveRulesetscriptData = {
+    body: PositionMove;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/rulesetscripts/{id}/move';
+};
+
+export type RulesetscriptsMoveRulesetscriptErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RulesetscriptsMoveRulesetscriptError = RulesetscriptsMoveRulesetscriptErrors[keyof RulesetscriptsMoveRulesetscriptErrors];
+
+export type RulesetscriptsMoveRulesetscriptResponses = {
+    /**
+     * Successful Response
+     */
+    200: RulesetScriptPublic;
+};
+
+export type RulesetscriptsMoveRulesetscriptResponse = RulesetscriptsMoveRulesetscriptResponses[keyof RulesetscriptsMoveRulesetscriptResponses];
 
 export type RulesetscriptsetsReadRulesetscriptsetsData = {
     body?: never;

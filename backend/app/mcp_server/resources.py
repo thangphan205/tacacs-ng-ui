@@ -188,6 +188,13 @@ Inside a rule script, assignments are bare `k=v` (e.g. `profile=...`), *not*
 Within `id = tac_plus-ng { }` the generator emits, in order: logs, MAVIS,
 backends, hosts, groups, users, profiles, ruleset.
 
+Inside a `script { }`, tac_plus-ng tests the blocks top to bottom and stops at
+the first `permit` or `deny` it reaches; the rules of a `ruleset` are tried the
+same way. So order is policy: a broad test such as `if (service==shell)` placed
+above a narrower one hides it. Profile scripts, ruleset scripts and rulesets
+each carry a `position` (0-based) and are emitted in that order. An `elif` or
+`else` continues the `if` directly above it, and `else` takes no test.
+
 ## Validating
 
 Syntax is checked with `tac_plus-ng -P <file>`. Use the `validate_config_text`
@@ -208,10 +215,10 @@ exist in the UI but are **not** emitted into the config.
 | `TacacsGroup` | `group_name` | Emits a bare `group = <name>`. |
 | `TacacsUser` | `username`, `password_type`, `password`, `member`, `account_expires_at` | `email` is stored but not emitted. A user whose `account_expires_at` (YYYY-MM-DD, last valid day) is in the past is omitted from the config. **`password` is the plaintext password — write it, never a digest.** With `password_type == "crypt"` the server applies sha512-crypt on save; pre-hashing it yourself makes the digest string itself the password. `password_type == "mavis"` emits `password login = mavis` with no argument and no `password pap`. Every other type is a local user and also emits `password pap = login`. |
 | `Profile` | `name`, `action` (the fall-through verb) | Profiles with zero scripts are skipped entirely. |
-| `ProfileScript` | `condition`, `key`, `value`, `action` | Scripts with zero sets are skipped. |
+| `ProfileScript` | `condition`, `key`, `value`, `action`, `position` | Emitted in `position` order within the profile. A script with zero sets still emits its test and action. An `else` emits no test. |
 | `ProfileScriptSet` | `key`, `value` → `set k=v` | |
-| `Ruleset` | `name`, `action` | `enabled` is stored but the generator always emits `enabled=yes`. |
-| `RulesetScript` | `condition`, `key`, `value`, `action` | |
+| `Ruleset` | `name`, `action`, `position` | Rules are emitted in `position` order — the first matching rule wins, so `position` is settable on create and update. `enabled` is stored but the generator always emits `enabled=yes`. |
+| `RulesetScript` | `condition`, `key`, `value`, `action`, `position` | Emitted in `position` order within the ruleset. A script with zero sets still emits its test and action. An `else` emits no test. |
 | `RulesetScriptSet` | `key`, `value` → bare `k=v` | |
 | `ConfigurationOption` | `config_option` (raw text) | Escape hatch. `name` is unique and must be one of `host`, `group`, `user`, `profile`, `rule`; the text is passed through verbatim into that section. Treated as non-secret by redaction. |
 | `TacacsService` | — | Has a `generate_config` flag but **no generator references it**. Currently inert. |

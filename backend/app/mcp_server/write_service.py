@@ -275,8 +275,12 @@ def delete_entity(*, session: Session, entity_type: str, name: str) -> WriteResu
 
     entity_id = str(row.id)  # type: ignore[attr-defined]
     old_values = row.model_dump_json(exclude=_AUDIT_EXCLUDE)
-    session.delete(row)
-    session.commit()
+    if entity_type == "ruleset":
+        # Renumbers the remaining rulesets so positions stay 0..n-1.
+        rulesets_crud.delete_ruleset(session=session, db_ruleset=row)  # type: ignore[arg-type]
+    else:
+        session.delete(row)
+        session.commit()
     return WriteResult(
         entity_type=entity_type,
         audit_type=spec.audit_type,

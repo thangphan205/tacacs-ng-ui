@@ -326,6 +326,41 @@ condition: $group == "read-only"        action: permit   key: priv-lvl   value: 
 default action: deny
 ```
 
+#### Thứ tự là quan trọng: khối khớp đầu tiên được áp dụng
+
+tac_plus-ng kiểm tra các khối script của một profile hoặc ruleset từ trên xuống
+dưới và dừng ở `permit` hoặc `deny` đầu tiên gặp được. Các rule trong khối
+`ruleset { }` cũng được thử theo cách đó. Vì vậy, một khối điều kiện rộng đặt
+phía trên sẽ che mất khối hẹp hơn bên dưới:
+
+```
+if (service==shell)     { set priv-lvl=1  ; permit }   # khớp với mọi phiên shell trước
+if (device==CORE-SW-01) { set priv-lvl=15 ; permit }   # không bao giờ được xét tới
+```
+
+Hãy đặt các khối cụ thể lên trước và khối bao quát (catch-all) ở cuối.
+
+- Mục **Script Structure** của profile hoặc ruleset liệt kê các khối theo đúng
+  thứ tự mà trình tạo config ghi ra, đánh số `#1`, `#2`, … Dùng nút **↑ / ↓**
+  trên mỗi khối để di chuyển.
+- Danh sách **Rulesets** hiển thị theo thứ tự rule. Nút ↑ / ↓ chỉ hiện khi không
+  có bộ lọc tìm kiếm.
+- Khối hoặc ruleset mới được thêm vào cuối. Sửa một khối (giá trị, script set,
+  mô tả) không bao giờ làm thay đổi vị trí của nó.
+- `elif` hoặc `else` nối tiếp `if` ngay phía trên nó. Thao tác di chuyển làm cho
+  chúng mất `if` đó sẽ bị từ chối.
+- Khối không có **Script Set** nào vẫn được ghi ra, ví dụ
+  `if (device==LAB-SW) { deny }`.
+
+Bước `check` chỉ kiểm tra cú pháp, không phát hiện được khối đặt sai vị trí. Hãy
+xem **Preview** trước khi kích hoạt.
+
+Qua API, mỗi script và ruleset có trường `position` (bắt đầu từ 0). Truyền giá
+trị này khi tạo để chèn vào vị trí đó (bỏ trống để thêm vào cuối), hoặc gọi
+`POST /api/v1/profilescripts/{id}/move`, `/rulesetscripts/{id}/move` hay
+`/rulesets/{id}/move` với `{"position": n}`. Các phần tử cùng cấp được đánh số
+lại trong cùng một transaction.
+
 > **Sau khi thêm/sửa profiles hoặc rulesets:** tạo lại và kích hoạt config.
 
 ---

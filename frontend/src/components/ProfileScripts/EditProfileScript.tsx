@@ -111,6 +111,8 @@ interface EditProfileScriptProps {
 }
 
 interface ProfileScriptUpdateForm {
+  // Present at runtime via the spread defaultValues; never sent.
+  position?: number
   condition: string
   key: string
   value: string
@@ -194,7 +196,9 @@ const EditProfileScript = ({
     })
   }
   const mutation = useMutation({
-    mutationFn: (data: ProfileScriptUpdateForm) =>
+    mutationFn: ({ position: _position, ...data }: ProfileScriptUpdateForm) =>
+      // Position changes go through the move buttons only: the form's
+      // defaultValues are captured at mount and would replay a stale position.
       ProfilescriptsService.updateProfilescript({
         id: profilescript.id,
         profileScriptUpdate: data,

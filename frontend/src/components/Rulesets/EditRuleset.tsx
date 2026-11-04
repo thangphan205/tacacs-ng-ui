@@ -69,6 +69,8 @@ interface EditRulesetProps {
 }
 
 interface RulesetUpdateForm {
+  // Present at runtime via the spread defaultValues; never sent.
+  position?: number
   name: string
   action: string
   description?: string
@@ -106,7 +108,9 @@ const EditRuleset = ({ ruleset }: EditRulesetProps) => {
   })
 
   const mutation = useMutation({
-    mutationFn: (data: RulesetUpdateForm) =>
+    mutationFn: ({ position: _position, ...data }: RulesetUpdateForm) =>
+      // Position changes go through the move buttons only: the form's
+      // defaultValues are captured at mount and would replay a stale position.
       RulesetsService.updateRuleset({ id: ruleset.id, rulesetUpdate: data }),
     onSuccess: () => {
       showSuccessToast("Ruleset updated successfully.")

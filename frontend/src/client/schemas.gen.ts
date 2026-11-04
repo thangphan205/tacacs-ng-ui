@@ -3083,6 +3083,22 @@ export const PasskeyRegisterCompleteRequestSchema = {
     title: 'PasskeyRegisterCompleteRequest'
 } as const;
 
+export const PositionMoveSchema = {
+    properties: {
+        position: {
+            type: 'integer',
+            minimum: 0,
+            title: 'Position'
+        }
+    },
+    type: 'object',
+    required: [
+        'position'
+    ],
+    title: 'PositionMove',
+    description: 'Target of a reorder: the 0-based index among siblings, clamped to bounds.'
+} as const;
+
 export const PrivateUserCreateSchema = {
     properties: {
         email: {
@@ -3292,6 +3308,18 @@ export const ProfileScriptCreateSchema = {
                 }
             ],
             title: 'Profile Id'
+        },
+        position: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Position'
         }
     },
     type: 'object',
@@ -3347,6 +3375,10 @@ export const ProfileScriptPublicSchema = {
             format: 'uuid',
             title: 'Id'
         },
+        position: {
+            type: 'integer',
+            title: 'Position'
+        },
         profile_name: {
             anyOf: [
                 {
@@ -3377,6 +3409,7 @@ export const ProfileScriptPublicSchema = {
         'action',
         'profile_id',
         'id',
+        'position',
         'created_at',
         'updated_at'
     ],
@@ -3612,6 +3645,18 @@ export const ProfileScriptUpdateSchema = {
                 }
             ],
             title: 'Profile Id'
+        },
+        position: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Position'
         }
     },
     type: 'object',
@@ -3737,6 +3782,18 @@ export const RulesetCreateSchema = {
                 }
             ],
             title: 'Description'
+        },
+        position: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Position'
         }
     },
     type: 'object',
@@ -3827,6 +3884,10 @@ export const RulesetPublicSchema = {
             format: 'uuid',
             title: 'Id'
         },
+        position: {
+            type: 'integer',
+            title: 'Position'
+        },
         created_at: {
             type: 'string',
             format: 'date-time',
@@ -3843,6 +3904,7 @@ export const RulesetPublicSchema = {
         'name',
         'action',
         'id',
+        'position',
         'created_at',
         'updated_at'
     ],
@@ -3886,6 +3948,18 @@ export const RulesetScriptCreateSchema = {
             type: 'string',
             format: 'uuid',
             title: 'Ruleset Id'
+        },
+        position: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Position'
         }
     },
     type: 'object',
@@ -3942,6 +4016,10 @@ export const RulesetScriptPublicSchema = {
             format: 'uuid',
             title: 'Id'
         },
+        position: {
+            type: 'integer',
+            title: 'Position'
+        },
         ruleset_name: {
             anyOf: [
                 {
@@ -3972,6 +4050,7 @@ export const RulesetScriptPublicSchema = {
         'action',
         'ruleset_id',
         'id',
+        'position',
         'created_at',
         'updated_at'
     ],
@@ -4203,6 +4282,18 @@ export const RulesetScriptUpdateSchema = {
             type: 'string',
             format: 'uuid',
             title: 'Ruleset Id'
+        },
+        position: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Position'
         }
     },
     type: 'object',
@@ -4270,6 +4361,18 @@ export const RulesetUpdateSchema = {
                 }
             ],
             title: 'Description'
+        },
+        position: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Position'
         }
     },
     type: 'object',

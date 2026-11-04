@@ -11,12 +11,14 @@ from app.api.deps import (
     get_current_user,
 )
 from app.crud import audit_logs as audit_logs_crud
+from app.crud.ordering import order_columns
 from app.crud import profilescripts
 from app.models import (
     Message,
     Profile,
     ProfileScript,
     ProfileScriptCreate,
+    PositionMove,
     ProfileScriptPublic,
     ProfileScriptsPublic,
     ProfileScriptUpdate,
@@ -52,7 +54,12 @@ def read_profilescripts(
         base_statement = base_statement.where(f)
     count = session.exec(count_statement).one()
 
-    statement = base_statement.offset(skip).limit(limit)
+    # Same order the generator writes: grouped by profile, then by position.
+    statement = (
+        base_statement.order_by(Profile.name, *order_columns(ProfileScript))
+        .offset(skip)
+        .limit(limit)
+    )
     profilescripts = session.exec(statement).all()
     data_profilescripts = []
     for profilescript, profile in profilescripts:
@@ -77,9 +84,12 @@ def create_profilescript(
     Create new profilescript.
     """
 
-    profilescript = profilescripts.create_profilescript(
-        session=session, profilescript_create=profilescript_in
-    )
+    try:
+        profilescript = profilescripts.create_profilescript(
+            session=session, profilescript_create=profilescript_in
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     audit_logs_crud.log_entity_action(
         session=session,
         action="CREATE",
@@ -139,11 +149,14 @@ def update_profilescript(
         )
 
     old_values = db_profilescript.model_dump_json(exclude=_SENSITIVE)
-    db_profilescript = profilescripts.update_profilescript(
-        session=session,
-        db_profilescript=db_profilescript,
-        profilescript_in=profilescript_in,
-    )
+    try:
+        db_profilescript = profilescripts.update_profilescript(
+            session=session,
+            db_profilescript=db_profilescript,
+            profilescript_in=profilescript_in,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     audit_logs_crud.log_entity_action(
         session=session,
         action="UPDATE",
@@ -174,8 +187,7 @@ def delete_profilescript(
         raise HTTPException(status_code=404, detail="Profilescript not found")
 
     old_values = profilescript.model_dump_json(exclude=_SENSITIVE)
-    session.delete(profilescript)
-    session.commit()
+    profilescripts.delete_profilescript(session=session, db_profilescript=profilescript)
     audit_logs_crud.log_entity_action(
         session=session,
         action="DELETE",
@@ -188,3 +200,49 @@ def delete_profilescript(
         old_values=old_values,
     )
     return Message(message="ProfileScript deleted successfully")
+
+
+@router.post(
+    "/{id}/move",
+    response_model=ProfileScriptPublic,
+)
+def move_profilescript(
+    *,
+    session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
+    id: uuid.UUID,
+    move_in: PositionMove,
+) -> Any:
+    """
+    Move a profile script to a 0-based position within its profile.
+
+    Siblings are renumbered in the same transaction. A move that would leave an
+    `elif` or `else` without the `if` it continues is refused with 400.
+    """
+    db_profilescript = session.get(ProfileScript, id)
+    if not db_profilescript:
+        raise HTTPException(status_code=404, detail="ProfileScript not found")
+
+    old_values = db_profilescript.model_dump_json(exclude=_SENSITIVE)
+    try:
+        db_profilescript = profilescripts.move_profilescript(
+            session=session,
+            db_profilescript=db_profilescript,
+            position=move_in.position,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    audit_logs_crud.log_entity_action(
+        session=session,
+        action="UPDATE",
+        entity_type="ProfileScript",
+        entity_id=str(db_profilescript.id),
+        user_id=current_user.id,
+        user_email=current_user.email,
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=db_profilescript.model_dump_json(exclude=_SENSITIVE),
+    )
+    return db_profilescript
