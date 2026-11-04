@@ -9,16 +9,17 @@ from app.api.deps import (
     SuperUser,
     get_client_ip,
     get_current_user,
+    require_primary_node,
 )
 from app.crud import audit_logs as audit_logs_crud
-from app.crud.ordering import order_columns
 from app.crud import rulesetscripts
+from app.crud.ordering import order_columns
 from app.models import (
     Message,
+    PositionMove,
     Ruleset,
     RulesetScript,
     RulesetScriptCreate,
-    PositionMove,
     RulesetScriptPublic,
     RulesetScriptsPublic,
     RulesetScriptUpdate,
@@ -186,7 +187,12 @@ def delete_rulesetscript(
         raise HTTPException(status_code=404, detail="RulesetScript not found")
 
     old_values = rulesetscript.model_dump_json(exclude=_SENSITIVE)
-    rulesetscripts.delete_rulesetscript(session=session, db_rulesetscript=rulesetscript)
+    try:
+        rulesetscripts.delete_rulesetscript(
+            session=session, db_rulesetscript=rulesetscript
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     audit_logs_crud.log_entity_action(
         session=session,
         action="DELETE",
@@ -203,6 +209,7 @@ def delete_rulesetscript(
 
 @router.post(
     "/{id}/move",
+    dependencies=[Depends(require_primary_node)],
     response_model=RulesetScriptPublic,
 )
 def move_rulesetscript(

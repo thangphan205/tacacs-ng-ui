@@ -4,6 +4,9 @@ from uuid import UUID
 from sqlmodel import Session, create_engine, select
 
 from app.core.config import settings
+from app.crud import profilescripts as profilescripts_crud
+from app.crud import rulesets as rulesets_crud
+from app.crud import rulesetscripts as rulesetscripts_crud
 from app.crud import users
 from app.crud.ordering import next_position
 from app.crud.tacacs_users import hash_tacacs_password
@@ -157,8 +160,7 @@ def get_or_create_profile_script(
             update={
                 "position": next_position(
                     session=session,
-                    model=ProfileScript,
-                    parent_column=ProfileScript.profile_id,
+                    spec=profilescripts_crud.SIBLINGS,
                     parent_id=profile_id,
                 )
             },
@@ -223,7 +225,7 @@ def get_or_create_ruleset(
             ruleset_in,
             update={
                 "position": next_position(
-                    session=session, model=Ruleset, parent_column=None, parent_id=None
+                    session=session, spec=rulesets_crud.SIBLINGS, parent_id=None
                 )
             },
         )
@@ -261,8 +263,7 @@ def get_or_create_ruleset_script(
             update={
                 "position": next_position(
                     session=session,
-                    model=RulesetScript,
-                    parent_column=RulesetScript.ruleset_id,
+                    spec=rulesetscripts_crud.SIBLINGS,
                     parent_id=ruleset_id,
                 )
             },

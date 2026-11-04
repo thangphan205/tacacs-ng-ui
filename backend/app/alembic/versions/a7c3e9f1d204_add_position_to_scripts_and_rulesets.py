@@ -5,9 +5,13 @@ stops at the first matching permit/deny, so their order is policy. Until now
 the generator read them with no ORDER BY, i.e. in heap order.
 
 The backfill numbers rows by `ctid` — the physical order a sequential scan
-returns, which is what the generator emitted until now — so the first config
-generated after the upgrade matches the active one. `created_at` and `id` only
-break ties.
+returns, which is what the generator emitted until now — so the scripts and
+rules keep the relative order they had in the active config. `created_at` and
+`id` only break ties.
+
+The same release starts emitting scripts that have no `set` lines (they used to
+be skipped), so a deployment that has such scripts will see them appear in the
+next generated config. The TACACS Configs page shows that as unapplied changes.
 
 Revision ID: a7c3e9f1d204
 Revises: 99cbabe9b3bc

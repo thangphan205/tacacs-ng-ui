@@ -12,7 +12,7 @@ enforces that.
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from pydantic import ValidationError
@@ -52,6 +52,11 @@ from app.models import (
 _AUDIT_EXCLUDE = set(_SENSITIVE)
 
 
+def _plain_delete(session: Session, row: SQLModel) -> None:
+    session.delete(row)
+    session.commit()
+
+
 @dataclass(frozen=True)
 class WriteSpec:
     """How one entity type is created and updated.
@@ -66,6 +71,10 @@ class WriteSpec:
     create: Callable[[Session, Any], SQLModel]
     update: Callable[[Session, Any, Any], SQLModel]
     audit_type: str
+    # Deletes and commits. Ordered entities override it to renumber siblings.
+    delete: Callable[[Session, Any], None] = field(
+        default=lambda s, row: _plain_delete(s, row)
+    )
 
 
 WRITABLE: dict[str, WriteSpec] = {
@@ -120,6 +129,7 @@ WRITABLE: dict[str, WriteSpec] = {
         update=lambda s, row, dto: rulesets_crud.update_ruleset(
             session=s, db_ruleset=row, ruleset_in=dto
         ),
+        delete=lambda s, row: rulesets_crud.delete_ruleset(session=s, db_ruleset=row),
         audit_type="Ruleset",
     ),
     "mavis": WriteSpec(
@@ -275,12 +285,7 @@ def delete_entity(*, session: Session, entity_type: str, name: str) -> WriteResu
 
     entity_id = str(row.id)  # type: ignore[attr-defined]
     old_values = row.model_dump_json(exclude=_AUDIT_EXCLUDE)
-    if entity_type == "ruleset":
-        # Renumbers the remaining rulesets so positions stay 0..n-1.
-        rulesets_crud.delete_ruleset(session=session, db_ruleset=row)  # type: ignore[arg-type]
-    else:
-        session.delete(row)
-        session.commit()
+    spec.delete(session, row)
     return WriteResult(
         entity_type=entity_type,
         audit_type=spec.audit_type,

@@ -177,7 +177,11 @@ function RulesetsTable() {
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {rulesets?.map((ruleset) => {
+                {rulesets?.map((ruleset, rowIndex) => {
+                  // Index in the full rule order; the server's move() takes an
+                  // index, so derive it from the page rather than trusting the
+                  // stored position to be dense.
+                  const ruleIndex = (page - 1) * perPage + rowIndex
                   const isExpanded = !!expandedRows[ruleset.id]
                   // Generator order: tac_plus-ng stops at the first matching
                   // permit/deny, so the list must read exactly as it is emitted.
@@ -222,7 +226,7 @@ function RulesetsTable() {
                             fontFamily="mono"
                             mr={2}
                           >
-                            #{ruleset.position + 1}
+                            #{ruleIndex + 1}
                           </Text>
                           {ruleset.name}
                         </Table.Cell>
@@ -260,9 +264,10 @@ function RulesetsTable() {
                                 the unfiltered list, where neighbours are visible. */}
                             {!search && (
                               <MoveButtons
-                                index={ruleset.position}
+                                index={ruleIndex}
                                 count={count}
                                 noun="rule"
+                                queryKey="rulesets"
                                 onMove={(position) =>
                                   RulesetsService.moveRuleset({
                                     id: ruleset.id,
@@ -375,6 +380,7 @@ function RulesetsTable() {
                                             index={index}
                                             count={rulesetScripts.length}
                                             noun="script"
+                                            queryKey="rulesetscripts"
                                             onMove={(position) =>
                                               RulesetscriptsService.moveRulesetscript(
                                                 {

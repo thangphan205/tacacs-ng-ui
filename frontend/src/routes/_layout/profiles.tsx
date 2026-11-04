@@ -313,6 +313,7 @@ function ProfilesTable() {
                                         index={index}
                                         count={profileScripts.length}
                                         noun="script"
+                                        queryKey="profilescripts"
                                         onMove={(position) =>
                                           ProfilescriptsService.moveProfilescript(
                                             {

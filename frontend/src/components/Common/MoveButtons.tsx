@@ -15,6 +15,8 @@ interface MoveButtonsProps {
   noun: string
   /** Persist the row at the given 0-based position. */
   onMove: (position: number) => Promise<unknown>
+  /** Query to refetch afterwards (the list whose order changed). */
+  queryKey: string
 }
 
 /**
@@ -22,13 +24,19 @@ interface MoveButtonsProps {
  * bottom (profile scripts, ruleset scripts, rulesets). The server renumbers
  * the siblings and refuses a move that would orphan an `elif` / `else`.
  */
-const MoveButtons = ({ index, count, noun, onMove }: MoveButtonsProps) => {
+const MoveButtons = ({
+  index,
+  count,
+  noun,
+  onMove,
+  queryKey,
+}: MoveButtonsProps) => {
   const queryClient = useQueryClient()
   const mutation = useMutation({
     mutationFn: onMove,
     onError: (err: ApiError) => handleError(err),
     onSettled: () => {
-      queryClient.invalidateQueries()
+      queryClient.invalidateQueries({ queryKey: [queryKey] })
     },
   })
 

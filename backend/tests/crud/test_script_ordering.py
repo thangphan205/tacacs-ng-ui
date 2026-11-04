@@ -65,9 +65,7 @@ def _add_script(
         ),
     )
     if priv is not None:
-        db.add(
-            ProfileScriptSet(key="priv-lvl", value=priv, profilescript_id=script.id)
-        )
+        db.add(ProfileScriptSet(key="priv-lvl", value=priv, profilescript_id=script.id))
         db.commit()
     return script
 
@@ -258,3 +256,84 @@ def test_ruleset_script_move_and_else_chain(
         .order_by(RulesetScript.position)
     ).all()
     assert [r.condition for r in rows] == ["if", "else"]
+
+
+# --- Review regressions ------------------------------------------------------
+
+
+def test_create_at_position_checks_against_the_real_baseline(
+    db: Session, profile: Profile
+) -> None:
+    # [if, else] is valid. An `else` inserted first must be refused even though
+    # appending it would also have been invalid.
+    _add_script(db, profile, "a")
+    _add_script(db, profile, "b", condition="else")
+    with pytest.raises(ValueError):
+        _add_script(db, profile, "x", condition="else", position=0, priv=None)
+    assert _order(db, profile) == ["a", "b"]
+
+
+def test_plain_create_cannot_open_with_else(db: Session, profile: Profile) -> None:
+    with pytest.raises(ValueError, match="'else'"):
+        _add_script(db, profile, "x", condition="else", priv=None)
+    assert _order(db, profile) == []
+
+
+def test_edit_cannot_break_the_chain(db: Session, profile: Profile) -> None:
+    first = _add_script(db, profile, "a")
+    _add_script(db, profile, "b", condition="elif")
+    with pytest.raises(ValueError):
+        profilescripts.update_profilescript(
+            session=db,
+            db_profilescript=first,
+            profilescript_in=ProfileScriptUpdate(
+                condition="else", key="device", value="a", action="permit"
+            ),
+        )
+    db.refresh(first)
+    assert first.condition == "if"
+
+
+def test_delete_cannot_orphan_an_elif(db: Session, profile: Profile) -> None:
+    head = _add_script(db, profile, "a")
+    _add_script(db, profile, "b", condition="elif")
+    with pytest.raises(ValueError):
+        profilescripts.delete_profilescript(session=db, db_profilescript=head)
+    assert _order(db, profile) == ["a", "b"]
+
+
+def test_moving_to_another_profile_appends_densely(
+    db: Session, profile: Profile
+) -> None:
+    other = Profile(name=f"order-{_tag()}", action="deny")
+    db.add(other)
+    db.commit()
+    db.refresh(other)
+    try:
+        for value in ("a", "b", "c", "d"):
+            _add_script(db, profile, value)
+        moving = db.exec(
+            select(ProfileScript).where(
+                ProfileScript.profile_id == profile.id, ProfileScript.value == "d"
+            )
+        ).one()
+        profilescripts.update_profilescript(
+            session=db,
+            db_profilescript=moving,
+            profilescript_in=ProfileScriptUpdate(
+                condition="if",
+                key="device",
+                value="d",
+                action="permit",
+                profile_id=other.id,
+            ),
+        )
+        assert moving.position == 0
+        assert _order(db, profile) == ["a", "b", "c"]
+        remaining = db.exec(
+            select(ProfileScript).where(ProfileScript.profile_id == profile.id)
+        ).all()
+        assert sorted(s.position for s in remaining) == [0, 1, 2]
+    finally:
+        db.delete(other)
+        db.commit()

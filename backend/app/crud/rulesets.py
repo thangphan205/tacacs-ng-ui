@@ -23,56 +23,40 @@ def get_ruleset_by_name(*, session: Session, name: str) -> Ruleset | None:
 
 # Rulesets are siblings of one another: tac_plus-ng evaluates the `rule` blocks
 # inside `ruleset { }` top to bottom, so they carry a position like scripts do.
-_NO_PARENT = {"parent_column": None, "parent_id": None}
+SIBLINGS = ordering.Siblings(model=Ruleset, parent_attr=None)
 
 
 def create_ruleset(*, session: Session, ruleset_create: RulesetCreate) -> Ruleset:
-    data = ruleset_create.model_dump(exclude={"position"})
-    data["position"] = ordering.next_position(
-        session=session, model=Ruleset, **_NO_PARENT
+    row: Ruleset = ordering.create(
+        session=session,
+        spec=SIBLINGS,
+        data=ruleset_create.model_dump(exclude={"position"}),
+        position=ruleset_create.position,
     )
-    db_obj = Ruleset.model_validate(data)
-    session.add(db_obj)
-    if ruleset_create.position is None:
-        session.commit()
-        session.refresh(db_obj)
-        return db_obj
-    return move_ruleset(
-        session=session, db_ruleset=db_obj, position=ruleset_create.position
-    )
+    return row
 
 
 def update_ruleset(
     *, session: Session, db_ruleset: Ruleset, ruleset_in: RulesetUpdate
 ) -> Any:
-    ruleset_data = ruleset_in.model_dump(exclude_unset=True)
-    new_position = ruleset_data.pop("position", None)
-    db_ruleset.sqlmodel_update(ruleset_data)
-    session.add(db_ruleset)
-    if new_position is None or new_position == db_ruleset.position:
-        session.commit()
-        session.refresh(db_ruleset)
-        return db_ruleset
-    return move_ruleset(session=session, db_ruleset=db_ruleset, position=new_position)
+    return ordering.update(
+        session=session,
+        spec=SIBLINGS,
+        row=db_ruleset,
+        data=ruleset_in.model_dump(exclude_unset=True),
+    )
 
 
 def move_ruleset(*, session: Session, db_ruleset: Ruleset, position: int) -> Ruleset:
-    ordering.move(
-        session=session,
-        row=db_ruleset,
-        model=Ruleset,
-        position=position,
-        **_NO_PARENT,
+    row: Ruleset = ordering.update(
+        session=session, spec=SIBLINGS, row=db_ruleset, data={"position": position}
     )
-    return db_ruleset
+    return row
 
 
 def delete_ruleset(*, session: Session, db_ruleset: Ruleset) -> None:
     """Delete and renumber the remaining rulesets so positions stay 0..n-1."""
-    session.delete(db_ruleset)
-    session.flush()
-    ordering.compact(session=session, model=Ruleset, **_NO_PARENT)
-    session.commit()
+    ordering.delete(session=session, spec=SIBLINGS, row=db_ruleset)
 
 
 def ruleset_generator(session: Session) -> str:

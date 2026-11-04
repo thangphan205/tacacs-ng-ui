@@ -6,46 +6,53 @@ order the generator reads them, and tac_plus-ng stops at the first `permit` or
 it is stored in a `position` column instead of being left to the heap order of
 an unordered SELECT.
 
-Positions are kept dense (0..n-1) so the value the API returns is also the
-row's index: a new row is appended at `max + 1`, and a move or a delete
-renumbers the siblings in the same transaction. `created_at` then `id` break
-ties, so the order stays total even when two concurrent creates both compute
-the same `max + 1`; the next move or delete re-densifies it.
+Every mutation of an ordered row goes through `create` / `update` / `delete`
+here, which:
+
+- take a transaction-scoped advisory lock on the sibling group, so concurrent
+  creates, moves and deletes in one profile (or among the rulesets) serialize
+  instead of interleaving their renumbering;
+- keep positions dense (0..n-1), so the value the API returns is also the row's
+  index;
+- refuse, with `ValueError`, any change that leaves more broken if/elif/else
+  chains than there were before. A chain that was already broken can still be
+  edited, so legacy data never gets stuck.
+
+`created_at` then `id` break ties in the ORDER BY, so the order stays total even
+if positions ever collide.
 """
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import func
-from sqlmodel import Session, SQLModel, col, select
+from sqlalchemy import func, text
+from sqlmodel import Session, col, select
 
 # Conditions that continue the chain opened by the script just above them.
 _CONTINUATIONS = frozenset({"elif", "else"})
 
 
+@dataclass(frozen=True)
+class Siblings:
+    """How one ordered model is grouped.
+
+    `parent_attr` names the foreign key that groups siblings (`profile_id`), or
+    is `None` when every row belongs to one list (rulesets). `condition_attr`
+    names the if/elif/else field whose chain must stay valid, if any.
+    """
+
+    model: Any
+    parent_attr: str | None
+    condition_attr: str | None = None
+
+    def parent_of(self, row: Any) -> Any:
+        return getattr(row, self.parent_attr) if self.parent_attr else None
+
+
 def order_columns(model: Any) -> tuple[Any, ...]:
     """The ORDER BY used everywhere these rows are read."""
     return (col(model.position), col(model.created_at), col(model.id))
-
-
-def next_position(
-    *, session: Session, model: Any, parent_column: Any | None, parent_id: Any
-) -> int:
-    """`max(position) + 1` among the row's siblings, or 0 for the first one."""
-    statement = select(func.max(model.position))
-    if parent_column is not None:
-        statement = statement.where(parent_column == parent_id)
-    current = session.exec(statement).one()
-    return 0 if current is None else int(current) + 1
-
-
-def ordered_siblings(
-    *, session: Session, model: Any, parent_column: Any | None, parent_id: Any
-) -> list[Any]:
-    statement = select(model)
-    if parent_column is not None:
-        statement = statement.where(parent_column == parent_id)
-    return list(session.exec(statement.order_by(*order_columns(model))).all())
 
 
 def chain_errors(conditions: Sequence[str]) -> list[str]:
@@ -62,66 +69,137 @@ def chain_errors(conditions: Sequence[str]) -> list[str]:
         if condition in _CONTINUATIONS and previous not in ("if", "elif"):
             where = "first" if previous is None else f"after an '{previous}'"
             errors.append(
-                f"Script #{index + 1} is an '{condition}' but comes {where}; "
+                f"Script #{index + 1} would be an '{condition}' that comes {where}; "
                 "it must directly follow an 'if' or an 'elif'."
             )
         previous = condition
     return errors
 
 
-def move(
-    *,
-    session: Session,
-    row: SQLModel,
-    model: Any,
-    parent_column: Any | None,
-    parent_id: Any,
-    position: int,
-    condition_attr: str | None = None,
-) -> SQLModel:
-    """Move `row` to index `position` among its siblings and renumber them.
+def next_position(*, session: Session, spec: Siblings, parent_id: Any) -> int:
+    """`max(position) + 1` among the siblings, or 0 for the first one."""
+    statement = select(func.max(spec.model.position))
+    if spec.parent_attr:
+        statement = statement.where(getattr(spec.model, spec.parent_attr) == parent_id)
+    current = session.exec(statement).one()
+    return 0 if current is None else int(current) + 1
 
-    `position` is a 0-based index into the current order and is clamped to the
-    list bounds. When `condition_attr` names the if/elif/else field, a move that
-    would break a valid chain is refused with `ValueError`; a chain that was
-    already broken may still be rearranged, so legacy data never gets stuck.
+
+def ordered_siblings(*, session: Session, spec: Siblings, parent_id: Any) -> list[Any]:
+    statement = select(spec.model)
+    if spec.parent_attr:
+        statement = statement.where(getattr(spec.model, spec.parent_attr) == parent_id)
+    return list(session.exec(statement.order_by(*order_columns(spec.model))).all())
+
+
+def create(
+    *, session: Session, spec: Siblings, data: dict[str, Any], position: int | None
+) -> Any:
+    """Insert a row at the end, or at index `position`, and commit."""
+    parent = data.get(spec.parent_attr) if spec.parent_attr else None
+    _lock(session, spec, [parent])
+    before = {parent: _errors(session, spec, parent)}
+
+    data = {
+        **data,
+        "position": next_position(session=session, spec=spec, parent_id=parent),
+    }
+    row = spec.model.model_validate(data)
+    session.add(row)
+    _place(session, spec, row, parent, position)
+    return _finish(session, spec, before, row)
+
+
+def update(*, session: Session, spec: Siblings, row: Any, data: dict[str, Any]) -> Any:
+    """Apply field changes and an optional `position` move, and commit.
+
+    Without a `position` the row keeps its place. A row moved to another parent
+    is appended there and the gap it leaves is closed.
     """
-    siblings = ordered_siblings(
-        session=session, model=model, parent_column=parent_column, parent_id=parent_id
+    data = dict(data)
+    position = data.pop("position", None)
+    old_parent = spec.parent_of(row)
+    new_parent = data.get(spec.parent_attr, old_parent) if spec.parent_attr else None
+    parents = [old_parent] if new_parent == old_parent else [old_parent, new_parent]
+
+    _lock(session, spec, parents)
+    before = {p: _errors(session, spec, p) for p in parents}
+    # Computed before the row is touched: once it is dirty, autoflush would
+    # write it into the new parent first and count it in the max.
+    appended = (
+        next_position(session=session, spec=spec, parent_id=new_parent)
+        if new_parent != old_parent
+        else None
     )
-    row_id = row.id  # type: ignore[attr-defined]
-    remaining = [s for s in siblings if s.id != row_id]
-    target = max(0, min(position, len(remaining)))
-    reordered = [*remaining[:target], row, *remaining[target:]]
 
-    if condition_attr is not None:
-        before = chain_errors([getattr(s, condition_attr) for s in siblings])
-        after = chain_errors([getattr(s, condition_attr) for s in reordered])
-        if after and len(after) > len(before):
-            raise ValueError(" ".join(after))
-
-    _renumber(session, reordered)
-    session.commit()
-    session.refresh(row)
-    return row
+    row.sqlmodel_update(data)
+    if appended is not None:
+        row.position = appended
+    session.add(row)
+    if new_parent != old_parent:
+        _renumber(
+            session, ordered_siblings(session=session, spec=spec, parent_id=old_parent)
+        )
+    _place(session, spec, row, new_parent, position)
+    return _finish(session, spec, before, row)
 
 
-def compact(
-    *, session: Session, model: Any, parent_column: Any | None, parent_id: Any
+def delete(*, session: Session, spec: Siblings, row: Any) -> None:
+    """Delete a row, close the gap it leaves, and commit."""
+    parent = spec.parent_of(row)
+    _lock(session, spec, [parent])
+    before = {parent: _errors(session, spec, parent)}
+    session.delete(row)
+    session.flush()
+    _renumber(session, ordered_siblings(session=session, spec=spec, parent_id=parent))
+    _finish(session, spec, before, None)
+
+
+def _lock(session: Session, spec: Siblings, parents: Sequence[Any]) -> None:
+    """Serialize writers per sibling group until the transaction ends.
+
+    Locks are taken in a fixed order so two writers touching the same pair of
+    groups (a script moved between two profiles) cannot deadlock.
+    """
+    for parent in sorted({str(p) for p in parents}):
+        session.connection().execute(
+            text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+            {"key": f"{spec.model.__tablename__}:{parent}"},
+        )
+
+
+def _errors(session: Session, spec: Siblings, parent: Any) -> list[str]:
+    if spec.condition_attr is None:
+        return []
+    rows = ordered_siblings(session=session, spec=spec, parent_id=parent)
+    return chain_errors([getattr(r, spec.condition_attr) for r in rows])
+
+
+def _place(
+    session: Session, spec: Siblings, row: Any, parent: Any, position: int | None
 ) -> None:
-    """Renumber siblings 0..n-1 in their current order, closing any gaps.
+    """Renumber `parent`'s rows densely, with `row` at index `position` if given."""
+    rows = ordered_siblings(session=session, spec=spec, parent_id=parent)
+    if position is not None:
+        rows = [r for r in rows if r is not row]
+        target = max(0, min(position, len(rows)))
+        rows.insert(target, row)
+    _renumber(session, rows)
 
-    Does not commit: callers fold it into the transaction that made the gap.
-    """
-    _renumber(
-        session,
-        ordered_siblings(
-            session=session,
-            model=model,
-            parent_column=parent_column,
-            parent_id=parent_id,
-        ),
-    )
+
+def _finish(
+    session: Session, spec: Siblings, before: dict[Any, list[str]], row: Any
+) -> Any:
+    """Commit, unless the change broke more if/elif/else chains than it found."""
+    for parent, errors_before in before.items():
+        errors_after = _errors(session, spec, parent)
+        if len(errors_after) > len(errors_before):
+            session.rollback()
+            raise ValueError(" ".join(errors_after))
+    session.commit()
+    if row is not None:
+        session.refresh(row)
+    return row
 
 
 def _renumber(session: Session, rows: Sequence[Any]) -> None:

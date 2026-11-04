@@ -9,16 +9,17 @@ from app.api.deps import (
     SuperUser,
     get_client_ip,
     get_current_user,
+    require_primary_node,
 )
 from app.crud import audit_logs as audit_logs_crud
-from app.crud.ordering import order_columns
 from app.crud import profilescripts
+from app.crud.ordering import order_columns
 from app.models import (
     Message,
+    PositionMove,
     Profile,
     ProfileScript,
     ProfileScriptCreate,
-    PositionMove,
     ProfileScriptPublic,
     ProfileScriptsPublic,
     ProfileScriptUpdate,
@@ -187,7 +188,12 @@ def delete_profilescript(
         raise HTTPException(status_code=404, detail="Profilescript not found")
 
     old_values = profilescript.model_dump_json(exclude=_SENSITIVE)
-    profilescripts.delete_profilescript(session=session, db_profilescript=profilescript)
+    try:
+        profilescripts.delete_profilescript(
+            session=session, db_profilescript=profilescript
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     audit_logs_crud.log_entity_action(
         session=session,
         action="DELETE",
@@ -204,6 +210,7 @@ def delete_profilescript(
 
 @router.post(
     "/{id}/move",
+    dependencies=[Depends(require_primary_node)],
     response_model=ProfileScriptPublic,
 )
 def move_profilescript(
