@@ -12,19 +12,35 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+## v0.6.3
+
 ### Features
 
-* ✨ Filter AAA trend charts by clicking the legend. PR [#343](https://github.com/thangphan205/tacacs-ng-ui/pull/343) by [@thangphan205](https://github.com/thangphan205).
-* ✨ Exclude service accounts from AAA statistics. PR [#342](https://github.com/thangphan205/tacacs-ng-ui/pull/342) by [@thangphan205](https://github.com/thangphan205).
-* ✨ Deterministic, user-controlled order for profile and ruleset scripts. PR [#341](https://github.com/thangphan205/tacacs-ng-ui/pull/341) by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Profile and ruleset scripts keep the order you give them.** `tac_plus-ng` evaluates a script top to bottom and stops at the first `permit` or `deny`, and tries a ruleset's rules the same way. The generator read them with no fixed order, so an `UPDATE`, `VACUUM FULL` or restore could change which profile or privilege level a user got, and **Check** could not catch it. Profile scripts, ruleset scripts and rulesets now have a `position`. The Script Structure views and the Rulesets list show `#n` with ↑/↓ buttons, and new `POST /profilescripts/{id}/move`, `/rulesetscripts/{id}/move` and `/rulesets/{id}/move` endpoints reorder them (audit-logged). A create, edit, move or delete that would leave an `elif` or `else` without its `if` is refused with 400. MCP reads are ordered, and ruleset `position` is writable over MCP. PR [#341](https://github.com/thangphan205/tacacs-ng-ui/pull/341).
+
+* ✨ **Exclude service accounts from AAA statistics.** Automation accounts, such as an inventory collector that logs into every device on a schedule, no longer take over top users, totals and trends. Superusers add usernames or `*` patterns (`svc_*`) under **AAA Statistics → Manage**. Excluded accounts are left out of the AAA Statistics page, the Dashboard and the statistics API, including past days. They still authenticate, and their events still reach the raw logs, the log viewer, alert rules, anomaly detection and SIEM forwarding. The statistics pages show which accounts are excluded, and **Include excluded** shows the full numbers. API clients pass `include_excluded=true`. PR [#342](https://github.com/thangphan205/tacacs-ng-ui/pull/342), closes [#340](https://github.com/thangphan205/tacacs-ng-ui/issues/340).
+
+* ✨ **Filter the AAA trend charts from their legend.** Click a series, for example **Auth Fail**, to show only it, with the Y-axis rescaled to it. Click it again to show all. Shift-, Ctrl- or Cmd-click adds or removes one series, and **Show all** resets the chart. This works on the Dashboard trend, the Today and Historic Range charts, and each Node Comparison card. PR [#343](https://github.com/thangphan205/tacacs-ng-ui/pull/343).
+
+### Fixes
+
+* 🐛 **Scripts with no sets were left out of the generated config.** A profile or ruleset script with no sets, such as `if (device==X) { deny }`, was skipped without a warning, so traffic fell through to the next rule. It is now emitted. See *Upgrading* below. PR [#341](https://github.com/thangphan205/tacacs-ng-ui/pull/341).
+* 🐛 An `else` profile script no longer renders as `else (key==value)`, which `tac_plus-ng` rejects. Ruleset scripts were fixed in 0.6.2. PR [#341](https://github.com/thangphan205/tacacs-ng-ui/pull/341).
+* 🐛 `GET /rulesets/{id}` and `GET /rulesetscripts/{id}` return 404 instead of 500 for an unknown id. PR [#341](https://github.com/thangphan205/tacacs-ng-ui/pull/341).
+* 🐛 Today's authorization and accounting totals are parsed the same way as the nightly statistics job. Before, the two could disagree. PR [#342](https://github.com/thangphan205/tacacs-ng-ui/pull/342).
 
 ### Docs
 
-* 📝 Lead the README with AI-assisted configuration over MCP. PR [#338](https://github.com/thangphan205/tacacs-ng-ui/pull/338) by [@thangphan205](https://github.com/thangphan205).
+* 📝 The README leads with AI-assisted configuration over MCP. PR [#338](https://github.com/thangphan205/tacacs-ng-ui/pull/338).
+* 📝 The user guide (English and Vietnamese) covers script and rule order ("Order matters: the first match wins") and excluding service accounts from statistics.
 
-### Internal
+### Upgrading from 0.6.2
 
-* 🔖 Release 0.6.2. PR [#337](https://github.com/thangphan205/tacacs-ng-ui/pull/337) by [@thangphan205](https://github.com/thangphan205).
+Two Alembic migrations run on startup (`prestart.sh`), and both only add to the schema. `a7c3e9f1d204` adds `position` to profile scripts, ruleset scripts and rulesets. It numbers them in the order the generator wrote them until now, so the first config you generate after upgrading keeps the current order. `b8d4f2a6c913` adds the `statsexcludeduser` table.
+
+**Check scripts that have no sets before you regenerate.** 0.6.2 left them out of the config. 0.6.3 writes them, so a `deny` script with no sets now blocks, and **a `permit` script with no sets now grants access**. After upgrading, open **TACACS Configs**: any such script shows up as an unapplied change. Review it before you press **Generate** and **Activate**.
+
+Today's authorization and accounting totals on the Dashboard and the AAA Statistics page may change slightly, because they now match the nightly job. Past days do not change.
 
 ## v0.6.2
 
