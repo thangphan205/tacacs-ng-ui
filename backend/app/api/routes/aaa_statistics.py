@@ -12,7 +12,7 @@ from sqlmodel import Session
 from app.api.deps import SessionDep, get_current_active_superuser, get_current_user
 from app.core.config import settings
 from app.core.db import engine
-from app.crud import aaa_statistics
+from app.crud import aaa_statistics, stats_exclusions
 from app.models import (
     AaaStatisticsDateRangePublic,
     AaaStatisticsTodayPublic,
@@ -43,16 +43,24 @@ def list_aaa_nodes(session: SessionDep) -> list[str]:
 def read_aaa_statistics(
     session: SessionDep,
     node_name: str | None = None,
+    include_excluded: bool = False,
 ) -> Any:
     """
     Retrieve aaa_statistics.
-    """
 
-    return_statistics = {}
+    Users matching a statistics exclusion are left out unless include_excluded
+    is set; the patterns applied are returned in excluded_users.
+    """
+    excluded = stats_exclusions.resolve_patterns(
+        session=session, include_excluded=include_excluded
+    )
+
+    return_statistics: dict[str, Any] = {}
     return_statistics.update(
         aaa_statistics.get_last_7_days_statistics(
             session=session,
             node_name=node_name,
+            excluded=excluded,
         )
     )
 
@@ -60,8 +68,10 @@ def read_aaa_statistics(
         aaa_statistics.process_today_authentication_statistics(
             session=session,
             node_name=node_name,
+            excluded=excluded,
         )
     )
+    return_statistics["excluded_users"] = excluded
 
     return return_statistics
 
@@ -77,9 +87,13 @@ def read_aaa_statistics_range(
     limit: int = 5,
     range_date: str | None = None,
     node_name: str | None = None,
+    include_excluded: bool = False,
 ) -> Any:
     """
     Retrieve aaa_statistics.
+
+    Users matching a statistics exclusion are left out unless include_excluded
+    is set; the patterns applied are returned in excluded_users.
     """
 
     if range_date:
@@ -100,13 +114,18 @@ def read_aaa_statistics_range(
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=7)
 
-    return_statistics = {}
+    excluded = stats_exclusions.resolve_patterns(
+        session=session, include_excluded=include_excluded
+    )
+
+    return_statistics: dict[str, Any] = {}
     return_statistics.update(
         aaa_statistics.get_date_range_statistics(
             session=session,
             start_date=start_date,
             end_date=end_date,
             node_name=node_name,
+            excluded=excluded,
         )
     )
     return_statistics.update(
@@ -117,6 +136,7 @@ def read_aaa_statistics_range(
             skip=skip,
             limit=limit,
             node_name=node_name,
+            excluded=excluded,
         )
     )
     return_statistics.update(
@@ -127,8 +147,10 @@ def read_aaa_statistics_range(
             skip=skip,
             limit=limit,
             node_name=node_name,
+            excluded=excluded,
         )
     )
+    return_statistics["excluded_users"] = excluded
 
     return return_statistics
 

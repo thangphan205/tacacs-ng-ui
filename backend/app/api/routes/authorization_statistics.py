@@ -7,6 +7,7 @@ from sqlalchemy import asc, desc
 from sqlmodel import func, select
 
 from app.api.deps import SessionDep, get_current_user
+from app.crud import stats_exclusions
 from app.models import AuthorizationStatistics, AuthorizationStatisticsPublic
 
 router = APIRouter(
@@ -37,6 +38,7 @@ def read_authorization_statistics(
     sort_by: str = "log_date",
     sort_order: str = "desc",
     node_name: str | None = None,
+    include_excluded: bool = False,
 ) -> Any:
     col = _SORT_FIELDS.get(sort_by, AuthorizationStatistics.log_date)
     order = desc(col) if sort_order == "desc" else asc(col)
@@ -55,6 +57,16 @@ def read_authorization_statistics(
     if node_name:
         count_stmt = count_stmt.where(AuthorizationStatistics.node_name == node_name)
         stmt = stmt.where(AuthorizationStatistics.node_name == node_name)
+
+    excl = stats_exclusions.not_excluded_clause(
+        AuthorizationStatistics.username,
+        stats_exclusions.resolve_patterns(
+            session=session, include_excluded=include_excluded
+        ),
+    )
+    if excl is not None:
+        count_stmt = count_stmt.where(excl)
+        stmt = stmt.where(excl)
 
     count = session.exec(count_stmt).one()
     rows = session.exec(stmt.order_by(order).offset(skip).limit(limit)).all()

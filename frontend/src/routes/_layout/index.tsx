@@ -59,6 +59,7 @@ import {
   TacacsLogsService,
   TacacsUsersService,
 } from "@/client"
+import { StatsExclusionsNote } from "@/components/AaaStatistics/StatsExclusions"
 import { PageHeader } from "@/components/Common/PageHeader"
 
 export const Route = createFileRoute("/_layout/")({
@@ -949,6 +950,7 @@ function Dashboard() {
           icon={FiTrendingUp}
         />
         <Flex align="center" gap={3} pt={{ base: 0, md: 6 }}>
+          <StatsExclusionsNote />
           {dataUpdatedAt > 0 && (
             <Flex color="fg.muted" fontSize="xs" align="center" gap={1}>
               <FiClock />

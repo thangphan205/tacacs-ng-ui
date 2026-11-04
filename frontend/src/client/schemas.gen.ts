@@ -100,6 +100,14 @@ export const AaaStatisticsDateRangePublicSchema = {
             type: 'array',
             title: 'Last Range Days Accounting Stop',
             default: []
+        },
+        excluded_users: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Excluded Users',
+            default: []
         }
     },
     type: 'object',
@@ -282,6 +290,14 @@ export const AaaStatisticsTodayPublicSchema = {
             },
             type: 'array',
             title: 'Today Authentication Success Count By Nas Ip',
+            default: []
+        },
+        excluded_users: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Excluded Users',
             default: []
         }
     },
@@ -4405,6 +4421,100 @@ export const RulesetsPublicSchema = {
     title: 'RulesetsPublic'
 } as const;
 
+export const StatsExcludedUserCreateSchema = {
+    properties: {
+        pattern: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Pattern'
+        },
+        note: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Note'
+        }
+    },
+    type: 'object',
+    required: [
+        'pattern'
+    ],
+    title: 'StatsExcludedUserCreate'
+} as const;
+
+export const StatsExcludedUserPublicSchema = {
+    properties: {
+        pattern: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Pattern'
+        },
+        note: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Note'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: [
+        'pattern',
+        'id',
+        'created_at',
+        'updated_at'
+    ],
+    title: 'StatsExcludedUserPublic'
+} as const;
+
+export const StatsExcludedUsersPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                $ref: '#/components/schemas/StatsExcludedUserPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: [
+        'data',
+        'count'
+    ],
+    title: 'StatsExcludedUsersPublic'
+} as const;
+
 export const TacacsConfigCreateSchema = {
     properties: {
         filename: {
@@ -4744,6 +4854,14 @@ export const TacacsLogDailySummarySchema = {
         },
         accounting: {
             $ref: '#/components/schemas/TacacsLogTypeSummary'
+        },
+        excluded_users: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Excluded Users',
+            default: []
         }
     },
     type: 'object',

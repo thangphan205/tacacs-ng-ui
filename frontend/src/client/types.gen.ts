@@ -74,6 +74,10 @@ export type AaaStatisticsDateRangePublic = {
     last_range_days_accounting_stop?: Array<{
         [key: string]: unknown;
     }>;
+    /**
+     * Excluded Users
+     */
+    excluded_users?: Array<string>;
 };
 
 /**
@@ -198,6 +202,10 @@ export type AaaStatisticsTodayPublic = {
     today_authentication_success_count_by_nas_ip?: Array<{
         [key: string]: unknown;
     }>;
+    /**
+     * Excluded Users
+     */
+    excluded_users?: Array<string>;
 };
 
 /**
@@ -2497,6 +2505,60 @@ export type RulesetsPublic = {
 };
 
 /**
+ * StatsExcludedUserCreate
+ */
+export type StatsExcludedUserCreate = {
+    /**
+     * Pattern
+     */
+    pattern: string;
+    /**
+     * Note
+     */
+    note?: string | null;
+};
+
+/**
+ * StatsExcludedUserPublic
+ */
+export type StatsExcludedUserPublic = {
+    /**
+     * Pattern
+     */
+    pattern: string;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * StatsExcludedUsersPublic
+ */
+export type StatsExcludedUsersPublic = {
+    /**
+     * Data
+     */
+    data: Array<StatsExcludedUserPublic>;
+    /**
+     * Count
+     */
+    count: number;
+};
+
+/**
  * TacacsConfigCreate
  */
 export type TacacsConfigCreate = {
@@ -2689,6 +2751,10 @@ export type TacacsLogDailySummary = {
     authentication: TacacsLogTypeSummary;
     authorization: TacacsLogTypeSummary;
     accounting: TacacsLogTypeSummary;
+    /**
+     * Excluded Users
+     */
+    excluded_users?: Array<string>;
 };
 
 /**
@@ -6800,6 +6866,10 @@ export type TacacsLogsGetLogEventsSummaryData = {
          * Date
          */
         date?: string | null;
+        /**
+         * Include Excluded
+         */
+        include_excluded?: boolean;
     };
     url: '/api/v1/tacacs_logs/events/summary';
 };
@@ -7154,6 +7224,10 @@ export type AuthenticationStatisticsReadAuthenticationStatisticsData = {
          * Node Name
          */
         node_name?: string | null;
+        /**
+         * Include Excluded
+         */
+        include_excluded?: boolean;
     };
     url: '/api/v1/authentication_statistics/';
 };
@@ -7208,6 +7282,10 @@ export type AuthorizationStatisticsReadAuthorizationStatisticsData = {
          * Node Name
          */
         node_name?: string | null;
+        /**
+         * Include Excluded
+         */
+        include_excluded?: boolean;
     };
     url: '/api/v1/authorization_statistics/';
 };
@@ -7262,6 +7340,10 @@ export type AccountingStatisticsReadAccountingStatisticsData = {
          * Node Name
          */
         node_name?: string | null;
+        /**
+         * Include Excluded
+         */
+        include_excluded?: boolean;
     };
     url: '/api/v1/accounting_statistics/';
 };
@@ -7310,6 +7392,10 @@ export type AaaStatisticsReadAaaStatisticsData = {
          * Node Name
          */
         node_name?: string | null;
+        /**
+         * Include Excluded
+         */
+        include_excluded?: boolean;
     };
     url: '/api/v1/aaa_statistics/today/';
 };
@@ -7352,6 +7438,10 @@ export type AaaStatisticsReadAaaStatisticsRangeData = {
          * Node Name
          */
         node_name?: string | null;
+        /**
+         * Include Excluded
+         */
+        include_excluded?: boolean;
     };
     url: '/api/v1/aaa_statistics/range/';
 };
@@ -7403,6 +7493,77 @@ export type AaaStatisticsRunAaaStatisticsResponses = {
      */
     200: unknown;
 };
+
+export type StatsExclusionsReadStatsExclusionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/stats_exclusions/';
+};
+
+export type StatsExclusionsReadStatsExclusionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: StatsExcludedUsersPublic;
+};
+
+export type StatsExclusionsReadStatsExclusionsResponse = StatsExclusionsReadStatsExclusionsResponses[keyof StatsExclusionsReadStatsExclusionsResponses];
+
+export type StatsExclusionsCreateStatsExclusionData = {
+    body: StatsExcludedUserCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/stats_exclusions/';
+};
+
+export type StatsExclusionsCreateStatsExclusionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StatsExclusionsCreateStatsExclusionError = StatsExclusionsCreateStatsExclusionErrors[keyof StatsExclusionsCreateStatsExclusionErrors];
+
+export type StatsExclusionsCreateStatsExclusionResponses = {
+    /**
+     * Successful Response
+     */
+    200: StatsExcludedUserPublic;
+};
+
+export type StatsExclusionsCreateStatsExclusionResponse = StatsExclusionsCreateStatsExclusionResponses[keyof StatsExclusionsCreateStatsExclusionResponses];
+
+export type StatsExclusionsDeleteStatsExclusionData = {
+    body?: never;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/stats_exclusions/{id}';
+};
+
+export type StatsExclusionsDeleteStatsExclusionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StatsExclusionsDeleteStatsExclusionError = StatsExclusionsDeleteStatsExclusionErrors[keyof StatsExclusionsDeleteStatsExclusionErrors];
+
+export type StatsExclusionsDeleteStatsExclusionResponses = {
+    /**
+     * Successful Response
+     */
+    200: Message;
+};
+
+export type StatsExclusionsDeleteStatsExclusionResponse = StatsExclusionsDeleteStatsExclusionResponses[keyof StatsExclusionsDeleteStatsExclusionResponses];
 
 export type AlertRulesReadAlertRulesData = {
     body?: never;

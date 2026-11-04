@@ -14,6 +14,7 @@ from sqlmodel import func, select
 
 from app.api.deps import SessionDep, get_current_user
 from app.core.config import settings
+from app.crud import stats_exclusions
 from app.models import (
     TacacsLog,
     TacacsLogDailySummary,
@@ -188,11 +189,20 @@ def get_latest_log_date() -> Any:
     response_model=TacacsLogDailySummary,
 )
 def get_log_events_summary(
+    session: SessionDep,
     date: str | None = None,
+    include_excluded: bool = False,
 ) -> Any:
     """
     Return count totals for auth/authz/acct log events for a given date (default: today).
+
+    These totals feed the dashboard, so users matching a statistics exclusion are
+    left out unless include_excluded is set. The event list itself
+    (GET /tacacs_logs/events) is never filtered.
     """
+    excluded = stats_exclusions.resolve_patterns(
+        session=session, include_excluded=include_excluded
+    )
     try:
         target_date = (
             datetime.strptime(date, "%Y-%m-%d") if date else datetime.now(timezone.utc)
@@ -211,6 +221,8 @@ def get_log_events_summary(
         events = _parse_log_file(lt, path)
         s = summary[lt]
         for ev in events:
+            if stats_exclusions.is_excluded(ev.username, excluded):
+                continue
             s.total += 1
             if ev.result == "success":
                 s.success += 1
@@ -249,7 +261,9 @@ def get_log_events_summary(
                         if peer_node_name:
                             fetched_peer_nodes.add(peer_node_name)
                         # Add authentication
-                        for row in data.get("authentication", []):
+                        for row in stats_exclusions.filter_rows(
+                            data.get("authentication", []), excluded
+                        ):
                             summary["authentication"].total += row.get(
                                 "success_count", 0
                             ) + row.get("fail_count", 0)
@@ -258,7 +272,9 @@ def get_log_events_summary(
                             )
                             summary["authentication"].failed += row.get("fail_count", 0)
                         # Add authorization
-                        for row in data.get("authorization", []):
+                        for row in stats_exclusions.filter_rows(
+                            data.get("authorization", []), excluded
+                        ):
                             summary["authorization"].total += row.get(
                                 "permit_count", 0
                             ) + row.get("deny_count", 0)
@@ -267,7 +283,9 @@ def get_log_events_summary(
                             )
                             summary["authorization"].deny += row.get("deny_count", 0)
                         # Add accounting
-                        for row in data.get("accounting", []):
+                        for row in stats_exclusions.filter_rows(
+                            data.get("accounting", []), excluded
+                        ):
                             summary["accounting"].total += row.get(
                                 "start_count", 0
                             ) + row.get("stop_count", 0)
@@ -304,6 +322,8 @@ def get_log_events_summary(
                         )
                     ).all()
                     for r in auth_rows:
+                        if stats_exclusions.is_excluded(r.username, excluded):
+                            continue
                         summary["authentication"].total += (
                             r.success_count + r.fail_count
                         )
@@ -318,6 +338,8 @@ def get_log_events_summary(
                         )
                     ).all()
                     for r in authz_rows:
+                        if stats_exclusions.is_excluded(r.username, excluded):
+                            continue
                         summary["authorization"].total += r.permit_count + r.deny_count
                         summary["authorization"].permit += r.permit_count
                         summary["authorization"].deny += r.deny_count
@@ -330,6 +352,8 @@ def get_log_events_summary(
                         )
                     ).all()
                     for r in acct_rows:
+                        if stats_exclusions.is_excluded(r.username, excluded):
+                            continue
                         summary["accounting"].total += r.start_count + r.stop_count
                         summary["accounting"].start += r.start_count
                         summary["accounting"].stop += r.stop_count
@@ -339,6 +363,7 @@ def get_log_events_summary(
         authentication=summary["authentication"],
         authorization=summary["authorization"],
         accounting=summary["accounting"],
+        excluded_users=excluded,
     )
 
 

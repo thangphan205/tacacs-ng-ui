@@ -171,6 +171,12 @@ Cron is run via `scripts/cron_runner.sh` which sources `/etc/cron_env.sh` (full 
 
 Pass a date argument to run for a specific date: `python scripts/tacacs_logs_authentication.py 2026-05-13`
 
+### Statistics Exclusions (`backend/app/crud/stats_exclusions.py`)
+
+`StatsExcludedUser` rows (username or `*` glob, case-insensitive) hide service accounts from AAA statistics and dashboards. **Applied when statistics are read, never when they are collected**: the stats tables keep every user, so the alert evaluator's new-user/new-IP baseline, anomaly scoring, SIEM forwarding and peer `collect-stats` stay complete. `tests/api/routes/test_stats_exclusions.py::test_ingest_and_alerting_never_apply_exclusions` fails if any of those modules imports `stats_exclusions`. Read endpoints take `include_excluded` and return the applied patterns in `excluded_users`.
+
+Today's live numbers in `crud/aaa_statistics.py` go through `_today_rows()`, which caches **unfiltered** per-user rows for 60 s. Exclusions are applied after the cache, so a list change shows up at once in all 4 uvicorn workers. Do not move the filter inside the cache.
+
 ### SIEM Forwarding (`backend/app/crud/tacacs_siem.py`)
 
 Forwards parsed events to external SIEM via HTTP webhook (Splunk HEC / Logstash) and/or syslog. Controlled by env vars: `SIEM_WEBHOOK_URL`, `SIEM_WEBHOOK_TOKEN`, `SIEM_FORWARD_TACACS_EVENTS`, `SIEM_SYSLOG_HOST`.

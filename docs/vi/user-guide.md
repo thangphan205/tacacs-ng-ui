@@ -502,6 +502,29 @@ Bộ chọn khoảng thời gian ở trên áp dụng cho tất cả card đồn
 
 > **Yêu cầu cấu hình multi-node.** Trang này hiện "No node statistics found" trên triển khai single-node cho đến khi thống kê được thu thập. Gọi `POST /api/v1/aaa_statistics/run/` hoặc chờ cron job hàng đêm.
 
+### Loại Trừ Tài Khoản Dịch Vụ Khỏi Thống Kê
+
+**Đường dẫn:** Sidebar → AAA Statistics → **Manage** (chỉ superuser)
+
+Tài khoản tự động hóa, ví dụ tài khoản thu thập inventory (`data_collector`) đăng nhập vào mọi thiết bị theo lịch, có thể sinh ra nhiều sự kiện AAA hơn hẳn những người thực sự vận hành mạng. Chúng chiếm hết "top users", làm phình tổng số và xu hướng, và khiến mọi thiết bị trông như đang bận. Để loại chúng ra, thêm vào danh sách tài khoản bị loại trừ khỏi thống kê.
+
+- **Username or pattern**: một username chính xác, hoặc pattern có `*` làm ký tự đại diện (`svc_*`, `*_monitor`). So khớp không phân biệt hoa thường. Pattern chỉ gồm `*` sẽ bị từ chối.
+- **Note**: tùy chọn, ví dụ lý do loại trừ.
+
+Tài khoản bị loại trừ không được tính trong:
+
+- trang AAA Statistics: Today, Historic Range và Node Comparison (bộ đếm, top users, biểu đồ theo IP và theo thiết bị, xu hướng);
+- Dashboard: Today's Log Summary, Top 5 và xu hướng AAA;
+- các endpoint thống kê theo dòng (`/authentication_statistics`, `/authorization_statistics`, `/accounting_statistics`).
+
+Bộ lọc được áp dụng khi đọc thống kê, không phải khi thu thập log. Vì vậy thêm một tài khoản cũng loại nó khỏi các ngày trước đó, và xóa nó sẽ đưa lịch sử trở lại.
+
+Khi có loại trừ, trang AAA Statistics hiện một thanh liệt kê chúng, và Dashboard hiện "N accounts excluded from statistics", để không ai đọc số đã lọc như tổng số. Tích **Include excluded** trên trang thống kê để xem số chưa lọc trong lúc cần. Client API truyền `include_excluded=true`; phản hồi đã lọc liệt kê các pattern đã áp dụng trong `excluded_users`.
+
+> **Chỉ ảnh hưởng thống kê.** Loại trừ không bao giờ thay đổi hoạt động của tac_plus-ng hay những gì được ghi lại. Tài khoản vẫn xác thực và vẫn được phân quyền theo rule của nó. Mọi sự kiện vẫn được ghi vào file log thô và hiện trong **TACACS Log Events Viewer**. Nó vẫn được tính cho **alert rules** (tài khoản bị loại trừ vẫn có thể kích hoạt cảnh báo đăng nhập thất bại) và cho anomaly detection, và vẫn được chuyển tiếp tới SIEM.
+
+Việc thêm và xóa loại trừ được ghi vào audit log (`StatsExcludedUser`). Quản lý qua `GET/POST /api/v1/stats_exclusions/` và `DELETE /api/v1/stats_exclusions/{id}`. Mọi người dùng đã đăng nhập đều xem được danh sách; thay đổi cần superuser trên node primary.
+
 ### Thống Kê Xác Thực / Authorization / Accounting
 
 - **Authentication Statistics** — Phân tích theo người dùng, thiết bị (thành công/thất bại)

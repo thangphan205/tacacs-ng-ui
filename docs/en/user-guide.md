@@ -719,6 +719,29 @@ The date range picker at the top applies to all node cards simultaneously. Cards
 
 > **Multi-node setup required.** This page shows "No node statistics found" on a single-node deployment until statistics have been collected. Run `POST /api/v1/aaa_statistics/run/` or wait for the nightly cron job.
 
+### Excluding Service Accounts from Statistics
+
+**Path:** Sidebar → AAA Statistics → **Manage** (superusers only)
+
+Automation accounts such as an inventory collector (`data_collector`) that logs into every device on a schedule can generate far more AAA events than the people who actually run the network. They take over "top users", inflate the totals and trends, and make every device look busy. To leave them out, add them to the list of accounts excluded from statistics.
+
+- **Username or pattern**: an exact username, or a pattern with `*` as a wildcard (`svc_*`, `*_monitor`). Matching is case-insensitive. A pattern made only of `*` is rejected.
+- **Note**: optional, e.g. why the account is excluded.
+
+Once an account is excluded, it is left out of:
+
+- the AAA Statistics page: Today, Historic Range and Node Comparison (counters, top users, per-IP and per-device charts, trends);
+- the Dashboard: Today's Log Summary, Top 5 and the AAA trend;
+- the per-row statistics endpoints (`/authentication_statistics`, `/authorization_statistics`, `/accounting_statistics`).
+
+The filter is applied when statistics are read, not when logs are collected. Adding an account therefore also removes it from past days, and removing it brings its history back.
+
+While exclusions are active, the AAA Statistics page shows a bar listing them, and the Dashboard shows "N accounts excluded from statistics", so nobody reads filtered numbers as totals. Tick **Include excluded** on the statistics page to see the unfiltered numbers for a while. API clients pass `include_excluded=true`, and filtered responses list the applied patterns in `excluded_users`.
+
+> **Statistics only.** An exclusion never changes what tac_plus-ng does or what gets recorded. The account still authenticates and is still authorized by its rules. Every event is still written to the raw log files and shown in the **TACACS Log Events Viewer**. It still counts for **alert rules** (an excluded account can still trigger a failed-login alert) and for anomaly detection, and it is still forwarded to the SIEM.
+
+Adding and removing exclusions is written to the audit log (`StatsExcludedUser`). It is managed through `GET/POST /api/v1/stats_exclusions/` and `DELETE /api/v1/stats_exclusions/{id}`. Reading the list needs any logged-in user. Changing it needs a superuser on the primary node.
+
 ### Authentication Statistics
 
 **Path:** Sidebar → Authentication Statistics
