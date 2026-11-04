@@ -26,6 +26,7 @@ from app.api.routes import (
     rulesets,
     rulesetscripts,
     rulesetscriptsets,
+    stats_exclusions,
     sync,
     tacacs_configs,
     tacacs_groups,
@@ -68,6 +69,7 @@ api_router.include_router(authentication_statistics.router)
 api_router.include_router(authorization_statistics.router)
 api_router.include_router(accounting_statistics.router)
 api_router.include_router(aaa_statistics.router)
+api_router.include_router(stats_exclusions.router)
 api_router.include_router(alert_rules.router)
 api_router.include_router(notification_channels.router)
 api_router.include_router(alert_events.router)

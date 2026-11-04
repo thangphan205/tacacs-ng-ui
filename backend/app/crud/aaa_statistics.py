@@ -2,6 +2,7 @@ import logging
 import os
 import time as _time
 from collections import Counter, defaultdict
+from collections.abc import Callable, Iterator
 from datetime import date, datetime, timedelta, timezone
 from datetime import time as time_
 from typing import Any
@@ -11,92 +12,64 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.core.config import settings
+from app.crud.stats_exclusions import filter_rows, not_excluded_clause
 from app.models import (
     AccountingStatistics,
     AuthenticationStatistics,
     AuthorizationStatistics,
 )
-from scripts._log_stats_base import AUTH_LOG_REGEX
+from scripts._log_stats_base import (
+    AUTH_LOG_REGEX,
+    parse_accounting_logs,
+    parse_authorization_logs,
+)
 
 logger = logging.getLogger(__name__)
 
-_today_cache: dict = {}  # {node_name_or_all: {"date": str, "data": dict, "ts": float}}
-_today_authz_cache: dict = {}  # {node_name_or_all: {"date": str, "permit": int, "deny": int, "ts": float}}
-_today_acct_cache: dict = {}  # {node_name_or_all: {"date": str, "start": int, "stop": int, "ts": float}}
 _LIVE_CACHE_TTL = 60
 
+# Today's raw per-(username, nas_ip, user_source_ip) rows, cached *unfiltered*
+# and keyed by (log kind, node_name or "all"). Exclusions are applied after the
+# cache, so a change to the exclusion list is visible on the next request in
+# every uvicorn worker instead of after the TTL in whichever worker served it.
+_today_rows_cache: dict[tuple[str, str], dict[str, Any]] = {}
 
-def _today_authz_counts() -> tuple[int, int]:
-    """Return (permit, deny) for today from live authorization log. Cached 60 s."""
-    global _today_authz_cache
-    today = datetime.now(timezone.utc)
-    today_str = today.strftime("%Y-%m-%d")
-    ts = _time.monotonic()
-    if (
-        _today_authz_cache.get("date") == today_str
-        and ts - _today_authz_cache.get("ts", 0.0) < _LIVE_CACHE_TTL
-    ):
-        return _today_authz_cache["permit"], _today_authz_cache["deny"]
-
-    log_path = today.strftime(
-        settings.TACACS_LOG_DIRECTORY + "%Y/%m/authorization-%Y-%m-%d.log"
-    )
-    permit = deny = 0
-    if os.path.exists(log_path):
-        try:
-            with open(log_path, errors="ignore") as f:
-                for line in f:
-                    if not line.startswith(today_str):
-                        continue
-                    low = line.lower()
-                    if "\tpermit\t" in low or "\tpermit " in low:
-                        permit += 1
-                    elif "\tdeny\t" in low or "\tdeny " in low:
-                        deny += 1
-        except OSError:
-            pass
-
-    _today_authz_cache.clear()
-    _today_authz_cache.update(
-        {"date": today_str, "permit": permit, "deny": deny, "ts": ts}
-    )
-    return permit, deny
+# (table, first count field, second count field) per log kind.
+_KIND_SPEC: dict[str, tuple[Any, str, str]] = {
+    "authentication": (AuthenticationStatistics, "success_count", "fail_count"),
+    "authorization": (AuthorizationStatistics, "permit_count", "deny_count"),
+    "accounting": (AccountingStatistics, "start_count", "stop_count"),
+}
 
 
-def _today_acct_counts() -> tuple[int, int]:
-    """Return (start, stop) for today from live accounting log. Cached 60 s."""
-    global _today_acct_cache
-    today = datetime.now(timezone.utc)
-    today_str = today.strftime("%Y-%m-%d")
-    ts = _time.monotonic()
-    if (
-        _today_acct_cache.get("date") == today_str
-        and ts - _today_acct_cache.get("ts", 0.0) < _LIVE_CACHE_TTL
-    ):
-        return _today_acct_cache["start"], _today_acct_cache["stop"]
+def _counters_to_rows(
+    c1: Counter, c2: Counter, k1: str, k2: str
+) -> list[dict[str, Any]]:
+    keys = set(c1) | set(c2)
+    return [
+        {
+            "username": u,
+            "nas_ip": n,
+            "user_source_ip": c,
+            k1: c1.get((u, n, c), 0),
+            k2: c2.get((u, n, c), 0),
+        }
+        for u, n, c in sorted(keys, key=lambda k: tuple(str(x) for x in k))
+    ]
 
-    log_path = today.strftime(
-        settings.TACACS_LOG_DIRECTORY + "%Y/%m/accounting-%Y-%m-%d.log"
-    )
-    start = stop = 0
-    if os.path.exists(log_path):
-        try:
-            with open(log_path, errors="ignore") as f:
-                for line in f:
-                    if not line.startswith(today_str):
-                        continue
-                    if "\tstart\t" in line or "\tstart " in line:
-                        start += 1
-                    elif "\tstop\t" in line or "\tstop " in line:
-                        stop += 1
-        except OSError:
-            pass
 
-    _today_acct_cache.clear()
-    _today_acct_cache.update(
-        {"date": today_str, "start": start, "stop": stop, "ts": ts}
-    )
-    return start, stop
+def _local_today_authz_rows() -> list[dict[str, Any]]:
+    """Today's authorization rows from the local log, parsed like the nightly job."""
+    today = datetime.now(timezone.utc).date()
+    permit, deny = parse_authorization_logs(today, settings.TACACS_LOG_DIRECTORY)
+    return _counters_to_rows(permit, deny, "permit_count", "deny_count")
+
+
+def _local_today_acct_rows() -> list[dict[str, Any]]:
+    """Today's accounting rows from the local log, parsed like the nightly job."""
+    today = datetime.now(timezone.utc).date()
+    start, stop = parse_accounting_logs(today, settings.TACACS_LOG_DIRECTORY)
+    return _counters_to_rows(start, stop, "start_count", "stop_count")
 
 
 def get_peer_urls() -> list[str]:
@@ -157,25 +130,105 @@ def parse_local_today_authentication_details() -> list[dict]:
     return list_authentication_details
 
 
-def get_node_today_stats_from_db(
-    session: Session, node_name: str, today_dt: datetime
-) -> list[dict]:
-    """Fetch today's statistics for a given node from the database."""
-    stmt = select(AuthenticationStatistics).where(
-        AuthenticationStatistics.log_date == today_dt,
-        AuthenticationStatistics.node_name == node_name,
-    )
-    db_rows = session.exec(stmt).all()
+def _db_today_rows(
+    session: Session, kind: str, node_name: str, today_dt: datetime
+) -> list[dict[str, Any]]:
+    """Fallback: today's rows for a node from the database (e.g. an offline peer)."""
+    table, k1, k2 = _KIND_SPEC[kind]
+    db_rows = session.exec(
+        select(table).where(table.log_date == today_dt, table.node_name == node_name)
+    ).all()
     return [
         {
             "username": r.username,
             "nas_ip": r.nas_ip,
             "user_source_ip": r.user_source_ip,
-            "success_count": r.success_count,
-            "fail_count": r.fail_count,
+            k1: getattr(r, k1),
+            k2: getattr(r, k2),
         }
         for r in db_rows
     ]
+
+
+def _peer_payloads(today_str: str) -> Iterator[dict[str, Any]]:
+    """Yield each reachable peer's collect-stats payload for `today_str`."""
+    if not settings.INTERNAL_SYNC_TOKEN:
+        return
+    for url in get_peer_urls():
+        endpoint = f"{url.rstrip('/')}/api/v1/sync/internal/collect-stats"
+        try:
+            with httpx.Client(timeout=3.0) as client:
+                resp = client.post(
+                    endpoint,
+                    params={"date": today_str},
+                    headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN},
+                )
+        except Exception as e:
+            logger.warning("Failed to fetch live stats from peer %s: %s", url, e)
+            continue
+        if resp.status_code == 200:
+            yield resp.json()
+
+
+# Lambdas so the module-level functions are looked up at call time (patchable).
+_LOCAL_PARSERS: dict[str, Callable[[], list[dict[str, Any]]]] = {
+    "authentication": lambda: parse_local_today_authentication_details(),
+    "authorization": lambda: _local_today_authz_rows(),
+    "accounting": lambda: _local_today_acct_rows(),
+}
+
+
+def _today_rows(
+    session: Session, kind: str, node_name: str | None = None
+) -> list[dict[str, Any]]:
+    """
+    Today's unfiltered per-user rows of one log kind: parsed live for the local
+    node, fetched live from peers, falling back to the database for peers that
+    cannot be reached. Cached 60 s to absorb dashboard polling.
+    """
+    today = datetime.now(timezone.utc)
+    today_str = today.strftime("%Y-%m-%d")
+    today_dt = datetime.combine(today.date(), time_.min).replace(tzinfo=timezone.utc)
+    now_ts = _time.monotonic()
+
+    cache_key = (kind, node_name or "all")
+    cached = _today_rows_cache.get(cache_key)
+    if (
+        cached
+        and cached["date"] == today_str
+        and now_ts - cached["ts"] < _LIVE_CACHE_TTL
+    ):
+        return cached["rows"]
+
+    rows: list[dict[str, Any]] = []
+    if node_name:
+        if node_name == settings.NODE_NAME:
+            rows = _LOCAL_PARSERS[kind]()
+        else:
+            fetched: list[dict[str, Any]] | None = None
+            for data in _peer_payloads(today_str):
+                if data.get("node_name") == node_name:
+                    fetched = data.get(kind, [])
+                    break
+            rows = (
+                fetched
+                if fetched is not None
+                else _db_today_rows(session, kind, node_name, today_dt)
+            )
+    else:
+        rows.extend(_LOCAL_PARSERS[kind]())
+        fetched_peer_nodes: set[str] = set()
+        for data in _peer_payloads(today_str):
+            peer_node_name = data.get("node_name")
+            if peer_node_name:
+                rows.extend(data.get(kind, []))
+                fetched_peer_nodes.add(peer_node_name)
+        for kn in get_distinct_node_names(session):
+            if kn != settings.NODE_NAME and kn not in fetched_peer_nodes:
+                rows.extend(_db_today_rows(session, kind, kn, today_dt))
+
+    _today_rows_cache[cache_key] = {"date": today_str, "rows": rows, "ts": now_ts}
+    return rows
 
 
 def aggregate_today_auth_details(details: list[dict], today_str: str) -> dict[str, Any]:
@@ -328,6 +381,7 @@ def _get_range_statistics(
     end_date: date,
     key_prefix: str,
     node_name: str | None = None,
+    excluded: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     Retrieve and format statistics for a given date range.
@@ -387,6 +441,17 @@ def _get_range_statistics(
             AccountingStatistics.node_name == node_name
         )
 
+    excluded = excluded or []
+    auth_excl = not_excluded_clause(AuthenticationStatistics.username, excluded)
+    if auth_excl is not None:
+        auth_daily_stmt = auth_daily_stmt.where(auth_excl)
+    authz_excl = not_excluded_clause(AuthorizationStatistics.username, excluded)
+    if authz_excl is not None:
+        authz_daily_stmt = authz_daily_stmt.where(authz_excl)
+    acct_excl = not_excluded_clause(AccountingStatistics.username, excluded)
+    if acct_excl is not None:
+        acct_daily_stmt = acct_daily_stmt.where(acct_excl)
+
     auth_daily_results = session.exec(auth_daily_stmt).all()
     authz_daily_results = session.exec(authz_daily_stmt).all()
     acct_daily_results = session.exec(acct_daily_stmt).all()
@@ -421,7 +486,7 @@ def _get_range_statistics(
     if inject_live:
         today_iso = today.isoformat()
         today_stats = process_today_authentication_statistics(
-            session, node_name=node_name
+            session, node_name=node_name, excluded=excluded
         )
         _set_trend_today(
             result[f"{key_prefix}_authentication_success"],
@@ -433,12 +498,16 @@ def _get_range_statistics(
             today_iso,
             today_stats.get("today_failed_logins", 0),
         )
-        permit, deny = get_today_authz_counts(session, node_name=node_name)
+        permit, deny = get_today_authz_counts(
+            session, node_name=node_name, excluded=excluded
+        )
         _set_trend_today(
             result[f"{key_prefix}_authorization_permit"], today_iso, permit
         )
         _set_trend_today(result[f"{key_prefix}_authorization_deny"], today_iso, deny)
-        start_c, stop_c = get_today_acct_counts(session, node_name=node_name)
+        start_c, stop_c = get_today_acct_counts(
+            session, node_name=node_name, excluded=excluded
+        )
         _set_trend_today(result[f"{key_prefix}_accounting_start"], today_iso, start_c)
         _set_trend_today(result[f"{key_prefix}_accounting_stop"], today_iso, stop_c)
 
@@ -449,6 +518,7 @@ def get_last_7_days_statistics(
     *,
     session: Session,
     node_name: str | None = None,
+    excluded: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     Retrieves statistics for the last 7 days from the database.
@@ -456,7 +526,7 @@ def get_last_7_days_statistics(
     end_date = datetime.now(timezone.utc).date()
     start_date = end_date - timedelta(days=6)
     return _get_range_statistics(
-        session, start_date, end_date, "last_7_days", node_name
+        session, start_date, end_date, "last_7_days", node_name, excluded
     )
 
 
@@ -466,12 +536,18 @@ def get_date_range_statistics(
     start_date: datetime,
     end_date: datetime,
     node_name: str | None = None,
+    excluded: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     Retrieves statistics for the range of days from the database.
     """
     return _get_range_statistics(
-        session, start_date.date(), end_date.date(), "last_range_days", node_name
+        session,
+        start_date.date(),
+        end_date.date(),
+        "last_range_days",
+        node_name,
+        excluded,
     )
 
 
@@ -482,6 +558,7 @@ def process_authentication_statistics(
     skip: int = 0,
     limit: int = 5,
     node_name: str | None = None,
+    excluded: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     Processes authentication log files to extract statistics and save them to the database.
@@ -563,6 +640,13 @@ def process_authentication_statistics(
             AuthenticationStatistics.node_name == node_name
         )
 
+    auth_excl = not_excluded_clause(AuthenticationStatistics.username, excluded or [])
+    if auth_excl is not None:
+        failed_count_stmt = failed_count_stmt.where(auth_excl)
+        success_count_stmt = success_count_stmt.where(auth_excl)
+        success_count_by_ip_stmt = success_count_by_ip_stmt.where(auth_excl)
+        success_count_by_nas_ip_stmt = success_count_by_nas_ip_stmt.where(auth_excl)
+
     failed_count_results = session.exec(failed_count_stmt).all()
     authentication_failed_count_by_user = [
         {"username": r.username, "fail_count": r.fail_count}
@@ -585,7 +669,9 @@ def process_authentication_statistics(
     ]
 
     if include_today:
-        ts = process_today_authentication_statistics(session, node_name=node_name)
+        ts = process_today_authentication_statistics(
+            session, node_name=node_name, excluded=excluded
+        )
         authentication_success_count_by_user = _merge_today_top(
             authentication_success_count_by_user,
             ts.get("today_authentication_success_count_by_user", []),
@@ -634,6 +720,7 @@ def process_authorization_statistics(
     skip: int = 0,
     limit: int = 5,
     node_name: str | None = None,
+    excluded: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     Processes authorization log files to extract statistics and save them to the database.
@@ -665,6 +752,10 @@ def process_authorization_statistics(
             AuthorizationStatistics.node_name == node_name
         )
 
+    authz_excl = not_excluded_clause(AuthorizationStatistics.username, excluded or [])
+    if authz_excl is not None:
+        authz_deny_count_stmt = authz_deny_count_stmt.where(authz_excl)
+
     authz_deny_count_results = session.exec(authz_deny_count_stmt).all()
     # Convert the Row objects to a list of dicts
     authorization_deny_count_by_user = [
@@ -678,342 +769,40 @@ def process_authorization_statistics(
     }
 
 
-def _get_node_today_authz_counts_from_db(
-    session: Session, node_name: str, today_dt: datetime
-) -> tuple[int, int]:
-    stmt = select(
-        func.sum(AuthorizationStatistics.permit_count).label("permit"),
-        func.sum(AuthorizationStatistics.deny_count).label("deny"),
-    ).where(
-        AuthorizationStatistics.log_date == today_dt,
-        AuthorizationStatistics.node_name == node_name,
-    )
-    res = session.exec(stmt).first()
-    if res and (res.permit is not None or res.deny is not None):
-        return res.permit or 0, res.deny or 0
-    return 0, 0
-
-
-def _get_node_today_acct_counts_from_db(
-    session: Session, node_name: str, today_dt: datetime
-) -> tuple[int, int]:
-    stmt = select(
-        func.sum(AccountingStatistics.start_count).label("start"),
-        func.sum(AccountingStatistics.stop_count).label("stop"),
-    ).where(
-        AccountingStatistics.log_date == today_dt,
-        AccountingStatistics.node_name == node_name,
-    )
-    res = session.exec(stmt).first()
-    if res and (res.start is not None or res.stop is not None):
-        return res.start or 0, res.stop or 0
-    return 0, 0
-
-
 def get_today_authz_counts(
-    session: Session, node_name: str | None = None
+    session: Session,
+    node_name: str | None = None,
+    excluded: list[str] | None = None,
 ) -> tuple[int, int]:
-    """Get live today's authorization permit/deny counts for the selected node or all nodes."""
-    global _today_authz_cache
-    today = datetime.now(timezone.utc)
-    today_str = today.strftime("%Y-%m-%d")
-    today_dt = datetime.combine(today.date(), time_.min).replace(tzinfo=timezone.utc)
-    now_ts = _time.monotonic()
-
-    cache_key = node_name or "all"
-    if (
-        _today_authz_cache.get(cache_key, {}).get("date") == today_str
-        and now_ts - _today_authz_cache.get(cache_key, {}).get("ts", 0.0) < 60
-    ):
-        return _today_authz_cache[cache_key]["permit"], _today_authz_cache[cache_key][
-            "deny"
-        ]
-
-    permit = deny = 0
-
-    if node_name:
-        if node_name == settings.NODE_NAME:
-            permit, deny = _today_authz_counts()
-        else:
-            fetched = False
-            peer_urls = get_peer_urls()
-            for url in peer_urls:
-                try:
-                    endpoint = f"{url.rstrip('/')}/api/v1/sync/internal/collect-stats"
-                    if not settings.INTERNAL_SYNC_TOKEN:
-                        continue
-                    with httpx.Client(timeout=3.0) as client:
-                        resp = client.post(
-                            endpoint,
-                            params={"date": today_str},
-                            headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN},
-                        )
-                        if resp.status_code == 200:
-                            data = resp.json()
-                            if data.get("node_name") == node_name:
-                                authz = data.get("authorization", [])
-                                permit = sum(r.get("permit_count", 0) for r in authz)
-                                deny = sum(r.get("deny_count", 0) for r in authz)
-                                fetched = True
-                                break
-                except Exception as e:
-                    logger.warning(
-                        "Failed to fetch live authz stats from peer %s for node %s: %s",
-                        url,
-                        node_name,
-                        e,
-                    )
-            if not fetched:
-                permit, deny = _get_node_today_authz_counts_from_db(
-                    session, node_name, today_dt
-                )
-    else:
-        # All nodes
-        local_p, local_d = _today_authz_counts()
-        permit += local_p
-        deny += local_d
-
-        peer_urls = get_peer_urls()
-        fetched_peer_nodes = set()
-        for url in peer_urls:
-            try:
-                endpoint = f"{url.rstrip('/')}/api/v1/sync/internal/collect-stats"
-                if not settings.INTERNAL_SYNC_TOKEN:
-                    continue
-                with httpx.Client(timeout=3.0) as client:
-                    resp = client.post(
-                        endpoint,
-                        params={"date": today_str},
-                        headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN},
-                    )
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        peer_node_name = data.get("node_name")
-                        if peer_node_name:
-                            authz = data.get("authorization", [])
-                            permit += sum(r.get("permit_count", 0) for r in authz)
-                            deny += sum(r.get("deny_count", 0) for r in authz)
-                            fetched_peer_nodes.add(peer_node_name)
-            except Exception as e:
-                logger.warning(
-                    "Failed to fetch live authz stats from peer %s: %s", url, e
-                )
-
-        all_known_nodes = get_distinct_node_names(session)
-        for kn in all_known_nodes:
-            if kn != settings.NODE_NAME and kn not in fetched_peer_nodes:
-                p, d = _get_node_today_authz_counts_from_db(session, kn, today_dt)
-                permit += p
-                deny += d
-
-    _today_authz_cache[cache_key] = {
-        "date": today_str,
-        "permit": permit,
-        "deny": deny,
-        "ts": now_ts,
-    }
-    return permit, deny
+    """Today's authorization (permit, deny) for one node or all nodes."""
+    rows = filter_rows(_today_rows(session, "authorization", node_name), excluded or [])
+    return (
+        sum(r.get("permit_count", 0) for r in rows),
+        sum(r.get("deny_count", 0) for r in rows),
+    )
 
 
 def get_today_acct_counts(
-    session: Session, node_name: str | None = None
+    session: Session,
+    node_name: str | None = None,
+    excluded: list[str] | None = None,
 ) -> tuple[int, int]:
-    """Get live today's accounting start/stop counts for the selected node or all nodes."""
-    global _today_acct_cache
-    today = datetime.now(timezone.utc)
-    today_str = today.strftime("%Y-%m-%d")
-    today_dt = datetime.combine(today.date(), time_.min).replace(tzinfo=timezone.utc)
-    now_ts = _time.monotonic()
-
-    cache_key = node_name or "all"
-    if (
-        _today_acct_cache.get(cache_key, {}).get("date") == today_str
-        and now_ts - _today_acct_cache.get(cache_key, {}).get("ts", 0.0) < 60
-    ):
-        return _today_acct_cache[cache_key]["start"], _today_acct_cache[cache_key][
-            "stop"
-        ]
-
-    start = stop = 0
-
-    if node_name:
-        if node_name == settings.NODE_NAME:
-            start, stop = _today_acct_counts()
-        else:
-            fetched = False
-            peer_urls = get_peer_urls()
-            for url in peer_urls:
-                try:
-                    endpoint = f"{url.rstrip('/')}/api/v1/sync/internal/collect-stats"
-                    if not settings.INTERNAL_SYNC_TOKEN:
-                        continue
-                    with httpx.Client(timeout=3.0) as client:
-                        resp = client.post(
-                            endpoint,
-                            params={"date": today_str},
-                            headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN},
-                        )
-                        if resp.status_code == 200:
-                            data = resp.json()
-                            if data.get("node_name") == node_name:
-                                acct = data.get("accounting", [])
-                                start = sum(r.get("start_count", 0) for r in acct)
-                                stop = sum(r.get("stop_count", 0) for r in acct)
-                                fetched = True
-                                break
-                except Exception as e:
-                    logger.warning(
-                        "Failed to fetch live acct stats from peer %s for node %s: %s",
-                        url,
-                        node_name,
-                        e,
-                    )
-            if not fetched:
-                start, stop = _get_node_today_acct_counts_from_db(
-                    session, node_name, today_dt
-                )
-    else:
-        # All nodes
-        local_s, local_st = _today_acct_counts()
-        start += local_s
-        stop += local_st
-
-        peer_urls = get_peer_urls()
-        fetched_peer_nodes = set()
-        for url in peer_urls:
-            try:
-                endpoint = f"{url.rstrip('/')}/api/v1/sync/internal/collect-stats"
-                if not settings.INTERNAL_SYNC_TOKEN:
-                    continue
-                with httpx.Client(timeout=3.0) as client:
-                    resp = client.post(
-                        endpoint,
-                        params={"date": today_str},
-                        headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN},
-                    )
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        peer_node_name = data.get("node_name")
-                        if peer_node_name:
-                            acct = data.get("accounting", [])
-                            start += sum(r.get("start_count", 0) for r in acct)
-                            stop += sum(r.get("stop_count", 0) for r in acct)
-                            fetched_peer_nodes.add(peer_node_name)
-            except Exception as e:
-                logger.warning(
-                    "Failed to fetch live acct stats from peer %s: %s", url, e
-                )
-
-        all_known_nodes = get_distinct_node_names(session)
-        for kn in all_known_nodes:
-            if kn != settings.NODE_NAME and kn not in fetched_peer_nodes:
-                s, st = _get_node_today_acct_counts_from_db(session, kn, today_dt)
-                start += s
-                stop += st
-
-    _today_acct_cache[cache_key] = {
-        "date": today_str,
-        "start": start,
-        "stop": stop,
-        "ts": now_ts,
-    }
-    return start, stop
+    """Today's accounting (start, stop) for one node or all nodes."""
+    rows = filter_rows(_today_rows(session, "accounting", node_name), excluded or [])
+    return (
+        sum(r.get("start_count", 0) for r in rows),
+        sum(r.get("stop_count", 0) for r in rows),
+    )
 
 
 def process_today_authentication_statistics(
     session: Session,
     node_name: str | None = None,
+    excluded: list[str] | None = None,
 ) -> dict[str, Any]:
-    """
-    Parses today's authentication log file live (for local node) or fetches from peer,
-    falling back to database if needed, and returns aggregated stats.
-    Result cached for 60 s to avoid repeated queries/file scans on dashboard polling.
-    """
-    global _today_cache
-    today = datetime.now(timezone.utc)
-    today_str = today.strftime("%Y-%m-%d")
-    today_dt = datetime.combine(today.date(), time_.min).replace(tzinfo=timezone.utc)
-    now_ts = _time.monotonic()
-
-    cache_key = node_name or "all"
-    if (
-        _today_cache.get(cache_key, {}).get("date") == today_str
-        and now_ts - _today_cache.get(cache_key, {}).get("ts", 0.0) < 60
-    ):
-        return _today_cache[cache_key]["data"]
-
-    # Gather raw details
-    details = []
-
-    if node_name:
-        if node_name == settings.NODE_NAME:
-            details = parse_local_today_authentication_details()
-        else:
-            # Try peer URL
-            fetched_details = None
-            peer_urls = get_peer_urls()
-            for url in peer_urls:
-                try:
-                    endpoint = f"{url.rstrip('/')}/api/v1/sync/internal/collect-stats"
-                    if not settings.INTERNAL_SYNC_TOKEN:
-                        continue
-                    with httpx.Client(timeout=3.0) as client:
-                        resp = client.post(
-                            endpoint,
-                            params={"date": today_str},
-                            headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN},
-                        )
-                        if resp.status_code == 200:
-                            data = resp.json()
-                            if data.get("node_name") == node_name:
-                                fetched_details = data.get("authentication", [])
-                                break
-                except Exception as e:
-                    logger.warning(
-                        "Failed to fetch live stats from peer %s for node %s: %s",
-                        url,
-                        node_name,
-                        e,
-                    )
-
-            if fetched_details is not None:
-                details = fetched_details
-            else:
-                details = get_node_today_stats_from_db(session, node_name, today_dt)
-    else:
-        # All nodes
-        # 1. Local live stats
-        details.extend(parse_local_today_authentication_details())
-
-        # 2. Peer live stats
-        peer_urls = get_peer_urls()
-        fetched_peer_nodes = set()
-        for url in peer_urls:
-            try:
-                endpoint = f"{url.rstrip('/')}/api/v1/sync/internal/collect-stats"
-                if not settings.INTERNAL_SYNC_TOKEN:
-                    continue
-                with httpx.Client(timeout=3.0) as client:
-                    resp = client.post(
-                        endpoint,
-                        params={"date": today_str},
-                        headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN},
-                    )
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        peer_node_name = data.get("node_name")
-                        if peer_node_name:
-                            details.extend(data.get("authentication", []))
-                            fetched_peer_nodes.add(peer_node_name)
-            except Exception as e:
-                logger.warning("Failed to fetch live stats from peer %s: %s", url, e)
-
-        # 3. Fallback for offline peers
-        all_known_nodes = get_distinct_node_names(session)
-        for kn in all_known_nodes:
-            if kn != settings.NODE_NAME and kn not in fetched_peer_nodes:
-                details.extend(get_node_today_stats_from_db(session, kn, today_dt))
-
-    result = aggregate_today_auth_details(details, today_str)
-    _today_cache[cache_key] = {"date": today_str, "data": result, "ts": now_ts}
-    return result
+    """Today's aggregated authentication statistics for one node or all nodes."""
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    rows = filter_rows(
+        _today_rows(session, "authentication", node_name), excluded or []
+    )
+    return aggregate_today_auth_details(rows, today_str)

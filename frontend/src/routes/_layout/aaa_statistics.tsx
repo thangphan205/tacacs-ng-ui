@@ -47,6 +47,7 @@ import {
 import type { ApiError } from "@/api"
 import type { AaaStatisticsDateRangePublic } from "@/client"
 import { AaaStatisticsService } from "@/client"
+import { StatsExclusionsBar } from "@/components/AaaStatistics/StatsExclusions"
 import PageHeader from "@/components/Common/PageHeader"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -255,7 +256,11 @@ function StatPie({ title, data }: { title: string; data: PieData[] }) {
 
 // ─── Sub-tabs ────────────────────────────────────────────────────────────
 
-function TodayStatsTab() {
+interface StatsTabProps {
+  includeExcluded: boolean
+}
+
+function TodayStatsTab({ includeExcluded }: StatsTabProps) {
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const [selectedNode, setSelectedNode] = useState<string>("")
@@ -270,10 +275,11 @@ function TodayStatsTab() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["aaa_statistics", selectedNode],
+    queryKey: ["aaa_statistics", selectedNode, includeExcluded],
     queryFn: () =>
       AaaStatisticsService.readAaaStatistics({
         node_name: selectedNode || undefined,
+        include_excluded: includeExcluded,
       }),
     refetchInterval: 5 * 60 * 1000, // refresh every 5 minutes
   })
@@ -548,7 +554,7 @@ function TodayStatsTab() {
   )
 }
 
-function RangeStatsTab() {
+function RangeStatsTab({ includeExcluded }: StatsTabProps) {
   const [startDate, setStartDate] = useState<string>(
     getISODateString(sevenDaysAgo),
   )
@@ -565,11 +571,18 @@ function RangeStatsTab() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["aaa_statistics_range", startDate, endDate, selectedNode],
+    queryKey: [
+      "aaa_statistics_range",
+      startDate,
+      endDate,
+      selectedNode,
+      includeExcluded,
+    ],
     queryFn: () =>
       AaaStatisticsService.readAaaStatisticsRange({
         range_date: `${startDate},${endDate}`,
         node_name: selectedNode || undefined,
+        include_excluded: includeExcluded,
       }),
     refetchInterval: 5 * 60 * 1000, // refresh every 5 minutes
   })
@@ -877,6 +890,7 @@ interface NodeCardProps {
   startDate: string
   endDate: string
   accentColor: string
+  includeExcluded: boolean
 }
 
 function NodeCard({
@@ -884,13 +898,15 @@ function NodeCard({
   startDate,
   endDate,
   accentColor,
+  includeExcluded,
 }: NodeCardProps) {
   const { data: stats, isLoading } = useQuery<AaaStatisticsDateRangePublic>({
-    queryKey: ["aaa_node_stats", nodeName, startDate, endDate],
+    queryKey: ["aaa_node_stats", nodeName, startDate, endDate, includeExcluded],
     queryFn: () =>
       AaaStatisticsService.readAaaStatisticsRange({
         range_date: `${startDate},${endDate}`,
         node_name: nodeName,
+        include_excluded: includeExcluded,
       }),
     refetchInterval: 5 * 60 * 1000, // refresh every 5 minutes
   })
@@ -1280,7 +1296,7 @@ function NodeCard({
   )
 }
 
-function NodeStatsTab() {
+function NodeStatsTab({ includeExcluded }: StatsTabProps) {
   const [startDate, setStartDate] = useState<string>(
     getISODateString(sevenDaysAgo),
   )
@@ -1384,6 +1400,7 @@ function NodeStatsTab() {
                 startDate={startDate}
                 endDate={endDate}
                 accentColor={NODE_COLORS[index % NODE_COLORS.length]}
+                includeExcluded={includeExcluded}
               />
             </GridItem>
           ))}
@@ -1396,12 +1413,17 @@ function NodeStatsTab() {
 // ─── Main Component ──────────────────────────────────────────────────────
 
 export function AaaStatistics() {
+  const [includeExcluded, setIncludeExcluded] = useState(false)
   return (
     <Container maxW="full" py={8}>
       <PageHeader
         title="AAA Statistics Dashboard"
         description="Monitor, analyze, and compare TACACS+ authentication, authorization, and accounting events."
         icon={FiBarChart2}
+      />
+      <StatsExclusionsBar
+        includeExcluded={includeExcluded}
+        onIncludeExcludedChange={setIncludeExcluded}
       />
       <Tabs.Root defaultValue="today" mt={6} variant="subtle">
         <Tabs.List>
@@ -1420,15 +1442,15 @@ export function AaaStatistics() {
         </Tabs.List>
 
         <Tabs.Content value="today" pt={5}>
-          <TodayStatsTab />
+          <TodayStatsTab includeExcluded={includeExcluded} />
         </Tabs.Content>
 
         <Tabs.Content value="range" pt={5}>
-          <RangeStatsTab />
+          <RangeStatsTab includeExcluded={includeExcluded} />
         </Tabs.Content>
 
         <Tabs.Content value="nodes" pt={5}>
-          <NodeStatsTab />
+          <NodeStatsTab includeExcluded={includeExcluded} />
         </Tabs.Content>
       </Tabs.Root>
     </Container>

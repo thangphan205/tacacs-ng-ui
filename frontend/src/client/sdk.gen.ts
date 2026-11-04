@@ -2,7 +2,7 @@
 
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import type { AaaStatisticsListAaaNodesResponses, AaaStatisticsReadAaaStatisticsErrors, AaaStatisticsReadAaaStatisticsRangeErrors, AaaStatisticsReadAaaStatisticsRangeResponses, AaaStatisticsReadAaaStatisticsResponses, AaaStatisticsRunAaaStatisticsErrors, AaaStatisticsRunAaaStatisticsResponses, AccountingStatisticsReadAccountingStatisticsErrors, AccountingStatisticsReadAccountingStatisticsResponses, AdminGetAuthProviderErrors, AdminGetAuthProviderResponses, AdminListAuthProvidersResponses, AdminUpdateAuthProviderErrors, AdminUpdateAuthProviderResponses, AlertEventsReadAlertEventsErrors, AlertEventsReadAlertEventsResponses, AlertEventsReadAlertStatisticsResponses, AlertRuleCreate, AlertRulesCreateAlertRuleErrors, AlertRulesCreateAlertRuleResponses, AlertRulesDeleteAlertRuleErrors, AlertRulesDeleteAlertRuleResponses, AlertRulesReadAlertRuleByIdErrors, AlertRulesReadAlertRuleByIdResponses, AlertRulesReadAlertRulesErrors, AlertRulesReadAlertRulesResponses, AlertRulesUpdateAlertRuleErrors, AlertRulesUpdateAlertRuleResponses, AlertRuleUpdate, AnomalyDetectionReadAnomalyResultsErrors, AnomalyDetectionReadAnomalyResultsResponses, AnomalyDetectionRetrainAnomalyModelResponses, ApiKeyAllowedIpsUpdate, ApiKeyCreate, ApiKeysCreateApiKeyErrors, ApiKeysCreateApiKeyResponses, ApiKeysReadApiKeyByIdErrors, ApiKeysReadApiKeyByIdResponses, ApiKeysReadApiKeysErrors, ApiKeysReadApiKeysResponses, ApiKeysReadOwnApiKeysErrors, ApiKeysReadOwnApiKeysResponses, ApiKeysRevokeApiKeyErrors, ApiKeysRevokeApiKeyResponses, ApiKeysUpdateApiKeyAllowedIpsErrors, ApiKeysUpdateApiKeyAllowedIpsResponses, AuditLogsPurgeAuditLogsResponses, AuditLogsReadAuditLogByIdErrors, AuditLogsReadAuditLogByIdResponses, AuditLogsReadAuditLogsErrors, AuditLogsReadAuditLogsResponses, AuthenticationStatisticsReadAuthenticationStatisticsErrors, AuthenticationStatisticsReadAuthenticationStatisticsResponses, AuthorizationStatisticsReadAuthorizationStatisticsErrors, AuthorizationStatisticsReadAuthorizationStatisticsResponses, AuthProviderConfigUpdate, AuthProvidersAuthProvidersStatusResponses, BodyLoginLoginAccessToken, ConfigurationOptionCreate, ConfigurationOptionsCreateConfigurationOptionErrors, ConfigurationOptionsCreateConfigurationOptionResponses, ConfigurationOptionsDeleteConfigurationOptionErrors, ConfigurationOptionsDeleteConfigurationOptionResponses, ConfigurationOptionsReadConfigurationOptionByIdErrors, ConfigurationOptionsReadConfigurationOptionByIdResponses, ConfigurationOptionsReadConfigurationOptionsErrors, ConfigurationOptionsReadConfigurationOptionsResponses, ConfigurationOptionsUpdateConfigurationOptionErrors, ConfigurationOptionsUpdateConfigurationOptionResponses, ConfigurationOptionUpdate, HaConfigUpdate, HaPeerNodeCreate, HaPeerNodeUpdate, HostCreate, HostsCreateHostErrors, HostsCreateHostResponses, HostsDeleteHostErrors, HostsDeleteHostResponses, HostsReadHostByIdErrors, HostsReadHostByIdResponses, HostsReadHostsErrors, HostsReadHostsResponses, HostsUpdateHostErrors, HostsUpdateHostResponses, HostUpdate, ItemCreate, ItemsCreateItemErrors, ItemsCreateItemResponses, ItemsDeleteItemErrors, ItemsDeleteItemResponses, ItemsReadItemErrors, ItemsReadItemResponses, ItemsReadItemsErrors, ItemsReadItemsResponses, ItemsUpdateItemErrors, ItemsUpdateItemResponses, ItemUpdate, LoginLoginAccessTokenErrors, LoginLoginAccessTokenResponses, LoginRecoverPasswordErrors, LoginRecoverPasswordHtmlContentErrors, LoginRecoverPasswordHtmlContentResponses, LoginRecoverPasswordResponses, LoginResetPasswordErrors, LoginResetPasswordResponses, LoginTestTokenResponses, MavisCreate, MavisesCreateMavisErrors, MavisesCreateMavisResponses, MavisesDeleteMavisErrors, MavisesDeleteMavisResponses, MavisesPreviewMavisResponses, MavisesReadMavisByIdErrors, MavisesReadMavisByIdResponses, MavisesReadMavisesErrors, MavisesReadMavisesResponses, MavisesUpdateMavisErrors, MavisesUpdateMavisResponses, MavisUpdate, NewPassword, NotificationChannelCreate, NotificationChannelsCreateNotificationChannelErrors, NotificationChannelsCreateNotificationChannelResponses, NotificationChannelsDeleteNotificationChannelErrors, NotificationChannelsDeleteNotificationChannelResponses, NotificationChannelsReadNotificationChannelByIdErrors, NotificationChannelsReadNotificationChannelByIdResponses, NotificationChannelsReadNotificationChannelsErrors, NotificationChannelsReadNotificationChannelsResponses, NotificationChannelsTestNotificationChannelErrors, NotificationChannelsTestNotificationChannelResponses, NotificationChannelsUpdateNotificationChannelErrors, NotificationChannelsUpdateNotificationChannelResponses, NotificationChannelUpdate, OauthGoogleAuthorizeResponses, OauthGoogleCallbackErrors, OauthGoogleCallbackResponses, OauthKeycloakAuthorizeResponses, OauthKeycloakCallbackErrors, OauthKeycloakCallbackResponses, OauthMicrosoftAuthorizeResponses, OauthMicrosoftCallbackErrors, OauthMicrosoftCallbackResponses, PasskeyAuthenticateCompleteRequest, PasskeyRegisterCompleteRequest, PasskeysAuthenticateBeginResponses, PasskeysAuthenticateCompleteErrors, PasskeysAuthenticateCompleteResponses, PasskeysDeleteCredentialErrors, PasskeysDeleteCredentialResponses, PasskeysListCredentialsResponses, PasskeysRegisterBeginResponses, PasskeysRegisterCompleteErrors, PasskeysRegisterCompleteResponses, PositionMove, PrivateCreateUserErrors, PrivateCreateUserResponses, PrivateUserCreate, ProfileCreate, ProfilesCreateProfileErrors, ProfilesCreateProfileResponses, ProfileScriptCreate, ProfilescriptsCreateProfilescriptErrors, ProfilescriptsCreateProfilescriptResponses, ProfilescriptsDeleteProfilescriptErrors, ProfilescriptsDeleteProfilescriptResponses, ProfileScriptSetCreate, ProfilescriptsetsCreateProfilescriptsetErrors, ProfilescriptsetsCreateProfilescriptsetResponses, ProfilescriptsetsDeleteProfilescriptsetErrors, ProfilescriptsetsDeleteProfilescriptsetResponses, ProfilescriptsetsReadProfilescriptsetByIdErrors, ProfilescriptsetsReadProfilescriptsetByIdResponses, ProfilescriptsetsReadProfilescriptsetsErrors, ProfilescriptsetsReadProfilescriptsetsResponses, ProfilescriptsetsUpdateProfilescriptsetErrors, ProfilescriptsetsUpdateProfilescriptsetResponses, ProfileScriptSetUpdate, ProfilescriptsMoveProfilescriptErrors, ProfilescriptsMoveProfilescriptResponses, ProfilescriptsReadProfilescriptByIdErrors, ProfilescriptsReadProfilescriptByIdResponses, ProfilescriptsReadProfilescriptsErrors, ProfilescriptsReadProfilescriptsResponses, ProfilescriptsUpdateProfilescriptErrors, ProfilescriptsUpdateProfilescriptResponses, ProfileScriptUpdate, ProfilesDeleteProfileErrors, ProfilesDeleteProfileResponses, ProfilesPreviewProfilesResponses, ProfilesReadProfileByIdErrors, ProfilesReadProfileByIdResponses, ProfilesReadProfilesErrors, ProfilesReadProfilesResponses, ProfilesUpdateProfileErrors, ProfilesUpdateProfileResponses, ProfileUpdate, RulesetCreate, RulesetsCreateRulesetErrors, RulesetsCreateRulesetResponses, RulesetScriptCreate, RulesetscriptsCreateRulesetscriptErrors, RulesetscriptsCreateRulesetscriptResponses, RulesetscriptsDeleteRulesetscriptErrors, RulesetscriptsDeleteRulesetscriptResponses, RulesetScriptSetCreate, RulesetscriptsetsCreateRulesetscriptsetErrors, RulesetscriptsetsCreateRulesetscriptsetResponses, RulesetscriptsetsDeleteRulesetscriptsetErrors, RulesetscriptsetsDeleteRulesetscriptsetResponses, RulesetscriptsetsReadRulesetscriptsetByIdErrors, RulesetscriptsetsReadRulesetscriptsetByIdResponses, RulesetscriptsetsReadRulesetscriptsetsErrors, RulesetscriptsetsReadRulesetscriptsetsResponses, RulesetscriptsetsUpdateRulesetscriptsetErrors, RulesetscriptsetsUpdateRulesetscriptsetResponses, RulesetScriptSetUpdate, RulesetscriptsMoveRulesetscriptErrors, RulesetscriptsMoveRulesetscriptResponses, RulesetscriptsReadRulesetscriptByIdErrors, RulesetscriptsReadRulesetscriptByIdResponses, RulesetscriptsReadRulesetscriptsErrors, RulesetscriptsReadRulesetscriptsResponses, RulesetscriptsUpdateRulesetscriptErrors, RulesetscriptsUpdateRulesetscriptResponses, RulesetScriptUpdate, RulesetsDeleteRulesetErrors, RulesetsDeleteRulesetResponses, RulesetsMoveRulesetErrors, RulesetsMoveRulesetResponses, RulesetsPreviewRulesetsResponses, RulesetsReadRulesetByIdErrors, RulesetsReadRulesetByIdResponses, RulesetsReadRulesetsErrors, RulesetsReadRulesetsResponses, RulesetsUpdateRulesetErrors, RulesetsUpdateRulesetResponses, RulesetUpdate, SyncCreatePeerErrors, SyncCreatePeerResponses, SyncDeletePeerErrors, SyncDeletePeerResponses, SyncGetHaConfigEndpointResponses, SyncGetHaInfoResponses, SyncInternalCollectStatsErrors, SyncInternalCollectStatsResponses, SyncInternalReloadConfigResponses, SyncListPeersResponses, SyncPromoteToPrimaryResponses, SyncPushConfigToStandbyResponses, SyncUpdateHaConfigErrors, SyncUpdateHaConfigResponses, SyncUpdatePeerErrors, SyncUpdatePeerResponses, TacacsConfigCreate, TacacsConfigsCheckTacacsConfigByIdErrors, TacacsConfigsCheckTacacsConfigByIdResponses, TacacsConfigsCreateTacacsConfigErrors, TacacsConfigsCreateTacacsConfigResponses, TacacsConfigsDeleteTacacsConfigErrors, TacacsConfigsDeleteTacacsConfigResponses, TacacsConfigsGeneratePreviewTacacsConfigResponses, TacacsConfigsGetActiveTacacsConfigResponses, TacacsConfigsReadTacacsConfigByIdErrors, TacacsConfigsReadTacacsConfigByIdResponses, TacacsConfigsReadTacacsConfigsErrors, TacacsConfigsReadTacacsConfigsResponses, TacacsConfigsUpdateTacacsConfigErrors, TacacsConfigsUpdateTacacsConfigResponses, TacacsConfigUpdate, TacacsGroupCreate, TacacsGroupsCreateTacacsGroupErrors, TacacsGroupsCreateTacacsGroupResponses, TacacsGroupsDeleteTacacsGroupErrors, TacacsGroupsDeleteTacacsGroupResponses, TacacsGroupsReadTacacsGroupByIdErrors, TacacsGroupsReadTacacsGroupByIdResponses, TacacsGroupsReadTacacsGroupsErrors, TacacsGroupsReadTacacsGroupsResponses, TacacsGroupsUpdateTacacsGroupErrors, TacacsGroupsUpdateTacacsGroupResponses, TacacsGroupUpdate, TacacsLogsGetLatestLogDateResponses, TacacsLogsGetLogEventsSummaryErrors, TacacsLogsGetLogEventsSummaryResponses, TacacsLogsListLogEventsErrors, TacacsLogsListLogEventsResponses, TacacsLogsListLogFilesErrors, TacacsLogsListLogFilesResponses, TacacsLogsReadLogFileErrors, TacacsLogsReadLogFileResponses, TacacsNgSettingsReadTacacsNgSettingsResponses, TacacsNgSettingsUpdateTacacsNgSettingsErrors, TacacsNgSettingsUpdateTacacsNgSettingsResponses, TacacsNgSettingUpdate, TacacsServiceCreate, TacacsServicesCreateTacacsServiceErrors, TacacsServicesCreateTacacsServiceResponses, TacacsServicesDeleteTacacsServiceErrors, TacacsServicesDeleteTacacsServiceResponses, TacacsServicesReadTacacsServiceByIdErrors, TacacsServicesReadTacacsServiceByIdResponses, TacacsServicesReadTacacsServicesErrors, TacacsServicesReadTacacsServicesResponses, TacacsServicesUpdateTacacsServiceErrors, TacacsServicesUpdateTacacsServiceResponses, TacacsServiceUpdate, TacacsUserCreate, TacacsUsersCreateTacacsUserErrors, TacacsUsersCreateTacacsUserResponses, TacacsUsersDeleteTacacsUserErrors, TacacsUsersDeleteTacacsUserResponses, TacacsUsersReadTacacsUserByIdErrors, TacacsUsersReadTacacsUserByIdResponses, TacacsUsersReadTacacsUsersErrors, TacacsUsersReadTacacsUsersResponses, TacacsUsersUpdateTacacsUserErrors, TacacsUsersUpdateTacacsUserResponses, TacacsUserUpdate, UpdatePassword, UserCreate, UserRegister, UsersCreateUserErrors, UsersCreateUserResponses, UsersDeleteUserErrors, UsersDeleteUserResponses, UsersReadUserByIdErrors, UsersReadUserByIdResponses, UsersReadUserMeResponses, UsersReadUsersErrors, UsersReadUsersResponses, UsersRegisterUserErrors, UsersRegisterUserResponses, UsersUpdatePasswordMeErrors, UsersUpdatePasswordMeResponses, UsersUpdateUserErrors, UsersUpdateUserMeErrors, UsersUpdateUserMeResponses, UsersUpdateUserResponses, UserUpdate, UserUpdateMe, UtilsHealthCheckResponses, UtilsTestEmailErrors, UtilsTestEmailResponses } from './types.gen';
+import type { AaaStatisticsListAaaNodesResponses, AaaStatisticsReadAaaStatisticsErrors, AaaStatisticsReadAaaStatisticsRangeErrors, AaaStatisticsReadAaaStatisticsRangeResponses, AaaStatisticsReadAaaStatisticsResponses, AaaStatisticsRunAaaStatisticsErrors, AaaStatisticsRunAaaStatisticsResponses, AccountingStatisticsReadAccountingStatisticsErrors, AccountingStatisticsReadAccountingStatisticsResponses, AdminGetAuthProviderErrors, AdminGetAuthProviderResponses, AdminListAuthProvidersResponses, AdminUpdateAuthProviderErrors, AdminUpdateAuthProviderResponses, AlertEventsReadAlertEventsErrors, AlertEventsReadAlertEventsResponses, AlertEventsReadAlertStatisticsResponses, AlertRuleCreate, AlertRulesCreateAlertRuleErrors, AlertRulesCreateAlertRuleResponses, AlertRulesDeleteAlertRuleErrors, AlertRulesDeleteAlertRuleResponses, AlertRulesReadAlertRuleByIdErrors, AlertRulesReadAlertRuleByIdResponses, AlertRulesReadAlertRulesErrors, AlertRulesReadAlertRulesResponses, AlertRulesUpdateAlertRuleErrors, AlertRulesUpdateAlertRuleResponses, AlertRuleUpdate, AnomalyDetectionReadAnomalyResultsErrors, AnomalyDetectionReadAnomalyResultsResponses, AnomalyDetectionRetrainAnomalyModelResponses, ApiKeyAllowedIpsUpdate, ApiKeyCreate, ApiKeysCreateApiKeyErrors, ApiKeysCreateApiKeyResponses, ApiKeysReadApiKeyByIdErrors, ApiKeysReadApiKeyByIdResponses, ApiKeysReadApiKeysErrors, ApiKeysReadApiKeysResponses, ApiKeysReadOwnApiKeysErrors, ApiKeysReadOwnApiKeysResponses, ApiKeysRevokeApiKeyErrors, ApiKeysRevokeApiKeyResponses, ApiKeysUpdateApiKeyAllowedIpsErrors, ApiKeysUpdateApiKeyAllowedIpsResponses, AuditLogsPurgeAuditLogsResponses, AuditLogsReadAuditLogByIdErrors, AuditLogsReadAuditLogByIdResponses, AuditLogsReadAuditLogsErrors, AuditLogsReadAuditLogsResponses, AuthenticationStatisticsReadAuthenticationStatisticsErrors, AuthenticationStatisticsReadAuthenticationStatisticsResponses, AuthorizationStatisticsReadAuthorizationStatisticsErrors, AuthorizationStatisticsReadAuthorizationStatisticsResponses, AuthProviderConfigUpdate, AuthProvidersAuthProvidersStatusResponses, BodyLoginLoginAccessToken, ConfigurationOptionCreate, ConfigurationOptionsCreateConfigurationOptionErrors, ConfigurationOptionsCreateConfigurationOptionResponses, ConfigurationOptionsDeleteConfigurationOptionErrors, ConfigurationOptionsDeleteConfigurationOptionResponses, ConfigurationOptionsReadConfigurationOptionByIdErrors, ConfigurationOptionsReadConfigurationOptionByIdResponses, ConfigurationOptionsReadConfigurationOptionsErrors, ConfigurationOptionsReadConfigurationOptionsResponses, ConfigurationOptionsUpdateConfigurationOptionErrors, ConfigurationOptionsUpdateConfigurationOptionResponses, ConfigurationOptionUpdate, HaConfigUpdate, HaPeerNodeCreate, HaPeerNodeUpdate, HostCreate, HostsCreateHostErrors, HostsCreateHostResponses, HostsDeleteHostErrors, HostsDeleteHostResponses, HostsReadHostByIdErrors, HostsReadHostByIdResponses, HostsReadHostsErrors, HostsReadHostsResponses, HostsUpdateHostErrors, HostsUpdateHostResponses, HostUpdate, ItemCreate, ItemsCreateItemErrors, ItemsCreateItemResponses, ItemsDeleteItemErrors, ItemsDeleteItemResponses, ItemsReadItemErrors, ItemsReadItemResponses, ItemsReadItemsErrors, ItemsReadItemsResponses, ItemsUpdateItemErrors, ItemsUpdateItemResponses, ItemUpdate, LoginLoginAccessTokenErrors, LoginLoginAccessTokenResponses, LoginRecoverPasswordErrors, LoginRecoverPasswordHtmlContentErrors, LoginRecoverPasswordHtmlContentResponses, LoginRecoverPasswordResponses, LoginResetPasswordErrors, LoginResetPasswordResponses, LoginTestTokenResponses, MavisCreate, MavisesCreateMavisErrors, MavisesCreateMavisResponses, MavisesDeleteMavisErrors, MavisesDeleteMavisResponses, MavisesPreviewMavisResponses, MavisesReadMavisByIdErrors, MavisesReadMavisByIdResponses, MavisesReadMavisesErrors, MavisesReadMavisesResponses, MavisesUpdateMavisErrors, MavisesUpdateMavisResponses, MavisUpdate, NewPassword, NotificationChannelCreate, NotificationChannelsCreateNotificationChannelErrors, NotificationChannelsCreateNotificationChannelResponses, NotificationChannelsDeleteNotificationChannelErrors, NotificationChannelsDeleteNotificationChannelResponses, NotificationChannelsReadNotificationChannelByIdErrors, NotificationChannelsReadNotificationChannelByIdResponses, NotificationChannelsReadNotificationChannelsErrors, NotificationChannelsReadNotificationChannelsResponses, NotificationChannelsTestNotificationChannelErrors, NotificationChannelsTestNotificationChannelResponses, NotificationChannelsUpdateNotificationChannelErrors, NotificationChannelsUpdateNotificationChannelResponses, NotificationChannelUpdate, OauthGoogleAuthorizeResponses, OauthGoogleCallbackErrors, OauthGoogleCallbackResponses, OauthKeycloakAuthorizeResponses, OauthKeycloakCallbackErrors, OauthKeycloakCallbackResponses, OauthMicrosoftAuthorizeResponses, OauthMicrosoftCallbackErrors, OauthMicrosoftCallbackResponses, PasskeyAuthenticateCompleteRequest, PasskeyRegisterCompleteRequest, PasskeysAuthenticateBeginResponses, PasskeysAuthenticateCompleteErrors, PasskeysAuthenticateCompleteResponses, PasskeysDeleteCredentialErrors, PasskeysDeleteCredentialResponses, PasskeysListCredentialsResponses, PasskeysRegisterBeginResponses, PasskeysRegisterCompleteErrors, PasskeysRegisterCompleteResponses, PositionMove, PrivateCreateUserErrors, PrivateCreateUserResponses, PrivateUserCreate, ProfileCreate, ProfilesCreateProfileErrors, ProfilesCreateProfileResponses, ProfileScriptCreate, ProfilescriptsCreateProfilescriptErrors, ProfilescriptsCreateProfilescriptResponses, ProfilescriptsDeleteProfilescriptErrors, ProfilescriptsDeleteProfilescriptResponses, ProfileScriptSetCreate, ProfilescriptsetsCreateProfilescriptsetErrors, ProfilescriptsetsCreateProfilescriptsetResponses, ProfilescriptsetsDeleteProfilescriptsetErrors, ProfilescriptsetsDeleteProfilescriptsetResponses, ProfilescriptsetsReadProfilescriptsetByIdErrors, ProfilescriptsetsReadProfilescriptsetByIdResponses, ProfilescriptsetsReadProfilescriptsetsErrors, ProfilescriptsetsReadProfilescriptsetsResponses, ProfilescriptsetsUpdateProfilescriptsetErrors, ProfilescriptsetsUpdateProfilescriptsetResponses, ProfileScriptSetUpdate, ProfilescriptsMoveProfilescriptErrors, ProfilescriptsMoveProfilescriptResponses, ProfilescriptsReadProfilescriptByIdErrors, ProfilescriptsReadProfilescriptByIdResponses, ProfilescriptsReadProfilescriptsErrors, ProfilescriptsReadProfilescriptsResponses, ProfilescriptsUpdateProfilescriptErrors, ProfilescriptsUpdateProfilescriptResponses, ProfileScriptUpdate, ProfilesDeleteProfileErrors, ProfilesDeleteProfileResponses, ProfilesPreviewProfilesResponses, ProfilesReadProfileByIdErrors, ProfilesReadProfileByIdResponses, ProfilesReadProfilesErrors, ProfilesReadProfilesResponses, ProfilesUpdateProfileErrors, ProfilesUpdateProfileResponses, ProfileUpdate, RulesetCreate, RulesetsCreateRulesetErrors, RulesetsCreateRulesetResponses, RulesetScriptCreate, RulesetscriptsCreateRulesetscriptErrors, RulesetscriptsCreateRulesetscriptResponses, RulesetscriptsDeleteRulesetscriptErrors, RulesetscriptsDeleteRulesetscriptResponses, RulesetScriptSetCreate, RulesetscriptsetsCreateRulesetscriptsetErrors, RulesetscriptsetsCreateRulesetscriptsetResponses, RulesetscriptsetsDeleteRulesetscriptsetErrors, RulesetscriptsetsDeleteRulesetscriptsetResponses, RulesetscriptsetsReadRulesetscriptsetByIdErrors, RulesetscriptsetsReadRulesetscriptsetByIdResponses, RulesetscriptsetsReadRulesetscriptsetsErrors, RulesetscriptsetsReadRulesetscriptsetsResponses, RulesetscriptsetsUpdateRulesetscriptsetErrors, RulesetscriptsetsUpdateRulesetscriptsetResponses, RulesetScriptSetUpdate, RulesetscriptsMoveRulesetscriptErrors, RulesetscriptsMoveRulesetscriptResponses, RulesetscriptsReadRulesetscriptByIdErrors, RulesetscriptsReadRulesetscriptByIdResponses, RulesetscriptsReadRulesetscriptsErrors, RulesetscriptsReadRulesetscriptsResponses, RulesetscriptsUpdateRulesetscriptErrors, RulesetscriptsUpdateRulesetscriptResponses, RulesetScriptUpdate, RulesetsDeleteRulesetErrors, RulesetsDeleteRulesetResponses, RulesetsMoveRulesetErrors, RulesetsMoveRulesetResponses, RulesetsPreviewRulesetsResponses, RulesetsReadRulesetByIdErrors, RulesetsReadRulesetByIdResponses, RulesetsReadRulesetsErrors, RulesetsReadRulesetsResponses, RulesetsUpdateRulesetErrors, RulesetsUpdateRulesetResponses, RulesetUpdate, StatsExcludedUserCreate, StatsExclusionsCreateStatsExclusionErrors, StatsExclusionsCreateStatsExclusionResponses, StatsExclusionsDeleteStatsExclusionErrors, StatsExclusionsDeleteStatsExclusionResponses, StatsExclusionsReadStatsExclusionsResponses, SyncCreatePeerErrors, SyncCreatePeerResponses, SyncDeletePeerErrors, SyncDeletePeerResponses, SyncGetHaConfigEndpointResponses, SyncGetHaInfoResponses, SyncInternalCollectStatsErrors, SyncInternalCollectStatsResponses, SyncInternalReloadConfigResponses, SyncListPeersResponses, SyncPromoteToPrimaryResponses, SyncPushConfigToStandbyResponses, SyncUpdateHaConfigErrors, SyncUpdateHaConfigResponses, SyncUpdatePeerErrors, SyncUpdatePeerResponses, TacacsConfigCreate, TacacsConfigsCheckTacacsConfigByIdErrors, TacacsConfigsCheckTacacsConfigByIdResponses, TacacsConfigsCreateTacacsConfigErrors, TacacsConfigsCreateTacacsConfigResponses, TacacsConfigsDeleteTacacsConfigErrors, TacacsConfigsDeleteTacacsConfigResponses, TacacsConfigsGeneratePreviewTacacsConfigResponses, TacacsConfigsGetActiveTacacsConfigResponses, TacacsConfigsReadTacacsConfigByIdErrors, TacacsConfigsReadTacacsConfigByIdResponses, TacacsConfigsReadTacacsConfigsErrors, TacacsConfigsReadTacacsConfigsResponses, TacacsConfigsUpdateTacacsConfigErrors, TacacsConfigsUpdateTacacsConfigResponses, TacacsConfigUpdate, TacacsGroupCreate, TacacsGroupsCreateTacacsGroupErrors, TacacsGroupsCreateTacacsGroupResponses, TacacsGroupsDeleteTacacsGroupErrors, TacacsGroupsDeleteTacacsGroupResponses, TacacsGroupsReadTacacsGroupByIdErrors, TacacsGroupsReadTacacsGroupByIdResponses, TacacsGroupsReadTacacsGroupsErrors, TacacsGroupsReadTacacsGroupsResponses, TacacsGroupsUpdateTacacsGroupErrors, TacacsGroupsUpdateTacacsGroupResponses, TacacsGroupUpdate, TacacsLogsGetLatestLogDateResponses, TacacsLogsGetLogEventsSummaryErrors, TacacsLogsGetLogEventsSummaryResponses, TacacsLogsListLogEventsErrors, TacacsLogsListLogEventsResponses, TacacsLogsListLogFilesErrors, TacacsLogsListLogFilesResponses, TacacsLogsReadLogFileErrors, TacacsLogsReadLogFileResponses, TacacsNgSettingsReadTacacsNgSettingsResponses, TacacsNgSettingsUpdateTacacsNgSettingsErrors, TacacsNgSettingsUpdateTacacsNgSettingsResponses, TacacsNgSettingUpdate, TacacsServiceCreate, TacacsServicesCreateTacacsServiceErrors, TacacsServicesCreateTacacsServiceResponses, TacacsServicesDeleteTacacsServiceErrors, TacacsServicesDeleteTacacsServiceResponses, TacacsServicesReadTacacsServiceByIdErrors, TacacsServicesReadTacacsServiceByIdResponses, TacacsServicesReadTacacsServicesErrors, TacacsServicesReadTacacsServicesResponses, TacacsServicesUpdateTacacsServiceErrors, TacacsServicesUpdateTacacsServiceResponses, TacacsServiceUpdate, TacacsUserCreate, TacacsUsersCreateTacacsUserErrors, TacacsUsersCreateTacacsUserResponses, TacacsUsersDeleteTacacsUserErrors, TacacsUsersDeleteTacacsUserResponses, TacacsUsersReadTacacsUserByIdErrors, TacacsUsersReadTacacsUserByIdResponses, TacacsUsersReadTacacsUsersErrors, TacacsUsersReadTacacsUsersResponses, TacacsUsersUpdateTacacsUserErrors, TacacsUsersUpdateTacacsUserResponses, TacacsUserUpdate, UpdatePassword, UserCreate, UserRegister, UsersCreateUserErrors, UsersCreateUserResponses, UsersDeleteUserErrors, UsersDeleteUserResponses, UsersReadUserByIdErrors, UsersReadUserByIdResponses, UsersReadUserMeResponses, UsersReadUsersErrors, UsersReadUsersResponses, UsersRegisterUserErrors, UsersRegisterUserResponses, UsersUpdatePasswordMeErrors, UsersUpdatePasswordMeResponses, UsersUpdateUserErrors, UsersUpdateUserMeErrors, UsersUpdateUserMeResponses, UsersUpdateUserResponses, UserUpdate, UserUpdateMe, UtilsHealthCheckResponses, UtilsTestEmailErrors, UtilsTestEmailResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -2418,11 +2418,16 @@ export class TacacsLogsService {
      * Get Log Events Summary
      *
      * Return count totals for auth/authz/acct log events for a given date (default: today).
+     *
+     * These totals feed the dashboard, so users matching a statistics exclusion are
+     * left out unless include_excluded is set. The event list itself
+     * (GET /tacacs_logs/events) is never filtered.
      */
     public static getLogEventsSummary<ThrowOnError extends boolean = true>(parameters?: {
         date?: string | null;
+        include_excluded?: boolean;
     }, options?: Options<never, ThrowOnError>): RequestResult<TacacsLogsGetLogEventsSummaryResponses, TacacsLogsGetLogEventsSummaryErrors, ThrowOnError, 'data'> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'query', key: 'date' }] }]);
+        const params = buildClientParams([parameters], [{ args: [{ in: 'query', key: 'date' }, { in: 'query', key: 'include_excluded' }] }]);
         return (options?.client ?? client).get<TacacsLogsGetLogEventsSummaryResponses, TacacsLogsGetLogEventsSummaryErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             security: [{ scheme: 'bearer', type: 'http' }],
@@ -2642,6 +2647,7 @@ export class AuthenticationStatisticsService {
         sort_by?: string;
         sort_order?: string;
         node_name?: string | null;
+        include_excluded?: boolean;
     }, options?: Options<never, ThrowOnError>): RequestResult<AuthenticationStatisticsReadAuthenticationStatisticsResponses, AuthenticationStatisticsReadAuthenticationStatisticsErrors, ThrowOnError, 'data'> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'query', key: 'skip' },
@@ -2650,7 +2656,8 @@ export class AuthenticationStatisticsService {
                     { in: 'query', key: 'date_to' },
                     { in: 'query', key: 'sort_by' },
                     { in: 'query', key: 'sort_order' },
-                    { in: 'query', key: 'node_name' }
+                    { in: 'query', key: 'node_name' },
+                    { in: 'query', key: 'include_excluded' }
                 ] }]);
         return (options?.client ?? client).get<AuthenticationStatisticsReadAuthenticationStatisticsResponses, AuthenticationStatisticsReadAuthenticationStatisticsErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
@@ -2674,6 +2681,7 @@ export class AuthorizationStatisticsService {
         sort_by?: string;
         sort_order?: string;
         node_name?: string | null;
+        include_excluded?: boolean;
     }, options?: Options<never, ThrowOnError>): RequestResult<AuthorizationStatisticsReadAuthorizationStatisticsResponses, AuthorizationStatisticsReadAuthorizationStatisticsErrors, ThrowOnError, 'data'> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'query', key: 'skip' },
@@ -2682,7 +2690,8 @@ export class AuthorizationStatisticsService {
                     { in: 'query', key: 'date_to' },
                     { in: 'query', key: 'sort_by' },
                     { in: 'query', key: 'sort_order' },
-                    { in: 'query', key: 'node_name' }
+                    { in: 'query', key: 'node_name' },
+                    { in: 'query', key: 'include_excluded' }
                 ] }]);
         return (options?.client ?? client).get<AuthorizationStatisticsReadAuthorizationStatisticsResponses, AuthorizationStatisticsReadAuthorizationStatisticsErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
@@ -2706,6 +2715,7 @@ export class AccountingStatisticsService {
         sort_by?: string;
         sort_order?: string;
         node_name?: string | null;
+        include_excluded?: boolean;
     }, options?: Options<never, ThrowOnError>): RequestResult<AccountingStatisticsReadAccountingStatisticsResponses, AccountingStatisticsReadAccountingStatisticsErrors, ThrowOnError, 'data'> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'query', key: 'skip' },
@@ -2714,7 +2724,8 @@ export class AccountingStatisticsService {
                     { in: 'query', key: 'date_to' },
                     { in: 'query', key: 'sort_by' },
                     { in: 'query', key: 'sort_order' },
-                    { in: 'query', key: 'node_name' }
+                    { in: 'query', key: 'node_name' },
+                    { in: 'query', key: 'include_excluded' }
                 ] }]);
         return (options?.client ?? client).get<AccountingStatisticsReadAccountingStatisticsResponses, AccountingStatisticsReadAccountingStatisticsErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
@@ -2745,11 +2756,15 @@ export class AaaStatisticsService {
      * Read Aaa Statistics
      *
      * Retrieve aaa_statistics.
+     *
+     * Users matching a statistics exclusion are left out unless include_excluded
+     * is set; the patterns applied are returned in excluded_users.
      */
     public static readAaaStatistics<ThrowOnError extends boolean = true>(parameters?: {
         node_name?: string | null;
+        include_excluded?: boolean;
     }, options?: Options<never, ThrowOnError>): RequestResult<AaaStatisticsReadAaaStatisticsResponses, AaaStatisticsReadAaaStatisticsErrors, ThrowOnError, 'data'> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'query', key: 'node_name' }] }]);
+        const params = buildClientParams([parameters], [{ args: [{ in: 'query', key: 'node_name' }, { in: 'query', key: 'include_excluded' }] }]);
         return (options?.client ?? client).get<AaaStatisticsReadAaaStatisticsResponses, AaaStatisticsReadAaaStatisticsErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             security: [{ scheme: 'bearer', type: 'http' }],
@@ -2763,18 +2778,23 @@ export class AaaStatisticsService {
      * Read Aaa Statistics Range
      *
      * Retrieve aaa_statistics.
+     *
+     * Users matching a statistics exclusion are left out unless include_excluded
+     * is set; the patterns applied are returned in excluded_users.
      */
     public static readAaaStatisticsRange<ThrowOnError extends boolean = true>(parameters?: {
         skip?: number;
         limit?: number;
         range_date?: string | null;
         node_name?: string | null;
+        include_excluded?: boolean;
     }, options?: Options<never, ThrowOnError>): RequestResult<AaaStatisticsReadAaaStatisticsRangeResponses, AaaStatisticsReadAaaStatisticsRangeErrors, ThrowOnError, 'data'> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'query', key: 'skip' },
                     { in: 'query', key: 'limit' },
                     { in: 'query', key: 'range_date' },
-                    { in: 'query', key: 'node_name' }
+                    { in: 'query', key: 'node_name' },
+                    { in: 'query', key: 'include_excluded' }
                 ] }]);
         return (options?.client ?? client).get<AaaStatisticsReadAaaStatisticsRangeResponses, AaaStatisticsReadAaaStatisticsRangeErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
@@ -2801,6 +2821,67 @@ export class AaaStatisticsService {
             responseStyle: 'data',
             security: [{ scheme: 'bearer', type: 'http' }],
             url: '/api/v1/aaa_statistics/run/',
+            ...options,
+            ...params
+        });
+    }
+}
+
+export class StatsExclusionsService {
+    /**
+     * Read Stats Exclusions
+     *
+     * List usernames excluded from the AAA statistics and dashboards.
+     */
+    public static readStatsExclusions<ThrowOnError extends boolean = true>(options?: Options<never, ThrowOnError>): RequestResult<StatsExclusionsReadStatsExclusionsResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<StatsExclusionsReadStatsExclusionsResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/stats_exclusions/',
+            ...options
+        });
+    }
+    
+    /**
+     * Create Stats Exclusion
+     *
+     * Exclude a username, or a `*` glob such as `svc_*`, from the AAA statistics.
+     *
+     * Statistics only: the account still authenticates, its events still reach the
+     * raw logs, the log viewer, alerting and SIEM forwarding.
+     */
+    public static createStatsExclusion<ThrowOnError extends boolean = true>(parameters: {
+        statsExcludedUserCreate: StatsExcludedUserCreate;
+    }, options?: Options<never, ThrowOnError>): RequestResult<StatsExclusionsCreateStatsExclusionResponses, StatsExclusionsCreateStatsExclusionErrors, ThrowOnError, 'data'> {
+        const params = buildClientParams([parameters], [{ args: [{ key: 'statsExcludedUserCreate', map: 'body' }] }]);
+        return (options?.client ?? client).post<StatsExclusionsCreateStatsExclusionResponses, StatsExclusionsCreateStatsExclusionErrors, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/stats_exclusions/',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Delete Stats Exclusion
+     *
+     * Remove a statistics exclusion; the user's activity is counted again,
+     * including historical days.
+     */
+    public static deleteStatsExclusion<ThrowOnError extends boolean = true>(parameters: {
+        id: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<StatsExclusionsDeleteStatsExclusionResponses, StatsExclusionsDeleteStatsExclusionErrors, ThrowOnError, 'data'> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        return (options?.client ?? client).delete<StatsExclusionsDeleteStatsExclusionResponses, StatsExclusionsDeleteStatsExclusionErrors, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/stats_exclusions/{id}',
             ...options,
             ...params
         });

@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import date, datetime, timezone
 from ipaddress import ip_network
@@ -867,6 +868,7 @@ class TacacsLogDailySummary(SQLModel):
     authentication: TacacsLogTypeSummary
     authorization: TacacsLogTypeSummary
     accounting: TacacsLogTypeSummary
+    excluded_users: list[str] = []
 
 
 class TacacsLogLatestDate(SQLModel):
@@ -1047,6 +1049,64 @@ class AccountingStatisticsPublic(SQLModel):
 # --- End of Accounting Statistics Table ---
 
 
+# --- Statistics exclusions ---
+# Usernames (service / automation accounts) left out of the AAA statistics and
+# dashboards. Read-side only: nothing here reaches tac_plus-ng, the raw logs,
+# the log viewer, alerting, anomaly scoring or SIEM forwarding.
+
+# The log parsers only ever capture usernames matching [\w.-]+, so a pattern is
+# that charset plus `*` as a wildcard.
+_STATS_EXCLUSION_PATTERN_RE = re.compile(r"^[\w.*-]+$")
+
+
+def _normalize_stats_exclusion_pattern(value: str) -> str:
+    pattern = (value or "").strip().lower()
+    if not pattern:
+        raise ValueError("Pattern is required.")
+    if not _STATS_EXCLUSION_PATTERN_RE.match(pattern):
+        raise ValueError(
+            "Pattern may only contain letters, digits, '_', '.', '-' and '*' "
+            "as a wildcard."
+        )
+    if not pattern.strip("*"):
+        raise ValueError("A pattern made only of '*' would exclude every user.")
+    return pattern
+
+
+class StatsExcludedUserBase(SQLModel):
+    # Lower-cased username or glob ("svc_*"); matched case-insensitively.
+    pattern: str = Field(max_length=255)
+    note: str | None = Field(default=None, max_length=1024)
+
+
+class StatsExcludedUserCreate(StatsExcludedUserBase):
+    # Validated on the create payload only, as with ApiKeyCreate: a stored row
+    # that a later build would reject must stay readable and deletable.
+    @field_validator("pattern")
+    @classmethod
+    def _validate_pattern(cls, value: str) -> str:
+        return _normalize_stats_exclusion_pattern(value)
+
+
+class StatsExcludedUser(StatsExcludedUserBase, TimestampModel, table=True):
+    pattern: str = Field(max_length=255, unique=True, index=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
+
+class StatsExcludedUserPublic(StatsExcludedUserBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class StatsExcludedUsersPublic(SQLModel):
+    data: list[StatsExcludedUserPublic]
+    count: int
+
+
+# --- End of Statistics exclusions ---
+
+
 class AaaStatisticsTodayPublic(SQLModel):
     authentication_failed_count_by_user: list[dict] = []
     authentication_success_count_by_user: list[dict] = []
@@ -1071,6 +1131,9 @@ class AaaStatisticsTodayPublic(SQLModel):
     today_authentication_success_count_by_user: list[dict] = []
     today_authentication_success_count_by_user_source_ip: list[dict] = []
     today_authentication_success_count_by_nas_ip: list[dict] = []
+    # Patterns that were applied to these numbers; empty when none are
+    # configured or the caller asked for include_excluded=true.
+    excluded_users: list[str] = []
 
 
 class AaaStatisticsDateRangePublic(SQLModel):
@@ -1085,6 +1148,7 @@ class AaaStatisticsDateRangePublic(SQLModel):
     last_range_days_authorization_deny: list[dict] = []
     last_range_days_accounting_start: list[dict] = []
     last_range_days_accounting_stop: list[dict] = []
+    excluded_users: list[str] = []
 
 
 # --- WebAuthn / Passkey Tables ---
