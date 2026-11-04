@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Internal
+
+* 🔖 Release 0.6.3. PR [#344](https://github.com/thangphan205/tacacs-ng-ui/pull/344) by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.6.3
 
 ### Features
