@@ -266,6 +266,39 @@ def test_today_counts_filter_after_cache(
     assert calls == 1
 
 
+def test_peer_non_json_response_falls_back_to_db(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A peer answering 200 with a non-JSON body (e.g. a proxy error page) must
+    be skipped and fall back to the database, not fail the request."""
+
+    class _Resp:
+        status_code = 200
+
+        def json(self) -> dict[str, object]:
+            raise ValueError("Expecting value: line 1 column 1")
+
+    class _Client:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        def __enter__(self) -> "_Client":
+            return self
+
+        def __exit__(self, *_exc: object) -> None:
+            return None
+
+        def post(self, *_args: object, **_kwargs: object) -> _Resp:
+            return _Resp()
+
+    monkeypatch.setattr(settings, "INTERNAL_SYNC_TOKEN", "t")
+    monkeypatch.setattr(aaa_statistics, "get_peer_urls", lambda: ["http://peer"])
+    monkeypatch.setattr(aaa_statistics.httpx, "Client", _Client)
+    monkeypatch.setattr(aaa_statistics, "_today_rows_cache", {})
+
+    assert aaa_statistics.get_today_authz_counts(db, "no-such-peer-node") == (0, 0)
+
+
 def test_daily_summary_filters_events(
     client: TestClient,
     superuser_token_headers: dict[str, str],

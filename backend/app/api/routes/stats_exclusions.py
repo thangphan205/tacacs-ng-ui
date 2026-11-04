@@ -53,16 +53,14 @@ def create_stats_exclusion(
     Statistics only: the account still authenticates, its events still reach the
     raw logs, the log viewer, alerting and SIEM forwarding.
     """
-    if stats_exclusions.get_excluded_user_by_pattern(
-        session=session, pattern=stats_exclusion_in.pattern
-    ):
+    db_obj = stats_exclusions.create_excluded_user(
+        session=session, excluded_user_in=stats_exclusion_in
+    )
+    if db_obj is None:
         raise HTTPException(
             status_code=409,
             detail=f"'{stats_exclusion_in.pattern}' is already excluded from statistics.",
         )
-    db_obj = stats_exclusions.create_excluded_user(
-        session=session, excluded_user_in=stats_exclusion_in
-    )
     # Snapshot before auditing: log_entity_action commits and expires db_obj.
     public = StatsExcludedUserPublic.model_validate(db_obj)
     audit_logs_crud.log_entity_action(

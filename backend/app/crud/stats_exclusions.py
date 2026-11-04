@@ -16,6 +16,7 @@ from fnmatch import fnmatchcase
 from typing import Any
 
 from sqlalchemy import and_, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.elements import ColumnElement
 from sqlmodel import Session, select
 
@@ -34,20 +35,18 @@ def get_excluded_user_by_id(
     return session.get(StatsExcludedUser, id)
 
 
-def get_excluded_user_by_pattern(
-    *, session: Session, pattern: str
-) -> StatsExcludedUser | None:
-    return session.exec(
-        select(StatsExcludedUser).where(StatsExcludedUser.pattern == pattern)
-    ).first()
-
-
 def create_excluded_user(
     *, session: Session, excluded_user_in: StatsExcludedUserCreate
-) -> StatsExcludedUser:
+) -> StatsExcludedUser | None:
+    """Create an exclusion; None when the pattern already exists (unique index),
+    which also covers two concurrent creates racing past the caller's check."""
     db_obj = StatsExcludedUser.model_validate(excluded_user_in)
     session.add(db_obj)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        return None
     session.refresh(db_obj)
     return db_obj
 

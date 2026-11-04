@@ -163,11 +163,16 @@ def _peer_payloads(today_str: str) -> Iterator[dict[str, Any]]:
                     params={"date": today_str},
                     headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN},
                 )
+            if resp.status_code != 200:
+                continue
+            # Parsed inside the try: a peer behind a proxy can answer 200 with
+            # an HTML error page, which must fall back to the DB, not 500.
+            payload = resp.json()
         except Exception as e:
             logger.warning("Failed to fetch live stats from peer %s: %s", url, e)
             continue
-        if resp.status_code == 200:
-            yield resp.json()
+        if isinstance(payload, dict):
+            yield payload
 
 
 # Lambdas so the module-level functions are looked up at call time (patchable).
