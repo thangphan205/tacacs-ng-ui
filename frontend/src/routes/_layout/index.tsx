@@ -34,20 +34,7 @@ import {
   FiTrendingUp,
   FiUsers,
 } from "react-icons/fi"
-import {
-  CartesianGrid,
-  LabelList,
-  Legend,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Sector,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts"
+import { LabelList, Legend, Pie, PieChart, Sector, Tooltip } from "recharts"
 import type { AuditLogPublic, TacacsLogEvent } from "@/client"
 import {
   AaaStatisticsService,
@@ -59,6 +46,7 @@ import {
   TacacsLogsService,
   TacacsUsersService,
 } from "@/client"
+import { AaaTrendChart } from "@/components/AaaStatistics/AaaTrendChart"
 import { StatsExclusionsNote } from "@/components/AaaStatistics/StatsExclusions"
 import { PageHeader } from "@/components/Common/PageHeader"
 
@@ -106,15 +94,6 @@ const ACTION_COLOR: Record<string, string> = {
   LOGIN_SUCCESS: "teal",
   LOGIN_FAILED: "orange",
 }
-
-const AREA_SERIES = [
-  { key: "Auth Success", color: "green" },
-  { key: "Auth Fail", color: "red" },
-  { key: "Authz Permit", color: "blue" },
-  { key: "Authz Deny", color: "orange" },
-  { key: "Acct Start", color: "purple" },
-  { key: "Acct Stop", color: "gray" },
-]
 
 // ─── types & filter helpers ───────────────────────────────────────────────────
 
@@ -1128,28 +1107,11 @@ function Dashboard() {
                   </Text>
                 </Flex>
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart
-                    data={trendData}
-                    margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Legend />
-                    {AREA_SERIES.map(({ key, color }) => (
-                      <Line
-                        key={key}
-                        dataKey={key}
-                        type="monotone"
-                        stroke={`var(--chakra-colors-${color}-500)`}
-                        dot={false}
-                        activeDot={{ r: 4 }}
-                      />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
+                <AaaTrendChart
+                  data={trendData}
+                  height={300}
+                  margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+                />
               )}
             </Box>
           </GridItem>
