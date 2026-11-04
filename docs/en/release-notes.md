@@ -14,6 +14,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Features
 
+* ✨ Exclude service accounts from AAA statistics. PR [#342](https://github.com/thangphan205/tacacs-ng-ui/pull/342) by [@thangphan205](https://github.com/thangphan205).
 * ✨ Deterministic, user-controlled order for profile and ruleset scripts. PR [#341](https://github.com/thangphan205/tacacs-ng-ui/pull/341) by [@thangphan205](https://github.com/thangphan205).
 
 ### Docs
