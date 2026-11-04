@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Features
+
+* ✨ Deterministic, user-controlled order for profile and ruleset scripts. PR [#341](https://github.com/thangphan205/tacacs-ng-ui/pull/341) by [@thangphan205](https://github.com/thangphan205).
+
 ### Docs
 
 * 📝 Lead the README with AI-assisted configuration over MCP. PR [#338](https://github.com/thangphan205/tacacs-ng-ui/pull/338) by [@thangphan205](https://github.com/thangphan205).
