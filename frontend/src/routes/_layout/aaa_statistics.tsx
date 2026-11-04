@@ -29,24 +29,15 @@ import {
   FiShield,
   FiShieldOff,
 } from "react-icons/fi"
-import {
-  CartesianGrid,
-  LabelList,
-  Legend,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Sector,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts"
+import { LabelList, Legend, Pie, PieChart, Sector, Tooltip } from "recharts"
 
 import type { ApiError } from "@/api"
 import type { AaaStatisticsDateRangePublic } from "@/client"
 import { AaaStatisticsService } from "@/client"
+import {
+  AAA_TREND_SERIES,
+  AaaTrendChart,
+} from "@/components/AaaStatistics/AaaTrendChart"
 import { StatsExclusionsBar } from "@/components/AaaStatistics/StatsExclusions"
 import PageHeader from "@/components/Common/PageHeader"
 import useCustomToast from "@/hooks/useCustomToast"
@@ -472,80 +463,7 @@ function TodayStatsTab({ includeExcluded }: StatsTabProps) {
               <Heading size="sm" mb={4} fontWeight="bold">
                 Last 7 Days AAA Statistics
               </Heading>
-              <ResponsiveContainer width="100%" height={350}>
-                <LineChart
-                  data={last_7_days_data}
-                  margin={{ top: 10, right: 30, left: -20, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="var(--chakra-colors-border)"
-                  />
-                  <XAxis
-                    dataKey="date"
-                    tick={{
-                      fontSize: 11,
-                      fill: "var(--chakra-colors-fg-muted)",
-                    }}
-                  />
-                  <YAxis
-                    tick={{
-                      fontSize: 11,
-                      fill: "var(--chakra-colors-fg-muted)",
-                    }}
-                  />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    dataKey="Auth Success"
-                    type="monotone"
-                    stroke="var(--chakra-colors-green-500)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                  <Line
-                    dataKey="Auth Fail"
-                    type="monotone"
-                    stroke="var(--chakra-colors-red-500)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                  <Line
-                    dataKey="Authz Permit"
-                    type="monotone"
-                    stroke="var(--chakra-colors-blue-500)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                  <Line
-                    dataKey="Authz Deny"
-                    type="monotone"
-                    stroke="var(--chakra-colors-orange-500)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                  <Line
-                    dataKey="Acct Start"
-                    type="monotone"
-                    stroke="var(--chakra-colors-purple-500)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                  <Line
-                    dataKey="Acct Stop"
-                    type="monotone"
-                    stroke="var(--chakra-colors-gray-500)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <AaaTrendChart data={last_7_days_data} height={350} />
             </Box>
           </GridItem>
         </Grid>
@@ -803,80 +721,7 @@ function RangeStatsTab({ includeExcluded }: StatsTabProps) {
               <Heading size="sm" mb={4} fontWeight="bold">
                 AAA Statistics From {startDate} to {endDate}
               </Heading>
-              <ResponsiveContainer width="100%" height={350}>
-                <LineChart
-                  data={last_range_days_data}
-                  margin={{ top: 10, right: 30, left: -20, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="var(--chakra-colors-border)"
-                  />
-                  <XAxis
-                    dataKey="date"
-                    tick={{
-                      fontSize: 11,
-                      fill: "var(--chakra-colors-fg-muted)",
-                    }}
-                  />
-                  <YAxis
-                    tick={{
-                      fontSize: 11,
-                      fill: "var(--chakra-colors-fg-muted)",
-                    }}
-                  />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    dataKey="Auth Success"
-                    type="monotone"
-                    stroke="var(--chakra-colors-green-500)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                  <Line
-                    dataKey="Auth Fail"
-                    type="monotone"
-                    stroke="var(--chakra-colors-red-500)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                  <Line
-                    dataKey="Authz Permit"
-                    type="monotone"
-                    stroke="var(--chakra-colors-blue-500)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                  <Line
-                    dataKey="Authz Deny"
-                    type="monotone"
-                    stroke="var(--chakra-colors-orange-500)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                  <Line
-                    dataKey="Acct Start"
-                    type="monotone"
-                    stroke="var(--chakra-colors-purple-500)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                  <Line
-                    dataKey="Acct Stop"
-                    type="monotone"
-                    stroke="var(--chakra-colors-gray-500)"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <AaaTrendChart data={last_range_days_data} height={350} />
             </Box>
           </GridItem>
         </Grid>
@@ -1111,64 +956,13 @@ function NodeCard({
                 </Text>
               </Flex>
             ) : (
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart
-                  data={trendData}
-                  margin={{ top: 4, right: 8, left: -25, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="var(--chakra-colors-border)"
-                  />
-                  <XAxis
-                    dataKey="date"
-                    tick={{
-                      fontSize: 9,
-                      fill: "var(--chakra-colors-fg-muted)",
-                    }}
-                  />
-                  <YAxis
-                    tick={{
-                      fontSize: 9,
-                      fill: "var(--chakra-colors-fg-muted)",
-                    }}
-                  />
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 9, marginTop: 8 }} />
-                  <Line
-                    dataKey="Auth Success"
-                    type="monotone"
-                    stroke="var(--chakra-colors-green-500)"
-                    strokeWidth={1.5}
-                    dot={false}
-                    activeDot={{ r: 3 }}
-                  />
-                  <Line
-                    dataKey="Auth Fail"
-                    type="monotone"
-                    stroke="var(--chakra-colors-red-500)"
-                    strokeWidth={1.5}
-                    dot={false}
-                    activeDot={{ r: 3 }}
-                  />
-                  <Line
-                    dataKey="Authz Permit"
-                    type="monotone"
-                    stroke="var(--chakra-colors-blue-500)"
-                    strokeWidth={1.5}
-                    dot={false}
-                    activeDot={{ r: 3 }}
-                  />
-                  <Line
-                    dataKey="Authz Deny"
-                    type="monotone"
-                    stroke="var(--chakra-colors-orange-500)"
-                    strokeWidth={1.5}
-                    dot={false}
-                    activeDot={{ r: 3 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <AaaTrendChart
+                data={trendData}
+                series={AAA_TREND_SERIES.slice(0, 4)}
+                height={180}
+                margin={{ top: 4, right: 8, left: -25, bottom: 0 }}
+                compact
+              />
             )}
           </Box>
 
