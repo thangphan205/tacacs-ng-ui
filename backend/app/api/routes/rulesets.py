@@ -14,8 +14,10 @@ from app.api.deps import (
 )
 from app.crud import audit_logs as audit_logs_crud
 from app.crud import rulesets
+from app.crud.ordering import order_columns
 from app.models import (
     Message,
+    PositionMove,
     Ruleset,
     RulesetCreate,
     RulesetPreviewPublic,
@@ -53,6 +55,8 @@ def read_rulesets(
         statement = statement.where(f)
     count = session.exec(count_statement).one()
 
+    # Same order the generator writes the `rule` blocks in.
+    statement = statement.order_by(*order_columns(Ruleset))
     rulesets = session.exec(statement.offset(skip).limit(limit)).all()
 
     return RulesetsPublic(data=rulesets, count=count)
@@ -134,7 +138,8 @@ def read_ruleset_by_id(
     Get a specific ruleset by id.
     """
     ruleset = session.get(Ruleset, id)
-
+    if not ruleset:
+        raise HTTPException(status_code=404, detail="Ruleset not found")
     return ruleset
 
 
@@ -195,8 +200,7 @@ def delete_ruleset(
     if not ruleset:
         raise HTTPException(status_code=404, detail="Ruleset not found")
     old_values = ruleset.model_dump_json(exclude=_SENSITIVE)
-    session.delete(ruleset)
-    session.commit()
+    rulesets.delete_ruleset(session=session, db_ruleset=ruleset)
     audit_logs_crud.log_entity_action(
         session=session,
         action="DELETE",
@@ -209,3 +213,43 @@ def delete_ruleset(
         old_values=old_values,
     )
     return Message(message="Ruleset deleted successfully")
+
+
+@router.post(
+    "/{id}/move",
+    dependencies=[Depends(require_primary_node)],
+    response_model=RulesetPublic,
+)
+def move_ruleset(
+    *,
+    session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
+    id: uuid.UUID,
+    move_in: PositionMove,
+) -> Any:
+    """
+    Move a ruleset to a 0-based position. tac_plus-ng evaluates the rules in
+    this order, and the first matching permit/deny wins.
+    """
+    db_ruleset = session.get(Ruleset, id)
+    if not db_ruleset:
+        raise HTTPException(status_code=404, detail="Ruleset not found")
+
+    old_values = db_ruleset.model_dump_json(exclude=_SENSITIVE)
+    db_ruleset = rulesets.move_ruleset(
+        session=session, db_ruleset=db_ruleset, position=move_in.position
+    )
+    audit_logs_crud.log_entity_action(
+        session=session,
+        action="UPDATE",
+        entity_type="Ruleset",
+        entity_id=str(db_ruleset.id),
+        user_id=current_user.id,
+        user_email=current_user.email,
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=db_ruleset.model_dump_json(exclude=_SENSITIVE),
+    )
+    return db_ruleset

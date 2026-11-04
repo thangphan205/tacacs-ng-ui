@@ -33,6 +33,7 @@ import {
   ProfilescriptsService,
   ProfilesService,
 } from "@/client"
+import MoveButtons from "@/components/Common/MoveButtons"
 import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { ProfileActionsMenu } from "@/components/Common/ProfileActionsMenu"
@@ -158,9 +159,12 @@ function ProfilesTable() {
           <Table.Body>
             {profiles.map((profile) => {
               const isExpanded = !!expandedRows[profile.id]
-              const profileScripts =
-                scriptsData?.data.filter((s) => s.profile_id === profile.id) ||
+              // Generator order: tac_plus-ng stops at the first matching
+              // permit/deny, so the list must read exactly as it is emitted.
+              const profileScripts = (
+                scriptsData?.data.filter((s) => s.profile_id === profile.id) ??
                 []
+              ).sort((a, b) => a.position - b.position)
 
               return (
                 <Fragment key={profile.id}>
@@ -255,7 +259,7 @@ function ProfilesTable() {
                           </Text>
                         ) : (
                           <VStack align="stretch" gap={3} w="full">
-                            {profileScripts.map((script) => {
+                            {profileScripts.map((script, index) => {
                               const scriptSets =
                                 scriptSetsData?.data.filter(
                                   (ss) => ss.profilescript_id === script.id,
@@ -276,6 +280,14 @@ function ProfilesTable() {
                                     mb={2}
                                   >
                                     <Flex align="center" gap={2} wrap="wrap">
+                                      <Text
+                                        fontSize="xs"
+                                        color="fg.muted"
+                                        fontFamily="mono"
+                                        minW="2ch"
+                                      >
+                                        #{index + 1}
+                                      </Text>
                                       <Badge
                                         colorPalette="teal"
                                         variant="solid"
@@ -297,6 +309,20 @@ function ProfilesTable() {
                                       )}
                                     </Flex>
                                     <Flex align="center" gap={1}>
+                                      <MoveButtons
+                                        index={index}
+                                        count={profileScripts.length}
+                                        noun="script"
+                                        queryKey="profilescripts"
+                                        onMove={(position) =>
+                                          ProfilescriptsService.moveProfilescript(
+                                            {
+                                              id: script.id,
+                                              positionMove: { position },
+                                            },
+                                          )
+                                        }
+                                      />
                                       <EditProfileScript
                                         profilescript={script}
                                         buttonElement={

@@ -1,7 +1,9 @@
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
+from app.crud.ordering import order_columns
+from app.crud.script_render import script_header
 from app.models import (
     ConfigurationOption,
     Profile,
@@ -55,8 +57,11 @@ def profile_generator(session: Session) -> str:
         select(Profile).where(Profile.generate_config == True)
     ).all()
     for profile_db in profiles_db:
-        statement = select(ProfileScript).where(
-            ProfileScript.profile_id == profile_db.id
+        # Order is policy: tac_plus-ng stops at the first matching permit/deny.
+        statement = (
+            select(ProfileScript)
+            .where(ProfileScript.profile_id == profile_db.id)
+            .order_by(*order_columns(ProfileScript))
         )
         script_in_profile = session.exec(statement).all()
         if script_in_profile == []:
@@ -64,12 +69,12 @@ def profile_generator(session: Session) -> str:
         profilescript_template = ""
         for profilescript in script_in_profile:
             scriptset_in_profilescript = session.exec(
-                select(ProfileScriptSet).where(
-                    ProfileScriptSet.profilescript_id == profilescript.id
-                )
+                select(ProfileScriptSet)
+                .where(ProfileScriptSet.profilescript_id == profilescript.id)
+                .order_by(col(ProfileScriptSet.created_at), col(ProfileScriptSet.id))
             ).all()
-            if scriptset_in_profilescript == []:
-                continue
+            # A script with no `set` lines is still a rule — `if (...) { deny }`
+            # must not be dropped, or traffic falls through to the next script.
             profilescriptset_template = ""
             for profilescriptset in scriptset_in_profilescript:
                 profilescriptset_info = profilescriptset.model_dump()
@@ -80,14 +85,16 @@ def profile_generator(session: Session) -> str:
                 )
 
             profilescript_info = profilescript.model_dump()
-            profilescript_template += """           {condition} ({key}=={value}){{
+            profilescript_template += """           {header}{{
 {profilescriptset_template}
             {action}
             }}
 """.format(
-                condition=profilescript_info["condition"],
-                key=profilescript_info["key"],
-                value=profilescript_info["value"],
+                header=script_header(
+                    profilescript_info["condition"],
+                    profilescript_info["key"],
+                    profilescript_info["value"],
+                ),
                 profilescriptset_template=profilescriptset_template,
                 action=profilescript_info["action"],
             )

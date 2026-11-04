@@ -4,7 +4,11 @@ from uuid import UUID
 from sqlmodel import Session, create_engine, select
 
 from app.core.config import settings
+from app.crud import profilescripts as profilescripts_crud
+from app.crud import rulesets as rulesets_crud
+from app.crud import rulesetscripts as rulesetscripts_crud
 from app.crud import users
+from app.crud.ordering import next_position
 from app.crud.tacacs_users import hash_tacacs_password
 from app.models import (
     AlertRule,
@@ -151,7 +155,16 @@ def get_or_create_profile_script(
             description=description,
             profile_id=profile_id,
         )
-        script = ProfileScript.model_validate(script_in)
+        script = ProfileScript.model_validate(
+            script_in,
+            update={
+                "position": next_position(
+                    session=session,
+                    spec=profilescripts_crud.SIBLINGS,
+                    parent_id=profile_id,
+                )
+            },
+        )
         session.add(script)
         session.flush()
     else:
@@ -208,7 +221,14 @@ def get_or_create_ruleset(
             action=action,
             description=description,
         )
-        ruleset = Ruleset.model_validate(ruleset_in)
+        ruleset = Ruleset.model_validate(
+            ruleset_in,
+            update={
+                "position": next_position(
+                    session=session, spec=rulesets_crud.SIBLINGS, parent_id=None
+                )
+            },
+        )
         session.add(ruleset)
         session.flush()
     return ruleset
@@ -238,7 +258,16 @@ def get_or_create_ruleset_script(
             action=action,
             ruleset_id=ruleset_id,
         )
-        script = RulesetScript.model_validate(script_in)
+        script = RulesetScript.model_validate(
+            script_in,
+            update={
+                "position": next_position(
+                    session=session,
+                    spec=rulesetscripts_crud.SIBLINGS,
+                    parent_id=ruleset_id,
+                )
+            },
+        )
         session.add(script)
         session.flush()
     else:

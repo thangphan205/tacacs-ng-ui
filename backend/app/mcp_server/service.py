@@ -11,11 +11,12 @@ import difflib
 import os
 from typing import Any
 
-from sqlmodel import Session, SQLModel, func, select
+from sqlmodel import Session, SQLModel, col, func, select
 
 from app.crud import profiles as profiles_crud
 from app.crud import rulesets as rulesets_crud
 from app.crud import tacacs_configs as tacacs_configs_crud
+from app.crud.ordering import order_columns
 from app.mcp_server.redact import collect_secrets, redact_config_text
 from app.models import (
     ConfigurationOption,
@@ -88,6 +89,10 @@ def list_entities(
         statement = statement.where(f)
         count_statement = count_statement.where(f)
 
+    if "position" in model.model_fields:
+        # Rulesets: list them in evaluation order.
+        statement = statement.order_by(*order_columns(model))
+
     total = session.exec(count_statement).one()
     rows = session.exec(statement.offset(offset).limit(limit)).all()
 
@@ -130,14 +135,18 @@ def describe_entity(
                 "sets": [
                     s.model_dump(mode="json")
                     for s in session.exec(
-                        select(ProfileScriptSet).where(
-                            ProfileScriptSet.profilescript_id == script.id
+                        select(ProfileScriptSet)
+                        .where(ProfileScriptSet.profilescript_id == script.id)
+                        .order_by(
+                            col(ProfileScriptSet.created_at), col(ProfileScriptSet.id)
                         )
                     ).all()
                 ],
             }
             for script in session.exec(
-                select(ProfileScript).where(ProfileScript.profile_id == row_id)
+                select(ProfileScript)
+                .where(ProfileScript.profile_id == row_id)
+                .order_by(*order_columns(ProfileScript))
             ).all()
         ]
     elif entity_type == "ruleset":
@@ -147,14 +156,18 @@ def describe_entity(
                 "sets": [
                     s.model_dump(mode="json")
                     for s in session.exec(
-                        select(RulesetScriptSet).where(
-                            RulesetScriptSet.rulesetscript_id == script.id
+                        select(RulesetScriptSet)
+                        .where(RulesetScriptSet.rulesetscript_id == script.id)
+                        .order_by(
+                            col(RulesetScriptSet.created_at), col(RulesetScriptSet.id)
                         )
                     ).all()
                 ],
             }
             for script in session.exec(
-                select(RulesetScript).where(RulesetScript.ruleset_id == row_id)
+                select(RulesetScript)
+                .where(RulesetScript.ruleset_id == row_id)
+                .order_by(*order_columns(RulesetScript))
             ).all()
         ]
 

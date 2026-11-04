@@ -504,16 +504,24 @@ class ProfileScriptBase(SQLModel):
 
 
 class ProfileScriptCreate(ProfileScriptBase):
-    pass
+    # 0-based index among siblings. Omit on create to append at the end; on
+    # update, omit to keep the current place.
+    position: int | None = Field(default=None, ge=0)
 
 
 class ProfileScriptUpdate(ProfileScriptBase):
-    pass
+    # 0-based index among siblings. Omit on create to append at the end; on
+    # update, omit to keep the current place.
+    position: int | None = Field(default=None, ge=0)
 
 
 # Database model, database table inferred from class name
 class ProfileScript(ProfileScriptBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    # Evaluation order: tac_plus-ng stops at the first matching permit/deny.
+    position: int = Field(
+        default=0, nullable=False, sa_column_kwargs={"server_default": "0"}
+    )
     profile_id: uuid.UUID = Field(
         foreign_key="profile.id", nullable=False, ondelete="CASCADE"
     )
@@ -528,6 +536,7 @@ class ProfileScript(ProfileScriptBase, TimestampModel, table=True):
 # Properties to return via API, id is always required
 class ProfileScriptPublic(ProfileScriptBase):
     id: uuid.UUID
+    position: int
     profile_id: uuid.UUID
     profile_name: str | None = None
     created_at: datetime
@@ -595,16 +604,24 @@ class RulesetBase(SQLModel):
 
 
 class RulesetCreate(RulesetBase):
-    pass
+    # 0-based index among siblings. Omit on create to append at the end; on
+    # update, omit to keep the current place.
+    position: int | None = Field(default=None, ge=0)
 
 
 class RulesetUpdate(RulesetBase):
-    pass
+    # 0-based index among siblings. Omit on create to append at the end; on
+    # update, omit to keep the current place.
+    position: int | None = Field(default=None, ge=0)
 
 
 # Database model, database table inferred from class name
 class Ruleset(RulesetBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    # Evaluation order: tac_plus-ng stops at the first matching permit/deny.
+    position: int = Field(
+        default=0, nullable=False, sa_column_kwargs={"server_default": "0"}
+    )
     ruleset_scripts: list["RulesetScript"] = Relationship(
         back_populates="ruleset", cascade_delete=True
     )
@@ -619,6 +636,7 @@ class RulesetPreviewPublic(SQLModel):
 
 class RulesetPublic(RulesetBase):
     id: uuid.UUID
+    position: int
     created_at: datetime
     updated_at: datetime
 
@@ -639,16 +657,24 @@ class RulesetScriptBase(SQLModel):
 
 
 class RulesetScriptCreate(RulesetScriptBase):
-    pass
+    # 0-based index among siblings. Omit on create to append at the end; on
+    # update, omit to keep the current place.
+    position: int | None = Field(default=None, ge=0)
 
 
 class RulesetScriptUpdate(RulesetScriptBase):
-    pass
+    # 0-based index among siblings. Omit on create to append at the end; on
+    # update, omit to keep the current place.
+    position: int | None = Field(default=None, ge=0)
 
 
 # Database model, database table inferred from class name
 class RulesetScript(RulesetScriptBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    # Evaluation order: tac_plus-ng stops at the first matching permit/deny.
+    position: int = Field(
+        default=0, nullable=False, sa_column_kwargs={"server_default": "0"}
+    )
     ruleset_id: uuid.UUID = Field(
         foreign_key="ruleset.id", nullable=False, ondelete="CASCADE"
     )
@@ -662,6 +688,7 @@ class RulesetScript(RulesetScriptBase, TimestampModel, table=True):
 # Properties to return via API, id is always required
 class RulesetScriptPublic(RulesetScriptBase):
     id: uuid.UUID
+    position: int
     ruleset_name: str | None = None
     created_at: datetime
     updated_at: datetime
@@ -714,6 +741,12 @@ class RulesetScriptSetPublic(RulesetScriptSetBase):
 class RulesetScriptSetsPublic(SQLModel):
     data: list[RulesetScriptSetPublic]
     count: int
+
+
+class PositionMove(SQLModel):
+    """Target of a reorder: the 0-based index among siblings, clamped to bounds."""
+
+    position: int = Field(ge=0)
 
 
 # --- End of TACACS+ Configuration Tables ---
