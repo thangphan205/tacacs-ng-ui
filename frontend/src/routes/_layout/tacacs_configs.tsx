@@ -18,6 +18,7 @@ import { FiFileText, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { TacacsConfigsService } from "@/client"
+import { DefaultCredentialsAlert } from "@/components/Common/DefaultCredentialsAlert"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
 import { TacacsConfigActionsMenu } from "@/components/Common/TacacsConfigActionsMenu"
@@ -282,6 +283,7 @@ function TacacsConfigs() {
         </Box>
       </Flex>
 
+      <DefaultCredentialsAlert mb={4} />
       <PendingChangesAlert />
 
       <Flex mt={4} align="center" justify="space-between">

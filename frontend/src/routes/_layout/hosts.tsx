@@ -15,6 +15,7 @@ import { FiServer } from "react-icons/fi"
 import { z } from "zod"
 
 import { HostsService } from "@/client"
+import { DefaultCredentialsAlert } from "@/components/Common/DefaultCredentialsAlert"
 import { HostActionsMenu } from "@/components/Common/HostActionsMenu"
 import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
@@ -223,6 +224,7 @@ function Hosts() {
         description="Network devices that authenticate against the TACACS+ server."
         icon={FiServer}
       />
+      <DefaultCredentialsAlert mt={6} />
       <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
         <AddHost />
         <SearchBox

@@ -15,6 +15,7 @@ import { FiSearch, FiUser, FiUsers } from "react-icons/fi"
 import { z } from "zod"
 
 import { TacacsUsersService } from "@/client"
+import { DefaultCredentialsAlert } from "@/components/Common/DefaultCredentialsAlert"
 import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
@@ -256,6 +257,7 @@ function TacacsUsers() {
         description="Configure local users, their authentication mechanisms (crypt, mavis, clear), and associate them with group permissions."
         icon={FiUsers}
       />
+      <DefaultCredentialsAlert mt={6} />
       <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
         <AddTacacsUser />
         <SearchBox

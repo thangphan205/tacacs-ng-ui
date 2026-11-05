@@ -208,6 +208,9 @@ SECRET_KEY=<tạo bằng: openssl rand -hex 32>
 FIRST_SUPERUSER=admin@yourdomain.com
 FIRST_SUPERUSER_PASSWORD=<mật-khẩu-mạnh>
 
+# Không tạo user/host TACACS+ demo với mật khẩu công khai "change_this"
+SEED_DEMO_DATA=false
+
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=<mật-khẩu-mạnh>
 POSTGRES_DB=app
@@ -472,6 +475,7 @@ Tất cả biến với giá trị mặc định (từ `.env.example`):
 | `SECRET_KEY` | *(bắt buộc)* | JWT signing key — tạo bằng `openssl rand -hex 32` |
 | `FIRST_SUPERUSER` | *(bắt buộc)* | Email admin ban đầu |
 | `FIRST_SUPERUSER_PASSWORD` | *(bắt buộc)* | Mật khẩu admin ban đầu |
+| `SEED_DEMO_DATA` | `true` | Tạo dữ liệu TACACS+ demo (`DEMO_HOSTS`, `user_admin` / `user_read_only` với mật khẩu `change_this`) chỉ ở lần khởi động đầu tiên. Không bao giờ áp dụng lại; `setup.sh` và workflow production đặt `false` |
 | `BACKEND_CORS_ORIGINS` | `""` | Origin CORS bổ sung; hiếm khi cần vì UI đã cùng origin với API |
 | `USERS_OPEN_REGISTRATION` | `True` | Bất kỳ ai vào được URL đều tự tạo tài khoản được. Đặt `False` để chỉ admin mới tạo được tài khoản — xem [Tắt Đăng Ký Mở](#tắt-đăng-ký-mở) |
 | `POSTGRES_SERVER` | `localhost` | Hostname PostgreSQL (để là `db` cho Docker Compose) |

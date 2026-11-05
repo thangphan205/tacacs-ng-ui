@@ -129,6 +129,7 @@ else
   set_env TOOLS_DOMAIN             "$TOOLS_DOMAIN"
   set_env FRONTEND_HOST            "https://$DOMAIN"
   set_env ENVIRONMENT              "production"
+  set_env SEED_DEMO_DATA           "false"
   set_env TZ                       "$TZ"
   set_env SECRET_KEY               "$SECRET_KEY"
   set_env FIRST_SUPERUSER          "$FIRST_SUPERUSER"

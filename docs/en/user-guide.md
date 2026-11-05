@@ -61,6 +61,8 @@ After login you land on the main dashboard:
 
 On first startup, tacacs-ng-ui automatically creates the following data. This gives you a working TACACS+ configuration out of the box for Cisco, Arista, Huawei, Juniper, Palo Alto, and Fortinet devices.
 
+The seed runs **once**, against an empty database. Restarts and upgrades never re-create or reset it, so deleting, renaming, or editing any of these entries is permanent. Everything except the services is demo data, created only when `SEED_DEMO_DATA=true` (the default in `.env.example`; `setup.sh` and the production deploy workflow set `false`). The demo host `DEMO_HOSTS` accepts any client (`0.0.0.0/0`) with the shared key `change_this`.
+
 ### Services
 
 | Name | Used by |
@@ -85,7 +87,7 @@ On first startup, tacacs-ng-ui automatically creates the following data. This gi
 | `user_admin` | `change_this` | `tacacs_super_user` | Admin — full access on all devices |
 | `user_read_only` | `change_this` | `tacacs_read_only` | Read-only on all devices |
 
-> **Action required:** Change these passwords immediately after first login via **TACACS Users → Edit**.
+> **Action required:** Change these passwords — and the `DEMO_HOSTS` key — via **TACACS Users → Edit** and **Hosts → Edit**, or delete the entries, then Generate + Activate. Until you do, the TACACS Users, Hosts and TACACS Configs pages show a red **Default demo credentials in use** warning naming every user or host still on `change_this`.
 
 ### Profiles & Authorization Attributes
 
@@ -974,4 +976,3 @@ activate it — that stays a human step. See [MCP Server](mcp-server.md).
 - Community: [Telegram](https://t.me/+v1eAXg-BhotlODY1) | [Reddit](https://www.reddit.com/r/tacacs_ng_ui/)
 
 ![API Docs](../../img/api.png)
-

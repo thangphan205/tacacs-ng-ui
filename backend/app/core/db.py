@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 from uuid import UUID
 
@@ -8,6 +9,7 @@ from app.crud import profilescripts as profilescripts_crud
 from app.crud import rulesets as rulesets_crud
 from app.crud import rulesetscripts as rulesetscripts_crud
 from app.crud import users
+from app.crud.default_credentials import DEMO_HOST_NAME, DEMO_PASSWORD
 from app.crud.ordering import next_position
 from app.crud.tacacs_users import hash_tacacs_password
 from app.models import (
@@ -39,6 +41,8 @@ from app.models import (
     User,
     UserCreate,
 )
+
+logger = logging.getLogger(__name__)
 
 engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 
@@ -86,24 +90,6 @@ def get_or_create_user(
         user = TacacsUser.model_validate(user_in)
         session.add(user)
         session.flush()
-    else:
-        changed = False
-        if user.member != member:
-            user.member = member
-            changed = True
-        if user.description != description:
-            user.description = description
-            changed = True
-        if user.password_type != password_type:
-            user.password_type = password_type
-            if password_type == "crypt" and password and not password.startswith("$6$"):
-                user.password = hash_tacacs_password(password)
-            else:
-                user.password = password
-            changed = True
-        if changed:
-            session.add(user)
-            session.flush()
     return user
 
 
@@ -167,12 +153,6 @@ def get_or_create_profile_script(
         )
         session.add(script)
         session.flush()
-    else:
-        if script.condition != condition or script.action != action:
-            script.condition = condition
-            script.action = action
-            session.add(script)
-            session.flush()
     return script
 
 
@@ -198,11 +178,6 @@ def get_or_create_profile_script_set(
         script_set = ProfileScriptSet.model_validate(script_set_in)
         session.add(script_set)
         session.flush()
-    else:
-        if script_set.value != value:
-            script_set.value = value
-            session.add(script_set)
-            session.flush()
     return script_set
 
 
@@ -270,12 +245,6 @@ def get_or_create_ruleset_script(
         )
         session.add(script)
         session.flush()
-    else:
-        if script.condition != condition or script.action != action:
-            script.condition = condition
-            script.action = action
-            session.add(script)
-            session.flush()
     return script
 
 
@@ -301,11 +270,6 @@ def get_or_create_ruleset_script_set(
         script_set = RulesetScriptSet.model_validate(script_set_in)
         session.add(script_set)
         session.flush()
-    else:
-        if script_set.value != value:
-            script_set.value = value
-            session.add(script_set)
-            session.flush()
     return script_set
 
 
@@ -329,8 +293,13 @@ def init_db(session: Session) -> None:
         )
         user = users.create_user(session=session, user_create=user_in)
 
-    tacacs_settings = session.exec(select(TacacsNgSetting)).first()
-    if not tacacs_settings:
+    # The TacacsNgSetting row is created here and nowhere else (the API has no
+    # create or delete route for it), so its absence means this database has
+    # never been initialized. Demo data is seeded on that run only: re-applying
+    # it on every start brought deleted or hardened demo accounts back with
+    # their public password.
+    first_init = session.exec(select(TacacsNgSetting)).first() is None
+    if first_init:
         tacacs_in = TacacsNgSettingCreate(
             ipv4_enabled=settings.IPV4_ENABLED,
             ipv4_address=settings.IPV4_ADDRESS,
@@ -363,18 +332,22 @@ def init_db(session: Session) -> None:
             mavis_settings = Mavis.model_validate(mavis_in)
             session.add(mavis_settings)
 
-    host = session.exec(select(Host)).first()
-    if not host:
-        host_in = HostCreate(
-            name="DEMO_HOSTS",
-            ipv4_address="0.0.0.0/0",
-            secret_key="change_this",
-            description="delete this after test",
-        )
-        host_settings = Host.model_validate(host_in)
-        session.add(host_settings)
+    if first_init:
+        _seed_services(session)
+        if settings.SEED_DEMO_DATA:
+            logger.info("First initialization: seeding demo TACACS+ data")
+            _seed_demo_data(session)
+        else:
+            logger.info("First initialization: SEED_DEMO_DATA is off, no demo data")
+    else:
+        logger.info("Existing database: demo data is never re-applied")
 
-    # 1. Services to seed (needs to be first because scripts reference service names)
+    _seed_system_alert_rules(session)
+    session.commit()
+
+
+def _seed_services(session: Session) -> None:
+    # Reference data: the vendor services the demo profile rules name.
     services_to_seed = [
         ("shell", "Shell service — Cisco, Arista, Huawei"),
         ("junos-exec", "Juniper Networks exec service"),
@@ -385,7 +358,26 @@ def init_db(session: Session) -> None:
     for svc_name, svc_desc in services_to_seed:
         get_or_create_service(session, svc_name, svc_desc)
 
-    # 2. Groups to seed
+
+def _seed_demo_data(session: Session) -> None:
+    """Demo host, groups, users, profiles and ruleset — first initialization only.
+
+    Runs once, on an empty database, and never again: every helper here only
+    creates what is missing by name, so calling it on a live database would
+    resurrect demo accounts an admin deleted. `init_db` gates it on the
+    TacacsNgSetting row not existing yet.
+    """
+    host = session.exec(select(Host).where(Host.name == DEMO_HOST_NAME)).first()
+    if not host:
+        host_in = HostCreate(
+            name=DEMO_HOST_NAME,
+            ipv4_address="0.0.0.0/0",
+            secret_key=DEMO_PASSWORD,
+            description="delete this after test",
+        )
+        session.add(Host.model_validate(host_in))
+
+    # 1. Groups to seed
     groups_to_seed = [
         (
             "tacacs_super_user",
@@ -396,19 +388,19 @@ def init_db(session: Session) -> None:
     for grp_name, grp_desc in groups_to_seed:
         get_or_create_group(session, grp_name, grp_desc)
 
-    # 3. Users to seed
+    # 2. Users to seed
     users_to_seed = [
         (
             "user_admin",
             "crypt",
-            "change_this",
+            DEMO_PASSWORD,
             "tacacs_super_user",
             "Admin user — full access, privilege level 15",
         ),
         (
             "user_read_only",
             "crypt",
-            "change_this",
+            DEMO_PASSWORD,
             "tacacs_read_only",
             "Read-only user — view-only access, privilege level 1",
         ),
@@ -416,7 +408,7 @@ def init_db(session: Session) -> None:
     for username, pwd_type, pwd, member, desc in users_to_seed:
         get_or_create_user(session, username, pwd_type, pwd, member, desc)
 
-    # 4. Profiles to seed
+    # 3. Profiles to seed
     profiles_to_seed = [
         ("tacacs_super_user_profile", "deny"),
         ("tacacs_read_only_profile", "deny"),
@@ -571,7 +563,7 @@ def init_db(session: Session) -> None:
         "Fortinet read_only",
     )
 
-    # 5. Ruleset
+    # 4. Ruleset
     ruleset = get_or_create_ruleset(
         session=session,
         name="default_ruleset",
@@ -617,9 +609,6 @@ def init_db(session: Session) -> None:
         "tacacs_read_only_profile",
         "Read-only — view-only access, privilege level 1",
     )
-
-    _seed_system_alert_rules(session)
-    session.commit()
 
 
 _SYSTEM_ALERT_RULES: list[dict[str, Any]] = [

@@ -783,6 +783,19 @@ class TacacsConfigPreviewPublic(SQLModel):
     updated_at: datetime
 
 
+class DefaultCredentialFinding(SQLModel):
+    """A TACACS+ user or host that still uses the public demo secret."""
+
+    kind: Literal["tacacs_user", "host"]
+    id: uuid.UUID
+    name: str
+
+
+class DefaultCredentialsPublic(SQLModel):
+    data: list[DefaultCredentialFinding]
+    count: int
+
+
 class TacacsConfigPublic(TacacsConfigBase):
     id: uuid.UUID
     active: bool

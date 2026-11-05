@@ -115,6 +115,11 @@ class Settings(BaseSettings):
 
         return self
 
+    # Demo TACACS+ data (DEMO_HOSTS, user_admin / user_read_only with password
+    # "change_this", their groups, profiles and ruleset). Seeded on the very
+    # first initialization only and never re-applied; setup.sh turns it off.
+    SEED_DEMO_DATA: bool = True
+
     # Tacacs-ng-gui specific settings
     IPV4_ENABLED: bool = True
     IPV4_ADDRESS: str = "0.0.0.0"
