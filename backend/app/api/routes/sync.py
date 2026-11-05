@@ -53,11 +53,13 @@ def _last_sync_ts(ha_state: HaState) -> str | None:
     ts = ha_state.last_received_at or _read_last_sync_file()
     return ts.isoformat() if ts else None
 
+
 _PEER_CACHE_TTL = 30  # seconds
 _peers_cache: dict[str, dict] = {}  # url -> {"available": bool|None, "ts": float}
 
 
 # --- helpers ---
+
 
 def _get_or_create_ha_state(session: SessionDep) -> HaState:
     state = session.get(HaState, 1)
@@ -99,10 +101,13 @@ def _check_peers_available(peer_urls: list[str]) -> dict[str, bool | None]:
 
 
 def _get_enabled_peers(session: SessionDep) -> list[HaPeerNode]:
-    return list(session.exec(select(HaPeerNode).where(HaPeerNode.enabled == True)).all())
+    return list(
+        session.exec(select(HaPeerNode).where(HaPeerNode.enabled == True)).all()
+    )
 
 
 # --- HA info ---
+
 
 @router.get("/ha-info")
 def get_ha_info(_: CurrentUser, session: SessionDep) -> dict:
@@ -132,28 +137,33 @@ def get_ha_info(_: CurrentUser, session: SessionDep) -> dict:
 
     # Load per-peer sync state
     node_states: dict[uuid.UUID, HaNodeState] = {
-        ns.peer_id: ns
-        for ns in session.exec(select(HaNodeState)).all()
+        ns.peer_id: ns for ns in session.exec(select(HaNodeState)).all()
     }
 
     peers_out = []
     for p in peers:
         ns = node_states.get(p.id)
-        peers_out.append({
-            "id": str(p.id),
-            "name": p.name,
-            "url": p.url,
-            "enabled": p.enabled,
-            "available": availability.get(p.url) if p.enabled else None,
-            "last_push_at": ns.last_push_at.isoformat() if ns and ns.last_push_at else None,
-        })
+        peers_out.append(
+            {
+                "id": str(p.id),
+                "name": p.name,
+                "url": p.url,
+                "enabled": p.enabled,
+                "available": availability.get(p.url) if p.enabled else None,
+                "last_push_at": ns.last_push_at.isoformat()
+                if ns and ns.last_push_at
+                else None,
+            }
+        )
 
     push_times = [ns.last_push_at for ns in node_states.values() if ns.last_push_at]
     last_sync_ts = max(push_times) if push_times else None
 
     # compat fields for old frontend / SyncToStandby component
     first_peer = peers[0] if peers else None
-    peer_available_any = any(v for v in availability.values() if v is not None) if availability else None
+    peer_available_any = (
+        any(v for v in availability.values() if v is not None) if availability else None
+    )
 
     return {
         "node_role": settings.NODE_ROLE,
@@ -170,6 +180,7 @@ def get_ha_info(_: CurrentUser, session: SessionDep) -> dict:
 
 
 # --- HA config CRUD ---
+
 
 @router.get("/config")
 def get_ha_config_endpoint(
@@ -206,6 +217,7 @@ def update_ha_config(
 
 
 # --- Peer node CRUD ---
+
 
 @router.get("/peers")
 def list_peers(
@@ -280,17 +292,24 @@ def delete_peer(
 
 # --- Config push ---
 
+
 @router.post("/push-config")
 def push_config_to_standby(_: CurrentUser, session: SessionDep) -> dict:
     """Manually push config to all enabled standby peers (primary + manual sync only)."""
     if settings.NODE_ROLE != "primary":
-        raise HTTPException(status_code=400, detail="Only the primary node can push config.")
+        raise HTTPException(
+            status_code=400, detail="Only the primary node can push config."
+        )
     if not settings.INTERNAL_SYNC_TOKEN:
-        raise HTTPException(status_code=400, detail="INTERNAL_SYNC_TOKEN is not configured.")
+        raise HTTPException(
+            status_code=400, detail="INTERNAL_SYNC_TOKEN is not configured."
+        )
 
     cfg = _get_ha_config(session)
     if cfg.sync_mode != "manual":
-        raise HTTPException(status_code=400, detail="Manual push only available in SYNC_MODE=manual.")
+        raise HTTPException(
+            status_code=400, detail="Manual push only available in SYNC_MODE=manual."
+        )
 
     peers = _get_enabled_peers(session)
     if not peers:
@@ -302,12 +321,21 @@ def push_config_to_standby(_: CurrentUser, session: SessionDep) -> dict:
         ok = False
         try:
             with httpx.Client(timeout=15) as client:
-                r = client.post(url, headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN})
+                r = client.post(
+                    url, headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN}
+                )
             ok = r.status_code == 200
             if not ok:
-                log.warning("Peer %s reload returned HTTP %s: %s", peer.name, r.status_code, r.text)
+                log.warning(
+                    "Peer %s reload returned HTTP %s: %s",
+                    peer.name,
+                    r.status_code,
+                    r.text,
+                )
             else:
-                log.info("Config pushed to peer %s (%s) successfully.", peer.name, peer.url)
+                log.info(
+                    "Config pushed to peer %s (%s) successfully.", peer.name, peer.url
+                )
         except httpx.RequestError as e:
             log.warning("Could not reach peer %s: %s", peer.name, e)
 
@@ -315,13 +343,16 @@ def push_config_to_standby(_: CurrentUser, session: SessionDep) -> dict:
         state.last_push_at = datetime.now(timezone.utc)
         state.last_available = ok
         session.add(state)
-        results.append({"peer": peer.name, "url": peer.url, "status": "ok" if ok else "error"})
+        results.append(
+            {"peer": peer.name, "url": peer.url, "status": "ok" if ok else "error"}
+        )
 
     session.commit()
     return {"results": results}
 
 
 # --- Promote ---
+
 
 @router.post("/promote")
 def promote_to_primary(
@@ -331,7 +362,9 @@ def promote_to_primary(
 ) -> dict:
     """Promote this standby node to primary via pg_promote(). Superuser only."""
     if settings.NODE_ROLE != "standby":
-        raise HTTPException(status_code=400, detail="Only standby nodes can be promoted.")
+        raise HTTPException(
+            status_code=400, detail="Only standby nodes can be promoted."
+        )
 
     try:
         lag_col = cast(
@@ -373,6 +406,7 @@ def promote_to_primary(
 
 # --- Internal endpoints (inter-node, not in OpenAPI docs) ---
 
+
 @router.post("/internal/collect-stats")
 def internal_collect_stats(
     request: Request,
@@ -381,7 +415,9 @@ def internal_collect_stats(
     """Internal: parse local TACACS logs and return raw stats. Called by primary."""
     token = request.headers.get("X-Internal-Token")
     if not settings.INTERNAL_SYNC_TOKEN or token != settings.INTERNAL_SYNC_TOKEN:
-        raise HTTPException(status_code=403, detail="Invalid or missing internal sync token.")
+        raise HTTPException(
+            status_code=403, detail="Invalid or missing internal sync token."
+        )
 
     import sys
 
@@ -422,9 +458,15 @@ def internal_collect_stats(
     return {
         "node_name": settings.NODE_NAME,
         "date": target_date.isoformat(),
-        "authentication": _counters_to_list(auth_success, auth_fail, "success_count", "fail_count"),
-        "authorization": _counters_to_list(authz_permit, authz_deny, "permit_count", "deny_count"),
-        "accounting": _counters_to_list(acct_start, acct_stop, "start_count", "stop_count"),
+        "authentication": _counters_to_list(
+            auth_success, auth_fail, "success_count", "fail_count"
+        ),
+        "authorization": _counters_to_list(
+            authz_permit, authz_deny, "permit_count", "deny_count"
+        ),
+        "accounting": _counters_to_list(
+            acct_start, acct_stop, "start_count", "stop_count"
+        ),
     }
 
 
@@ -433,14 +475,16 @@ def internal_reload_config(request: Request, session: SessionDep) -> dict:
     """Internal: reload tac_plus-ng config from DB on this (standby) node."""
     token = request.headers.get("X-Internal-Token")
     if not settings.INTERNAL_SYNC_TOKEN or token != settings.INTERNAL_SYNC_TOKEN:
-        raise HTTPException(status_code=403, detail="Invalid or missing internal sync token.")
+        raise HTTPException(
+            status_code=403, detail="Invalid or missing internal sync token."
+        )
 
     try:
-        reload_active_config_from_db(session=session)
+        changed = reload_active_config_from_db(session=session)
     except Exception as e:
         log.exception("HA config reload failed")
         raise HTTPException(status_code=500, detail=f"Config reload failed: {e}")
 
     _write_last_sync_file()
 
-    return {"status": "reloaded"}
+    return {"status": "reloaded" if changed else "unchanged"}

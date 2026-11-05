@@ -31,7 +31,8 @@ from app.models import (
 
 router = APIRouter(prefix="/tacacs_configs", tags=["tacacs_configs"])
 
-_SENSITIVE = audit_logs_crud._SENSITIVE
+# config_text is the whole config file; keep it out of audit rows.
+_SENSITIVE = audit_logs_crud._SENSITIVE | {"config_text"}
 
 
 @router.get(
