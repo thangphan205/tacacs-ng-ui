@@ -180,6 +180,36 @@ interface PieData {
   color: string
 }
 
+const TOP_N = 5
+const OTHERS_COLOR = "gray.500"
+
+/**
+ * Top-N pie slices from rows already sorted by count (desc). Anything past N is
+ * folded into one "Others" slice so the legend stays bounded.
+ */
+function toTopSlices(
+  rows: Record<string, unknown>[] | undefined,
+  nameKey: string,
+  valueKey: string,
+  colors: string[],
+): PieData[] {
+  const all = (rows ?? []).map((row) => ({
+    name: (row[nameKey] as string) || "",
+    value: (row[valueKey] as number) || 0,
+  }))
+  const slices: PieData[] = all.slice(0, TOP_N).map((item, index) => ({
+    ...item,
+    color: colors[index % colors.length],
+  }))
+  const othersTotal = all
+    .slice(TOP_N)
+    .reduce((sum, item) => sum + item.value, 0)
+  if (othersTotal > 0) {
+    slices.push({ name: "Others", value: othersTotal, color: OTHERS_COLOR })
+  }
+  return slices
+}
+
 function StatPie({ title, data }: { title: string; data: PieData[] }) {
   const chart = useChart({ data: data })
 
@@ -286,41 +316,33 @@ function TodayStatsTab({ includeExcluded }: StatsTabProps) {
     },
   })
 
-  const data_authentication_success_count_by_user =
-    stats?.today_authentication_success_count_by_user?.map(
-      (user: any, index) => ({
-        name: (user.username as string) || "",
-        value: (user.success_count as number) || 0,
-        color: CHART_COLORS[index % CHART_COLORS.length],
-      }),
-    ) || []
+  const data_authentication_success_count_by_user = toTopSlices(
+    stats?.today_authentication_success_count_by_user,
+    "username",
+    "success_count",
+    CHART_COLORS,
+  )
 
-  const data_authentication_success_count_by_user_source_ip =
-    stats?.today_authentication_success_count_by_user_source_ip?.map(
-      (user: any, index) => ({
-        name: (user.user_source_ip as string) || "",
-        value: (user.success_count as number) || 0,
-        color: CHART_COLORS[index % CHART_COLORS.length],
-      }),
-    ) || []
+  const data_authentication_success_count_by_user_source_ip = toTopSlices(
+    stats?.today_authentication_success_count_by_user_source_ip,
+    "user_source_ip",
+    "success_count",
+    CHART_COLORS,
+  )
 
-  const data_authentication_success_count_by_nas_ip =
-    stats?.today_authentication_success_count_by_nas_ip?.map(
-      (user: any, index) => ({
-        name: (user.nas_ip as string) || "",
-        value: (user.success_count as number) || 0,
-        color: CHART_COLORS[index % CHART_COLORS.length],
-      }),
-    ) || []
+  const data_authentication_success_count_by_nas_ip = toTopSlices(
+    stats?.today_authentication_success_count_by_nas_ip,
+    "nas_ip",
+    "success_count",
+    CHART_COLORS,
+  )
 
-  const data_authentication_failed_count_by_user =
-    stats?.today_authentication_failed_count_by_user?.map(
-      (user: any, index) => ({
-        name: (user.username as string) || "",
-        value: (user.fail_count as number) || 0,
-        color: FAIL_COLORS[index % FAIL_COLORS.length],
-      }),
-    ) || []
+  const data_authentication_failed_count_by_user = toTopSlices(
+    stats?.today_authentication_failed_count_by_user,
+    "username",
+    "fail_count",
+    FAIL_COLORS,
+  )
 
   const last_7_days_data =
     stats?.last_7_days_authentication_success?.map((item, index) => ({
