@@ -1947,6 +1947,58 @@ export const ConfigurationOptionsPublicSchema = {
     title: 'ConfigurationOptionsPublic'
 } as const;
 
+export const DefaultCredentialFindingSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            enum: [
+                'tacacs_user',
+                'host'
+            ],
+            title: 'Kind'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        }
+    },
+    type: 'object',
+    required: [
+        'kind',
+        'id',
+        'name'
+    ],
+    title: 'DefaultCredentialFinding',
+    description: 'A TACACS+ user or host that still uses the public demo secret.'
+} as const;
+
+export const DefaultCredentialsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                $ref: '#/components/schemas/DefaultCredentialFinding'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: [
+        'data',
+        'count'
+    ],
+    title: 'DefaultCredentialsPublic'
+} as const;
+
 export const HTTPValidationErrorSchema = {
     properties: {
         detail: {

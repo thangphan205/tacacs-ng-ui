@@ -208,6 +208,9 @@ SECRET_KEY=<generate: openssl rand -hex 32>
 FIRST_SUPERUSER=admin@yourdomain.com
 FIRST_SUPERUSER_PASSWORD=<strong-password>
 
+# No demo TACACS+ users/host with the public password "change_this"
+SEED_DEMO_DATA=false
+
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=<strong-password>
 POSTGRES_DB=app
@@ -473,6 +476,7 @@ All variables with their defaults (from `.env.example`):
 | `SECRET_KEY` | *(required)* | JWT signing key — generate with `openssl rand -hex 32` |
 | `FIRST_SUPERUSER` | *(required)* | Initial admin email |
 | `FIRST_SUPERUSER_PASSWORD` | *(required)* | Initial admin password |
+| `SEED_DEMO_DATA` | `true` | Create the demo TACACS+ data (`DEMO_HOSTS`, `user_admin` / `user_read_only` with password `change_this`) on the first startup only. Never re-applied; `setup.sh` and the production workflow set `false` |
 | `BACKEND_CORS_ORIGINS` | `""` | Extra allowed CORS origins; rarely needed now the UI is same-origin |
 | `USERS_OPEN_REGISTRATION` | `True` | Anyone reaching the URL may create their own account. Set to `False` to restrict account creation to administrators — see [Disabling Open Registration](#disabling-open-registration) |
 | `POSTGRES_SERVER` | `localhost` | PostgreSQL hostname (leave as `db` for Docker Compose) |

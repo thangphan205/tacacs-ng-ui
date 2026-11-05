@@ -16,8 +16,10 @@ from app.api.deps import (
     require_primary_node,
 )
 from app.crud import audit_logs as audit_logs_crud
+from app.crud import default_credentials as default_credentials_crud
 from app.crud import tacacs_configs
 from app.models import (
+    DefaultCredentialsPublic,
     Message,
     TacacsConfig,
     TacacsConfigCreate,
@@ -85,6 +87,21 @@ def generate_preview_tacacs_config(*, session: SessionDep) -> Any:
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc),
     }
+
+
+@router.get(
+    "/default_credentials",
+    dependencies=[Depends(get_current_user)],
+    response_model=DefaultCredentialsPublic,
+)
+def read_default_credentials(*, session: SessionDep) -> Any:
+    """
+    TACACS+ users and hosts in the generated config that still use the public
+    demo password / key.
+    """
+
+    findings = default_credentials_crud.find_default_credentials(session=session)
+    return DefaultCredentialsPublic(data=findings, count=len(findings))
 
 
 @router.get(

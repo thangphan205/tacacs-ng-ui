@@ -30,6 +30,7 @@ import {
 } from "react-icons/fi"
 import type { ApiError } from "@/api"
 import { type HostPublic, HostsService } from "@/client"
+import { defaultCredentialsQueryKey } from "@/components/Common/DefaultCredentialsAlert"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -175,6 +176,7 @@ const EditHost = ({ host }: EditHostProps) => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["hosts"] })
+      queryClient.invalidateQueries({ queryKey: defaultCredentialsQueryKey })
     },
   })
 

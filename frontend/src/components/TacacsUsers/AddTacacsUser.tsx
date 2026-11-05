@@ -29,6 +29,7 @@ import {
   type TacacsUserCreate,
   TacacsUsersService,
 } from "@/client"
+import { defaultCredentialsQueryKey } from "@/components/Common/DefaultCredentialsAlert"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -168,6 +169,7 @@ const AddTacacsUser = () => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["tacacs_users"] })
+      queryClient.invalidateQueries({ queryKey: defaultCredentialsQueryKey })
     },
   })
 

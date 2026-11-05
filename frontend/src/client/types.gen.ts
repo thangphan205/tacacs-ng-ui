@@ -1135,6 +1135,40 @@ export type ConfigurationOptionsPublic = {
 };
 
 /**
+ * DefaultCredentialFinding
+ *
+ * A TACACS+ user or host that still uses the public demo secret.
+ */
+export type DefaultCredentialFinding = {
+    /**
+     * Kind
+     */
+    kind: 'tacacs_user' | 'host';
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * DefaultCredentialsPublic
+ */
+export type DefaultCredentialsPublic = {
+    /**
+     * Data
+     */
+    data: Array<DefaultCredentialFinding>;
+    /**
+     * Count
+     */
+    count: number;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -4609,6 +4643,22 @@ export type TacacsConfigsGeneratePreviewTacacsConfigResponses = {
 };
 
 export type TacacsConfigsGeneratePreviewTacacsConfigResponse = TacacsConfigsGeneratePreviewTacacsConfigResponses[keyof TacacsConfigsGeneratePreviewTacacsConfigResponses];
+
+export type TacacsConfigsReadDefaultCredentialsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/tacacs_configs/default_credentials';
+};
+
+export type TacacsConfigsReadDefaultCredentialsResponses = {
+    /**
+     * Successful Response
+     */
+    200: DefaultCredentialsPublic;
+};
+
+export type TacacsConfigsReadDefaultCredentialsResponse = TacacsConfigsReadDefaultCredentialsResponses[keyof TacacsConfigsReadDefaultCredentialsResponses];
 
 export type TacacsConfigsGetActiveTacacsConfigData = {
     body?: never;

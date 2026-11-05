@@ -129,6 +129,10 @@ Local dev URLs:
 - Traefik: http://localhost:8090
 - MailCatcher: http://localhost:1080
 
+### Seed Data (`backend/app/core/db.py`)
+
+`init_db()` runs on every primary start (`prestart.sh` → `initial_data.py`). Demo TACACS+ data (`DEMO_HOSTS`, `user_admin` / `user_read_only` with password `change_this`, groups, profiles, ruleset) is seeded **only on first initialization** — detected by the `TacacsNgSetting` row not existing yet — and only when `SEED_DEMO_DATA=true`. The `get_or_create_*` helpers are create-only: **never add branches that reset fields on existing rows**, and never seed demo data per name on later starts. Doing so re-created deleted demo accounts with their public password (security report, fixed after 0.6.3). `tests/core/test_init_db.py` guards this. `crud/default_credentials.py` backs the UI warning for anything still on `change_this`.
+
 ### TACACS+ Config Generation
 
 Core domain logic in `backend/app/crud/tacacs_configs.py`. Reads/writes config files to `/app/tacacs_config/` (Docker volume), validates syntax using `tac_plus-ng` binary, generates MAVIS LDAP config blocks from template strings.
