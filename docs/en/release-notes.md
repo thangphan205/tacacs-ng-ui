@@ -18,6 +18,10 @@ of cutting a release; do not delete the heading itself. -->
 
   **Upgrading:** this stops demo data from coming back but does not remove what is already there. After upgrading, check the new warning, or review `user_admin`, `user_read_only` and the `DEMO_HOSTS` host (`0.0.0.0/0`, key `change_this`). Change or delete them, then Generate + Activate.
 
+### Fixes
+
+* 🔒 Seed demo TACACS+ data once, never re-apply it. PR [#349](https://github.com/thangphan205/tacacs-ng-ui/pull/349) by [@thangphan205](https://github.com/thangphan205).
+
 ### Internal
 
 * 🔖 Release 0.6.3. PR [#344](https://github.com/thangphan205/tacacs-ng-ui/pull/344) by [@thangphan205](https://github.com/thangphan205).
