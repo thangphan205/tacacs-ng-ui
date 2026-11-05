@@ -9,7 +9,12 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
-from app.api.deps import SessionDep, get_current_active_superuser, get_current_user
+from app.api.deps import (
+    SessionDep,
+    get_current_active_superuser,
+    get_current_user,
+    require_primary_node,
+)
 from app.core.config import settings
 from app.core.db import engine
 from app.crud import aaa_statistics, stats_exclusions
@@ -242,7 +247,14 @@ def _upsert_peer_stats(session: Session, data: dict[str, Any]) -> None:
 
 
 def _collect_from_peers(date_str: str | None) -> dict[str, Any]:
-    """Call each peer's internal collect-stats endpoint and upsert results."""
+    """Call each peer's internal collect-stats endpoint and upsert results.
+
+    No-op on a standby: its database is a read-only replica and its
+    PEER_BACKEND_URL (the primary) is documented as dormant there.
+    """
+    if settings.NODE_ROLE == "standby":
+        return {}
+
     peer_urls = [u.strip() for u in settings.PEER_NODES.split(",") if u.strip()]
     if not peer_urls and settings.PEER_BACKEND_URL:
         peer_urls = [settings.PEER_BACKEND_URL]
@@ -290,7 +302,10 @@ def _collect_from_peers(date_str: str | None) -> dict[str, Any]:
 
 @router.post(
     "/run/",
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[
+        Depends(get_current_active_superuser),
+        Depends(require_primary_node),
+    ],
 )
 def run_aaa_statistics(date: str | None = None) -> Any:
     """Manually trigger AAA statistics scripts for a given date (YYYY-MM-DD) or yesterday.

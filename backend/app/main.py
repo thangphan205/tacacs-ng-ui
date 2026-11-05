@@ -139,6 +139,18 @@ async def _stats_collection_loop() -> None:
         await asyncio.sleep(interval)
 
 
+def _scheduler_enabled(cfg: HaConfig | None) -> bool:
+    """Whether this node should run the background write loops.
+
+    A standby's ``HaConfig`` row is the primary's (streaming replication), so its
+    ``scheduler_enabled`` says nothing about this node. A standby's database is
+    read-only, so it never runs the loops, whatever the replicated row says.
+    """
+    if settings.NODE_ROLE != "primary":
+        return False
+    return cfg.scheduler_enabled if cfg else settings.SCHEDULER_ENABLED
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     with Session(engine) as session:
@@ -147,7 +159,9 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     cfg: HaConfig | None
     with Session(engine) as session:
         cfg = session.get(HaConfig, 1)
-    scheduler_on = cfg.scheduler_enabled if cfg else settings.SCHEDULER_ENABLED
+    scheduler_on = _scheduler_enabled(cfg)
+    if not scheduler_on and settings.NODE_ROLE == "standby":
+        logger.info("Scheduler disabled: this node is a standby (read-only replica).")
     stats_interval = (
         cfg.stats_interval_minutes if cfg else settings.STATS_INTERVAL_MINUTES
     )
