@@ -12,19 +12,21 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+## v0.6.4
+
+This is a security release. Upgrade from any version since 0.4.0.
+
 ### Security
 
-* 🔒 **Demo TACACS+ accounts no longer come back after a restart.** Since 0.4.0, every primary start re-applied the seed data by name: a deleted `user_admin` or `user_read_only` was re-created with the public password `change_this`, and a hardened one had its password type, group and description reset, so a change to `mavis` re-hashed `change_this`. The seeded profiles and ruleset had their privilege levels and `permit`/`deny` actions reset too. The next Generate + Activate then shipped a super-user with a known password to every device. The seed now runs once, on an empty database, and never modifies an existing row. A new `SEED_DEMO_DATA` setting (default `true`; `setup.sh` and the production deploy workflow set `false`) controls whether demo data is created at all. A new **Default demo credentials in use** warning on the TACACS Users, Hosts and TACACS Configs pages names every user or host in the generated config still on `change_this` (`GET /api/v1/tacacs_configs/default_credentials`). Reported by [@luccascruz](https://github.com/luccascruz).
+* 🔒 **Demo TACACS+ accounts no longer come back after a restart.** Since 0.4.0, every primary start re-applied the seed data by name: a deleted `user_admin` or `user_read_only` was re-created with the public password `change_this`, and a hardened one had its password type, group and description reset, so a change to `mavis` re-hashed `change_this`. The seeded profiles and ruleset had their privilege levels and `permit`/`deny` actions reset too. The next Generate + Activate then shipped a super-user with a known password to every device. The seed now runs once, on an empty database, and never modifies an existing row. A new `SEED_DEMO_DATA` setting (default `true`; `setup.sh` and the production deploy workflow set `false`) controls whether demo data is created at all. A new **Default demo credentials in use** warning on the TACACS Users, Hosts and TACACS Configs pages names every user or host in the generated config still on `change_this` (`GET /api/v1/tacacs_configs/default_credentials`). Reported by [@luccascruz](https://github.com/luccascruz). PR [#349](https://github.com/thangphan205/tacacs-ng-ui/pull/349).
 
-  **Upgrading:** this stops demo data from coming back but does not remove what is already there. After upgrading, check the new warning, or review `user_admin`, `user_read_only` and the `DEMO_HOSTS` host (`0.0.0.0/0`, key `change_this`). Change or delete them, then Generate + Activate.
+### Upgrading from 0.6.3
 
-### Fixes
+There are no database migrations.
 
-* 🔒 Seed demo TACACS+ data once, never re-apply it. PR [#349](https://github.com/thangphan205/tacacs-ng-ui/pull/349) by [@thangphan205](https://github.com/thangphan205).
+**Remove or change the demo credentials.** This release stops demo data from coming back but does not remove what is already there. After upgrading, check the new warning, or review `user_admin`, `user_read_only` and the `DEMO_HOSTS` host (`0.0.0.0/0`, key `change_this`). Change or delete them, then Generate + Activate.
 
-### Internal
-
-* 🔖 Release 0.6.3. PR [#344](https://github.com/thangphan205/tacacs-ng-ui/pull/344) by [@thangphan205](https://github.com/thangphan205).
+`SEED_DEMO_DATA` is a new, optional setting. It only matters on a database that has never been initialized, so existing installs need no change. Leave it unset to keep the demo data on new test installs, or set it to `false`; `setup.sh` and the production deploy workflow now write `false`.
 
 ## v0.6.3
 
