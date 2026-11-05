@@ -12,12 +12,24 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+## v0.6.5
+
+This release fixes four bugs, two of them in high-availability deployments.
+
 ### Fixes
 
 * 🐛 Run the activated config text on an HA standby. PR [#354](https://github.com/thangphan205/tacacs-ng-ui/pull/354) by [@thangphan205](https://github.com/thangphan205).
 * 🐛 Never run scheduler, stats collection or cron on an HA standby. PR [#352](https://github.com/thangphan205/tacacs-ng-ui/pull/352) by [@thangphan205](https://github.com/thangphan205).
 * 🐛 Limit AAA Statistics Today pie charts to top 5. PR [#351](https://github.com/thangphan205/tacacs-ng-ui/pull/351) by [@thangphan205](https://github.com/thangphan205).
 * 🐛 Ignore activation header when diffing running config vs database. PR [#353](https://github.com/thangphan205/tacacs-ng-ui/pull/353) by [@thangphan205](https://github.com/thangphan205).
+
+### Upgrading from 0.6.4
+
+There is one database migration, `c3a9d7e5b102`, which adds a nullable `config_text` column to `tacacsconfig`. It runs on the primary at start; standbys receive it through replication.
+
+Configs saved before this release have no stored text. Until one is re-generated or re-activated, a standby still regenerates it from the database, as before. Re-activate your current config once after upgrading so the standby runs exactly what you activated.
+
+On a standby, the scheduler, peer stats collection and the nightly stats cron now stay off whatever the replicated `scheduler_enabled` value says. Existing standby `.env` files need no change.
 
 ### Internal
 
