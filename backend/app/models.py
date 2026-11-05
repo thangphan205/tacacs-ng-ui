@@ -774,6 +774,12 @@ class TacacsConfigUpdate(TacacsConfigBase):
 class TacacsConfig(TacacsConfigBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     active: bool = Field(default=False)
+    # The saved config text, replicated with the row so an HA standby can run
+    # exactly what was activated instead of regenerating from the live DB.
+    # NULL for configs saved before this column existed.
+    config_text: str | None = Field(
+        default=None, sa_column=Column(sa.Text, nullable=True)
+    )
 
 
 # Properties to return via API, id is always required

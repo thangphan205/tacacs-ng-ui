@@ -235,18 +235,20 @@ Set `SYNC_MODE` in Zone B's `.env` to control how tac_plus-ng picks up config ch
 
 #### `SYNC_MODE=auto` (default)
 
-Zone B's `config_sync_watcher` daemon polls the local (replicated) DB every 10 seconds. When it detects a config change, it regenerates `tac_plus-ng.cfg` and reloads the daemon automatically — no admin action needed.
+Zone B's `config_sync_watcher` daemon polls the local (replicated) DB every 10 seconds. When it detects a config change, it writes the **activated** config text (stored with the active `TacacsConfig` row and replicated) to `tac_plus-ng.cfg` and reloads the daemon automatically — no admin action needed. A rollback (re-activating an older config) therefore reaches Zone B too, and edits made after the last activation do not. If the file already holds that text, the reload is skipped, so the primary's push and the watcher never restart the daemon twice for one change.
 
 **Flow:**
 1. Admin changes policy on Zone A dashboard → activates config
 2. Zone A API reloads its own tac_plus-ng daemon
 3. Zone A API calls Zone B's internal reload endpoint (fire-and-forget)
-4. Zone B regenerates config from local replicated DB + reloads daemon
+4. Zone B writes the activated config text from the local replicated DB + reloads daemon
 5. Both zones are consistent within ~10 seconds
 
 #### `SYNC_MODE=manual`
 
 Zone B does **not** auto-reload. The DB replicates continuously (users, policies always in sync), but tac_plus-ng only picks up new config when the admin explicitly pushes it.
+
+The push carries the **activated** config, not the current database state, so edits made after the last Generate + Activate are not sent until they are activated on Zone A.
 
 **How to push:**
 

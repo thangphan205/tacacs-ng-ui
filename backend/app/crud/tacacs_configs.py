@@ -50,20 +50,17 @@ def generate_tacacs_mavis_setting(*, session: Session) -> Any:
     return mavises_template
 
 
-def reload_active_config_from_db(*, session: Session) -> None:
-    """Regenerate tac_plus-ng.cfg from DB state and reload the daemon.
+def render_running_config(*, filename: str, description: str | None, text: str) -> str:
+    """The file tac_plus-ng runs: an activation header followed by the config text."""
+    return (
+        "#!/usr/local/sbin/tac_plus-ng\n"
+        f"# Tacacs config from {filename}\n"
+        f"# Description: {description}\n"
+        f"{text}"
+    )
 
-    Used by HA standby auto-sync watcher and the manual sync endpoint.
-    """
-    config_text = generate_tacacs_ng_config(session=session)
-    try:
-        os.makedirs(CONFIG_PATH, exist_ok=True)
-        with open(CONFIG_FILE_PATH, "w") as f:
-            f.write(config_text)
-    except OSError as e:
-        log.error("Failed to write config file during HA sync: %s", e)
-        raise
 
+def _restart_tacacs() -> None:
     try:
         result = subprocess.run(
             [
@@ -86,6 +83,50 @@ def reload_active_config_from_db(*, session: Session) -> None:
             log.info("tac_plus-ng reloaded via HA sync.")
     except Exception as e:
         log.warning("Failed to reload tac_plus-ng during HA sync: %s", e)
+
+
+def reload_active_config_from_db(*, session: Session) -> bool:
+    """Write the activated config to tac_plus-ng.cfg and reload the daemon.
+
+    Used by the HA standby auto-sync watcher and the manual sync endpoint.
+    Runs the text stored with the active TacacsConfig row, so a standby serves
+    exactly what the primary activated (including a rollback to an older
+    config). Rows saved before the text was stored, and a database with no
+    active row, fall back to regenerating from the current database state.
+
+    Returns False without touching the daemon when the file already holds the
+    wanted text, so the primary's fan-out and the watcher don't double-restart.
+    """
+    active = get_active_tacacs_config(session=session)
+    if active is not None and active.config_text is not None:
+        config_text = render_running_config(
+            filename=active.filename + ".cfg",
+            description=active.description,
+            text=active.config_text,
+        )
+    else:
+        log.warning(
+            "No stored text for the active config; regenerating from the database."
+        )
+        config_text = generate_tacacs_ng_config(session=session)
+
+    try:
+        with open(CONFIG_FILE_PATH) as f:
+            if f.read() == config_text:
+                return False
+    except OSError:
+        pass  # missing or unreadable: write it
+
+    try:
+        os.makedirs(CONFIG_PATH, exist_ok=True)
+        with open(CONFIG_FILE_PATH, "w") as f:
+            f.write(config_text)
+    except OSError as e:
+        log.error("Failed to write config file during HA sync: %s", e)
+        raise
+
+    _restart_tacacs()
+    return True
 
 
 def generate_tacacs_ng_config(*, session: Session) -> Any:
@@ -382,6 +423,7 @@ def create_tacacs_config(
 
     # 2. Save the filename to the database
     db_obj = TacacsConfig.model_validate(tacacs_config_create)
+    db_obj.config_text = tacacs_config
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
@@ -408,6 +450,7 @@ def update_tacacs_config(
                 f.write(tacacs_config_in.data)
         except Exception as e:
             return f"Error writing source file: {e}"
+        db_tacacs_config.config_text = tacacs_config_in.data
 
     # Determine if we should perform activation logic (default to True if active is not specified for backwards compatibility)
     should_activate = (
@@ -426,15 +469,21 @@ def update_tacacs_config(
                 config_data = f.read()
         except Exception as e:
             return f"Error reading source file: {e}"
+        # What the primary runs is what a standby must run, even for a config
+        # saved before the text was stored.
+        db_tacacs_config.config_text = config_data
 
         # 2. Save the new configuration to the main config file and create a backup
         try:
             # Write new content, overwriting the old file
             with open(CONFIG_FILE_PATH, "w") as f:
-                f.write("#!/usr/local/sbin/tac_plus-ng\n")
-                f.write(f"# Tacacs config from {filename}\n")
-                f.write(f"# Description: {db_tacacs_config.description}\n")
-                f.write(config_data)
+                f.write(
+                    render_running_config(
+                        filename=filename,
+                        description=db_tacacs_config.description,
+                        text=config_data,
+                    )
+                )
 
         except Exception as e:
             log.exception(f"Exception log: {e}")
@@ -463,9 +512,6 @@ def update_tacacs_config(
         except Exception as e:
             log.warning(f"Failed to reload tac_plus-ng via supervisorctl: {e}")
 
-        # 4. Notify peer (standby) node to sync config if auto-sync is enabled
-        _notify_peer_reload()
-
         # 4. Set all other configs to inactive
         statement = select(TacacsConfig).where(TacacsConfig.id != db_tacacs_config.id)
         other_configs = session.exec(statement).all()
@@ -492,6 +538,10 @@ def update_tacacs_config(
     session.add(db_tacacs_config)
     session.commit()
     session.refresh(db_tacacs_config)
+
+    # Notify peers only once the new active row is committed and visible to them.
+    if should_activate:
+        _notify_peer_reload()
 
     return db_tacacs_config
 
