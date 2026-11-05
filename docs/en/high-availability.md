@@ -364,7 +364,7 @@ When `NODE_ROLE=standby`, the backend behaves differently to protect the read-on
 | Read from DB (dashboard, logs, stats) | ✅ | ✅ |
 | Audit log writes | ✅ | ⏭ Silently skipped (replicated from primary) |
 | DB migrations on startup | ✅ | ⏭ Skipped (schema arrives via replication) |
-| Alert evaluation / ML scoring / cron | ✅ | ❌ Disabled (`SCHEDULER_ENABLED=false`) |
+| Alert evaluation / ML scoring / audit purge / stats collection / cron | ✅ | ❌ Never runs — decided by `NODE_ROLE=standby`, not by the replicated `scheduler_enabled` row |
 | TACACS+ authentication (port 49) | ✅ | ✅ |
 | Dashboard — view | ✅ | ✅ |
 | Dashboard — edit | ✅ | ❌ Blocked with "read-only mode" message |
@@ -677,7 +677,7 @@ All HA variables are optional. Defaults run as a standard single-node deployment
 | `NODE_ROLE` | `primary` | **Env-only.** `primary` or `standby`. Controls write access and `require_primary_node()` guard. Requires restart. |
 | `INTERNAL_SYNC_TOKEN` | _(empty)_ | **Env-only.** Shared secret for inter-node calls. Must match on all nodes. Generate with `openssl rand -hex 32`. Requires restart. |
 | `NODE_NAME` | `primary` | Seeded into DB on first startup. Human-readable node label (e.g. `dc1-primary`). Edit via HA UI after first start. |
-| `SCHEDULER_ENABLED` | `true` | Seeded into DB on first startup. Set `false` on standby to disable alerts/ML/audit loops. Edit via HA UI after promotion. |
+| `SCHEDULER_ENABLED` | `true` | Seeded into DB on first startup. Standby nodes never run these loops regardless of this value (a standby's DB is a replica of the primary's, so the row it reads is the primary's). Edit via HA UI. |
 | `SYNC_MODE` | `auto` | Seeded into DB on first startup. `auto` = standby polls DB every 10 s. `manual` = admin-triggered. Edit via HA UI. |
 | `PEER_BACKEND_URL` | _(empty)_ | Set on **both** primary and standby. On primary: seeded as the first peer entry on first startup. On standby: value is dormant until promotion — on first startup as primary, any env-configured URLs not yet in the peer table are added automatically. Use HA UI to manage peers after initial seeding. |
 | `PEER_NODES` | _(empty)_ | Seeded as multiple peer entries on first primary startup (comma-separated URLs). Use HA UI to manage after that. |

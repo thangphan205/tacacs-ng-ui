@@ -10,5 +10,12 @@ set -e
 # The '.' command is a POSIX-compliant equivalent of 'source'.
 . /etc/cron_env.sh
 
+# A standby's database is a read-only streaming replica, so the nightly stats
+# scripts would fail on every write. Skip them there.
+if [ "${NODE_ROLE:-primary}" = "standby" ]; then
+    echo "$(date '+%Y-%m-%d %H:%M:%S') NODE_ROLE=standby: skipping $*"
+    exit 0
+fi
+
 # Execute the command passed to this script
 exec "$@"
