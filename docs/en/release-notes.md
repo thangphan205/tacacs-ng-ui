@@ -14,6 +14,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Fixes
 
+* 🐛 Limit AAA Statistics Today pie charts to top 5. PR [#351](https://github.com/thangphan205/tacacs-ng-ui/pull/351) by [@thangphan205](https://github.com/thangphan205).
 * 🐛 Ignore activation header when diffing running config vs database. PR [#353](https://github.com/thangphan205/tacacs-ng-ui/pull/353) by [@thangphan205](https://github.com/thangphan205).
 
 ### Internal
