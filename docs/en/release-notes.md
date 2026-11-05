@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Fixes
+
+* 🐛 Ignore activation header when diffing running config vs database. PR [#353](https://github.com/thangphan205/tacacs-ng-ui/pull/353) by [@thangphan205](https://github.com/thangphan205).
+
 ### Internal
 
 * 🔖 Release 0.6.4. PR [#350](https://github.com/thangphan205/tacacs-ng-ui/pull/350) by [@thangphan205](https://github.com/thangphan205).
