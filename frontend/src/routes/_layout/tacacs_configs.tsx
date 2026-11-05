@@ -69,6 +69,17 @@ export const Route = createFileRoute("/_layout/tacacs_configs")({
 })
 
 /**
+ * Config text without its leading comment lines. Activation prepends a shebang,
+ * the source filename and the description to the running file, none of which
+ * the preview has, so they must not take part in the comparison.
+ */
+function configBody(text: string): string {
+  const lines = text.split("\n")
+  while (lines.length > 0 && lines[0].trim().startsWith("#")) lines.shift()
+  return lines.join("\n").trim()
+}
+
+/**
  * Compares the config the database would generate against the one the daemon is
  * actually running, so edits made outside this page — the entity pages, or an
  * MCP client holding a write key — do not sit unnoticed. Neither of those can
@@ -95,7 +106,8 @@ function PendingChangesAlert() {
 
   const generated = preview?.data ?? ""
   const running = activeMissing ? null : (active?.data ?? "")
-  const inSync = running !== null && generated.trim() === running.trim()
+  const inSync =
+    running !== null && configBody(generated) === configBody(running)
 
   if (inSync) {
     return (
