@@ -25,6 +25,7 @@ import { MdLayers } from "react-icons/md"
 import type { TacacsLogEvent } from "@/client"
 import { TacacsLogsService } from "@/client"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
+import { RefreshControl } from "@/components/Common/RefreshControl"
 import {
   DrawerBackdrop,
   DrawerBody,
@@ -362,6 +363,7 @@ export default function TacacsLogEventsTable() {
   const [selectedEvent, setSelectedEvent] = useState<TacacsLogEvent | null>(
     null,
   )
+  const [autoRefreshMs, setAutoRefreshMs] = useState(0)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const { data: latestDateData } = useQuery({
@@ -389,7 +391,18 @@ export default function TacacsLogEventsTable() {
     }, 500)
   }, [searchInput])
 
-  const { data, isLoading } = useQuery({
+  // New lines only land in today's file, and polling while the detail drawer
+  // is open would move the rows its prev/next buttons walk through.
+  const autoRefreshPausedReason =
+    dateTo < today
+      ? "Paused: the date range ends before today"
+      : selectedEvent !== null
+        ? "Paused while an event is open"
+        : undefined
+  const refetchInterval =
+    autoRefreshMs > 0 && !autoRefreshPausedReason ? autoRefreshMs : false
+
+  const { data, isLoading, isFetching, dataUpdatedAt, refetch } = useQuery({
     queryKey: [
       "tacacs_log_events",
       { page, perPage, dateFrom, dateTo, logType, result, search },
@@ -405,6 +418,7 @@ export default function TacacsLogEventsTable() {
         limit: perPage,
       }),
     placeholderData: (prev) => prev,
+    refetchInterval,
   })
 
   const events = data?.data ?? []
@@ -548,6 +562,18 @@ export default function TacacsLogEventsTable() {
               ✕ Clear
             </Button>
           )}
+
+          <Box ml="auto">
+            <RefreshControl
+              onRefresh={() => refetch()}
+              isFetching={isFetching}
+              dataUpdatedAt={dataUpdatedAt}
+              ariaLabel="Refresh events"
+              autoRefreshMs={autoRefreshMs}
+              onAutoRefreshChange={setAutoRefreshMs}
+              autoRefreshPausedReason={autoRefreshPausedReason}
+            />
+          </Box>
         </Flex>
 
         {isLoading ? (

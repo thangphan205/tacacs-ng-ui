@@ -19,6 +19,7 @@ import { FiEye, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 import { TacacsLogsService } from "@/client"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
+import { RefreshControl } from "@/components/Common/RefreshControl"
 import ShowTacacsLog from "@/components/TacacsLogs/ShowTacacsLog"
 import TacacsLogEventsTable from "@/components/TacacsLogs/TacacsLogEventsTable"
 import {
@@ -79,7 +80,7 @@ function FilesTab() {
 
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching, dataUpdatedAt, refetch } = useQuery({
     ...getFilesQueryOptions({ page, search, perPage }),
     placeholderData: (prevData) => prevData,
   })
@@ -163,6 +164,13 @@ function FilesTab() {
             </Select.Content>
           </Select.Positioner>
         </Select.Root>
+
+        <RefreshControl
+          onRefresh={() => refetch()}
+          isFetching={isFetching}
+          dataUpdatedAt={dataUpdatedAt}
+          ariaLabel="Refresh log files"
+        />
       </Flex>
 
       {logs.length === 0 ? (
