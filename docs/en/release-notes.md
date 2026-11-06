@@ -12,21 +12,34 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+## v0.6.6
+
+This release adds raw-script profiles, keeps alert history when no channel or a deleted channel is involved, and fixes AAA statistics days for installs outside UTC. It has four database migrations; see **Upgrading from 0.6.5**.
+
 ### Features
 
-* ✨ Raw-script profiles. PR [#366](https://github.com/thangphan205/tacacs-ng-ui/pull/366) by [@thangphan205](https://github.com/thangphan205).
-* ✨ Record alert events without a channel and keep them when a channel goes. PR [#365](https://github.com/thangphan205/tacacs-ng-ui/pull/365) by [@thangphan205](https://github.com/thangphan205).
-* ✨ Make the Parent Host field searchable. PR [#364](https://github.com/thangphan205/tacacs-ng-ui/pull/364) by [@thangphan205](https://github.com/thangphan205).
-* ✨ Add refresh and auto-refresh to TACACS+ Logs. PR [#363](https://github.com/thangphan205/tacacs-ng-ui/pull/363) by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Raw-script profiles.** A profile can hold its own tac_plus-ng `script { }` body, so per-command authorization (nested `if`, `add`, regex on `cmd` or `device.name`) no longer needs the `profile` Configuration Option or placeholder Profile rows. Add/Edit Profile get a *Structured / Raw script* toggle and **Check with tac_plus-ng** (`POST /api/v1/profiles/check`). A profile is either structured or raw, never both. Text that would close the profile early, a pasted `profile`/`script {` wrapper, and `include` are refused. Generate refuses a profile defined both as a row and in the `profile` Configuration Option. `raw_script` is writable over MCP. PR [#366](https://github.com/thangphan205/tacacs-ng-ui/pull/366) by [@thangphan205](https://github.com/thangphan205), closes [#359](https://github.com/thangphan205/tacacs-ng-ui/issues/359).
+* ✨ **Alert history records every firing and outlives its channel.** A rule that fires with no enabled notification channel is now recorded with status `no_channel` instead of leaving no trace, and deleting a channel keeps the events sent through it. Alert History gets a *No channel* filter, badge and count; `failed` no longer counts `no_channel` events. PR [#365](https://github.com/thangphan205/tacacs-ng-ui/pull/365) by [@thangphan205](https://github.com/thangphan205), closes [#357](https://github.com/thangphan205/tacacs-ng-ui/issues/357).
+* ✨ **Searchable Parent Host field.** Add Host and Edit Host search by name, IPv4, IPv6 or description. Edit Host now shows the current parent, and the parent can be cleared. `GET /api/v1/hosts` takes `sort_by` and `sort_order` and defaults to name order, so the Hosts page is alphabetical. PR [#364](https://github.com/thangphan205/tacacs-ng-ui/pull/364) by [@thangphan205](https://github.com/thangphan205), closes [#360](https://github.com/thangphan205/tacacs-ng-ui/issues/360).
+* ✨ **Refresh and auto-refresh on TACACS+ Logs.** Events and Files get a refresh button that keeps the current filters. Events also gets auto-refresh (off by default; 10, 30 or 60 s), which runs only while the date range includes today and pauses while the event drawer is open. PR [#363](https://github.com/thangphan205/tacacs-ng-ui/pull/363) by [@thangphan205](https://github.com/thangphan205), closes [#358](https://github.com/thangphan205/tacacs-ng-ui/issues/358).
 
 ### Fixes
 
-* 🐛 Open the Events date picker from either date field (#367). PR [#368](https://github.com/thangphan205/tacacs-ng-ui/pull/368) by [@thangphan205](https://github.com/thangphan205).
-* 🐛 Count AAA statistics days in the log timezone. PR [#362](https://github.com/thangphan205/tacacs-ng-ui/pull/362) by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **AAA statistics count days in the log timezone.** West of UTC, every daily chart showed the next day's numbers, and installs with a non-UTC `TZ` still counted "today" in UTC because `TACACS_TIMEZONE` defaulted to `UTC`. `log_date` is now a `date`, `TACACS_TIMEZONE` defaults to `TZ`, and every "today" (collectors, statistics, alert evaluator, UI) uses the log timezone. PR [#362](https://github.com/thangphan205/tacacs-ng-ui/pull/362) by [@thangphan205](https://github.com/thangphan205), closes [#356](https://github.com/thangphan205/tacacs-ng-ui/issues/356).
+* 🐛 Open the Events date picker from either date field. PR [#368](https://github.com/thangphan205/tacacs-ng-ui/pull/368) by [@thangphan205](https://github.com/thangphan205), closes [#367](https://github.com/thangphan205/tacacs-ng-ui/issues/367).
 
 ### Docs
 
 * docs: add TACACS+ integration guide for Ciena 6500. PR [#361](https://github.com/thangphan205/tacacs-ng-ui/pull/361) by [@luccascruz](https://github.com/luccascruz).
+
+### Upgrading from 0.6.5
+
+There are four database migrations. They run on the primary at start; standbys receive them through replication. Upgrade standbys together with the primary.
+
+* `d5e1b7a3c946` changes `log_date` on the three statistics tables from timestamp to `date` and corrects the stored days. The correction assumes the PostgreSQL server `timezone` setting has not changed since the rows were written. If two rows for the same user, device and day result, the most recently updated one is kept.
+* `e7f2c4a8b153` sets **TACACS NG Settings → Timezone** to the backend's `TZ` when `TZ` is a non-UTC zone and the setting still holds `UTC`. A `UTC` chosen on purpose is changed too; set it back in TACACS NG Settings. Later changes are never touched.
+* `f3a8c1d5e927` makes `alertevent.channel_id` nullable with `ON DELETE SET NULL`. Existing rows are untouched. A downgrade deletes events with no channel.
+* `b2d7e4f9a613` adds a nullable `profile.raw_script` column. A downgrade is refused while any profile uses a raw script.
 
 ### Internal
 
