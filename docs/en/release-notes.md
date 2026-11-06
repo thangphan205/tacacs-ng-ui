@@ -14,6 +14,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Features
 
+* ✨ Make the Parent Host field searchable. PR [#364](https://github.com/thangphan205/tacacs-ng-ui/pull/364) by [@thangphan205](https://github.com/thangphan205).
 * ✨ Add refresh and auto-refresh to TACACS+ Logs. PR [#363](https://github.com/thangphan205/tacacs-ng-ui/pull/363) by [@thangphan205](https://github.com/thangphan205).
 
 ### Fixes
