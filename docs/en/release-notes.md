@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Docs
+
+* docs: add TACACS+ integration guide for Ciena 6500. PR [#361](https://github.com/thangphan205/tacacs-ng-ui/pull/361) by [@luccascruz](https://github.com/luccascruz).
+
 ### Internal
 
 * 🔖 Release 0.6.5. PR [#355](https://github.com/thangphan205/tacacs-ng-ui/pull/355) by [@thangphan205](https://github.com/thangphan205).
