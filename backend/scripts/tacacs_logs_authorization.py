@@ -12,9 +12,9 @@ from app.core.db import engine
 from app.crud.tacacs_siem import forward_tacacs_event_to_siem
 from app.models import AuthorizationStatistics
 from scripts._log_stats_base import (
+    day_start_timestamp,
     get_target_date,
     parse_authorization_logs,
-    to_log_datetime,
 )
 
 
@@ -73,7 +73,6 @@ def save_statistics_to_db(
     """
     Inserts or updates authorization statistics in the database for a given date and node.
     """
-    log_dt = to_log_datetime(summary_date)
     print("\nSaving authorization statistics to the database...")
     with Session(engine) as session:
         for username, nas_ip, user_source_ip in sorted(all_keys):
@@ -85,7 +84,7 @@ def save_statistics_to_db(
                 AuthorizationStatistics.username == username,
                 AuthorizationStatistics.nas_ip == nas_ip,
                 AuthorizationStatistics.user_source_ip == user_source_ip,
-                AuthorizationStatistics.log_date == log_dt,
+                AuthorizationStatistics.log_date == summary_date,
                 AuthorizationStatistics.node_name == node_name,
             )
             db_stat = session.exec(statement).first()
@@ -102,7 +101,7 @@ def save_statistics_to_db(
                     user_source_ip=user_source_ip,
                     permit_count=permit_count,
                     deny_count=deny_count,
-                    log_date=log_dt,
+                    log_date=summary_date,
                     node_name=node_name,
                 )
             session.add(db_stat)
@@ -111,7 +110,7 @@ def save_statistics_to_db(
         print("\nAuthorization statistics saved successfully.")
 
     if settings.SIEM_FORWARD_TACACS_EVENTS:
-        ts = log_dt.timestamp()
+        ts = day_start_timestamp(summary_date)
         for username, nas_ip, user_source_ip in sorted(all_keys):
             key = (username, nas_ip, user_source_ip)
             if permitted_authorizations.get(key, 0) > 0:

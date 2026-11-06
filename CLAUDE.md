@@ -171,7 +171,9 @@ Three cron scripts parse yesterday's TACACS logs and aggregate stats into DB:
 
 Cron is run via `scripts/cron_runner.sh` which sources `/etc/cron_env.sh` (full container environment). Schedule defined in `backend/tacacs-cron-jobs`.
 
-**Timezone:** `scripts/_log_stats_base.py` reads timezone from `TacacsNgSetting.timezone` (DB-stored, editable in UI under TACACS NG Settings). Falls back to `TZ` env var, then UTC. Set `TZ=Asia/Ho_Chi_Minh` in `.env` for initial seed. This controls which local "yesterday" is targeted when scanning log files.
+**Timezone:** `scripts/_log_stats_base.py` reads timezone from `TacacsNgSetting.timezone` (DB-stored, editable in UI under TACACS NG Settings). Falls back to `TZ` env var, then UTC. The setting is seeded from `TACACS_TIMEZONE`, which defaults to `TZ`, so set `TZ=Asia/Ho_Chi_Minh` in `.env`. This controls which local day is "today" / "yesterday" when scanning log files.
+
+**One definition of "day" (#356):** tac_plus-ng names files and stamps lines in local time, so every "today" — read path, collectors, alert evaluator, frontend — must be the log-timezone day: `local_today()` / `local_date()` in `_log_stats_base.py` on the backend, `toLocalISODate()` in `frontend/src/utils.ts`. Never `datetime.now(timezone.utc).date()` or `toISOString()` for a log day. `log_date` on the three stats tables is a **`date`** column: a timestamp there was shifted a day by the PostgreSQL session time zone. `tests/crud/test_log_day.py` guards this.
 
 Pass a date argument to run for a specific date: `python scripts/tacacs_logs_authentication.py 2026-05-13`
 

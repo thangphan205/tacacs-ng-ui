@@ -340,7 +340,7 @@ export const AccountingStatisticPublicSchema = {
         },
         log_date: {
             type: 'string',
-            format: 'date-time',
+            format: 'date',
             title: 'Log Date'
         },
         id: {
@@ -359,6 +359,7 @@ export const AccountingStatisticPublicSchema = {
         'username',
         'nas_ip',
         'user_source_ip',
+        'log_date',
         'id',
         'updated_at'
     ],
@@ -1625,7 +1626,7 @@ export const AuthenticationStatisticPublicSchema = {
         },
         log_date: {
             type: 'string',
-            format: 'date-time',
+            format: 'date',
             title: 'Log Date'
         },
         id: {
@@ -1644,6 +1645,7 @@ export const AuthenticationStatisticPublicSchema = {
         'username',
         'nas_ip',
         'user_source_ip',
+        'log_date',
         'id',
         'updated_at'
     ],
@@ -1707,7 +1709,7 @@ export const AuthorizationStatisticPublicSchema = {
         },
         log_date: {
             type: 'string',
-            format: 'date-time',
+            format: 'date',
             title: 'Log Date'
         },
         id: {
@@ -1726,6 +1728,7 @@ export const AuthorizationStatisticPublicSchema = {
         'username',
         'nas_ip',
         'user_source_ip',
+        'log_date',
         'id',
         'updated_at'
     ],

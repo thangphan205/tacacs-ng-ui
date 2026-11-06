@@ -82,3 +82,15 @@ export const handleError = (err: ApiError) => {
     type: "error",
   })
 }
+
+/**
+ * YYYY-MM-DD of `date` in the browser's time zone. `toISOString()` gives the
+ * UTC day, which west of UTC is already tomorrow every evening while the log
+ * files are still on today (#356).
+ */
+export const toLocalISODate = (date: Date = new Date()): string => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
+}

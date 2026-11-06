@@ -936,7 +936,10 @@ class AuthenticationStatisticsBase(SQLModel):
     user_source_ip: str = Field(index=True, max_length=1024)
     success_count: int = Field(default=0)
     fail_count: int = Field(default=0)
-    log_date: datetime = Field(default_factory=_utc_now)
+    # The calendar day of the log file the counts come from, in the log
+    # timezone. A plain date: a timestamp here was shifted a day by the
+    # PostgreSQL session timezone (#356).
+    log_date: date
 
 
 class AuthenticationStatisticsCreate(AuthenticationStatisticsBase):
@@ -983,7 +986,10 @@ class AuthorizationStatisticsBase(SQLModel):
     user_source_ip: str = Field(index=True, max_length=1024)
     permit_count: int = Field(default=0)
     deny_count: int = Field(default=0)
-    log_date: datetime = Field(default_factory=_utc_now)
+    # The calendar day of the log file the counts come from, in the log
+    # timezone. A plain date: a timestamp here was shifted a day by the
+    # PostgreSQL session timezone (#356).
+    log_date: date
 
 
 class AuthorizationStatisticsCreate(AuthorizationStatisticsBase):
@@ -1028,7 +1034,10 @@ class AccountingStatisticsBase(SQLModel):
     user_source_ip: str = Field(index=True, max_length=1024)
     start_count: int = Field(default=0)
     stop_count: int = Field(default=0)
-    log_date: datetime = Field(default_factory=_utc_now)
+    # The calendar day of the log file the counts come from, in the log
+    # timezone. A plain date: a timestamp here was shifted a day by the
+    # PostgreSQL session timezone (#356).
+    log_date: date
 
 
 class AccountingStatisticsCreate(AccountingStatisticsBase):

@@ -1,6 +1,6 @@
 import ast
 from collections.abc import Generator
-from datetime import datetime, time, timedelta, timezone
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -19,6 +19,7 @@ from app.models import (
     StatsExcludedUserCreate,
     TacacsLogEvent,
 )
+from scripts._log_stats_base import local_today
 from tests.utils.utils import random_lower_string
 
 BASE = f"{settings.API_V1_STR}/stats_exclusions"
@@ -45,9 +46,8 @@ def prefix(db: Session) -> Generator[str, None, None]:
     db.commit()
 
 
-def _yesterday() -> datetime:
-    d = datetime.now(timezone.utc).date() - timedelta(days=1)
-    return datetime.combine(d, time.min).replace(tzinfo=timezone.utc)
+def _yesterday() -> date:
+    return local_today() - timedelta(days=1)
 
 
 def _add_auth(db: Session, username: str, success: int, fail: int = 0) -> None:
@@ -170,7 +170,7 @@ def test_normal_user_can_read_but_not_write(
 
 
 def _yesterday_success(body: dict, key: str) -> int:
-    day = _yesterday().date().isoformat()
+    day = _yesterday().isoformat()
     return next(i["count"] for i in body[key] if i["date"] == day)
 
 
@@ -185,7 +185,7 @@ def test_range_statistics_exclude_and_include(
     _add_auth(db, human, success=4, fail=1)
     _exclude(db, collector)
 
-    day = _yesterday().date().isoformat()
+    day = _yesterday().isoformat()
     url = (
         f"{settings.API_V1_STR}/aaa_statistics/range/?range_date={day},{day}&limit=1000"
     )

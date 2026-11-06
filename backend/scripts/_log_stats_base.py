@@ -1,8 +1,9 @@
 import os
 import re
 import sys
+import time as _time
 from collections import Counter
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from datetime import time as time_
 from zoneinfo import ZoneInfo
 
@@ -64,6 +65,41 @@ def _get_local_tz() -> ZoneInfo:
         return ZoneInfo("UTC")
 
 
+_LOCAL_TZ_TTL = 60.0
+_local_tz_cache: tuple[float, ZoneInfo] | None = None
+
+
+def local_tz() -> ZoneInfo:
+    """
+    The timezone tac_plus-ng names its log files and stamps its lines in.
+
+    Same lookup as _get_local_tz(), cached briefly because the read path asks
+    for it on every dashboard request. The setting is editable in the UI, so
+    the cache is short rather than process-long.
+    """
+    global _local_tz_cache
+    now = _time.monotonic()
+    if _local_tz_cache and now - _local_tz_cache[0] < _LOCAL_TZ_TTL:
+        return _local_tz_cache[1]
+    tz = _get_local_tz()
+    _local_tz_cache = (now, tz)
+    return tz
+
+
+def local_today() -> date:
+    """
+    Today's date in the log timezone: the one definition of "today" for both
+    the collectors and the read path. Using the UTC date here put the
+    dashboard on tomorrow's (still empty) log file every evening west of UTC.
+    """
+    return datetime.now(local_tz()).date()
+
+
+def local_date(moment: datetime) -> date:
+    """The log-timezone calendar day an aware datetime falls on."""
+    return moment.astimezone(local_tz()).date()
+
+
 def get_target_date() -> date:
     """Return date from argv[1] (YYYY-MM-DD) or yesterday in the configured local timezone."""
     if len(sys.argv) > 1:
@@ -76,9 +112,20 @@ def get_target_date() -> date:
     return (datetime.now(_get_local_tz()) - timedelta(days=1)).date()
 
 
-def to_log_datetime(d: date) -> datetime:
-    """Convert a date to midnight UTC datetime for DB storage."""
-    return datetime.combine(d, time_.min).replace(tzinfo=timezone.utc)
+def day_start_timestamp(d: date) -> float:
+    """Epoch seconds of local midnight starting day `d`, for SIEM event times."""
+    return datetime.combine(d, time_.min, tzinfo=local_tz()).timestamp()
+
+
+def parse_log_date(value: str) -> date:
+    """
+    Read a statistics row's log_date as sent by a peer's collect-stats.
+
+    Current peers send "YYYY-MM-DD". Peers before the fix for #356 send midnight
+    UTC of the same day ("YYYY-MM-DDT00:00:00+00:00"), so the leading date is
+    the day in both formats and a mixed-version HA pair keeps syncing.
+    """
+    return date.fromisoformat(value[:10])
 
 
 def build_log_file_path(target_date: date, log_type: str, log_directory: str) -> str:
