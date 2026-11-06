@@ -108,10 +108,12 @@ The web UI deliberately stays with the basic case; the advanced cases are writte
 - [Configure with an AI Assistant (MCP)](#configure-with-an-ai-assistant-recommended)
 - [Key Features](#key-features)
 - [Live Demo](#live-demo)
+- [Supported Vendors](#supported-vendors)
 - [Device Configuration Examples](#device-configuration-examples)
   - [Tested Devices (GitHub Discussions)](https://github.com/thangphan205/tacacs-ng-ui/discussions/185)
   - [Juniper Config (Junos)](docs/en/config-examples/juniper.md)
   - [Cisco Config (IOS/XE)](docs/en/config-examples/cisco.md)
+  - [Arista Config (EOS)](docs/en/config-examples/arista.md)
   - [Huawei Config - Virtual CE12800 (VRP)](docs/en/config-examples/huawei.md)
   - [Huawei Config - Physical Campus S-Series (VRP)](docs/en/config-examples/huawei-physical.md)
   - [Ciena Config - 6500 Packet-Optical (TL1 / Site Manager)](docs/en/config-examples/ciena-6500.md)
@@ -186,6 +188,26 @@ ping tacacs.9ping.cloud
   - **Username:** `user_read_only`
   - **Password:** `change_this`
 
+## Supported Vendors
+
+Verified on real devices by the maintainer and the community. Full reports, device configs and gotchas are in the [Compatibility List](https://github.com/thangphan205/tacacs-ng-ui/discussions/185). Tested a device not listed here? Please add a reply there.
+
+| Vendor | Platform / OS | Tested models | OS / firmware | Guide |
+|---|---|---|---|---|
+| Juniper | Junos | SRX300, MX204, MX960, MX304 | 21.2R3-S8, 21.4R3, 24.4R2-S4 | [Junos](docs/en/config-examples/juniper.md) |
+| Juniper | Junos OS Evolved | PTX10001-36MR, ACX7100-32C | 24.4R2-S4-EVO | [Junos](docs/en/config-examples/juniper.md) |
+| Cisco | IOS-XE | Catalyst 9300, ISR 4331 | 17.9.3 | [Cisco IOS-XE](docs/en/config-examples/cisco.md) |
+| Cisco | IOS XR | NCS-55A2 | 7.0.2 | [Community report](https://github.com/thangphan205/tacacs-ng-ui/discussions/185#discussioncomment-19431099) |
+| Arista | EOS | vEOS | 4.28F | [Arista EOS](docs/en/config-examples/arista.md) |
+| Huawei | VRP (CloudEngine) | CloudEngine 6800 | VRP 8.1 | [VRP virtual](docs/en/config-examples/huawei.md) |
+| Huawei | VRP (Campus S-Series) | S6720-54C-EI-48S, S6720-50L-HI-48S | VRP 5.170 V200R010C00 → V200R019C10 | [VRP physical](docs/en/config-examples/huawei-physical.md) |
+| Ciena | 6500 Packet-Optical (TL1 / Site Manager) | 2/7/14-slot shelves, TIDc consolidated nodes | Release 16.91 | [Ciena 6500](docs/en/config-examples/ciena-6500.md) |
+| Datacom | DmOS | DM4170, DM4250, DM4270, DM4360, DM4380, DM4770, DM4780 | DmOS 5.8.0 → 12.6.0 | [Community report](https://github.com/thangphan205/tacacs-ng-ui/discussions/185#discussioncomment-19431099) |
+| Datacom | DmSwitch (legacy) | DM4100 / DM4000 series | 15.2.2 → 15.2.18 | [Community report](https://github.com/thangphan205/tacacs-ng-ui/discussions/185#discussioncomment-19431099) |
+
+> [!WARNING]
+> **Cisco IOS XR, Datacom DmOS and Datacom DmSwitch authorize every command** as `service = shell` with the command line in `cmd`. A profile that only does `if (service == shell) { set priv-lvl = 1 ; permit }` lets read-only users run **any** command, `configure` included. Separate session start (`cmd == ""`) from commands, as shown in the [community report](https://github.com/thangphan205/tacacs-ng-ui/discussions/185#discussioncomment-19431099).
+
 ## Device Configuration Examples
 
 > [!TIP]
@@ -195,6 +217,7 @@ Below are quick configuration examples for common network vendors. For detailed 
 
 * **Juniper Junos**: [docs/en/config-examples/juniper.md](docs/en/config-examples/juniper.md)
 * **Cisco IOS/XE**: [docs/en/config-examples/cisco.md](docs/en/config-examples/cisco.md)
+* **Arista EOS**: [docs/en/config-examples/arista.md](docs/en/config-examples/arista.md)
 * **Huawei VRP (Virtual / CloudEngine)**: [docs/en/config-examples/huawei.md](docs/en/config-examples/huawei.md)
 * **Huawei VRP (Physical Campus S-Series)**: [docs/en/config-examples/huawei-physical.md](docs/en/config-examples/huawei-physical.md)
 * **Ciena 6500 (Packet-Optical, TL1 / Site Manager)**: [docs/en/config-examples/ciena-6500.md](docs/en/config-examples/ciena-6500.md)
@@ -240,71 +263,71 @@ set system accounting destination tacplus server <IP_TACACS_SERVER> source-addre
 
 ## Cisco Config
 
+Full guide: [docs/en/config-examples/cisco.md](docs/en/config-examples/cisco.md)
+
 <details>
 <summary>Show Config Commands</summary>
 
-```bash
-# 1. Enable AAA (Authentication, Authorization, and Accounting)
+```text
+! 1. Enable AAA
 aaa new-model
-
-# 2. Define the TACACS+ server
-tacacs server TACACS-9PING
-  # IP address of your TACACS-NG-UI server
-  address ipv4 <IP_TACACS_SERVER>
-  # Shared secret key, must match the server configuration
-  key <TACACS_SECRET_KEY>
-  exit
-
-# 3. Create a server group (best practice for redundancy)
+!
+! 2. Define the TACACS+ server (key must match the Host secret in tacacs-ng-ui)
+tacacs server TACACS-NG-1
+ address ipv4 <IP_TACACS_SERVER>
+ key 0 <TACACS_SECRET_KEY>
+ timeout 5
+!
+! 3. Server group; send from the IP registered as the Host
 aaa group server tacacs+ TACACS-GROUP
-  server name TACACS-9PING
-  # Optional to use vrf forwarding
-  # ip vrf forwarding clab-mgmt
-  exit
-
-# 4. Configure Authentication, Authorization, and Accounting methods
-# Use TACACS+ first, then fall back to the local database if the server is unreachable
+ server name TACACS-NG-1
+ ip tacacs source-interface GigabitEthernet0/0
+ ! Catalyst 9000 management port: ip vrf forwarding Mgmt-vrf
+!
+! 4. TACACS+ first, local only if no server answers
 aaa authentication login default group TACACS-GROUP local
 aaa authorization exec default group TACACS-GROUP local
 aaa accounting exec default start-stop group TACACS-GROUP
-# Log all commands run in privileged (enable) mode
+aaa accounting commands 1 default start-stop group TACACS-GROUP
 aaa accounting commands 15 default start-stop group TACACS-GROUP
-
-# 5. Apply the authentication method to VTY lines (for SSH/Telnet)
+!
+! 5. Apply to VTY lines (SSH/Telnet)
 line vty 0 4
-  login authentication default
-exit
+ login authentication default
+ authorization exec default
 ```
 </details>
 
 ## Arista Config
 
+Full guide: [docs/en/config-examples/arista.md](docs/en/config-examples/arista.md)
+
 <details>
 <summary>Show Config Commands</summary>
 
-```bash
-# 1. Define the TACACS+ server and shared key
-# 'key 0' specifies the key is in clear text. For production, use an encrypted key.
+```text
+! 1. Define the TACACS+ server (key must match the Host secret in tacacs-ng-ui)
 tacacs-server host <IP_TACACS_SERVER> key 0 <TACACS_SECRET_KEY>
+tacacs-server timeout 5
 !
-# 2. Create a server group for TACACS+ (best practice)
+! 2. Server group
 aaa group server tacacs+ TACACS_GROUP
-  # Add the server to the group
-  server <IP_TACACS_SERVER>
+   server <IP_TACACS_SERVER>
 !
-# 3. Configure Authentication, Authorization, and Accounting methods
-# Use the TACACS+ group first, then fall back to the local database if unreachable.
+! 3. TACACS+ first, local only if no server answers
 aaa authentication login default group TACACS_GROUP local
 aaa authorization exec default group TACACS_GROUP local
-# Authorize all commands against the TACACS+ server for granular control.
 aaa authorization commands all default group TACACS_GROUP local
-# Log the start and stop of exec sessions for auditing.
 aaa accounting exec default start-stop group TACACS_GROUP
-
-# 4. (Optional) Specify the source interface for TACACS+ traffic.
-ip tacacs source-interface Management0
+aaa accounting commands all default start-stop group TACACS_GROUP
+!
+! 4. Send from the IP registered as the Host
+ip tacacs source-interface Management1
 ```
 </details>
+
+> [!WARNING]
+> With command authorization on, every command reaches the server as `service = shell`. The seeded profiles permit any `service = shell` request, so they do not restrict commands. Keep a second session open while applying, and see the full guides for a profile that limits read-only users to `show` commands.
 
 ## Technology Stack and Features
 

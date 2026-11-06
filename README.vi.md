@@ -85,10 +85,12 @@ Giao diện web chủ ý chỉ phục vụ trường hợp cơ bản; các trư�
 - [Cấu hình bằng trợ lý AI (MCP)](#cấu-hình-bằng-trợ-lý-ai-khuyến-nghị)
 - [Tính Năng Nổi Bật](#tính-năng-nổi-bật)
 - [Demo Trực Tuyến](#demo-trực-tuyến)
+- [Thiết Bị Được Hỗ Trợ](#thiết-bị-được-hỗ-trợ)
 - [Cấu Hình Thiết Bị](#cấu-hình-thiết-bị)
   - [Thiết bị đã kiểm thử (GitHub Discussions)](https://github.com/thangphan205/tacacs-ng-ui/discussions/185)
   - [Cấu hình Juniper (Junos)](docs/vi/config-examples/juniper.md)
   - [Cấu hình Cisco (IOS/XE)](docs/vi/config-examples/cisco.md)
+  - [Cấu hình Arista (EOS)](docs/vi/config-examples/arista.md)
   - [Cấu hình Huawei - Switch Ảo CE12800 (VRP)](docs/vi/config-examples/huawei.md)
   - [Cấu hình Huawei - Switch Vật Lý Campus S-Series (VRP)](docs/vi/config-examples/huawei-physical.md)
 - [Công Nghệ Sử Dụng](#công-nghệ-sử-dụng)
@@ -156,6 +158,26 @@ ping tacacs.9ping.cloud
   - **Username:** `user_read_only`
   - **Password:** `change_this`
 
+## Thiết Bị Được Hỗ Trợ
+
+Đã được kiểm thử trên thiết bị thật bởi tác giả và cộng đồng. Báo cáo đầy đủ, cấu hình thiết bị và các lưu ý có trong [Danh sách thiết bị tương thích](https://github.com/thangphan205/tacacs-ng-ui/discussions/185). Bạn đã thử một thiết bị chưa có ở đây? Hãy trả lời trong thảo luận đó.
+
+| Hãng | Nền tảng / OS | Model đã kiểm thử | OS / firmware | Hướng dẫn |
+|---|---|---|---|---|
+| Juniper | Junos | SRX300, MX204, MX960, MX304 | 21.2R3-S8, 21.4R3, 24.4R2-S4 | [Junos](docs/vi/config-examples/juniper.md) |
+| Juniper | Junos OS Evolved | PTX10001-36MR, ACX7100-32C | 24.4R2-S4-EVO | [Junos](docs/vi/config-examples/juniper.md) |
+| Cisco | IOS-XE | Catalyst 9300, ISR 4331 | 17.9.3 | [Cisco IOS-XE](docs/vi/config-examples/cisco.md) |
+| Cisco | IOS XR | NCS-55A2 | 7.0.2 | [Báo cáo cộng đồng](https://github.com/thangphan205/tacacs-ng-ui/discussions/185#discussioncomment-19431099) |
+| Arista | EOS | vEOS | 4.28F | [Arista EOS](docs/vi/config-examples/arista.md) |
+| Huawei | VRP (CloudEngine) | CloudEngine 6800 | VRP 8.1 | [VRP ảo](docs/vi/config-examples/huawei.md) |
+| Huawei | VRP (Campus S-Series) | S6720-54C-EI-48S, S6720-50L-HI-48S | VRP 5.170 V200R010C00 → V200R019C10 | [VRP vật lý](docs/vi/config-examples/huawei-physical.md) |
+| Ciena | 6500 Packet-Optical (TL1 / Site Manager) | Shelf 2/7/14 slot, node hợp nhất TIDc | Release 16.91 | [Ciena 6500 (EN)](docs/en/config-examples/ciena-6500.md) |
+| Datacom | DmOS | DM4170, DM4250, DM4270, DM4360, DM4380, DM4770, DM4780 | DmOS 5.8.0 → 12.6.0 | [Báo cáo cộng đồng](https://github.com/thangphan205/tacacs-ng-ui/discussions/185#discussioncomment-19431099) |
+| Datacom | DmSwitch (legacy) | Dòng DM4100 / DM4000 | 15.2.2 → 15.2.18 | [Báo cáo cộng đồng](https://github.com/thangphan205/tacacs-ng-ui/discussions/185#discussioncomment-19431099) |
+
+> [!WARNING]
+> **Cisco IOS XR, Datacom DmOS và Datacom DmSwitch gửi yêu cầu authorization cho từng lệnh** dưới dạng `service = shell`, với dòng lệnh nằm trong `cmd`. Một profile chỉ có `if (service == shell) { set priv-lvl = 1 ; permit }` sẽ cho user read-only chạy **mọi** lệnh, kể cả `configure`. Hãy tách phần bắt đầu phiên (`cmd == ""`) khỏi các lệnh, như trong [báo cáo cộng đồng](https://github.com/thangphan205/tacacs-ng-ui/discussions/185#discussioncomment-19431099).
+
 ## Cấu Hình Thiết Bị
 
 > [!TIP]
@@ -165,6 +187,7 @@ Dưới đây là các ví dụ cấu hình nhanh cho các nhà sản xuất thi
 
 * **Juniper Junos**: [docs/vi/config-examples/juniper.md](docs/vi/config-examples/juniper.md)
 * **Cisco IOS/XE**: [docs/vi/config-examples/cisco.md](docs/vi/config-examples/cisco.md)
+* **Arista EOS**: [docs/vi/config-examples/arista.md](docs/vi/config-examples/arista.md)
 * **Huawei VRP (Switch Ảo CloudEngine)**: [docs/vi/config-examples/huawei.md](docs/vi/config-examples/huawei.md)
 * **Huawei VRP (Switch Vật Lý Campus S-Series)**: [docs/vi/config-examples/huawei-physical.md](docs/vi/config-examples/huawei-physical.md)
 
@@ -209,60 +232,71 @@ set system accounting destination tacplus server <IP_TACACS_SERVER> source-addre
 
 ### Cấu Hình Cisco
 
+Hướng dẫn đầy đủ: [docs/vi/config-examples/cisco.md](docs/vi/config-examples/cisco.md)
+
 <details>
 <summary>Hiển thị câu lệnh cấu hình</summary>
 
-```bash
-# 1. Kích hoạt AAA
+```text
+! 1. Kích hoạt AAA
 aaa new-model
-
-# 2. Định nghĩa TACACS+ server
-tacacs server TACACS-9PING
-  address ipv4 <IP_TACACS_SERVER>
-  key <TACACS_SECRET_KEY>
-  exit
-
-# 3. Tạo server group
+!
+! 2. Định nghĩa TACACS+ server (key phải khớp secret của Host trong tacacs-ng-ui)
+tacacs server TACACS-NG-1
+ address ipv4 <IP_TACACS_SERVER>
+ key 0 <TACACS_SECRET_KEY>
+ timeout 5
+!
+! 3. Server group; gửi từ đúng IP đã đăng ký làm Host
 aaa group server tacacs+ TACACS-GROUP
-  server name TACACS-9PING
-  exit
-
-# 4. Cấu hình Authentication, Authorization, Accounting
+ server name TACACS-NG-1
+ ip tacacs source-interface GigabitEthernet0/0
+ ! Cổng quản lý Catalyst 9000: ip vrf forwarding Mgmt-vrf
+!
+! 4. Ưu tiên TACACS+, chỉ dùng local khi không server nào trả lời
 aaa authentication login default group TACACS-GROUP local
 aaa authorization exec default group TACACS-GROUP local
 aaa accounting exec default start-stop group TACACS-GROUP
+aaa accounting commands 1 default start-stop group TACACS-GROUP
 aaa accounting commands 15 default start-stop group TACACS-GROUP
-
-# 5. Áp dụng cho VTY lines
+!
+! 5. Áp dụng cho VTY lines (SSH/Telnet)
 line vty 0 4
-  login authentication default
-exit
+ login authentication default
+ authorization exec default
 ```
 </details>
 
 ### Cấu Hình Arista
 
+Hướng dẫn đầy đủ: [docs/vi/config-examples/arista.md](docs/vi/config-examples/arista.md)
+
 <details>
 <summary>Hiển thị câu lệnh cấu hình</summary>
 
-```bash
-# 1. Định nghĩa TACACS+ server và shared key
+```text
+! 1. Định nghĩa TACACS+ server (key phải khớp secret của Host trong tacacs-ng-ui)
 tacacs-server host <IP_TACACS_SERVER> key 0 <TACACS_SECRET_KEY>
+tacacs-server timeout 5
 !
-# 2. Tạo server group
+! 2. Server group
 aaa group server tacacs+ TACACS_GROUP
-  server <IP_TACACS_SERVER>
+   server <IP_TACACS_SERVER>
 !
-# 3. Cấu hình AAA
+! 3. Ưu tiên TACACS+, chỉ dùng local khi không server nào trả lời
 aaa authentication login default group TACACS_GROUP local
 aaa authorization exec default group TACACS_GROUP local
 aaa authorization commands all default group TACACS_GROUP local
 aaa accounting exec default start-stop group TACACS_GROUP
-
-# 4. (Tùy chọn) Chỉ định interface nguồn cho TACACS+
-ip tacacs source-interface Management0
+aaa accounting commands all default start-stop group TACACS_GROUP
+!
+! 4. Gửi từ đúng IP đã đăng ký làm Host
+ip tacacs source-interface Management1
 ```
 </details>
+
+> [!WARNING]
+> Khi bật authorization từng lệnh, mọi lệnh đến server dưới dạng `service = shell`. Các profile tạo sẵn cho phép mọi yêu cầu `service = shell`, nên không giới hạn lệnh. Giữ một phiên thứ hai khi áp dụng, và xem hướng dẫn đầy đủ để có profile chỉ cho user read-only chạy lệnh `show`.
 
 ## Công Nghệ Sử Dụng
 
