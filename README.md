@@ -114,6 +114,7 @@ The web UI deliberately stays with the basic case; the advanced cases are writte
   - [Cisco Config (IOS/XE)](docs/en/config-examples/cisco.md)
   - [Huawei Config - Virtual CE12800 (VRP)](docs/en/config-examples/huawei.md)
   - [Huawei Config - Physical Campus S-Series (VRP)](docs/en/config-examples/huawei-physical.md)
+  - [Ciena Config - 6500 Packet-Optical (TL1 / Site Manager)](docs/en/config-examples/ciena-6500.md)
 - [Technology Stack](#technology-stack-and-features)
 - [How To Use It](#how-to-use-it)
 - Deployment
@@ -196,6 +197,7 @@ Below are quick configuration examples for common network vendors. For detailed 
 * **Cisco IOS/XE**: [docs/en/config-examples/cisco.md](docs/en/config-examples/cisco.md)
 * **Huawei VRP (Virtual / CloudEngine)**: [docs/en/config-examples/huawei.md](docs/en/config-examples/huawei.md)
 * **Huawei VRP (Physical Campus S-Series)**: [docs/en/config-examples/huawei-physical.md](docs/en/config-examples/huawei-physical.md)
+* **Ciena 6500 (Packet-Optical, TL1 / Site Manager)**: [docs/en/config-examples/ciena-6500.md](docs/en/config-examples/ciena-6500.md)
 
 ---
 
