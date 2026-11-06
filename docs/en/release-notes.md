@@ -21,6 +21,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Fixes
 
+* 🐛 Open the Events date picker from either date field (#367). PR [#368](https://github.com/thangphan205/tacacs-ng-ui/pull/368) by [@thangphan205](https://github.com/thangphan205).
 * 🐛 Count AAA statistics days in the log timezone. PR [#362](https://github.com/thangphan205/tacacs-ng-ui/pull/362) by [@thangphan205](https://github.com/thangphan205).
 
 ### Docs
