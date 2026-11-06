@@ -1853,6 +1853,40 @@ export type ProfileCreate = {
 };
 
 /**
+ * ProfileNamePublic
+ *
+ * A profile name a ruleset can assign, from a row or the `profile` option.
+ */
+export type ProfileNamePublic = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Source
+     */
+    source: 'profile' | 'config_option';
+    /**
+     * Description
+     */
+    description?: string | null;
+};
+
+/**
+ * ProfileNamesPublic
+ */
+export type ProfileNamesPublic = {
+    /**
+     * Data
+     */
+    data: Array<ProfileNamePublic>;
+    /**
+     * Count
+     */
+    count: number;
+};
+
+/**
  * ProfilePreviewPublic
  */
 export type ProfilePreviewPublic = {
@@ -5544,6 +5578,22 @@ export type ProfilesCreateProfileResponses = {
 };
 
 export type ProfilesCreateProfileResponse = ProfilesCreateProfileResponses[keyof ProfilesCreateProfileResponses];
+
+export type ProfilesReadProfileNamesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/profiles/names';
+};
+
+export type ProfilesReadProfileNamesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProfileNamesPublic;
+};
+
+export type ProfilesReadProfileNamesResponse = ProfilesReadProfileNamesResponses[keyof ProfilesReadProfileNamesResponses];
 
 export type ProfilesPreviewProfilesData = {
     body?: never;

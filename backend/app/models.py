@@ -533,6 +533,19 @@ class ProfilesPublic(SQLModel):
     count: int
 
 
+class ProfileNamePublic(SQLModel):
+    """A profile name a ruleset can assign, from a row or the `profile` option."""
+
+    name: str
+    source: Literal["profile", "config_option"]
+    description: str | None = None
+
+
+class ProfileNamesPublic(SQLModel):
+    data: list[ProfileNamePublic]
+    count: int
+
+
 # -- Profile Script  Table ---
 class ProfileScriptBase(SQLModel):
     condition: str = Field(index=True, max_length=255)

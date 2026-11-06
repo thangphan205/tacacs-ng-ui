@@ -343,6 +343,65 @@ def test_duplicate_names_counts_only_emitted_rows(
     assert profiles_crud.duplicate_profile_names(session=db) == [f"{tag}-dup"]
 
 
+# --- names a ruleset can assign --------------------------------------------------
+
+
+def test_profile_names_include_option_profiles(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    tag: str,
+    profile_option: Callable[[str], None],
+) -> None:
+    profile_option(
+        f"profile {tag}-opt {{\n script {{ deny }}\n}}\n"
+        f'profile "{tag} quoted" {{\n script {{ deny }}\n}}\n'
+        f"profile {tag}-both {{\n script {{ deny }}\n}}"
+    )
+    _raw(db, f"{tag}-both", text="deny", description="row")
+    r = client.get(
+        f"{settings.API_V1_STR}/profiles/names", headers=superuser_token_headers
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["count"] == len(body["data"])
+    mine = {n["name"]: n for n in body["data"] if n["name"].startswith(tag)}
+    assert set(mine) == {f"{tag}-opt", f"{tag} quoted", f"{tag}-both"}
+    assert mine[f"{tag}-opt"]["source"] == "config_option"
+    assert mine[f"{tag} quoted"]["source"] == "config_option"
+    # Defined both ways: listed once, as the row.
+    assert mine[f"{tag}-both"]["source"] == "profile"
+    assert mine[f"{tag}-both"]["description"] == "row"
+
+
+def test_profile_names_without_option_lists_rows(
+    db: Session, tag: str, profile_option: Callable[[str], None]
+) -> None:
+    profile_option("")
+    _raw(db, f"{tag}-row", text="deny")
+    # Script-less placeholder rows are not emitted, so cannot be assigned.
+    profiles_crud.create_profile(
+        session=db, profile_create=ProfileCreate(name=f"{tag}-ph", action="deny")
+    )
+    names = profiles_crud.profile_names(session=db)
+    assert [n.name for n in names] == sorted(n.name for n in names)
+    mine = [n for n in names if n.name.startswith(tag)]
+    assert [(n.name, n.source) for n in mine] == [(f"{tag}-row", "profile")]
+
+
+def test_profile_names_placeholder_row_named_in_option_is_listed(
+    db: Session, tag: str, profile_option: Callable[[str], None]
+) -> None:
+    profile_option(f"profile {tag}-ph {{\n script {{ deny }}\n}}")
+    profiles_crud.create_profile(
+        session=db, profile_create=ProfileCreate(name=f"{tag}-ph", action="deny")
+    )
+    mine = [
+        n for n in profiles_crud.profile_names(session=db) if n.name.startswith(tag)
+    ]
+    assert [(n.name, n.source) for n in mine] == [(f"{tag}-ph", "config_option")]
+
+
 # --- MCP and HTTP -----------------------------------------------------------------
 
 

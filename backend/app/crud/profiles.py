@@ -11,6 +11,7 @@ from app.models import (
     ConfigurationOption,
     Profile,
     ProfileCreate,
+    ProfileNamePublic,
     ProfileScript,
     ProfileScriptSet,
     ProfileUpdate,
@@ -125,6 +126,41 @@ def duplicate_profile_names(*, session: Session) -> list[str]:
         )
     ).all()
     return sorted(rows)
+
+
+def profile_names(*, session: Session) -> list[ProfileNamePublic]:
+    """
+    Every profile name a ruleset can assign: the Profile rows that the
+    generator emits (same rule as `duplicate_profile_names`), plus the
+    `profile <name> {` blocks of the `profile` Configuration Option. A name
+    defined both ways is listed once, as the row. Only name and description
+    are read: `raw_script` can be large.
+    """
+    with_scripts = select(ProfileScript.profile_id).distinct()
+    rows = session.exec(
+        select(Profile.name, Profile.description).where(
+            Profile.generate_config == True,  # noqa: E712
+            col(Profile.raw_script).is_not(None) | col(Profile.id).in_(with_scripts),
+        )
+    ).all()
+    names = {
+        name: ProfileNamePublic(name=name, source="profile", description=description)
+        for name, description in rows
+    }
+    options = session.exec(
+        select(ConfigurationOption).where(ConfigurationOption.name == "profile")
+    ).all()
+    for option in options:
+        for name in profile_names_in(option.config_option or ""):
+            names.setdefault(
+                name,
+                ProfileNamePublic(
+                    name=name,
+                    source="config_option",
+                    description="Defined in Configuration Option 'profile'",
+                ),
+            )
+    return sorted(names.values(), key=lambda n: n.name)
 
 
 def profile_generator(

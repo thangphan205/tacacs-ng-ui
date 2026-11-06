@@ -3261,6 +3261,63 @@ export const ProfileCreateSchema = {
     title: 'ProfileCreate'
 } as const;
 
+export const ProfileNamePublicSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        source: {
+            type: 'string',
+            enum: [
+                'profile',
+                'config_option'
+            ],
+            title: 'Source'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        }
+    },
+    type: 'object',
+    required: [
+        'name',
+        'source'
+    ],
+    title: 'ProfileNamePublic',
+    description: 'A profile name a ruleset can assign, from a row or the `profile` option.'
+} as const;
+
+export const ProfileNamesPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                $ref: '#/components/schemas/ProfileNamePublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: [
+        'data',
+        'count'
+    ],
+    title: 'ProfileNamesPublic'
+} as const;
+
 export const ProfilePreviewPublicSchema = {
     properties: {
         data: {

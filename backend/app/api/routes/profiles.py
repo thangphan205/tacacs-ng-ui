@@ -18,6 +18,7 @@ from app.models import (
     Message,
     Profile,
     ProfileCreate,
+    ProfileNamesPublic,
     ProfilePreviewPublic,
     ProfilePublic,
     ProfileRawCheck,
@@ -58,6 +59,20 @@ def read_profiles(
     profiles = session.exec(statement.offset(skip).limit(limit)).all()
 
     return ProfilesPublic(data=profiles, count=count)
+
+
+@router.get(
+    "/names",
+    dependencies=[Depends(get_current_user)],
+    response_model=ProfileNamesPublic,
+)
+def read_profile_names(session: SessionDep) -> Any:
+    """
+    Profile names a ruleset can assign: Profile rows and the profiles
+    defined in the `profile` Configuration Option.
+    """
+    names = profiles.profile_names(session=session)
+    return ProfileNamesPublic(data=names, count=len(names))
 
 
 @router.get(
