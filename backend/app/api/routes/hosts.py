@@ -2,7 +2,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlmodel import func, select
+from sqlmodel import asc, desc, func, select
 
 from app.api.deps import (
     SessionDep,
@@ -26,6 +26,13 @@ router = APIRouter(prefix="/hosts", tags=["hosts"])
 
 _SENSITIVE = audit_logs_crud._SENSITIVE
 
+_SORT_FIELDS = {
+    "name": Host.name,
+    "ipv4_address": Host.ipv4_address,
+    "created_at": Host.created_at,
+    "updated_at": Host.updated_at,
+}
+
 
 @router.get(
     "/",
@@ -33,10 +40,15 @@ _SENSITIVE = audit_logs_crud._SENSITIVE
     response_model=HostsPublic,
 )
 def read_hosts(
-    session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None
+    session: SessionDep,
+    skip: int = 0,
+    limit: int = 100,
+    search: str | None = None,
+    sort_by: str = "name",
+    sort_order: str = "asc",
 ) -> Any:
     """
-    Retrieve hosts.
+    Retrieve hosts, sorted by name unless sort_by says otherwise.
     """
 
     count_statement = select(func.count()).select_from(Host)
@@ -50,8 +62,13 @@ def read_hosts(
         )
         count_statement = count_statement.where(f)
         statement = statement.where(f)
+    col = _SORT_FIELDS.get(sort_by, Host.name)
+    # id breaks ties so pages never overlap or skip rows.
+    order = (
+        (desc(col), desc(Host.id)) if sort_order == "desc" else (asc(col), asc(Host.id))
+    )
     count = session.exec(count_statement).one()
-    hosts = session.exec(statement.offset(skip).limit(limit)).all()
+    hosts = session.exec(statement.order_by(*order).offset(skip).limit(limit)).all()
 
     return HostsPublic(data=hosts, count=count)
 

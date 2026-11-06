@@ -1,19 +1,17 @@
 import {
   Button,
   Collapsible,
-  createListCollection,
   DialogActionTrigger,
   DialogTitle,
   Grid,
   GridItem,
   Input,
-  Select,
   SimpleGrid,
   Text,
   Textarea,
   VStack,
 } from "@chakra-ui/react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import {
@@ -45,6 +43,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
+import { HostSelect } from "./HostSelect"
 
 const fieldGuideItems: FieldGuideItem[] = [
   {
@@ -137,11 +136,6 @@ const AddHost = () => {
 
   const parentValue = watch("parent")
 
-  const { data: hostsData } = useQuery({
-    queryKey: ["hosts"],
-    queryFn: () => HostsService.readHosts({ limit: 1000 }),
-  })
-
   const mutation = useMutation({
     mutationFn: (data: HostCreate) =>
       HostsService.createHost({ hostCreate: data }),
@@ -161,18 +155,6 @@ const AddHost = () => {
 
   const onSubmit: SubmitHandler<HostCreate> = (data) => {
     mutation.mutate(data)
-  }
-
-  const items_hosts = createListCollection<{ value: string; label: string }>({
-    items: [],
-  })
-  if (hostsData && hostsData.data.length > 0) {
-    hostsData.data.forEach((hostData) => {
-      items_hosts.items.push({
-        value: hostData.name,
-        label: hostData.name,
-      })
-    })
   }
 
   return (
@@ -268,29 +250,12 @@ const AddHost = () => {
                       errorText={errors.parent?.message}
                       label="Parent Host"
                     >
-                      <Select.Root
-                        collection={items_hosts}
-                        size="sm"
-                        onSelect={(selection) => {
-                          setValue("parent", selection.value)
-                        }}
-                      >
-                        <Select.Trigger>
-                          <Select.ValueText placeholder="None" />
-                        </Select.Trigger>
-                        <Select.Positioner>
-                          <Select.Content>
-                            <Select.ItemGroup>
-                              {items_hosts.items.map((item) => (
-                                <Select.Item key={item.value} item={item.value}>
-                                  {item.label}
-                                  <Select.ItemIndicator />
-                                </Select.Item>
-                              ))}
-                            </Select.ItemGroup>
-                          </Select.Content>
-                        </Select.Positioner>
-                      </Select.Root>
+                      <HostSelect
+                        value={parentValue}
+                        onChange={(name) =>
+                          setValue("parent", name, { shouldDirty: true })
+                        }
+                      />
                     </Field>
                   </SimpleGrid>
                   <Field
