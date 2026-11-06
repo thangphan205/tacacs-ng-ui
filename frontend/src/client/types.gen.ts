@@ -5945,6 +5945,14 @@ export type HostsReadHostsData = {
          * Search
          */
         search?: string | null;
+        /**
+         * Sort By
+         */
+        sort_by?: string;
+        /**
+         * Sort Order
+         */
+        sort_order?: string;
     };
     url: '/api/v1/hosts/';
 };
