@@ -435,8 +435,15 @@ export const AlertEventPublicSchema = {
             title: 'Rule Id'
         },
         channel_id: {
-            type: 'string',
-            format: 'uuid',
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
             title: 'Channel Id'
         },
         rule_name: {
@@ -857,6 +864,11 @@ export const AlertStatisticsSchema = {
         failed: {
             type: 'integer',
             title: 'Failed'
+        },
+        no_channel: {
+            type: 'integer',
+            title: 'No Channel',
+            default: 0
         },
         by_severity: {
             items: {

@@ -295,7 +295,7 @@ export type AlertEventPublic = {
     /**
      * Channel Id
      */
-    channel_id: string;
+    channel_id: string | null;
     /**
      * Rule Name
      */
@@ -520,6 +520,10 @@ export type AlertStatistics = {
      * Failed
      */
     failed: number;
+    /**
+     * No Channel
+     */
+    no_channel?: number;
     /**
      * By Severity
      */

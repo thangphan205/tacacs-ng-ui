@@ -149,7 +149,7 @@ Three asyncio loops run in FastAPI lifespan:
 
 ### Alert Rules & Events (`backend/app/crud/alert_evaluator.py`)
 
-Rules evaluate live TACACS logs (auth/authz log files) and AuditLog table. Fields: `log_type` (auth/authz/config/all), `condition_field`, `condition_operator` (gt/lt/eq/new_value/any_change/created/updated/deleted/activated), `threshold`, `time_window_minutes`, `cooldown_minutes`, `severity`. Triggered alerts dispatch to all enabled `NotificationChannel` rows and write an `AlertEvent` record.
+Rules evaluate live TACACS logs (auth/authz log files) and AuditLog table. Fields: `log_type` (auth/authz/config/all), `condition_field`, `condition_operator` (gt/lt/eq/new_value/any_change/created/updated/deleted/activated), `threshold`, `time_window_minutes`, `cooldown_minutes`, `severity`. Triggered alerts dispatch to all enabled `NotificationChannel` rows and write one `AlertEvent` per channel (`sent` / `failed`); with no enabled channel they write one `no_channel` event with `channel_id = NULL`, so Alert History never misses a fired rule. `alertevent.channel_id` is `ON DELETE SET NULL` and the ORM relationship uses `passive_deletes` — deleting a channel must not delete its history.
 
 ### Notification Channels (`backend/app/crud/notification_dispatcher.py`)
 

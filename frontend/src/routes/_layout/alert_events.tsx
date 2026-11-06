@@ -17,7 +17,7 @@ import { useState } from "react"
 import { FiAlertCircle } from "react-icons/fi"
 import { z } from "zod"
 
-import { AlertEventsService } from "@/client"
+import { type AlertEventPublic, AlertEventsService } from "@/client"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import {
   PaginationItems,
@@ -43,6 +43,26 @@ const SEVERITY_COLORS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   sent: "green",
   failed: "red",
+  no_channel: "gray",
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  sent: "sent",
+  failed: "failed",
+  no_channel: "no channel",
+}
+
+function ChannelCell({ ev }: { ev: AlertEventPublic }) {
+  if (ev.channel_name) return <>{ev.channel_name}</>
+  return (
+    <Text as="span" color="fg.muted" fontStyle="italic">
+      {ev.status === "no_channel"
+        ? "No channel configured"
+        : ev.channel_id
+          ? ev.channel_id
+          : "Deleted channel"}
+    </Text>
+  )
 }
 
 interface QueryParams {
@@ -110,6 +130,7 @@ function AlertEventsTable() {
           <option value="">All statuses</option>
           <option value="sent">Sent</option>
           <option value="failed">Failed</option>
+          <option value="no_channel">No channel</option>
         </select>
       </Flex>
 
@@ -164,12 +185,14 @@ function AlertEventsTable() {
                       </Badge>
                     )}
                   </Table.Cell>
-                  <Table.Cell>{ev.channel_name ?? ev.channel_id}</Table.Cell>
+                  <Table.Cell>
+                    <ChannelCell ev={ev} />
+                  </Table.Cell>
                   <Table.Cell>
                     <Badge
                       colorPalette={STATUS_COLORS[ev.status ?? ""] ?? "gray"}
                     >
-                      {ev.status}
+                      {STATUS_LABELS[ev.status ?? ""] ?? ev.status}
                     </Badge>
                   </Table.Cell>
                   <Table.Cell fontSize="xs" color="fg.muted" maxW="200px">
@@ -213,7 +236,7 @@ function AlertStatisticsPanel() {
   return (
     <Box mb={8}>
       <Grid
-        templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }}
+        templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(5, 1fr)" }}
         gap={4}
         mb={6}
       >
@@ -221,6 +244,7 @@ function AlertStatisticsPanel() {
           { label: "Total Alerts", value: data.total },
           { label: "Sent", value: data.sent },
           { label: "Failed", value: data.failed },
+          { label: "No channel", value: data.no_channel ?? 0 },
           { label: "Last 24h", value: data.last_24h },
         ].map(({ label, value }) => (
           <Box key={label} borderWidth="1px" borderRadius="lg" p={4}>

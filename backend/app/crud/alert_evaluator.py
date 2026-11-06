@@ -182,15 +182,21 @@ def _baseline_ips(window_start: datetime, session: Session) -> set[str]:
 # ---------------------------------------------------------------------------
 
 
+def _enabled_channels(session: Session) -> list[NotificationChannel]:
+    return list(
+        session.exec(
+            select(NotificationChannel).where(NotificationChannel.enabled == True)  # noqa: E712
+        ).all()
+    )
+
+
 def evaluate_all_rules(*, session: Session) -> None:
     """Evaluate all alert rules that are due. Fire notifications for triggered rules."""
     rules = crud_alert_rules.get_rules_due_evaluation(session=session)
     if not rules:
         return
 
-    channels = session.exec(
-        select(NotificationChannel).where(NotificationChannel.enabled == True)  # noqa: E712
-    ).all()
+    channels = _enabled_channels(session)
 
     for rule in rules:
         try:
@@ -204,6 +210,17 @@ def evaluate_all_rules(*, session: Session) -> None:
 
         now = datetime.now(timezone.utc)
         payload_str = json.dumps(payload)
+
+        if not channels:
+            # Still recorded, so Alert History shows what fired and why
+            # before any channel is set up (#357).
+            crud_alert_events.create_alert_event(
+                session=session,
+                rule_id=rule.id,
+                channel_id=None,
+                payload_snapshot=payload_str,
+                status="no_channel",
+            )
 
         for channel in channels:
             subject = f"[{rule.severity.upper()}] TACACS Alert: {rule.name}"

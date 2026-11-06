@@ -55,6 +55,8 @@ for each due rule:
   triggered, payload = _evaluate_rule(rule)
 
   if triggered:
+    if no channels:
+      create AlertEvent(rule_id, channel_id=NULL, status="no_channel")
     for each channel:
       success, err = dispatch_notification(channel, subject, body)
       create AlertEvent(rule_id, channel_id, status, error_message)
@@ -195,10 +197,10 @@ timeout: 10 seconds
 ```
 AlertEvent (DB table: alertevent)
   rule_id          → FK → AlertRule   (CASCADE delete)
-  channel_id       → FK → NotificationChannel (CASCADE delete)
+  channel_id       → FK → NotificationChannel (SET NULL on delete; NULL for no_channel)
   triggered_at     → timestamp
   payload_snapshot → JSON string (metrics that triggered the rule)
-  status           → "sent" | "failed"
+  status           → "sent" | "failed" | "no_channel"
   error_message    → error detail if failed
 
 UI: /alert_events
