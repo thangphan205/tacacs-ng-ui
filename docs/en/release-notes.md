@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Internal
+
+* 🔖 Release 0.6.6. PR [#369](https://github.com/thangphan205/tacacs-ng-ui/pull/369) by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.6.6
 
 This release adds raw-script profiles, keeps alert history when no channel or a deleted channel is involved, and fixes AAA statistics days for installs outside UTC. It has four database migrations; see **Upgrading from 0.6.5**.
