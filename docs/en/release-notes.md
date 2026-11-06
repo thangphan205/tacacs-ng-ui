@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Features
+
+* ✨ Add refresh and auto-refresh to TACACS+ Logs. PR [#363](https://github.com/thangphan205/tacacs-ng-ui/pull/363) by [@thangphan205](https://github.com/thangphan205).
+
 ### Fixes
 
 * 🐛 Count AAA statistics days in the log timezone. PR [#362](https://github.com/thangphan205/tacacs-ng-ui/pull/362) by [@thangphan205](https://github.com/thangphan205).
