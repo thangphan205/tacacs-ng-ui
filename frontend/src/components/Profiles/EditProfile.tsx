@@ -86,6 +86,17 @@ const actionCollection = createListCollection({
   ],
 })
 
+// The dialog stays mounted in the row's menu, so the form is re-read from the
+// current profile every time it opens: useForm reads defaultValues once, and a
+// stale raw_script or mode would be saved back over a newer one.
+const formValues = (p: ProfilePublic): ProfileUpdateForm => ({
+  name: p.name,
+  action: p.action,
+  description: p.description ?? undefined,
+  generate_config: p.generate_config ?? true,
+  raw_script: p.raw_script ?? "",
+})
+
 const EditProfile = ({ profile, scriptCount = 0 }: EditProfileProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [mode, setMode] = useState<ScriptMode>(
@@ -103,19 +114,13 @@ const EditProfile = ({ profile, scriptCount = 0 }: EditProfileProps) => {
     reset,
     setValue,
     getValues,
+    watch,
     control,
     formState: { errors, isSubmitting },
   } = useForm<ProfileUpdateForm>({
     mode: "onBlur",
     criteriaMode: "all",
-    defaultValues: {
-      ...profile,
-      name: profile.name ?? undefined,
-      action: profile.action ?? undefined,
-      description: profile.description ?? undefined,
-      generate_config: profile.generate_config ?? true,
-      raw_script: profile.raw_script ?? "",
-    },
+    defaultValues: formValues(profile),
   })
 
   const mutation = useMutation({
@@ -123,7 +128,6 @@ const EditProfile = ({ profile, scriptCount = 0 }: EditProfileProps) => {
       ProfilesService.updateProfile({ id: profile.id, profileUpdate: data }),
     onSuccess: () => {
       showSuccessToast("Profile updated successfully.")
-      reset()
       setIsOpen(false)
     },
     onError: (err: ApiError) => {
@@ -147,7 +151,13 @@ const EditProfile = ({ profile, scriptCount = 0 }: EditProfileProps) => {
       size="xl"
       placement="center"
       open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
+      onOpenChange={({ open }) => {
+        if (open) {
+          reset(formValues(profile))
+          setMode(profile.raw_script ? "raw" : "structured")
+        }
+        setIsOpen(open)
+      }}
     >
       <DialogTrigger asChild>
         <Button variant="ghost">
@@ -196,7 +206,7 @@ const EditProfile = ({ profile, scriptCount = 0 }: EditProfileProps) => {
                     error={errors.raw_script?.message}
                     checkInput={() => ({
                       id: profile.id,
-                      name: getValues("name") || "new_profile",
+                      name: getValues("name") || profile.name,
                       raw_script: getValues("raw_script") || "",
                     })}
                   />
@@ -216,7 +226,7 @@ const EditProfile = ({ profile, scriptCount = 0 }: EditProfileProps) => {
                       <Select.Root
                         collection={actionCollection}
                         size="sm"
-                        defaultValue={[profile.action || "deny"]}
+                        value={[watch("action") || "deny"]}
                         onValueChange={(selection) => {
                           setValue("action", selection.value[0], {
                             shouldValidate: true,

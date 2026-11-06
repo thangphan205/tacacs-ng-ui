@@ -109,8 +109,40 @@ def test_bad_text_is_refused(text: str, needle: str) -> None:
 
 
 def test_braces_inside_regex_strings_and_comments_are_ignored() -> None:
-    text = 'if (cmd =~ /^show\\s{2}x/) { set a = "}{" }  # }}}\ndeny'
+    text = (
+        "if (cmd =~ /^show\\s{2}x/) { set a = \"}{\" set b = '{' }  # }}}\n"
+        "if (cmd =~ /a\\/}/) permit\n"
+        "deny"
+    )
     assert check_raw_script(text) == []
+
+
+# Each case below was run through tac_plus-ng -P (backend image): the guard
+# must see exactly the braces tac_plus-ng sees, or text can close the profile
+# early and inject top-level config.
+@pytest.mark.parametrize(
+    ("text", "needle"),
+    [
+        # `1#}`: for tac_plus-ng `#` after a word character is not a comment,
+        # so this `}` closes a block; the guard used to skip it as a comment.
+        ("if (service == shell) {\n set priv-lvl = 1#}\n}\n}", "space before `#`"),
+        ("set priv-lvl = 1#x\ndeny", "space before `#`"),
+        # after `)` it is a comment for tac_plus-ng; refused too, not guessed
+        ("if (service == shell)#}\n{ permit }\ndeny", "space before `#`"),
+        # '...' is a string for tac_plus-ng: its `{` is hidden, so the second
+        # `}` really does close the script
+        ("if (service == shell) {\n set x = '{'\n permit\n}\n}\ndeny", "closes more"),
+        # `\}` outside a string is still a brace for tac_plus-ng
+        ("if (service == shell) {\n set x = a\\}\n permit\n}\ndeny", "closes more"),
+    ],
+)
+def test_guard_matches_tac_plus_ng_tokenizer(text: str, needle: str) -> None:
+    assert needle in " ".join(check_raw_script(text))
+
+
+def test_escapes_and_multiline_strings_are_accepted() -> None:
+    assert check_raw_script("set x = 'a\\'}'\nset y = \"a\\\"}\"\ndeny") == []
+    assert check_raw_script('set banner = "line1\n   line2"\ndeny') == []
 
 
 def test_dto_normalizes_and_rejects() -> None:
@@ -120,12 +152,48 @@ def test_dto_normalizes_and_rejects() -> None:
         == "deny"
     )
     with pytest.raises(ValidationError, match="closes more blocks"):
-        ProfileUpdate(name="p", action="deny", raw_script="deny }")
+        ProfileCreate(name="p", action="deny", raw_script="deny }")
+    # Update only cleans; the check runs in update_profile when text changes.
+    assert ProfileUpdate(name="p", action="deny", raw_script=" \n").raw_script is None
+
+
+def test_update_checks_changed_text_but_not_stored_text(db: Session, tag: str) -> None:
+    row = _raw(db, f"{tag}-old", text="deny")
+    # Stored text a newer check would reject (or written outside the API).
+    row.raw_script = "set x = 1#}\ndeny"
+    db.add(row)
+    db.commit()
+
+    # A partial update that resends the stored text, like MCP update_entity
+    # does, still renames and disables the profile.
+    updated = profiles_crud.update_profile(
+        session=db,
+        db_profile=row,
+        profile_in=ProfileUpdate(
+            name=f"{tag}-new",
+            action="deny",
+            generate_config=False,
+            raw_script=row.raw_script,
+        ),
+    )
+    assert updated.name == f"{tag}-new" and updated.generate_config is False
+
+    with pytest.raises(ValueError, match="closes more blocks"):
+        profiles_crud.update_profile(
+            session=db,
+            db_profile=updated,
+            profile_in=ProfileUpdate(
+                name=updated.name, action="deny", raw_script="deny }"
+            ),
+        )
 
 
 def test_profile_names_in_finds_blocks() -> None:
-    text = "profile a {\n script { deny }\n}\n  profile b-2 {\n}\n# profile c {"
-    assert profile_names_in(text) == {"a", "b-2"}
+    text = (
+        "profile a {\n script { deny }\n}\n  profile b-2 {\n}\n"
+        'profile "quoted" {\n}\n# profile c {'
+    )
+    assert profile_names_in(text) == {"a", "b-2", "quoted"}
 
 
 # --- generation ---------------------------------------------------------------
@@ -136,11 +204,16 @@ def test_raw_profile_is_emitted_verbatim_without_action(db: Session, tag: str) -
     out = profiles_crud.profile_generator(db)
     block = profiles_crud.render_raw_profile(f"{tag}-ro", RO_CMD)
     assert block in out
-    # re-indented to 12 spaces, nested lines keep their relative indent
-    assert "\n            if (service == shell) {\n" in block
-    assert '\n                if (cmd == "")' in block
+    # verbatim: the text's own lines and indentation, untouched
+    assert f"        script {{\n{RO_CMD}\n        }}\n    }}\n" in block
     # the raw text's own last line closes the script: no fall-through action
-    assert block.endswith("            deny\n        }\n    }\n")
+    assert block.endswith("\ndeny\n        }\n    }\n")
+
+
+def test_multiline_string_values_are_not_reindented(db: Session, tag: str) -> None:
+    text = 'if (service == shell) {\n    set banner = "line1\n   line2"\n    permit\n}\ndeny'
+    _raw(db, f"{tag}-ml", text=text)
+    assert '"line1\n   line2"' in profiles_crud.profile_generator(db)
 
 
 def test_raw_profile_with_generate_config_off_is_left_out(

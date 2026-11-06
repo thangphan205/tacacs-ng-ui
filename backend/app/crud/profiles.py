@@ -1,10 +1,10 @@
-import textwrap
 import uuid
 from typing import Any
 
 from sqlmodel import Session, col, func, select
 
-from app.core.raw_script import profile_names_in
+from app.core.raw_script import normalize_raw_script, profile_names_in
+from app.crud import ordering, profilescripts
 from app.crud.ordering import order_columns
 from app.crud.script_render import script_header
 from app.models import (
@@ -42,9 +42,18 @@ def count_scripts(*, session: Session, profile_id: uuid.UUID) -> int:
 def update_profile(
     *, session: Session, db_profile: Profile, profile_in: ProfileUpdate
 ) -> Any:
-    """Raises `ValueError` when switching a profile with scripts to raw mode."""
+    """
+    Raises `ValueError` when new raw text fails the checks, or when switching
+    a profile with scripts to raw mode.
+    """
     profile_data = profile_in.model_dump(exclude_unset=True)
-    if profile_data.get("raw_script"):
+    new_text = profile_data.get("raw_script")
+    if new_text and new_text != db_profile.raw_script:
+        profile_data["raw_script"] = normalize_raw_script(new_text)
+    if new_text:
+        # Same lock as adding a script, so a concurrent script insert can't
+        # slip in between this count and the commit.
+        ordering.lock_parents(session, profilescripts.SIBLINGS, [db_profile.id])
         n = count_scripts(session=session, profile_id=db_profile.id)
         if n:
             raise ValueError(
@@ -59,12 +68,15 @@ def update_profile(
 
 
 def render_raw_profile(name: str, raw_script: str) -> str:
-    """A raw profile's block: the text inside `script { }`, re-indented."""
-    body = textwrap.indent(textwrap.dedent(raw_script), " " * 12)
+    """
+    A raw profile's block: the text inside `script { }`, verbatim. Not
+    re-indented: quoted strings may span lines, and indenting them would
+    change the value sent to the device.
+    """
     return f"""
     profile {name} {{
         script {{
-{body}
+{raw_script}
         }}
     }}
 """
@@ -87,16 +99,6 @@ def script_line_of(
     return offset if 1 <= offset <= raw_script.count("\n") + 1 else None
 
 
-def _emits(session: Session, profile: Profile) -> bool:
-    """Whether profile_generator writes a block for this row."""
-    if not profile.generate_config:
-        return False
-    return (
-        bool(profile.raw_script)
-        or count_scripts(session=session, profile_id=profile.id) > 0
-    )
-
-
 def duplicate_profile_names(*, session: Session) -> list[str]:
     """
     Profiles defined both by a Profile row and by a `profile <name> {` block
@@ -112,8 +114,17 @@ def duplicate_profile_names(*, session: Session) -> list[str]:
         in_options |= profile_names_in(option.config_option or "")
     if not in_options:
         return []
-    rows = session.exec(select(Profile).where(col(Profile.name).in_(in_options))).all()
-    return sorted(r.name for r in rows if _emits(session, r))
+    # A row is emitted when generate_config is on and it has a raw script or
+    # at least one structured script; one query for all candidates.
+    with_scripts = select(ProfileScript.profile_id).distinct()
+    rows = session.exec(
+        select(Profile.name).where(
+            col(Profile.name).in_(in_options),
+            Profile.generate_config == True,  # noqa: E712
+            col(Profile.raw_script).is_not(None) | col(Profile.id).in_(with_scripts),
+        )
+    ).all()
+    return sorted(rows)
 
 
 def profile_generator(

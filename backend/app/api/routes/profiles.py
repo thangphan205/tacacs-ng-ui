@@ -11,7 +11,7 @@ from app.api.deps import (
     get_current_user,
     require_primary_node,
 )
-from app.core.raw_script import check_raw_script
+from app.core.raw_script import normalize_raw_script
 from app.crud import audit_logs as audit_logs_crud
 from app.crud import profiles, tacacs_configs
 from app.models import (
@@ -93,10 +93,12 @@ def check_profile_raw_script(
     Syntax-check a raw script with tac_plus-ng inside the full candidate
     config, without saving it. Superuser only: it runs the tac_plus-ng binary.
     """
-    text = check_in.raw_script.strip("\n").rstrip()
-    errors = check_raw_script(text) if text.strip() else ["The raw script is empty."]
-    if errors:
-        raise HTTPException(status_code=422, detail=" ".join(errors))
+    try:
+        text = normalize_raw_script(check_in.raw_script)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    if text is None:
+        raise HTTPException(status_code=422, detail="The raw script is empty.")
 
     config = tacacs_configs.generate_tacacs_ng_config(
         session=session, profile_override=(check_in.id, check_in.name, text)

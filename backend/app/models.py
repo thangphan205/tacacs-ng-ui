@@ -10,7 +10,7 @@ from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
 
 from app.core.config import settings
-from app.core.raw_script import check_raw_script
+from app.core.raw_script import normalize_raw_script
 
 
 def _utc_now() -> datetime:
@@ -469,33 +469,26 @@ class ProfileBase(SQLModel):
     )
 
 
-def _normalize_raw_script(profile: "ProfileBase") -> "ProfileBase":
-    # Validated on Create/Update only, never on Base, so a stored row that an
-    # older or newer check would reject stays readable and editable.
-    if profile.raw_script is None:
-        return profile
-    text = profile.raw_script.strip("\n").rstrip()
-    if not text.strip():
-        profile.raw_script = None
-        return profile
-    errors = check_raw_script(text)
-    if errors:
-        raise ValueError(" ".join(errors))
-    profile.raw_script = text
-    return profile
-
-
 class ProfileCreate(ProfileBase):
+    # Checked here for new text only, never on Base, so a stored row that an
+    # older or newer check would reject stays readable.
     @model_validator(mode="after")
     def _check_raw_script(self) -> "ProfileCreate":
-        _normalize_raw_script(self)
+        self.raw_script = normalize_raw_script(self.raw_script)
         return self
 
 
 class ProfileUpdate(ProfileBase):
+    # Only cleaned here. crud.profiles.update_profile checks the text when it
+    # differs from what is stored, so a partial update (MCP update_entity
+    # merges the stored row) can still rename or disable a profile whose
+    # stored text a newer check would reject.
     @model_validator(mode="after")
-    def _check_raw_script(self) -> "ProfileUpdate":
-        _normalize_raw_script(self)
+    def _clean_raw_script(self) -> "ProfileUpdate":
+        text = self.raw_script
+        if text is not None:
+            text = text.strip("\n").rstrip()
+            self.raw_script = text if text.strip() else None
         return self
 
 

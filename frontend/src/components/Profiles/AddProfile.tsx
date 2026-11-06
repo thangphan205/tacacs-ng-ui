@@ -122,7 +122,13 @@ const AddProfile = () => {
       size="xl"
       placement="center"
       open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
+      onOpenChange={({ open }) => {
+        if (open) {
+          reset()
+          setMode("structured")
+        }
+        setIsOpen(open)
+      }}
     >
       <DialogTrigger asChild>
         <Button value="add-item" my={4}>
@@ -168,7 +174,8 @@ const AddProfile = () => {
                     })}
                     error={errors.raw_script?.message}
                     checkInput={() => ({
-                      name: getValues("name") || "new_profile",
+                      // a name no existing profile is likely to have
+                      name: getValues("name") || "unsaved_profile_check",
                       raw_script: getValues("raw_script") || "",
                     })}
                   />

@@ -19,9 +19,17 @@ SIBLINGS = ordering.Siblings(
 
 def _refuse_raw_parent(session: Session, profile_id: uuid.UUID | None) -> None:
     # One mode per profile (#359): a raw script replaces the structured
-    # scripts, so a script added to it would sit unused.
-    profile = session.get(Profile, profile_id) if profile_id else None
-    if profile is not None and profile.raw_script:
+    # scripts, so a script added to it would sit unused. The lock is the one
+    # update_profile takes, so the check and the insert can't interleave with
+    # a concurrent switch to raw.
+    if not profile_id:
+        return
+    ordering.lock_parents(session, SIBLINGS, [profile_id])
+    profile = session.get(Profile, profile_id)
+    if profile is None:
+        return
+    session.refresh(profile)  # read raw_script as of the lock, not the cache
+    if profile.raw_script:
         raise ValueError(
             f"Profile '{profile.name}' uses a raw script; structured scripts "
             "can't be added to it."

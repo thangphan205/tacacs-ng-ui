@@ -19,11 +19,11 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade():
+def upgrade() -> None:
     op.add_column("profile", sa.Column("raw_script", sa.Text(), nullable=True))
 
 
-def downgrade():
+def downgrade() -> None:
     in_use = (
         op.get_bind()
         .execute(sa.text("SELECT count(*) FROM profile WHERE raw_script IS NOT NULL"))

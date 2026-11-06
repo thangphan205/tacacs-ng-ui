@@ -155,6 +155,12 @@ def delete(*, session: Session, spec: Siblings, row: Any) -> None:
     _finish(session, spec, before, None)
 
 
+def lock_parents(session: Session, spec: Siblings, parents: Sequence[Any]) -> None:
+    """Public form of `_lock`, for writers outside this module that must
+    serialize with sibling writes (a profile switching to a raw script)."""
+    _lock(session, spec, parents)
+
+
 def _lock(session: Session, spec: Siblings, parents: Sequence[Any]) -> None:
     """Serialize writers per sibling group until the transaction ends.
 

@@ -57,7 +57,7 @@ export function RawScriptFields({
 
   const checkError =
     check.error instanceof ApiError && check.error.status === 422
-      ? String((check.error.body as { detail?: unknown })?.detail ?? "")
+      ? detailText((check.error.body as { detail?: unknown })?.detail)
       : undefined
 
   return (
@@ -148,6 +148,17 @@ export function RawScriptFields({
       )}
     </>
   )
+}
+
+// The route's own 422s carry a string; FastAPI's request validation (a name
+// over 255 characters) carries a list of {loc, msg}.
+function detailText(detail: unknown): string {
+  if (Array.isArray(detail))
+    return detail
+      .map((d) => (d as { msg?: string })?.msg ?? "")
+      .filter(Boolean)
+      .join("; ")
+  return typeof detail === "string" ? detail : "Invalid request."
 }
 
 function CheckResult({

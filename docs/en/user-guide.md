@@ -422,7 +422,10 @@ deny
 - End the text with your own `permit` or `deny`: the profile's fallback action
   is not emitted for a raw script.
 - Don't paste the `profile` or `script` lines, keep braces balanced, and don't
-  use `include`; the form refuses these.
+  use `include`; the form refuses these. Put a space before a `#` comment, and
+  quote a value that contains `#`.
+- The text is written into the config exactly as entered, indentation
+  included.
 - **Check with tac_plus-ng** runs `tac_plus-ng -P` on the full config with your
   unsaved text and points at the line of the script it rejects.
 - A profile is either structured or raw. Delete a profile's Profile Scripts
