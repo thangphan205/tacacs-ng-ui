@@ -12,17 +12,17 @@ Tài liệu này hướng dẫn chi tiết cách tích hợp thiết bị Junipe
 > Các profile, group, user và ruleset dưới đây đã được tạo sẵn (pre-seeded) bởi `init_db` trong lần khởi chạy đầu tiên. Bạn không cần tạo thủ công trừ khi đã xóa chúng.
 
 ### A. Profiles
-Các profile sau đã được tạo sẵn trong mục **Profiles**:
+Các profile sau đã được tạo sẵn trong mục **Profiles**. Junos gửi yêu cầu với **service `junos-exec`** (không phải `shell`), và server trả về `local-user-name`, ánh xạ user TACACS+ sang một user template local cùng login class của nó (xem mục 2.A). Các profile này còn có quy tắc cho các hãng khác; với Junos chỉ quy tắc `junos-exec` có tác dụng:
 
 1. **`tacacs_super_user_profile` (Level 15 — full admin)**
    - **Default Action**: `deny`
    - **Profile Scripts**:
-     - Condition: `if`, Key: `service`, Value: `shell` → Action: `permit`, Set: `priv-lvl = 15`
+     - Condition: `if`, Key: `service`, Value: `junos-exec` → Action: `permit`, Set: `local-user-name = tacacs_super_user`
 
 2. **`tacacs_read_only_profile` (Level 1 — chỉ đọc)**
    - **Default Action**: `deny`
    - **Profile Scripts**:
-     - Condition: `if`, Key: `service`, Value: `shell` → Action: `permit`, Set: `priv-lvl = 1`
+     - Condition: `if`, Key: `service`, Value: `junos-exec` → Action: `permit`, Set: `local-user-name = tacacs_read_only`
 
 ### B. Groups & Users
 Nhóm và người dùng tạo sẵn:

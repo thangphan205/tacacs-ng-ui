@@ -12,17 +12,17 @@ To configure `tacacs-ng-ui` to match your active server configuration, define th
 > The profiles, groups, users, and ruleset below are pre-seeded by `init_db` on first startup. No manual creation is needed unless you removed them.
 
 ### A. Profiles
-These profiles are pre-created under **Profiles**:
+These profiles are pre-created under **Profiles**. Junos requests **service `junos-exec`** (not `shell`), and the server answers with `local-user-name`, which maps the TACACS+ user to a local template user and its login class (see [Login Classes](#a-login-classes--local-templates)). The profiles also carry rules for other vendors; only the `junos-exec` rule matters for Junos:
 
 1. **`tacacs_super_user_profile` (Level 15 — full admin)**
    - **Default Action**: `deny`
    - **Profile Scripts**:
-     - Condition: `if`, Key: `service`, Value: `shell` → Action: `permit`, Set: `priv-lvl = 15`
+     - Condition: `if`, Key: `service`, Value: `junos-exec` → Action: `permit`, Set: `local-user-name = tacacs_super_user`
 
 2. **`tacacs_read_only_profile` (Level 1 — read-only)**
    - **Default Action**: `deny`
    - **Profile Scripts**:
-     - Condition: `if`, Key: `service`, Value: `shell` → Action: `permit`, Set: `priv-lvl = 1`
+     - Condition: `if`, Key: `service`, Value: `junos-exec` → Action: `permit`, Set: `local-user-name = tacacs_read_only`
 
 ### B. Groups & Users
 Pre-seeded groups and users:
