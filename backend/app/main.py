@@ -4,13 +4,11 @@ import subprocess
 import sys
 from collections.abc import AsyncGenerator
 from contextlib import AsyncExitStack, asynccontextmanager
-from datetime import date
-
-from sqlalchemy.exc import IntegrityError
 
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 from starlette.middleware.cors import CORSMiddleware
 
@@ -21,6 +19,7 @@ from app.crud.alert_evaluator import evaluate_all_rules
 from app.crud.audit_logs import purge_old_audit_logs
 from app.crud.ml_anomaly_scorer import run_daily_anomaly_scoring
 from app.models import HaConfig, HaPeerNode
+from scripts._log_stats_base import local_today
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +101,7 @@ async def _stats_collection_loop() -> None:
         if interval <= 0:
             await asyncio.sleep(60)
             continue
-        today_str = date.today().isoformat()
+        today_str = local_today().isoformat()
         scripts = [
             "/app/scripts/tacacs_logs_authentication.py",
             "/app/scripts/tacacs_logs_authorization.py",

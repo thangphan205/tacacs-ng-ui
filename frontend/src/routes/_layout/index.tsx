@@ -49,6 +49,7 @@ import {
 import { AaaTrendChart } from "@/components/AaaStatistics/AaaTrendChart"
 import { StatsExclusionsNote } from "@/components/AaaStatistics/StatsExclusions"
 import { PageHeader } from "@/components/Common/PageHeader"
+import { toLocalISODate } from "@/utils"
 
 export const Route = createFileRoute("/_layout/")({
   component: Dashboard,
@@ -116,7 +117,7 @@ function getRangeDate(
   customStart: string,
   customEnd: string,
 ): string | undefined {
-  const fmt = (d: Date) => d.toISOString().split("T")[0]
+  const fmt = toLocalISODate
   const today = new Date()
   const end = fmt(today)
   if (mode === "7d") {
@@ -707,10 +708,10 @@ function RecentActivity() {
 }
 
 function LastTacacsLogs() {
-  const today = new Date().toISOString().split("T")[0]
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .split("T")[0]
+  const today = toLocalISODate()
+  const sevenDaysAgo = toLocalISODate(
+    new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+  )
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard_last_tacacs_logs"],
     queryFn: () =>

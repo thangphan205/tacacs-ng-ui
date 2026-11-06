@@ -1,7 +1,7 @@
 import logging
 import subprocess
 import sys
-from datetime import datetime, time, timedelta, timezone
+from datetime import datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +25,7 @@ from app.models import (
     AuthenticationStatistics,
     AuthorizationStatistics,
 )
+from scripts._log_stats_base import local_today, parse_log_date
 
 log = logging.getLogger(__name__)
 
@@ -115,8 +116,8 @@ def read_aaa_statistics_range(
                 detail="Invalid range_date format. Expected 'YYYY-MM-DD,YYYY-MM-DD'.",
             )
     else:
-        # Default to last 7 days ending today
-        end_date = datetime.now(timezone.utc)
+        # Default to last 7 days ending today, "today" being the log file's day
+        end_date = datetime.combine(local_today(), time.min)
         start_date = end_date - timedelta(days=7)
 
     excluded = stats_exclusions.resolve_patterns(
@@ -162,19 +163,17 @@ def read_aaa_statistics_range(
 
 def _upsert_peer_stats(session: Session, data: dict[str, Any]) -> None:
     """Write stats returned by a peer's collect-stats endpoint into the local DB."""
-    from datetime import datetime as dt
-
     from sqlmodel import select as sel
 
     peer_node = data.get("node_name", "unknown")
 
     for row in data.get("authentication", []):
-        log_dt = dt.fromisoformat(row["log_date"])
+        log_day = parse_log_date(row["log_date"])
         auth_stmt = sel(AuthenticationStatistics).where(
             AuthenticationStatistics.username == row["username"],
             AuthenticationStatistics.nas_ip == row["nas_ip"],
             AuthenticationStatistics.user_source_ip == row["user_source_ip"],
-            AuthenticationStatistics.log_date == log_dt,
+            AuthenticationStatistics.log_date == log_day,
             AuthenticationStatistics.node_name == peer_node,
         )
         auth_obj = session.exec(auth_stmt).first()
@@ -188,18 +187,18 @@ def _upsert_peer_stats(session: Session, data: dict[str, Any]) -> None:
                 user_source_ip=row["user_source_ip"],
                 success_count=row["success_count"],
                 fail_count=row["fail_count"],
-                log_date=log_dt,
+                log_date=log_day,
                 node_name=peer_node,
             )
         session.add(auth_obj)
 
     for row in data.get("authorization", []):
-        log_dt = dt.fromisoformat(row["log_date"])
+        log_day = parse_log_date(row["log_date"])
         authz_stmt = sel(AuthorizationStatistics).where(
             AuthorizationStatistics.username == row["username"],
             AuthorizationStatistics.nas_ip == row["nas_ip"],
             AuthorizationStatistics.user_source_ip == row["user_source_ip"],
-            AuthorizationStatistics.log_date == log_dt,
+            AuthorizationStatistics.log_date == log_day,
             AuthorizationStatistics.node_name == peer_node,
         )
         authz_obj = session.exec(authz_stmt).first()
@@ -213,18 +212,18 @@ def _upsert_peer_stats(session: Session, data: dict[str, Any]) -> None:
                 user_source_ip=row["user_source_ip"],
                 permit_count=row["permit_count"],
                 deny_count=row["deny_count"],
-                log_date=log_dt,
+                log_date=log_day,
                 node_name=peer_node,
             )
         session.add(authz_obj)
 
     for row in data.get("accounting", []):
-        log_dt = dt.fromisoformat(row["log_date"])
+        log_day = parse_log_date(row["log_date"])
         acct_stmt = sel(AccountingStatistics).where(
             AccountingStatistics.username == row["username"],
             AccountingStatistics.nas_ip == row["nas_ip"],
             AccountingStatistics.user_source_ip == row["user_source_ip"],
-            AccountingStatistics.log_date == log_dt,
+            AccountingStatistics.log_date == log_day,
             AccountingStatistics.node_name == peer_node,
         )
         acct_obj = session.exec(acct_stmt).first()
@@ -238,7 +237,7 @@ def _upsert_peer_stats(session: Session, data: dict[str, Any]) -> None:
                 user_source_ip=row["user_source_ip"],
                 start_count=row["start_count"],
                 stop_count=row["stop_count"],
-                log_date=log_dt,
+                log_date=log_day,
                 node_name=peer_node,
             )
         session.add(acct_obj)

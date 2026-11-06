@@ -239,7 +239,7 @@ export type AccountingStatisticPublic = {
     /**
      * Log Date
      */
-    log_date?: string;
+    log_date: string;
     /**
      * Id
      */
@@ -943,7 +943,7 @@ export type AuthenticationStatisticPublic = {
     /**
      * Log Date
      */
-    log_date?: string;
+    log_date: string;
     /**
      * Id
      */
@@ -999,7 +999,7 @@ export type AuthorizationStatisticPublic = {
     /**
      * Log Date
      */
-    log_date?: string;
+    log_date: string;
     /**
      * Id
      */

@@ -5,8 +5,7 @@ import logging
 import os
 import re
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
-from datetime import time as dt_time
+from datetime import date, datetime, timedelta, timezone
 
 from sqlmodel import Session, col, select
 
@@ -20,6 +19,7 @@ from app.models import (
     AuthenticationStatistics,
     NotificationChannel,
 )
+from scripts._log_stats_base import build_log_file_path, local_date
 
 logger = logging.getLogger(__name__)
 
@@ -50,17 +50,19 @@ _AUTHZ_REGEX = re.compile(
 def _log_paths_for_window(
     window_start: datetime, now: datetime, log_type: str
 ) -> list[str]:
-    """Return log file paths needed to cover the time window (today + yesterday if spans midnight)."""
-    today_path = now.strftime(
-        f"{settings.TACACS_LOG_DIRECTORY}%Y/%m/{log_type}-%Y-%m-%d.log"
-    )
-    paths = [today_path]
-    today_midnight = datetime.combine(now.date(), dt_time.min, tzinfo=timezone.utc)
-    if window_start < today_midnight:
-        yesterday_path = (now - timedelta(days=1)).strftime(
-            f"{settings.TACACS_LOG_DIRECTORY}%Y/%m/{log_type}-%Y-%m-%d.log"
-        )
-        paths.append(yesterday_path)
+    """
+    Return the log file paths covering the time window, newest first.
+
+    tac_plus-ng names its files by local day, so the window's instants are
+    mapped to local days: with the UTC date, a zone west of UTC looked for a
+    file that did not exist yet every evening and evaluated nothing.
+    """
+    day = local_date(now)
+    first_day = local_date(window_start)
+    paths: list[str] = []
+    while day >= first_day:
+        paths.append(build_log_file_path(day, log_type, settings.TACACS_LOG_DIRECTORY))
+        day -= timedelta(days=1)
     return [p for p in paths if os.path.exists(p)]
 
 
@@ -134,14 +136,29 @@ def _parse_authz_log(window_start: datetime, now: datetime) -> dict[str, int]:
     return dict(deny_by_user)
 
 
+def _baseline_days(window_start: datetime) -> tuple[date, date]:
+    """
+    The log days of the 30-day baseline before `window_start`.
+
+    Stats rows carry the day of their log file, so the bounds are the local
+    days the instants fall on. The last day is the window's own day, which
+    the periodic stats run has already partly collected, as the old midnight-timestamp
+    `log_date < window_start` comparison also included.
+    """
+    return (
+        local_date(window_start - timedelta(days=30)),
+        local_date(window_start),
+    )
+
+
 def _baseline_usernames(window_start: datetime, session: Session) -> set[str]:
     """Usernames seen in the 30-day baseline period (from DB — historical data is fine for baseline)."""
-    baseline_start = window_start - timedelta(days=30)
+    first_day, last_day = _baseline_days(window_start)
     return set(
         session.exec(
             select(AuthenticationStatistics.username)
-            .where(AuthenticationStatistics.log_date >= baseline_start)
-            .where(AuthenticationStatistics.log_date < window_start)
+            .where(AuthenticationStatistics.log_date >= first_day)
+            .where(AuthenticationStatistics.log_date <= last_day)
             .distinct()
         ).all()
     )
@@ -149,12 +166,12 @@ def _baseline_usernames(window_start: datetime, session: Session) -> set[str]:
 
 def _baseline_ips(window_start: datetime, session: Session) -> set[str]:
     """Source IPs seen in the 30-day baseline period."""
-    baseline_start = window_start - timedelta(days=30)
+    first_day, last_day = _baseline_days(window_start)
     return set(
         session.exec(
             select(AuthenticationStatistics.user_source_ip)
-            .where(AuthenticationStatistics.log_date >= baseline_start)
-            .where(AuthenticationStatistics.log_date < window_start)
+            .where(AuthenticationStatistics.log_date >= first_day)
+            .where(AuthenticationStatistics.log_date <= last_day)
             .distinct()
         ).all()
     )

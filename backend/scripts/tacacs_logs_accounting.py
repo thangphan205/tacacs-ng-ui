@@ -12,9 +12,9 @@ from app.core.db import engine
 from app.crud.tacacs_siem import forward_tacacs_event_to_siem
 from app.models import AccountingStatistics
 from scripts._log_stats_base import (
+    day_start_timestamp,
     get_target_date,
     parse_accounting_logs,
-    to_log_datetime,
 )
 
 
@@ -67,7 +67,6 @@ def save_statistics_to_db(
     """
     Inserts or updates accounting statistics in the database for a given date and node.
     """
-    log_dt = to_log_datetime(summary_date)
     print("\nSaving accounting statistics to the database...")
     with Session(engine) as session:
         for username, nas_ip, user_source_ip in sorted(all_keys):
@@ -79,7 +78,7 @@ def save_statistics_to_db(
                 AccountingStatistics.username == username,
                 AccountingStatistics.nas_ip == nas_ip,
                 AccountingStatistics.user_source_ip == user_source_ip,
-                AccountingStatistics.log_date == log_dt,
+                AccountingStatistics.log_date == summary_date,
                 AccountingStatistics.node_name == node_name,
             )
             db_stat = session.exec(statement).first()
@@ -96,7 +95,7 @@ def save_statistics_to_db(
                     user_source_ip=user_source_ip,
                     start_count=start_count,
                     stop_count=stop_count,
-                    log_date=log_dt,
+                    log_date=summary_date,
                     node_name=node_name,
                 )
             session.add(db_stat)
@@ -105,7 +104,7 @@ def save_statistics_to_db(
         print("\nAccounting statistics saved successfully.")
 
     if settings.SIEM_FORWARD_TACACS_EVENTS:
-        ts = log_dt.timestamp()
+        ts = day_start_timestamp(summary_date)
         for username, nas_ip, user_source_ip in sorted(all_keys):
             key = (username, nas_ip, user_source_ip)
             if start_events.get(key, 0) > 0:

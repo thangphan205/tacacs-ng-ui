@@ -88,7 +88,8 @@ condition_field="fail_count", operator="gt/lt/eq":
 
 condition_field="username", operator="new_value":
   recent   = DISTINCT username WHERE log_date >= window_start
-  baseline = DISTINCT username WHERE log_date in [window_start-30d, window_start)
+  baseline = DISTINCT username WHERE log_date in [day(window_start-30d), day(window_start)]
+             (log_date is the log file's local day; day() maps an instant to it)
   triggered = (recent - baseline) is not empty
 
 condition_field="client_ip", operator="new_value":

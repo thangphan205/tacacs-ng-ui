@@ -2,7 +2,7 @@ import logging
 import os
 import re
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta
 from typing import Any
 
 import httpx
@@ -25,6 +25,7 @@ from app.models import (
     TacacsLogsPublic,
     TacacsLogTypeSummary,
 )
+from scripts._log_stats_base import local_today
 
 router = APIRouter(prefix="/tacacs_logs", tags=["tacacs_logs"])
 
@@ -159,9 +160,14 @@ def _parse_log_file(log_type: str, path: str) -> list[TacacsLogEvent]:
     return events
 
 
+def _local_today_midnight() -> datetime:
+    """Naive midnight of today in the log timezone, the day of today's log file."""
+    return datetime.combine(local_today(), time.min)
+
+
 def _find_latest_log_date() -> str:
     log_dir = settings.TACACS_LOG_DIRECTORY
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = local_today().isoformat()
     if not os.path.exists(log_dir):
         return today
     dates: list[str] = []
@@ -205,7 +211,7 @@ def get_log_events_summary(
     )
     try:
         target_date = (
-            datetime.strptime(date, "%Y-%m-%d") if date else datetime.now(timezone.utc)
+            datetime.strptime(date, "%Y-%m-%d") if date else _local_today_midnight()
         )
     except ValueError:
         raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
@@ -295,8 +301,6 @@ def get_log_events_summary(
                 logger.warning("Failed to fetch live stats from peer %s: %s", url, e)
 
         # Fallback to DB for any non-local nodes not fetched successfully
-        from datetime import time as time_
-
         from sqlmodel import Session, select
 
         from app.core.db import engine
@@ -307,9 +311,7 @@ def get_log_events_summary(
             AuthorizationStatistics,
         )
 
-        log_dt = datetime.combine(target_date.date(), time_.min).replace(
-            tzinfo=timezone.utc
-        )
+        log_day = target_date.date()
         with Session(engine) as session:
             all_known_nodes = get_distinct_node_names(session)
             for kn in all_known_nodes:
@@ -317,7 +319,7 @@ def get_log_events_summary(
                     # Query Authentication
                     auth_rows = session.exec(
                         select(AuthenticationStatistics).where(
-                            AuthenticationStatistics.log_date == log_dt,
+                            AuthenticationStatistics.log_date == log_day,
                             AuthenticationStatistics.node_name == kn,
                         )
                     ).all()
@@ -333,7 +335,7 @@ def get_log_events_summary(
                     # Query Authorization
                     authz_rows = session.exec(
                         select(AuthorizationStatistics).where(
-                            AuthorizationStatistics.log_date == log_dt,
+                            AuthorizationStatistics.log_date == log_day,
                             AuthorizationStatistics.node_name == kn,
                         )
                     ).all()
@@ -347,7 +349,7 @@ def get_log_events_summary(
                     # Query Accounting
                     acct_rows = session.exec(
                         select(AccountingStatistics).where(
-                            AccountingStatistics.log_date == log_dt,
+                            AccountingStatistics.log_date == log_day,
                             AccountingStatistics.node_name == kn,
                         )
                     ).all()
@@ -389,7 +391,8 @@ def list_log_events(
     date_from / date_to: YYYY-MM-DD range (inclusive). date: single-day shorthand (deprecated).
     log_type: authentication|authorization|accounting|all.
     """
-    today = datetime.now(timezone.utc)
+    # Naive like the strptime() results it is compared with below.
+    today = _local_today_midnight()
     try:
         if date_from or date_to:
             start_date = (

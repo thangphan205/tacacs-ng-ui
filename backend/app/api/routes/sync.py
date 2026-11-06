@@ -426,7 +426,6 @@ def internal_collect_stats(
         parse_accounting_logs,
         parse_authentication_logs,
         parse_authorization_logs,
-        to_log_datetime,
     )
 
     if target_date is None:
@@ -439,7 +438,6 @@ def internal_collect_stats(
     auth_success, auth_fail = parse_authentication_logs(target_date, log_dir)
     authz_permit, authz_deny = parse_authorization_logs(target_date, log_dir)
     acct_start, acct_stop = parse_accounting_logs(target_date, log_dir)
-    log_dt = to_log_datetime(target_date)
 
     def _counters_to_list(c1: dict, c2: dict, k1: str, k2: str) -> list[dict]:
         all_keys = set(c1.keys()) | set(c2.keys())
@@ -450,7 +448,7 @@ def internal_collect_stats(
                 "user_source_ip": c,
                 k1: c1.get((u, n, c), 0),
                 k2: c2.get((u, n, c), 0),
-                "log_date": log_dt.isoformat(),
+                "log_date": target_date.isoformat(),
             }
             for u, n, c in sorted(all_keys)
         ]

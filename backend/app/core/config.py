@@ -1,3 +1,4 @@
+import os
 import secrets
 import warnings
 from typing import Annotated, Any, Literal
@@ -6,6 +7,7 @@ from pydantic import (
     AnyUrl,
     BeforeValidator,
     EmailStr,
+    Field,
     HttpUrl,
     PostgresDsn,
     computed_field,
@@ -131,7 +133,11 @@ class Settings(BaseSettings):
     INSTANCES_MAX: int = 10
     BACKGROUND: str = "no"
     TACACS_LOG_DIRECTORY: str = "/var/log/tacacs/"
-    TACACS_TIMEZONE: str = "UTC"  # IANA tz name, e.g. "Asia/Ho_Chi_Minh"
+    # IANA tz name, e.g. "Asia/Ho_Chi_Minh". Seeds TacacsNgSetting.timezone, the
+    # day boundary of AAA statistics. Defaults to TZ, the zone tac_plus-ng in
+    # this container names its log files in; a fixed "UTC" default ignored a
+    # non-UTC TZ and put "today" on the wrong log file (#356).
+    TACACS_TIMEZONE: str = Field(default_factory=lambda: os.environ.get("TZ") or "UTC")
     ACCESS_LOG_DESTINATION: str = TACACS_LOG_DIRECTORY + "%Y/%m/access-%Y-%m-%d.log"
     AUTHENTICATION_LOG_DESTINATION: str = (
         TACACS_LOG_DIRECTORY + "%Y/%m/authentication-%Y-%m-%d.log"

@@ -1,5 +1,4 @@
-from datetime import date, datetime, timezone
-from datetime import time as time_
+from datetime import date
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -47,13 +46,11 @@ def read_authorization_statistics(
     stmt = select(AuthorizationStatistics)
 
     if date_from:
-        dt = datetime.combine(date_from, time_.min).replace(tzinfo=timezone.utc)
-        count_stmt = count_stmt.where(AuthorizationStatistics.log_date >= dt)
-        stmt = stmt.where(AuthorizationStatistics.log_date >= dt)
+        count_stmt = count_stmt.where(AuthorizationStatistics.log_date >= date_from)
+        stmt = stmt.where(AuthorizationStatistics.log_date >= date_from)
     if date_to:
-        dt = datetime.combine(date_to, time_.max).replace(tzinfo=timezone.utc)
-        count_stmt = count_stmt.where(AuthorizationStatistics.log_date <= dt)
-        stmt = stmt.where(AuthorizationStatistics.log_date <= dt)
+        count_stmt = count_stmt.where(AuthorizationStatistics.log_date <= date_to)
+        stmt = stmt.where(AuthorizationStatistics.log_date <= date_to)
     if node_name:
         count_stmt = count_stmt.where(AuthorizationStatistics.node_name == node_name)
         stmt = stmt.where(AuthorizationStatistics.node_name == node_name)

@@ -40,6 +40,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
+import { toLocalISODate } from "@/utils"
 
 const TYPE_COLORS: Record<string, string> = {
   authentication: "purple",
@@ -345,7 +346,7 @@ function EventDetailDrawer({
 // ─── Main Table ─────────────────────────────────────────────────────────────
 
 export default function TacacsLogEventsTable() {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = toLocalISODate()
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)
   const [dateFrom, setDateFrom] = useState(today)

@@ -3,8 +3,7 @@ import os
 import time as _time
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterator
-from datetime import date, datetime, timedelta, timezone
-from datetime import time as time_
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -20,6 +19,7 @@ from app.models import (
 )
 from scripts._log_stats_base import (
     AUTH_LOG_REGEX,
+    local_today,
     parse_accounting_logs,
     parse_authorization_logs,
 )
@@ -60,14 +60,14 @@ def _counters_to_rows(
 
 def _local_today_authz_rows() -> list[dict[str, Any]]:
     """Today's authorization rows from the local log, parsed like the nightly job."""
-    today = datetime.now(timezone.utc).date()
+    today = local_today()
     permit, deny = parse_authorization_logs(today, settings.TACACS_LOG_DIRECTORY)
     return _counters_to_rows(permit, deny, "permit_count", "deny_count")
 
 
 def _local_today_acct_rows() -> list[dict[str, Any]]:
     """Today's accounting rows from the local log, parsed like the nightly job."""
-    today = datetime.now(timezone.utc).date()
+    today = local_today()
     start, stop = parse_accounting_logs(today, settings.TACACS_LOG_DIRECTORY)
     return _counters_to_rows(start, stop, "start_count", "stop_count")
 
@@ -82,8 +82,8 @@ def get_peer_urls() -> list[str]:
 
 def parse_local_today_authentication_details() -> list[dict]:
     """Parse local authentication log files for today and return details list."""
-    today = datetime.now(timezone.utc)
-    today_str = today.strftime("%Y-%m-%d")
+    today = local_today()
+    today_str = today.isoformat()
     log_file_path = today.strftime(
         settings.TACACS_LOG_DIRECTORY + "%Y/%m/authentication-%Y-%m-%d.log"
     )
@@ -131,12 +131,12 @@ def parse_local_today_authentication_details() -> list[dict]:
 
 
 def _db_today_rows(
-    session: Session, kind: str, node_name: str, today_dt: datetime
+    session: Session, kind: str, node_name: str, today: date
 ) -> list[dict[str, Any]]:
     """Fallback: today's rows for a node from the database (e.g. an offline peer)."""
     table, k1, k2 = _KIND_SPEC[kind]
     db_rows = session.exec(
-        select(table).where(table.log_date == today_dt, table.node_name == node_name)
+        select(table).where(table.log_date == today, table.node_name == node_name)
     ).all()
     return [
         {
@@ -191,9 +191,8 @@ def _today_rows(
     node, fetched live from peers, falling back to the database for peers that
     cannot be reached. Cached 60 s to absorb dashboard polling.
     """
-    today = datetime.now(timezone.utc)
-    today_str = today.strftime("%Y-%m-%d")
-    today_dt = datetime.combine(today.date(), time_.min).replace(tzinfo=timezone.utc)
+    today = local_today()
+    today_str = today.isoformat()
     now_ts = _time.monotonic()
 
     cache_key = (kind, node_name or "all")
@@ -218,7 +217,7 @@ def _today_rows(
             rows = (
                 fetched
                 if fetched is not None
-                else _db_today_rows(session, kind, node_name, today_dt)
+                else _db_today_rows(session, kind, node_name, today)
             )
     else:
         rows.extend(_LOCAL_PARSERS[kind]())
@@ -230,7 +229,7 @@ def _today_rows(
                 fetched_peer_nodes.add(peer_node_name)
         for kn in get_distinct_node_names(session):
             if kn != settings.NODE_NAME and kn not in fetched_peer_nodes:
-                rows.extend(_db_today_rows(session, kind, kn, today_dt))
+                rows.extend(_db_today_rows(session, kind, kn, today))
 
     _today_rows_cache[cache_key] = {"date": today_str, "rows": rows, "ts": now_ts}
     return rows
@@ -347,7 +346,7 @@ def fill_missing_dates(
     db_results: list[Any], date_range: list[date], count_field: str
 ) -> list[dict]:
     """Fills missing dates in a list of DB results with a count of 0."""
-    data_map = {r.date.date(): getattr(r, count_field) for r in db_results}
+    data_map = {r.date: getattr(r, count_field) for r in db_results}
     return [{"date": d.isoformat(), "count": data_map.get(d, 0)} for d in date_range]
 
 
@@ -355,7 +354,7 @@ def fill_missing_acct_dates(
     db_results: list[Any], date_range: list[date]
 ) -> list[dict]:
     """Fills missing accounting dates in a list of DB results with counts of 0."""
-    data_map = {r.date.date(): (r.start_count, r.stop_count) for r in db_results}
+    data_map = {r.date: (r.start_count, r.stop_count) for r in db_results}
     return [
         {
             "date": d.isoformat(),
@@ -392,13 +391,10 @@ def _get_range_statistics(
     Retrieve and format statistics for a given date range.
     DB is queried up to yesterday; today's data injected from live log files.
     """
-    today = datetime.now(timezone.utc).date()
+    today = local_today()
     include_today = end_date >= today
     # DB never has today's data (cron runs at 1am for yesterday), so cap at yesterday
     db_end = min(end_date, today - timedelta(days=1))
-
-    start_dt = datetime.combine(start_date, time_.min).replace(tzinfo=timezone.utc)
-    db_end_dt = datetime.combine(db_end, time_.max).replace(tzinfo=timezone.utc)
 
     auth_daily_stmt = (
         select(
@@ -408,7 +404,7 @@ def _get_range_statistics(
             ),
             func.sum(AuthenticationStatistics.fail_count).label("auth_fail_count"),
         )
-        .where(AuthenticationStatistics.log_date.between(start_dt, db_end_dt))
+        .where(AuthenticationStatistics.log_date.between(start_date, db_end))
         .group_by(AuthenticationStatistics.log_date)
         .order_by(AuthenticationStatistics.log_date)
     )
@@ -419,7 +415,7 @@ def _get_range_statistics(
             func.sum(AuthorizationStatistics.permit_count).label("authz_permit_count"),
             func.sum(AuthorizationStatistics.deny_count).label("authz_deny_count"),
         )
-        .where(AuthorizationStatistics.log_date.between(start_dt, db_end_dt))
+        .where(AuthorizationStatistics.log_date.between(start_date, db_end))
         .group_by(AuthorizationStatistics.log_date)
         .order_by(AuthorizationStatistics.log_date)
     )
@@ -430,7 +426,7 @@ def _get_range_statistics(
             func.sum(AccountingStatistics.start_count).label("acct_start_count"),
             func.sum(AccountingStatistics.stop_count).label("acct_stop_count"),
         )
-        .where(AccountingStatistics.log_date.between(start_dt, db_end_dt))
+        .where(AccountingStatistics.log_date.between(start_date, db_end))
         .group_by(AccountingStatistics.log_date)
         .order_by(AccountingStatistics.log_date)
     )
@@ -528,7 +524,7 @@ def get_last_7_days_statistics(
     """
     Retrieves statistics for the last 7 days from the database.
     """
-    end_date = datetime.now(timezone.utc).date()
+    end_date = local_today()
     start_date = end_date - timedelta(days=6)
     return _get_range_statistics(
         session, start_date, end_date, "last_7_days", node_name, excluded
@@ -610,25 +606,22 @@ def process_authentication_statistics(
         .order_by(func.sum(AuthenticationStatistics.success_count).desc())
     )
     # DB query capped at yesterday; today injected from live log below
-    today = datetime.now(timezone.utc).date()
+    today = local_today()
     include_today = end_date.date() >= today
     db_end = min(end_date.date(), today - timedelta(days=1))
-    start_dt = datetime.combine(start_date.date(), time_.min).replace(
-        tzinfo=timezone.utc
-    )
-    db_end_dt = datetime.combine(db_end, time_.max).replace(tzinfo=timezone.utc)
+    start_day = start_date.date()
 
     failed_count_stmt = failed_count_stmt.where(
-        AuthenticationStatistics.log_date.between(start_dt, db_end_dt)
+        AuthenticationStatistics.log_date.between(start_day, db_end)
     )
     success_count_stmt = success_count_stmt.where(
-        AuthenticationStatistics.log_date.between(start_dt, db_end_dt)
+        AuthenticationStatistics.log_date.between(start_day, db_end)
     )
     success_count_by_ip_stmt = success_count_by_ip_stmt.where(
-        AuthenticationStatistics.log_date.between(start_dt, db_end_dt)
+        AuthenticationStatistics.log_date.between(start_day, db_end)
     )
     success_count_by_nas_ip_stmt = success_count_by_nas_ip_stmt.where(
-        AuthenticationStatistics.log_date.between(start_dt, db_end_dt)
+        AuthenticationStatistics.log_date.between(start_day, db_end)
     )
 
     if node_name:
@@ -742,14 +735,8 @@ def process_authorization_statistics(
         .order_by(func.sum(AuthorizationStatistics.deny_count).desc())
     )
 
-    authz_start_dt = datetime.combine(start_date.date(), time_.min).replace(
-        tzinfo=timezone.utc
-    )
-    authz_end_dt = datetime.combine(end_date.date(), time_.max).replace(
-        tzinfo=timezone.utc
-    )
     authz_deny_count_stmt = authz_deny_count_stmt.where(
-        AuthorizationStatistics.log_date.between(authz_start_dt, authz_end_dt)
+        AuthorizationStatistics.log_date.between(start_date.date(), end_date.date())
     )
 
     if node_name:
@@ -806,7 +793,7 @@ def process_today_authentication_statistics(
     excluded: list[str] | None = None,
 ) -> dict[str, Any]:
     """Today's aggregated authentication statistics for one node or all nodes."""
-    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_str = local_today().isoformat()
     rows = filter_rows(
         _today_rows(session, "authentication", node_name), excluded or []
     )

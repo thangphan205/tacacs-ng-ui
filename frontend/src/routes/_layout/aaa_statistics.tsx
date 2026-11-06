@@ -41,7 +41,7 @@ import {
 import { StatsExclusionsBar } from "@/components/AaaStatistics/StatsExclusions"
 import PageHeader from "@/components/Common/PageHeader"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { handleError, toLocalISODate } from "@/utils"
 
 export const Route = createFileRoute("/_layout/aaa_statistics")({
   component: AaaStatistics,
@@ -70,9 +70,6 @@ const NODE_COLORS = [
   "pink.500",
   "orange.500",
 ]
-
-const getISODateString = (date: Date): string =>
-  date.toISOString().split("T")[0]
 
 const today = new Date()
 const yesterday = new Date(today)
@@ -496,9 +493,9 @@ function TodayStatsTab({ includeExcluded }: StatsTabProps) {
 
 function RangeStatsTab({ includeExcluded }: StatsTabProps) {
   const [startDate, setStartDate] = useState<string>(
-    getISODateString(sevenDaysAgo),
+    toLocalISODate(sevenDaysAgo),
   )
-  const [endDate, setEndDate] = useState<string>(getISODateString(yesterday))
+  const [endDate, setEndDate] = useState<string>(toLocalISODate(yesterday))
   const [selectedNode, setSelectedNode] = useState<string>("")
 
   const { data: nodes } = useQuery({
@@ -643,7 +640,7 @@ function RangeStatsTab({ includeExcluded }: StatsTabProps) {
               maxW="150px"
               borderRadius="md"
               min={startDate}
-              max={getISODateString(yesterday)}
+              max={toLocalISODate(yesterday)}
             />
           </Flex>
         </Flex>
@@ -1114,9 +1111,9 @@ function NodeCard({
 
 function NodeStatsTab({ includeExcluded }: StatsTabProps) {
   const [startDate, setStartDate] = useState<string>(
-    getISODateString(sevenDaysAgo),
+    toLocalISODate(sevenDaysAgo),
   )
-  const [endDate, setEndDate] = useState<string>(getISODateString(yesterday))
+  const [endDate, setEndDate] = useState<string>(toLocalISODate(yesterday))
 
   const { data: nodes, isLoading: nodesLoading } = useQuery({
     queryKey: ["aaa_nodes"],
@@ -1167,7 +1164,7 @@ function NodeStatsTab({ includeExcluded }: StatsTabProps) {
               maxW="150px"
               borderRadius="md"
               min={startDate}
-              max={getISODateString(yesterday)}
+              max={toLocalISODate(yesterday)}
             />
           </Flex>
         </Flex>

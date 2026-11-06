@@ -8,6 +8,7 @@ from app.models import (
     AuthenticationStatistics,
     AuthorizationStatistics,
 )
+from scripts._log_stats_base import local_today
 
 
 def upsert_result(
@@ -92,7 +93,7 @@ def get_feature_matrix(
     *, session: Session, days: int = 30
 ) -> dict[str, dict[str, float]]:
     """Build per-username feature vectors from statistics tables."""
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff = local_today() - timedelta(days=days)
 
     auth_rows = session.exec(
         select(
