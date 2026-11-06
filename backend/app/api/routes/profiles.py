@@ -115,6 +115,12 @@ def check_profile_raw_script(
     if text is None:
         raise HTTPException(status_code=422, detail="The raw script is empty.")
 
+    clash = profiles.name_clash(
+        session=session, name=check_in.name, exclude_id=check_in.id
+    )
+    if clash:
+        raise HTTPException(status_code=422, detail=clash)
+
     config = tacacs_configs.generate_tacacs_ng_config(
         session=session, profile_override=(check_in.id, check_in.name, text)
     )

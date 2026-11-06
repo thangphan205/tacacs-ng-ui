@@ -577,3 +577,27 @@ def test_moving_a_script_to_a_raw_profile_is_still_refused(
                 profile_id=raw.id,
             ),
         )
+
+
+def test_check_refuses_a_name_another_profile_or_the_option_has(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    tag: str,
+    profile_option: Callable[[str], None],
+) -> None:
+    row = _raw(db, f"{tag}-row", text="deny")
+    profile_option(f"profile {tag}-opt {{\n script {{ deny }}\n}}")
+    url = f"{settings.API_V1_STR}/profiles/check"
+    for name in (f"{tag}-row", f"{tag}-opt"):
+        r = client.post(
+            url,
+            headers=superuser_token_headers,
+            json={"name": name, "raw_script": "deny"},
+        )
+        assert r.status_code == 422
+        assert "already" in r.json()["detail"]
+    # Editing the profile itself under its own name is not a clash.
+    assert (
+        profiles_crud.name_clash(session=db, name=row.name, exclude_id=row.id) is None
+    )

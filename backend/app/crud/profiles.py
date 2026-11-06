@@ -107,6 +107,25 @@ def script_line_of(
     return offset if 1 <= offset <= raw_script.count("\n") + 1 else None
 
 
+def name_clash(
+    *, session: Session, name: str, exclude_id: uuid.UUID | None
+) -> str | None:
+    """
+    Why `name` can't be a profile's name, or None: another Profile row has it,
+    or the `profile` Configuration Option already defines it (tac_plus-ng
+    rejects a second definition with only a line number).
+    """
+    other = get_profile_by_name(session=session, name=name)
+    if other is not None and other.id != exclude_id:
+        return f"Another profile is already named '{name}'."
+    options = session.exec(
+        select(ConfigurationOption).where(ConfigurationOption.name == "profile")
+    ).all()
+    if any(name in profile_names_in(o.config_option or "") for o in options):
+        return f"The 'profile' Configuration Option already defines '{name}'."
+    return None
+
+
 def duplicate_profile_names(*, session: Session) -> list[str]:
     """
     Profiles defined both by a Profile row and by a `profile <name> {` block
