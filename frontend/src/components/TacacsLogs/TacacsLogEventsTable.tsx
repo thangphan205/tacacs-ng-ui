@@ -436,6 +436,7 @@ export default function TacacsLogEventsTable() {
         <Flex gap={3} align="center" flexWrap="nowrap" overflowX="auto">
           <DatePicker.Root
             selectionMode="range"
+            openOnClick
             value={rangeValue}
             onValueChange={({ value }) => {
               setRangeValue(value)
@@ -448,8 +449,11 @@ export default function TacacsLogEventsTable() {
             size="sm"
           >
             <DatePicker.Control width="auto">
-              <DatePicker.Input index={0} />
-              <DatePicker.Input index={1} />
+              <DatePicker.Input index={0} aria-label="Start date" />
+              <Text as="span" color="fg.muted" px={1} aria-hidden="true">
+                →
+              </Text>
+              <DatePicker.Input index={1} aria-label="End date" />
               <DatePicker.IndicatorGroup>
                 <DatePicker.Trigger>
                   <FiCalendar />
