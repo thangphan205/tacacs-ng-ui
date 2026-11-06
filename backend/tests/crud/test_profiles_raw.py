@@ -508,3 +508,72 @@ def test_check_endpoint_maps_the_error_line(
     # tac_plus-ng reports the line of the last token it accepted (the `{` on
     # line 1), not always the line of the token it rejects (line 2).
     assert body["script_line"] in (1, 2)
+
+
+# --- review fixes -------------------------------------------------------------
+
+
+def test_lone_surrogate_is_refused_not_a_crash() -> None:
+    errors = check_raw_script("permit \ud800")
+    assert errors and "encoded" in errors[0]
+
+
+@pytest.mark.parametrize(
+    "name", ["x { script { permit } } profile y", 'a"b', "a#b", "a}b", "a\\b"]
+)
+def test_unsafe_profile_names_are_refused(
+    name: str,
+    db: Session,
+    tag: str,
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    with pytest.raises(ValidationError):
+        ProfileCreate(name=name, action="deny")
+    r = client.post(
+        f"{settings.API_V1_STR}/profiles/check",
+        headers=superuser_token_headers,
+        json={"name": name, "raw_script": "deny"},
+    )
+    assert r.status_code == 422
+    row = profiles_crud.create_profile(
+        session=db, profile_create=ProfileCreate(name=f"{tag}-ok", action="deny")
+    )
+    with pytest.raises(ValueError, match="can't contain"):
+        profiles_crud.update_profile(
+            session=db,
+            db_profile=row,
+            profile_in=ProfileUpdate(name=name, action="deny"),
+        )
+
+
+def test_moving_a_script_to_a_raw_profile_is_still_refused(
+    db: Session, tag: str
+) -> None:
+    raw = _raw(db, f"{tag}-raw", text="deny")
+    src = profiles_crud.create_profile(
+        session=db, profile_create=ProfileCreate(name=f"{tag}-src", action="deny")
+    )
+    script = profilescripts_crud.create_profilescript(
+        session=db,
+        profilescript_create=ProfileScriptCreate(
+            profile_id=src.id,
+            condition="if",
+            key="cmd",
+            operator="=",
+            value="x",
+            action="permit",
+        ),
+    )
+    with pytest.raises(ValueError, match="raw script"):
+        profilescripts_crud.update_profilescript(
+            session=db,
+            db_profilescript=script,
+            profilescript_in=ProfileScriptUpdate(
+                condition="if",
+                key="cmd",
+                value="x",
+                action="permit",
+                profile_id=raw.id,
+            ),
+        )

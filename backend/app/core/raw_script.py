@@ -41,7 +41,11 @@ def check_raw_script(text: str) -> list[str]:
     with line numbers; empty when the text is a usable script body.
     """
     errors: list[str] = []
-    if len(text.encode()) > MAX_RAW_SCRIPT_BYTES:
+    try:
+        size = len(text.encode())
+    except UnicodeEncodeError:  # a lone surrogate: valid JSON, not valid text
+        return ["Raw script contains characters that cannot be encoded."]
+    if size > MAX_RAW_SCRIPT_BYTES:
         return [f"Raw script is larger than {MAX_RAW_SCRIPT_BYTES // 1024} KiB."]
 
     depth = 0
@@ -153,3 +157,19 @@ def normalize_raw_script(text: str | None) -> str | None:
 def profile_names_in(text: str) -> set[str]:
     """Names of `profile <name> {` blocks defined in raw config text."""
     return {next(g for g in m if g) for m in _PROFILE_BLOCK.findall(text)}
+
+
+_UNSAFE_NAME = re.compile(r"""[\s{}"'#\\]""")
+
+
+def check_profile_name(name: str) -> str:
+    """
+    A profile name is written unquoted as `profile <name> {`, so whitespace,
+    braces, quotes, `#` and `\\` would add or close blocks. Returns the name,
+    raises `ValueError` otherwise.
+    """
+    if not name or _UNSAFE_NAME.search(name):
+        raise ValueError(
+            "Profile name can't contain whitespace, braces, quotes, '#' or '\\'."
+        )
+    return name

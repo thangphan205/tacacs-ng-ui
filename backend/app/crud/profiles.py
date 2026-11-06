@@ -3,7 +3,11 @@ from typing import Any
 
 from sqlmodel import Session, col, func, select
 
-from app.core.raw_script import normalize_raw_script, profile_names_in
+from app.core.raw_script import (
+    check_profile_name,
+    normalize_raw_script,
+    profile_names_in,
+)
 from app.crud import ordering, profilescripts
 from app.crud.ordering import order_columns
 from app.crud.script_render import script_header
@@ -44,10 +48,13 @@ def update_profile(
     *, session: Session, db_profile: Profile, profile_in: ProfileUpdate
 ) -> Any:
     """
-    Raises `ValueError` when new raw text fails the checks, or when switching
+    Raises `ValueError` when a new name or new raw text fails the checks, or when switching
     a profile with scripts to raw mode.
     """
     profile_data = profile_in.model_dump(exclude_unset=True)
+    new_name = profile_data.get("name")
+    if new_name and new_name != db_profile.name:
+        check_profile_name(new_name)
     new_text = profile_data.get("raw_script")
     if new_text and new_text != db_profile.raw_script:
         profile_data["raw_script"] = normalize_raw_script(new_text)

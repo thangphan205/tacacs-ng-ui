@@ -97,7 +97,7 @@ def create(
 ) -> Any:
     """Insert a row at the end, or at index `position`, and commit."""
     parent = data.get(spec.parent_attr) if spec.parent_attr else None
-    _lock(session, spec, [parent])
+    lock_parents(session, spec, [parent])
     before = {parent: _errors(session, spec, parent)}
 
     data = {
@@ -122,7 +122,7 @@ def update(*, session: Session, spec: Siblings, row: Any, data: dict[str, Any]) 
     new_parent = data.get(spec.parent_attr, old_parent) if spec.parent_attr else None
     parents = [old_parent] if new_parent == old_parent else [old_parent, new_parent]
 
-    _lock(session, spec, parents)
+    lock_parents(session, spec, parents)
     before = {p: _errors(session, spec, p) for p in parents}
     # Computed before the row is touched: once it is dirty, autoflush would
     # write it into the new parent first and count it in the max.
@@ -147,7 +147,7 @@ def update(*, session: Session, spec: Siblings, row: Any, data: dict[str, Any]) 
 def delete(*, session: Session, spec: Siblings, row: Any) -> None:
     """Delete a row, close the gap it leaves, and commit."""
     parent = spec.parent_of(row)
-    _lock(session, spec, [parent])
+    lock_parents(session, spec, [parent])
     before = {parent: _errors(session, spec, parent)}
     session.delete(row)
     session.flush()
@@ -156,13 +156,8 @@ def delete(*, session: Session, spec: Siblings, row: Any) -> None:
 
 
 def lock_parents(session: Session, spec: Siblings, parents: Sequence[Any]) -> None:
-    """Public form of `_lock`, for writers outside this module that must
-    serialize with sibling writes (a profile switching to a raw script)."""
-    _lock(session, spec, parents)
-
-
-def _lock(session: Session, spec: Siblings, parents: Sequence[Any]) -> None:
-    """Serialize writers per sibling group until the transaction ends.
+    """Serialize writers per sibling group until the transaction ends. Also
+    used by writers outside this module (a profile switching to a raw script).
 
     Locks are taken in a fixed order so two writers touching the same pair of
     groups (a script moved between two profiles) cannot deadlock.

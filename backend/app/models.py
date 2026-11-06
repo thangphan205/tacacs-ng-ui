@@ -10,7 +10,7 @@ from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
 
 from app.core.config import settings
-from app.core.raw_script import normalize_raw_script
+from app.core.raw_script import check_profile_name, normalize_raw_script
 
 
 def _utc_now() -> datetime:
@@ -474,6 +474,7 @@ class ProfileCreate(ProfileBase):
     # older or newer check would reject stays readable.
     @model_validator(mode="after")
     def _check_raw_script(self) -> "ProfileCreate":
+        check_profile_name(self.name)
         self.raw_script = normalize_raw_script(self.raw_script)
         return self
 
@@ -513,6 +514,11 @@ class ProfileRawCheck(SQLModel):
     id: uuid.UUID | None = None  # the profile being edited; None for a new one
     name: str = Field(min_length=1, max_length=255)
     raw_script: str
+
+    @field_validator("name")
+    @classmethod
+    def _check_name(cls, v: str) -> str:
+        return check_profile_name(v)
 
 
 class ProfileRawCheckResult(SQLModel):
