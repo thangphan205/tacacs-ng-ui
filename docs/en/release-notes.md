@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Fixes
+
+* 🐛 Count AAA statistics days in the log timezone. PR [#362](https://github.com/thangphan205/tacacs-ng-ui/pull/362) by [@thangphan205](https://github.com/thangphan205).
+
 ### Docs
 
 * docs: add TACACS+ integration guide for Ciena 6500. PR [#361](https://github.com/thangphan205/tacacs-ng-ui/pull/361) by [@luccascruz](https://github.com/luccascruz).
