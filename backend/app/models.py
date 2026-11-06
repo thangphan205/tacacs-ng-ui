@@ -1392,8 +1392,10 @@ class NotificationChannelUpdate(SQLModel):
 
 class NotificationChannel(NotificationChannelBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    # The database sets alertevent.channel_id to NULL on delete; the ORM must
+    # neither delete the events nor load them to do it itself.
     alert_events: list["AlertEvent"] = Relationship(
-        back_populates="notification_channel", cascade_delete=True
+        back_populates="notification_channel", passive_deletes=True
     )
 
 
@@ -1418,7 +1420,10 @@ class AlertEventBase(SQLModel):
     payload_snapshot: str | None = Field(
         default=None, sa_column=Column(sa.Text, nullable=True)
     )
-    status: str = Field(default="sent", max_length=20)  # sent/failed
+    # sent / failed: one row per channel the alert was dispatched to.
+    # no_channel: the rule fired while no channel was enabled; one row, no
+    # channel, so the history and payload survive a rollout without channels.
+    status: str = Field(default="sent", max_length=20)
     error_message: str | None = Field(default=None, max_length=1024)
 
 
@@ -1427,10 +1432,13 @@ class AlertEvent(AlertEventBase, TimestampModel, table=True):
     rule_id: uuid.UUID = Field(
         foreign_key="alertrule.id", nullable=False, ondelete="CASCADE", index=True
     )
-    channel_id: uuid.UUID = Field(
+    # NULL for no_channel events, and for events whose channel was deleted:
+    # SET NULL keeps the history when a channel is removed or replaced.
+    channel_id: uuid.UUID | None = Field(
+        default=None,
         foreign_key="notificationchannel.id",
-        nullable=False,
-        ondelete="CASCADE",
+        nullable=True,
+        ondelete="SET NULL",
         index=True,
     )
     alert_rule: AlertRule | None = Relationship(back_populates="alert_events")
@@ -1442,7 +1450,7 @@ class AlertEvent(AlertEventBase, TimestampModel, table=True):
 class AlertEventPublic(AlertEventBase):
     id: uuid.UUID
     rule_id: uuid.UUID
-    channel_id: uuid.UUID
+    channel_id: uuid.UUID | None
     rule_name: str | None = None
     channel_name: str | None = None
     rule_severity: str | None = None
@@ -1468,6 +1476,7 @@ class AlertStatistics(SQLModel):
     total: int
     sent: int
     failed: int
+    no_channel: int = 0
     by_severity: list[AlertStatisticsSeverityItem]
     by_rule: list[AlertStatisticsRuleItem]
     last_24h: int

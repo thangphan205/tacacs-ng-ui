@@ -18,7 +18,7 @@ def create_alert_event(
     *,
     session: Session,
     rule_id: uuid.UUID,
-    channel_id: uuid.UUID,
+    channel_id: uuid.UUID | None,
     payload_snapshot: str | None = None,
     status: str = "sent",
     error_message: str | None = None,
@@ -63,7 +63,11 @@ def get_alert_events(
     result: list[AlertEventPublic] = []
     for event in events:
         rule = session.get(AlertRule, event.rule_id)
-        channel = session.get(NotificationChannel, event.channel_id)
+        channel = (
+            session.get(NotificationChannel, event.channel_id)
+            if event.channel_id
+            else None
+        )
         result.append(
             AlertEventPublic(
                 id=event.id,
@@ -85,16 +89,12 @@ def get_alert_events(
 def get_alert_statistics(*, session: Session) -> AlertStatistics:
     now = datetime.now(timezone.utc)
 
-    total = session.exec(select(func.count()).select_from(AlertEvent)).one() or 0
-    sent = (
+    by_status = dict(
         session.exec(
-            select(func.count())
-            .select_from(AlertEvent)
-            .where(AlertEvent.status == "sent")
-        ).one()
-        or 0
+            select(AlertEvent.status, func.count()).group_by(AlertEvent.status)
+        ).all()
     )
-    failed = total - sent
+    total = sum(by_status.values())
 
     last_24h = (
         session.exec(
@@ -137,8 +137,9 @@ def get_alert_statistics(*, session: Session) -> AlertStatistics:
 
     return AlertStatistics(
         total=total,
-        sent=sent,
-        failed=failed,
+        sent=by_status.get("sent", 0),
+        failed=by_status.get("failed", 0),
+        no_channel=by_status.get("no_channel", 0),
         by_severity=by_severity,
         by_rule=by_rule,
         last_24h=last_24h,
