@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Docs
+
+* 📝 List supported vendors and write the Cisco and Arista guides. PR [#370](https://github.com/thangphan205/tacacs-ng-ui/pull/370) by [@thangphan205](https://github.com/thangphan205).
+
 ### Internal
 
 * 🔖 Release 0.6.6. PR [#369](https://github.com/thangphan205/tacacs-ng-ui/pull/369) by [@thangphan205](https://github.com/thangphan205).
