@@ -17,6 +17,7 @@ from app.api.deps import (
 )
 from app.crud import audit_logs as audit_logs_crud
 from app.crud import default_credentials as default_credentials_crud
+from app.crud import profiles as profiles_crud
 from app.crud import tacacs_configs
 from app.models import (
     DefaultCredentialsPublic,
@@ -162,6 +163,17 @@ def create_tacacs_config(
         raise HTTPException(
             status_code=400,
             detail="The tacacs_config with this tacacs_config name already exists in the system.",
+        )
+
+    duplicates = profiles_crud.duplicate_profile_names(session=session)
+    if duplicates:
+        names = ", ".join(f"'{n}'" for n in duplicates)
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Profile {names} is defined both as a Profile and in the "
+                "'profile' Configuration Option. Remove one before generating."
+            ),
         )
 
     tacacs_config = tacacs_configs.create_tacacs_config(

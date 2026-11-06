@@ -392,6 +392,47 @@ key: priv-lvl    value: 1
 
 Sub-parameters for a profile script entry (used for service-level attributes like `cmd` authorization).
 
+#### Raw script profiles
+
+Profile Scripts model the basic case: one `if (key == value)` test and `set`
+lines. Policies that need more, such as per-command authorization with nested
+`if`, `add` (an optional attribute, unlike `set`) or regex matches on `cmd`,
+are written as raw `tac_plus-ng` text on the profile itself.
+
+In **Add Profile** / **Edit Profile**, choose **Script mode → Raw script** and
+paste the body of `script { }`. The generator writes the wrapper:
+
+```
+profile ro_cmd_profile {
+    script {
+        <your text>
+    }
+}
+```
+
+```
+if (service == shell) {
+    if (cmd == "") { set priv-lvl = 1  permit }
+    if (cmd =~ /^(show|display|ping|traceroute|terminal|exit|quit)(\s|$)/) permit
+    deny
+}
+deny
+```
+
+- End the text with your own `permit` or `deny`: the profile's fallback action
+  is not emitted for a raw script.
+- Don't paste the `profile` or `script` lines, keep braces balanced, and don't
+  use `include`; the form refuses these. Put a space before a `#` comment, and
+  quote a value that contains `#`.
+- The text is written into the config exactly as entered, indentation
+  included.
+- **Check with tac_plus-ng** runs `tac_plus-ng -P` on the full config with your
+  unsaved text and points at the line of the script it rejects.
+- A profile is either structured or raw. Delete a profile's Profile Scripts
+  before switching it to raw; scripts can't be added to a raw profile.
+- A raw profile is an ordinary profile: it appears in the Rulesets `profile`
+  dropdown and in the MCP entity tools.
+
 ### Rulesets
 
 **Path:** Sidebar → Rulesets
@@ -927,6 +968,22 @@ rule admin-from-mgmt {
 
 The groups and hosts a rule refers to (`admins`, `core-switch-01` above) must
 already exist, or `tac_plus-ng` rejects the config.
+
+### Moving raw profiles out of the `profile` option
+
+Profiles no longer need the `profile` Configuration Option: use a
+[raw script profile](#raw-script-profiles) instead, which Rulesets can select
+directly. To move one written here before, often with a script-less
+placeholder Profile of the same name:
+
+1. Open the placeholder profile (or create the profile) and switch it to
+   **Raw script**.
+2. Paste the text between that block's `script {` and its closing `}`.
+3. Delete the whole `profile <name> { ... }` block from the `profile`
+   Configuration Option.
+4. Generate and Activate.
+
+Generate refuses a config where a profile is defined both ways, and names it.
 
 Check the syntax before activating with the Generate / validate step in the UI,
 or with the MCP tools `validate_config_text` / `validate_generated_config`.

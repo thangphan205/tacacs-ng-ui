@@ -33,6 +33,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
+import { RawScriptFields, type ScriptMode } from "./RawScriptFields"
 
 const fieldGuideItems: FieldGuideItem[] = [
   {
@@ -66,6 +67,8 @@ const fieldGuideItems: FieldGuideItem[] = [
 
 interface EditProfileProps {
   profile: ProfilePublic
+  /** Structured scripts the profile has; raw mode needs none. */
+  scriptCount?: number
 }
 
 interface ProfileUpdateForm {
@@ -73,6 +76,7 @@ interface ProfileUpdateForm {
   action: string
   description?: string
   generate_config?: boolean
+  raw_script?: string | null
 }
 
 const actionCollection = createListCollection({
@@ -82,8 +86,26 @@ const actionCollection = createListCollection({
   ],
 })
 
-const EditProfile = ({ profile }: EditProfileProps) => {
+// The dialog stays mounted in the row's menu, so the form is re-read from the
+// current profile every time it opens: useForm reads defaultValues once, and a
+// stale raw_script or mode would be saved back over a newer one.
+const formValues = (p: ProfilePublic): ProfileUpdateForm => ({
+  name: p.name,
+  action: p.action,
+  description: p.description ?? undefined,
+  generate_config: p.generate_config ?? true,
+  raw_script: p.raw_script ?? "",
+})
+
+const EditProfile = ({ profile, scriptCount = 0 }: EditProfileProps) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [mode, setMode] = useState<ScriptMode>(
+    profile.raw_script ? "raw" : "structured",
+  )
+  const rawDisabledReason =
+    scriptCount > 0 && !profile.raw_script
+      ? `Delete the ${scriptCount} structured script${scriptCount === 1 ? "" : "s"} first: a profile is either structured or raw.`
+      : undefined
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const {
@@ -91,18 +113,14 @@ const EditProfile = ({ profile }: EditProfileProps) => {
     handleSubmit,
     reset,
     setValue,
+    getValues,
+    watch,
     control,
     formState: { errors, isSubmitting },
   } = useForm<ProfileUpdateForm>({
     mode: "onBlur",
     criteriaMode: "all",
-    defaultValues: {
-      ...profile,
-      name: profile.name ?? undefined,
-      action: profile.action ?? undefined,
-      description: profile.description ?? undefined,
-      generate_config: profile.generate_config ?? true,
-    },
+    defaultValues: formValues(profile),
   })
 
   const mutation = useMutation({
@@ -110,7 +128,6 @@ const EditProfile = ({ profile }: EditProfileProps) => {
       ProfilesService.updateProfile({ id: profile.id, profileUpdate: data }),
     onSuccess: () => {
       showSuccessToast("Profile updated successfully.")
-      reset()
       setIsOpen(false)
     },
     onError: (err: ApiError) => {
@@ -122,7 +139,11 @@ const EditProfile = ({ profile }: EditProfileProps) => {
   })
 
   const onSubmit: SubmitHandler<ProfileUpdateForm> = async (data) => {
-    mutation.mutate(data)
+    // null clears a saved raw script when switching back to structured.
+    mutation.mutate({
+      ...data,
+      raw_script: mode === "raw" ? data.raw_script : null,
+    })
   }
 
   return (
@@ -130,7 +151,13 @@ const EditProfile = ({ profile }: EditProfileProps) => {
       size="xl"
       placement="center"
       open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
+      onOpenChange={({ open }) => {
+        if (open) {
+          reset(formValues(profile))
+          setMode(profile.raw_script ? "raw" : "structured")
+        }
+        setIsOpen(open)
+      }}
     >
       <DialogTrigger asChild>
         <Button variant="ghost">
@@ -165,45 +192,65 @@ const EditProfile = ({ profile }: EditProfileProps) => {
                       type="text"
                     />
                   </Field>
-                  <Field
-                    required
-                    invalid={!!errors.action}
-                    errorText={errors.action?.message}
-                    label="Action"
-                  >
-                    <input
-                      type="hidden"
-                      {...register("action", {
-                        required: "action is required",
-                      })}
-                    />
-                    <Select.Root
-                      collection={actionCollection}
-                      size="sm"
-                      defaultValue={[profile.action || "deny"]}
-                      onValueChange={(selection) => {
-                        setValue("action", selection.value[0], {
-                          shouldValidate: true,
-                        })
-                      }}
+                  <RawScriptFields
+                    mode={mode}
+                    onModeChange={setMode}
+                    rawDisabledReason={rawDisabledReason}
+                    clearingRaw={!!profile.raw_script && mode === "structured"}
+                    register={register("raw_script", {
+                      validate: (v) =>
+                        mode !== "raw" ||
+                        !!v?.trim() ||
+                        "Raw script is required in raw mode.",
+                    })}
+                    error={errors.raw_script?.message}
+                    checkInput={() => ({
+                      id: profile.id,
+                      name: getValues("name") || profile.name,
+                      raw_script: getValues("raw_script") || "",
+                    })}
+                  />
+                  {mode === "structured" && (
+                    <Field
+                      required
+                      invalid={!!errors.action}
+                      errorText={errors.action?.message}
+                      label="Action"
                     >
-                      <Select.Trigger>
-                        <Select.ValueText placeholder="Select Action" />
-                      </Select.Trigger>
-                      <Select.Positioner>
-                        <Select.Content>
-                          <Select.ItemGroup>
-                            {actionCollection.items.map((item) => (
-                              <Select.Item key={item.value} item={item.value}>
-                                {item.label}
-                                <Select.ItemIndicator />
-                              </Select.Item>
-                            ))}
-                          </Select.ItemGroup>
-                        </Select.Content>
-                      </Select.Positioner>
-                    </Select.Root>
-                  </Field>
+                      <input
+                        type="hidden"
+                        {...register("action", {
+                          required: "action is required",
+                        })}
+                      />
+                      <Select.Root
+                        collection={actionCollection}
+                        size="sm"
+                        value={[watch("action") || "deny"]}
+                        onValueChange={(selection) => {
+                          setValue("action", selection.value[0], {
+                            shouldValidate: true,
+                          })
+                        }}
+                      >
+                        <Select.Trigger>
+                          <Select.ValueText placeholder="Select Action" />
+                        </Select.Trigger>
+                        <Select.Positioner>
+                          <Select.Content>
+                            <Select.ItemGroup>
+                              {actionCollection.items.map((item) => (
+                                <Select.Item key={item.value} item={item.value}>
+                                  {item.label}
+                                  <Select.ItemIndicator />
+                                </Select.Item>
+                              ))}
+                            </Select.ItemGroup>
+                          </Select.Content>
+                        </Select.Positioner>
+                      </Select.Root>
+                    </Field>
+                  )}
                   <Field
                     invalid={!!errors.description}
                     errorText={errors.description?.message}

@@ -42,16 +42,25 @@ def test_check_parent(db: Session) -> None:
     db.add(_host(mid, parent=root, key=None))
     db.commit()
 
-    assert hosts_crud.check_parent(session=db, name="x", parent=None) is None
-    assert hosts_crud.check_parent(session=db, name="x", parent=mid) is None
-    assert "own parent" in (
-        hosts_crud.check_parent(session=db, name="x", parent="x") or ""
-    )
-    assert "does not exist" in (
-        hosts_crud.check_parent(session=db, name="x", parent="nope") or ""
-    )
-    # tpl-root -> tpl-mid would close the loop tpl-mid -> tpl-root -> tpl-mid
-    assert "cycle" in (hosts_crud.check_parent(session=db, name=root, parent=mid) or "")
+    try:
+        assert hosts_crud.check_parent(session=db, name="x", parent=None) is None
+        assert hosts_crud.check_parent(session=db, name="x", parent=mid) is None
+        assert "own parent" in (
+            hosts_crud.check_parent(session=db, name="x", parent="x") or ""
+        )
+        assert "does not exist" in (
+            hosts_crud.check_parent(session=db, name="x", parent="nope") or ""
+        )
+        # tpl-root -> tpl-mid would close the loop tpl-mid -> tpl-root -> tpl-mid
+        assert "cycle" in (
+            hosts_crud.check_parent(session=db, name=root, parent=mid) or ""
+        )
+    finally:
+        # Left behind, both hosts share 10.0.0.1 and every later full-config
+        # tac_plus-ng check on this database fails.
+        for name in (mid, root):
+            db.delete(hosts_crud.get_host_by_name(session=db, name=name))
+        db.commit()
 
 
 def test_generated_config_renders_parent_before_child(db: Session) -> None:

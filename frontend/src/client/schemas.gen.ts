@@ -3240,6 +3240,17 @@ export const ProfileCreateSchema = {
                 }
             ],
             title: 'Description'
+        },
+        raw_script: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Raw Script'
         }
     },
     type: 'object',
@@ -3248,6 +3259,63 @@ export const ProfileCreateSchema = {
         'action'
     ],
     title: 'ProfileCreate'
+} as const;
+
+export const ProfileNamePublicSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        source: {
+            type: 'string',
+            enum: [
+                'profile',
+                'config_option'
+            ],
+            title: 'Source'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        }
+    },
+    type: 'object',
+    required: [
+        'name',
+        'source'
+    ],
+    title: 'ProfileNamePublic',
+    description: 'A profile name a ruleset can assign, from a row or the `profile` option.'
+} as const;
+
+export const ProfileNamesPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                $ref: '#/components/schemas/ProfileNamePublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: [
+        'data',
+        'count'
+    ],
+    title: 'ProfileNamesPublic'
 } as const;
 
 export const ProfilePreviewPublicSchema = {
@@ -3320,6 +3388,17 @@ export const ProfilePublicSchema = {
             ],
             title: 'Description'
         },
+        raw_script: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Raw Script'
+        },
         id: {
             type: 'string',
             format: 'uuid',
@@ -3345,6 +3424,75 @@ export const ProfilePublicSchema = {
         'updated_at'
     ],
     title: 'ProfilePublic'
+} as const;
+
+export const ProfileRawCheckSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Name'
+        },
+        raw_script: {
+            type: 'string',
+            title: 'Raw Script'
+        }
+    },
+    type: 'object',
+    required: [
+        'name',
+        'raw_script'
+    ],
+    title: 'ProfileRawCheck',
+    description: 'A raw script to syntax-check in the full config before saving it.'
+} as const;
+
+export const ProfileRawCheckResultSchema = {
+    properties: {
+        status: {
+            type: 'string',
+            title: 'Status'
+        },
+        message: {
+            type: 'string',
+            title: 'Message'
+        },
+        line: {
+            type: 'integer',
+            title: 'Line'
+        },
+        script_line: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Script Line'
+        }
+    },
+    type: 'object',
+    required: [
+        'status',
+        'message',
+        'line'
+    ],
+    title: 'ProfileRawCheckResult'
 } as const;
 
 export const ProfileScriptCreateSchema = {
@@ -3801,6 +3949,17 @@ export const ProfileUpdateSchema = {
                 }
             ],
             title: 'Description'
+        },
+        raw_script: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Raw Script'
         }
     },
     type: 'object',

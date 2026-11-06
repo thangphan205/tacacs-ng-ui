@@ -137,6 +137,8 @@ Local dev URLs:
 
 Core domain logic in `backend/app/crud/tacacs_configs.py`. Reads/writes config files to `/app/tacacs_config/` (Docker volume), validates syntax using `tac_plus-ng` binary, generates MAVIS LDAP config blocks from template strings.
 
+**Raw-script profiles (#359):** `Profile.raw_script` holds the body of `script { }`; when set, `profiles.profile_generator()` emits it verbatim (re-indented) in place of the Profile Scripts and skips the fallback `action`. A profile is one mode or the other — `crud/profiles.update_profile` refuses raw text on a profile with scripts, `crud/profilescripts` refuses scripts on a raw profile. `app/core/raw_script.check_raw_script()` refuses wrappers, an early-closing `}` (it would end the profile and inject top-level config) and `include`; it runs in the `ProfileCreate` validator and in `update_profile` only when the text changes (a partial update resending stored text must not be blocked), via `normalize_raw_script()`. Its tokenizer mirrors tac_plus-ng's as verified against the binary (`'…'` and `"…"` strings with escapes, `/…/` only after `=~`/`!~`) and **refuses** a `#` not preceded by whitespace, because tac_plus-ng's comment rule there depends on the neighbour — do not loosen it into a guess. The text is emitted verbatim, never re-indented: quoted strings may span lines. `duplicate_profile_names()` blocks Generate when a row and the `profile` Configuration Option define the same name. `POST /profiles/check` syntax-checks unsaved text via `generate_tacacs_ng_config(profile_override=...)`.
+
 ### Background Tasks (`backend/app/main.py`)
 
 Three asyncio loops run in FastAPI lifespan:

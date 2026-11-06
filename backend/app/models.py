@@ -10,6 +10,7 @@ from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
 
 from app.core.config import settings
+from app.core.raw_script import check_profile_name, normalize_raw_script
 
 
 def _utc_now() -> datetime:
@@ -455,17 +456,41 @@ class TacacsServicesPublic(SQLModel):
 # -- Profile Table ---
 class ProfileBase(SQLModel):
     name: str = Field(index=True, unique=True, max_length=255)
+    # Fallback action after the structured scripts; not emitted for a raw
+    # script, which ends with its own permit/deny.
     action: str = Field(index=True, max_length=255)
     generate_config: bool = Field(default=True)
     description: str | None = None
+    # Raw tac_plus-ng text for the profile's `script { }` body (#359). Set =
+    # raw mode: emitted verbatim in place of Profile Scripts, which a raw
+    # profile may not have.
+    raw_script: str | None = Field(
+        default=None, sa_column=Column(sa.Text, nullable=True)
+    )
 
 
 class ProfileCreate(ProfileBase):
-    pass
+    # Checked here for new text only, never on Base, so a stored row that an
+    # older or newer check would reject stays readable.
+    @model_validator(mode="after")
+    def _check_raw_script(self) -> "ProfileCreate":
+        check_profile_name(self.name)
+        self.raw_script = normalize_raw_script(self.raw_script)
+        return self
 
 
 class ProfileUpdate(ProfileBase):
-    pass
+    # Only cleaned here. crud.profiles.update_profile checks the text when it
+    # differs from what is stored, so a partial update (MCP update_entity
+    # merges the stored row) can still rename or disable a profile whose
+    # stored text a newer check would reject.
+    @model_validator(mode="after")
+    def _clean_raw_script(self) -> "ProfileUpdate":
+        text = self.raw_script
+        if text is not None:
+            text = text.strip("\n").rstrip()
+            self.raw_script = text if text.strip() else None
+        return self
 
 
 # Database model, database table inferred from class name
@@ -483,6 +508,26 @@ class ProfilePreviewPublic(SQLModel):
     updated_at: datetime | None = None
 
 
+class ProfileRawCheck(SQLModel):
+    """A raw script to syntax-check in the full config before saving it."""
+
+    id: uuid.UUID | None = None  # the profile being edited; None for a new one
+    name: str = Field(min_length=1, max_length=255)
+    raw_script: str
+
+    @field_validator("name")
+    @classmethod
+    def _check_name(cls, v: str) -> str:
+        return check_profile_name(v)
+
+
+class ProfileRawCheckResult(SQLModel):
+    status: str  # success / error
+    message: str
+    line: int  # line in the full candidate config, 0 when unknown
+    script_line: int | None = None  # the same line within the raw script
+
+
 class ProfilePublic(ProfileBase):
     id: uuid.UUID
     created_at: datetime
@@ -491,6 +536,19 @@ class ProfilePublic(ProfileBase):
 
 class ProfilesPublic(SQLModel):
     data: list[ProfilePublic]
+    count: int
+
+
+class ProfileNamePublic(SQLModel):
+    """A profile name a ruleset can assign, from a row or the `profile` option."""
+
+    name: str
+    source: Literal["profile", "config_option"]
+    description: str | None = None
+
+
+class ProfileNamesPublic(SQLModel):
+    data: list[ProfileNamePublic]
     count: int
 
 

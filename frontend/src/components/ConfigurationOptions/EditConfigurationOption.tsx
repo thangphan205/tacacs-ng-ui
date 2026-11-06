@@ -110,6 +110,8 @@ const EditConfigurationOption = ({
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["configuration_options"] })
+      // The `profile` option defines profiles a ruleset can assign.
+      queryClient.invalidateQueries({ queryKey: ["profiles", "names"] })
     },
   })
 

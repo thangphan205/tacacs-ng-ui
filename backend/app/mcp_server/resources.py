@@ -157,6 +157,10 @@ AV pair. The trailing `deny` is the fall-through. Common `service` values seen
 in the field: `shell`, `junos-exec`, `h3c_shell`, `PaloAlto`, `fortigate`,
 `nas_admin`.
 
+Nested `if`, `add k=v` (an optional attribute, unlike `set`) and regex tests
+(`cmd =~ /^show(\\s|$)/`) need a profile's `raw_script` instead of structured
+scripts: the text is the `script { }` body and is emitted verbatim.
+
 ## Rulesets (which profile applies)
 
 All rules live inside a single `ruleset { }` block.
@@ -214,7 +218,7 @@ exist in the UI but are **not** emitted into the config.
 | `Host` | `name`, `ipv4_address`, `secret_key`, `parent` | `parent` emits `parent = <host>` and parents are written before children; a child with no `secret_key` inherits its parent's key. `ipv6_address`, the four banner fields and `description` are stored but **not** emitted. |
 | `TacacsGroup` | `group_name` | Emits a bare `group = <name>`. |
 | `TacacsUser` | `username`, `password_type`, `password`, `member`, `account_expires_at` | `email` is stored but not emitted. A user whose `account_expires_at` (YYYY-MM-DD, last valid day) is in the past is omitted from the config. **`password` is the plaintext password — write it, never a digest.** With `password_type == "crypt"` the server applies sha512-crypt on save; pre-hashing it yourself makes the digest string itself the password. `password_type == "mavis"` emits `password login = mavis` with no argument and no `password pap`. Every other type is a local user and also emits `password pap = login`. |
-| `Profile` | `name`, `action` (the fall-through verb) | Profiles with zero scripts are skipped entirely. |
+| `Profile` | `name`, `action` (the fall-through verb), `raw_script` | Profiles with zero scripts and no `raw_script` are skipped entirely. `raw_script` is the `script { }` body only (no `profile`/`script` wrappers, balanced braces, no `include`); when set it is emitted verbatim instead of the structured scripts and `action` is not emitted. A profile is one or the other: scripts can't be added to a raw profile, and `raw_script` can't be set on a profile that has scripts. |
 | `ProfileScript` | `condition`, `key`, `value`, `action`, `position` | Emitted in `position` order within the profile. A script with zero sets still emits its test and action. An `else` emits no test. |
 | `ProfileScriptSet` | `key`, `value` → `set k=v` | |
 | `Ruleset` | `name`, `action`, `position` | Rules are emitted in `position` order — the first matching rule wins, so `position` is settable on create and update. `enabled` is stored but the generator always emits `enabled=yes`. |
@@ -257,7 +261,9 @@ Constraints you must respect:
   every time you make a change.
 - Prefer editing entities over handing back raw config text: the generator builds
   the file from entities, so hand-written text that is not backed by rows will be
-  overwritten on the next generate.
+  overwritten on the next generate. For a profile the structured scripts can't
+  express (nested `if`, `add`, regex), set that profile's `raw_script` rather
+  than a `profile` ConfigurationOption.
 - `delete_entity` needs `confirm=true` and cascades to child scripts. Show the
   caller what `describe_entity` returns before you call it.
 - Config text you receive has secrets masked as `***REDACTED***` whenever

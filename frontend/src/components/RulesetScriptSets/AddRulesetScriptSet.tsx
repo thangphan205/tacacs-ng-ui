@@ -64,7 +64,7 @@ const fieldGuideItems: FieldGuideItem[] = [
     icon: FiCode,
     label: "Value",
     description:
-      "The value to set. If Key is 'profile', you can select an authorization profile; otherwise, enter a custom string.",
+      "The value to set. If Key is 'profile', select an authorization profile (a Profile, or one defined in the 'profile' Configuration Option); otherwise, enter a custom string.",
     example: "read_only_profile, admin_profile",
     required: true,
   },
@@ -120,8 +120,8 @@ const AddRulesetScriptSet = ({
 
   function getTacacsProfilesQueryOptions() {
     return {
-      queryFn: () => ProfilesService.readProfiles(),
-      queryKey: ["profiles"],
+      queryFn: () => ProfilesService.readProfileNames(),
+      queryKey: ["profiles", "names"],
     }
   }
   const { data: data_profiles } = useQuery({
@@ -152,7 +152,10 @@ const AddRulesetScriptSet = ({
       items_tacacs_profiles.items.push({
         value: profile.name,
         label: profile.name,
-        description: profile.description || "",
+        description:
+          profile.source === "config_option"
+            ? "From Configuration Option 'profile'"
+            : profile.description || "",
       })
     })
   }

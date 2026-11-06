@@ -30,6 +30,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
+import { RawScriptFields, type ScriptMode } from "./RawScriptFields"
 
 const actionCollection = createListCollection({
   items: [
@@ -70,6 +71,7 @@ const fieldGuideItems: FieldGuideItem[] = [
 
 const AddProfile = () => {
   const [isOpen, setIsOpen] = useState(false)
+  const [mode, setMode] = useState<ScriptMode>("structured")
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const {
@@ -78,6 +80,7 @@ const AddProfile = () => {
     reset,
     setValue,
     control,
+    getValues,
     formState: { errors, isValid, isSubmitting },
   } = useForm<ProfileCreate>({
     mode: "onBlur",
@@ -87,6 +90,7 @@ const AddProfile = () => {
       action: "deny",
       description: "",
       generate_config: true,
+      raw_script: "",
     },
   })
 
@@ -107,7 +111,10 @@ const AddProfile = () => {
   })
 
   const onSubmit: SubmitHandler<ProfileCreate> = (data) => {
-    mutation.mutate(data)
+    mutation.mutate({
+      ...data,
+      raw_script: mode === "raw" ? data.raw_script : null,
+    })
   }
 
   return (
@@ -115,7 +122,13 @@ const AddProfile = () => {
       size="xl"
       placement="center"
       open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
+      onOpenChange={({ open }) => {
+        if (open) {
+          reset()
+          setMode("structured")
+        }
+        setIsOpen(open)
+      }}
     >
       <DialogTrigger asChild>
         <Button value="add-item" my={4}>
@@ -150,45 +163,63 @@ const AddProfile = () => {
                       type="text"
                     />
                   </Field>
-                  <Field
-                    required
-                    invalid={!!errors.action}
-                    errorText={errors.action?.message}
-                    label="Action"
-                  >
-                    <input
-                      type="hidden"
-                      {...register("action", {
-                        required: "action is required.",
-                      })}
-                    />
-                    <Select.Root
-                      collection={actionCollection}
-                      size="sm"
-                      defaultValue={["deny"]}
-                      onValueChange={(selection) => {
-                        setValue("action", selection.value[0], {
-                          shouldValidate: true,
-                        })
-                      }}
+                  <RawScriptFields
+                    mode={mode}
+                    onModeChange={setMode}
+                    register={register("raw_script", {
+                      validate: (v) =>
+                        mode !== "raw" ||
+                        !!v?.trim() ||
+                        "Raw script is required in raw mode.",
+                    })}
+                    error={errors.raw_script?.message}
+                    checkInput={() => ({
+                      // a name no existing profile is likely to have
+                      name: getValues("name") || "unsaved_profile_check",
+                      raw_script: getValues("raw_script") || "",
+                    })}
+                  />
+                  {mode === "structured" && (
+                    <Field
+                      required
+                      invalid={!!errors.action}
+                      errorText={errors.action?.message}
+                      label="Action"
                     >
-                      <Select.Trigger>
-                        <Select.ValueText placeholder="Select Action" />
-                      </Select.Trigger>
-                      <Select.Positioner>
-                        <Select.Content>
-                          <Select.ItemGroup>
-                            {actionCollection.items.map((item) => (
-                              <Select.Item key={item.value} item={item.value}>
-                                {item.label}
-                                <Select.ItemIndicator />
-                              </Select.Item>
-                            ))}
-                          </Select.ItemGroup>
-                        </Select.Content>
-                      </Select.Positioner>
-                    </Select.Root>
-                  </Field>
+                      <input
+                        type="hidden"
+                        {...register("action", {
+                          required: "action is required.",
+                        })}
+                      />
+                      <Select.Root
+                        collection={actionCollection}
+                        size="sm"
+                        defaultValue={["deny"]}
+                        onValueChange={(selection) => {
+                          setValue("action", selection.value[0], {
+                            shouldValidate: true,
+                          })
+                        }}
+                      >
+                        <Select.Trigger>
+                          <Select.ValueText placeholder="Select Action" />
+                        </Select.Trigger>
+                        <Select.Positioner>
+                          <Select.Content>
+                            <Select.ItemGroup>
+                              {actionCollection.items.map((item) => (
+                                <Select.Item key={item.value} item={item.value}>
+                                  {item.label}
+                                  <Select.ItemIndicator />
+                                </Select.Item>
+                              ))}
+                            </Select.ItemGroup>
+                          </Select.Content>
+                        </Select.Positioner>
+                      </Select.Root>
+                    </Field>
+                  )}
                   <Field
                     invalid={!!errors.description}
                     errorText={errors.description?.message}
