@@ -33,6 +33,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
+import { RawScriptFields, type ScriptMode } from "./RawScriptFields"
 
 const fieldGuideItems: FieldGuideItem[] = [
   {
@@ -66,6 +67,8 @@ const fieldGuideItems: FieldGuideItem[] = [
 
 interface EditProfileProps {
   profile: ProfilePublic
+  /** Structured scripts the profile has; raw mode needs none. */
+  scriptCount?: number
 }
 
 interface ProfileUpdateForm {
@@ -73,6 +76,7 @@ interface ProfileUpdateForm {
   action: string
   description?: string
   generate_config?: boolean
+  raw_script?: string | null
 }
 
 const actionCollection = createListCollection({
@@ -82,8 +86,15 @@ const actionCollection = createListCollection({
   ],
 })
 
-const EditProfile = ({ profile }: EditProfileProps) => {
+const EditProfile = ({ profile, scriptCount = 0 }: EditProfileProps) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [mode, setMode] = useState<ScriptMode>(
+    profile.raw_script ? "raw" : "structured",
+  )
+  const rawDisabledReason =
+    scriptCount > 0 && !profile.raw_script
+      ? `Delete the ${scriptCount} structured script${scriptCount === 1 ? "" : "s"} first: a profile is either structured or raw.`
+      : undefined
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const {
@@ -91,6 +102,7 @@ const EditProfile = ({ profile }: EditProfileProps) => {
     handleSubmit,
     reset,
     setValue,
+    getValues,
     control,
     formState: { errors, isSubmitting },
   } = useForm<ProfileUpdateForm>({
@@ -102,6 +114,7 @@ const EditProfile = ({ profile }: EditProfileProps) => {
       action: profile.action ?? undefined,
       description: profile.description ?? undefined,
       generate_config: profile.generate_config ?? true,
+      raw_script: profile.raw_script ?? "",
     },
   })
 
@@ -122,7 +135,11 @@ const EditProfile = ({ profile }: EditProfileProps) => {
   })
 
   const onSubmit: SubmitHandler<ProfileUpdateForm> = async (data) => {
-    mutation.mutate(data)
+    // null clears a saved raw script when switching back to structured.
+    mutation.mutate({
+      ...data,
+      raw_script: mode === "raw" ? data.raw_script : null,
+    })
   }
 
   return (
@@ -165,45 +182,65 @@ const EditProfile = ({ profile }: EditProfileProps) => {
                       type="text"
                     />
                   </Field>
-                  <Field
-                    required
-                    invalid={!!errors.action}
-                    errorText={errors.action?.message}
-                    label="Action"
-                  >
-                    <input
-                      type="hidden"
-                      {...register("action", {
-                        required: "action is required",
-                      })}
-                    />
-                    <Select.Root
-                      collection={actionCollection}
-                      size="sm"
-                      defaultValue={[profile.action || "deny"]}
-                      onValueChange={(selection) => {
-                        setValue("action", selection.value[0], {
-                          shouldValidate: true,
-                        })
-                      }}
+                  <RawScriptFields
+                    mode={mode}
+                    onModeChange={setMode}
+                    rawDisabledReason={rawDisabledReason}
+                    clearingRaw={!!profile.raw_script && mode === "structured"}
+                    register={register("raw_script", {
+                      validate: (v) =>
+                        mode !== "raw" ||
+                        !!v?.trim() ||
+                        "Raw script is required in raw mode.",
+                    })}
+                    error={errors.raw_script?.message}
+                    checkInput={() => ({
+                      id: profile.id,
+                      name: getValues("name") || "new_profile",
+                      raw_script: getValues("raw_script") || "",
+                    })}
+                  />
+                  {mode === "structured" && (
+                    <Field
+                      required
+                      invalid={!!errors.action}
+                      errorText={errors.action?.message}
+                      label="Action"
                     >
-                      <Select.Trigger>
-                        <Select.ValueText placeholder="Select Action" />
-                      </Select.Trigger>
-                      <Select.Positioner>
-                        <Select.Content>
-                          <Select.ItemGroup>
-                            {actionCollection.items.map((item) => (
-                              <Select.Item key={item.value} item={item.value}>
-                                {item.label}
-                                <Select.ItemIndicator />
-                              </Select.Item>
-                            ))}
-                          </Select.ItemGroup>
-                        </Select.Content>
-                      </Select.Positioner>
-                    </Select.Root>
-                  </Field>
+                      <input
+                        type="hidden"
+                        {...register("action", {
+                          required: "action is required",
+                        })}
+                      />
+                      <Select.Root
+                        collection={actionCollection}
+                        size="sm"
+                        defaultValue={[profile.action || "deny"]}
+                        onValueChange={(selection) => {
+                          setValue("action", selection.value[0], {
+                            shouldValidate: true,
+                          })
+                        }}
+                      >
+                        <Select.Trigger>
+                          <Select.ValueText placeholder="Select Action" />
+                        </Select.Trigger>
+                        <Select.Positioner>
+                          <Select.Content>
+                            <Select.ItemGroup>
+                              {actionCollection.items.map((item) => (
+                                <Select.Item key={item.value} item={item.value}>
+                                  {item.label}
+                                  <Select.ItemIndicator />
+                                </Select.Item>
+                              ))}
+                            </Select.ItemGroup>
+                          </Select.Content>
+                        </Select.Positioner>
+                      </Select.Root>
+                    </Field>
+                  )}
                   <Field
                     invalid={!!errors.description}
                     errorText={errors.description?.message}

@@ -1846,6 +1846,10 @@ export type ProfileCreate = {
      * Description
      */
     description?: string | null;
+    /**
+     * Raw Script
+     */
+    raw_script?: string | null;
 };
 
 /**
@@ -1887,6 +1891,10 @@ export type ProfilePublic = {
      */
     description?: string | null;
     /**
+     * Raw Script
+     */
+    raw_script?: string | null;
+    /**
      * Id
      */
     id: string;
@@ -1898,6 +1906,48 @@ export type ProfilePublic = {
      * Updated At
      */
     updated_at: string;
+};
+
+/**
+ * ProfileRawCheck
+ *
+ * A raw script to syntax-check in the full config before saving it.
+ */
+export type ProfileRawCheck = {
+    /**
+     * Id
+     */
+    id?: string | null;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Raw Script
+     */
+    raw_script: string;
+};
+
+/**
+ * ProfileRawCheckResult
+ */
+export type ProfileRawCheckResult = {
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Line
+     */
+    line: number;
+    /**
+     * Script Line
+     */
+    script_line?: number | null;
 };
 
 /**
@@ -2156,6 +2206,10 @@ export type ProfileUpdate = {
      * Description
      */
     description?: string | null;
+    /**
+     * Raw Script
+     */
+    raw_script?: string | null;
 };
 
 /**
@@ -5506,6 +5560,31 @@ export type ProfilesPreviewProfilesResponses = {
 };
 
 export type ProfilesPreviewProfilesResponse = ProfilesPreviewProfilesResponses[keyof ProfilesPreviewProfilesResponses];
+
+export type ProfilesCheckProfileRawScriptData = {
+    body: ProfileRawCheck;
+    path?: never;
+    query?: never;
+    url: '/api/v1/profiles/check';
+};
+
+export type ProfilesCheckProfileRawScriptErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ProfilesCheckProfileRawScriptError = ProfilesCheckProfileRawScriptErrors[keyof ProfilesCheckProfileRawScriptErrors];
+
+export type ProfilesCheckProfileRawScriptResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProfileRawCheckResult;
+};
+
+export type ProfilesCheckProfileRawScriptResponse = ProfilesCheckProfileRawScriptResponses[keyof ProfilesCheckProfileRawScriptResponses];
 
 export type ProfilesDeleteProfileData = {
     body?: never;

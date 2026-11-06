@@ -2,6 +2,7 @@ import {
   Badge,
   Box,
   Button,
+  Code,
   Container,
   EmptyState,
   Flex,
@@ -191,6 +192,17 @@ function ProfilesTable() {
                     </Table.Cell>
                     <Table.Cell fontWeight="medium" truncate>
                       {profile.name}
+                      {profile.raw_script && (
+                        <Badge
+                          ml={2}
+                          size="sm"
+                          variant="outline"
+                          colorPalette="purple"
+                          title="Raw tac_plus-ng script"
+                        >
+                          Raw · {profile.raw_script.split("\n").length} lines
+                        </Badge>
+                      )}
                     </Table.Cell>
                     <Table.Cell>
                       <Badge
@@ -202,14 +214,20 @@ function ProfilesTable() {
                       </Badge>
                     </Table.Cell>
                     <Table.Cell>
-                      <Badge
-                        variant="subtle"
-                        colorPalette={
-                          profile.action === "permit" ? "green" : "orange"
-                        }
-                      >
-                        {profile.action}
-                      </Badge>
+                      {profile.raw_script ? (
+                        <Text fontSize="xs" color="fg.muted">
+                          in script
+                        </Text>
+                      ) : (
+                        <Badge
+                          variant="subtle"
+                          colorPalette={
+                            profile.action === "permit" ? "green" : "orange"
+                          }
+                        >
+                          {profile.action}
+                        </Badge>
+                      )}
                     </Table.Cell>
                     <Table.Cell
                       color={!profile.description ? "gray" : "inherit"}
@@ -218,7 +236,10 @@ function ProfilesTable() {
                       {profile.description || "N/A"}
                     </Table.Cell>
                     <Table.Cell>
-                      <ProfileActionsMenu profile={profile} />
+                      <ProfileActionsMenu
+                        profile={profile}
+                        scriptCount={profileScripts.length}
+                      />
                     </Table.Cell>
                   </Table.Row>
                   {isExpanded && (
@@ -230,300 +251,345 @@ function ProfilesTable() {
                         borderBottomWidth="1px"
                         borderColor="border.subtle"
                       >
-                        <Flex justify="space-between" align="center" mb={3}>
-                          <Heading
-                            size="xs"
-                            textTransform="uppercase"
-                            letterSpacing="wider"
-                            color="teal.600"
-                          >
-                            Profile Script Structure ({profileScripts.length})
-                          </Heading>
-                          <AddProfileScript
-                            profileId={profile.id}
-                            buttonElement={
-                              <Button
-                                size="xs"
-                                variant="outline"
-                                colorPalette="teal"
-                              >
-                                <FiPlus /> Add Script Block
-                              </Button>
-                            }
-                          />
-                        </Flex>
-                        {profileScripts.length === 0 ? (
-                          <Text fontSize="sm" color="fg.muted" py={2}>
-                            No scripts configured. Click "Add Script Block" to
-                            get started.
-                          </Text>
+                        {profile.raw_script ? (
+                          <Box>
+                            <Heading
+                              size="xs"
+                              textTransform="uppercase"
+                              letterSpacing="wider"
+                              color="teal.600"
+                              mb={3}
+                            >
+                              Raw Script
+                            </Heading>
+                            <Code
+                              display="block"
+                              whiteSpace="pre"
+                              overflowX="auto"
+                              p={3}
+                              fontSize="xs"
+                              w="full"
+                            >
+                              {profile.raw_script}
+                            </Code>
+                            <Text fontSize="xs" color="fg.muted" mt={2}>
+                              Emitted as the body of{" "}
+                              <Code fontSize="xs">script {"{ }"}</Code>. Edit it
+                              from the profile's menu.
+                            </Text>
+                          </Box>
                         ) : (
-                          <VStack align="stretch" gap={3} w="full">
-                            {profileScripts.map((script, index) => {
-                              const scriptSets =
-                                scriptSetsData?.data.filter(
-                                  (ss) => ss.profilescript_id === script.id,
-                                ) || []
-                              return (
-                                <Box
-                                  key={script.id}
-                                  p={3}
-                                  bg="bg.panel"
-                                  borderWidth="1px"
-                                  borderRadius="md"
-                                  borderColor="border.subtle"
-                                  position="relative"
-                                >
-                                  <Flex
-                                    justify="space-between"
-                                    align="start"
-                                    mb={2}
+                          <>
+                            <Flex justify="space-between" align="center" mb={3}>
+                              <Heading
+                                size="xs"
+                                textTransform="uppercase"
+                                letterSpacing="wider"
+                                color="teal.600"
+                              >
+                                Profile Script Structure (
+                                {profileScripts.length})
+                              </Heading>
+                              <AddProfileScript
+                                profileId={profile.id}
+                                buttonElement={
+                                  <Button
+                                    size="xs"
+                                    variant="outline"
+                                    colorPalette="teal"
                                   >
-                                    <Flex align="center" gap={2} wrap="wrap">
-                                      <Text
-                                        fontSize="xs"
-                                        color="fg.muted"
-                                        fontFamily="mono"
-                                        minW="2ch"
-                                      >
-                                        #{index + 1}
-                                      </Text>
-                                      <Badge
-                                        colorPalette="teal"
-                                        variant="solid"
-                                        fontSize="xs"
-                                      >
-                                        {script.condition}
-                                      </Badge>
-                                      <Text
-                                        fontSize="sm"
-                                        fontWeight="semibold"
-                                        fontFamily="mono"
-                                      >
-                                        ({script.key} == "{script.value}")
-                                      </Text>
-                                      {script.description && (
-                                        <Text fontSize="xs" color="fg.muted">
-                                          — {script.description}
-                                        </Text>
-                                      )}
-                                    </Flex>
-                                    <Flex align="center" gap={1}>
-                                      <MoveButtons
-                                        index={index}
-                                        count={profileScripts.length}
-                                        noun="script"
-                                        queryKey="profilescripts"
-                                        onMove={(position) =>
-                                          ProfilescriptsService.moveProfilescript(
-                                            {
-                                              id: script.id,
-                                              positionMove: { position },
-                                            },
-                                          )
-                                        }
-                                      />
-                                      <EditProfileScript
-                                        profilescript={script}
-                                        buttonElement={
-                                          <IconButton
-                                            size="xs"
-                                            variant="ghost"
-                                            aria-label="Edit script"
-                                          >
-                                            <FiEdit />
-                                          </IconButton>
-                                        }
-                                      />
-                                      <DeleteProfileScript
-                                        profilescript={script}
-                                        buttonElement={
-                                          <IconButton
-                                            size="xs"
-                                            variant="ghost"
-                                            colorPalette="red"
-                                            aria-label="Delete script"
-                                          >
-                                            <FiTrash2 />
-                                          </IconButton>
-                                        }
-                                      />
-                                    </Flex>
-                                  </Flex>
-
-                                  <Box
-                                    pl={4}
-                                    ml={2}
-                                    borderLeftWidth="2px"
-                                    borderColor="border.muted"
-                                    mb={2}
-                                  >
-                                    {scriptSets.length === 0 ? (
-                                      <Text
-                                        fontSize="xs"
-                                        color="fg.muted"
-                                        fontStyle="italic"
+                                    <FiPlus /> Add Script Block
+                                  </Button>
+                                }
+                              />
+                            </Flex>
+                            {profileScripts.length === 0 ? (
+                              <Text fontSize="sm" color="fg.muted" py={2}>
+                                No scripts configured. Click "Add Script Block"
+                                to get started.
+                              </Text>
+                            ) : (
+                              <VStack align="stretch" gap={3} w="full">
+                                {profileScripts.map((script, index) => {
+                                  const scriptSets =
+                                    scriptSetsData?.data.filter(
+                                      (ss) => ss.profilescript_id === script.id,
+                                    ) || []
+                                  return (
+                                    <Box
+                                      key={script.id}
+                                      p={3}
+                                      bg="bg.panel"
+                                      borderWidth="1px"
+                                      borderRadius="md"
+                                      borderColor="border.subtle"
+                                      position="relative"
+                                    >
+                                      <Flex
+                                        justify="space-between"
+                                        align="start"
                                         mb={2}
                                       >
-                                        No key-value assignments configured.
-                                      </Text>
-                                    ) : (
-                                      <VStack align="stretch" gap={1.5} mb={2}>
-                                        {scriptSets.map((set) => (
-                                          <Flex
-                                            key={set.id}
-                                            align="center"
-                                            justify="space-between"
-                                            bg="bg.subtle"
-                                            py={1}
-                                            px={2}
-                                            borderRadius="sm"
-                                            borderWidth="1px"
-                                            borderColor="border.subtle"
-                                          >
-                                            <Flex align="center" gap={2}>
-                                              <Badge
-                                                colorPalette="purple"
-                                                variant="outline"
-                                                size="sm"
-                                              >
-                                                set
-                                              </Badge>
-                                              <Text
-                                                fontSize="xs"
-                                                fontFamily="mono"
-                                                fontWeight="medium"
-                                              >
-                                                {set.key} = "{set.value}"
-                                              </Text>
-                                              {set.description && (
-                                                <Text
-                                                  fontSize="2xs"
-                                                  color="fg.muted"
-                                                >
-                                                  ({set.description})
-                                                </Text>
-                                              )}
-                                            </Flex>
-                                            <Flex align="center" gap={0.5}>
-                                              <EditProfileScriptSet
-                                                profilescriptset={set}
-                                                buttonElement={
-                                                  <IconButton
-                                                    size="2xs"
-                                                    variant="ghost"
-                                                    aria-label="Edit set"
-                                                  >
-                                                    <FiEdit fontSize="10px" />
-                                                  </IconButton>
-                                                }
-                                              />
-                                              <DeleteProfileScriptSet
-                                                profilescriptset={set}
-                                                buttonElement={
-                                                  <IconButton
-                                                    size="2xs"
-                                                    variant="ghost"
-                                                    colorPalette="red"
-                                                    aria-label="Delete set"
-                                                  >
-                                                    <FiTrash2 fontSize="10px" />
-                                                  </IconButton>
-                                                }
-                                              />
-                                            </Flex>
-                                          </Flex>
-                                        ))}
-                                      </VStack>
-                                    )}
-                                    <AddProfileScriptSet
-                                      profilescriptId={script.id}
-                                      buttonElement={
-                                        <Button
-                                          size="xs"
-                                          variant="ghost"
-                                          colorPalette="teal"
-                                          height="6"
-                                          p="1"
+                                        <Flex
+                                          align="center"
+                                          gap={2}
+                                          wrap="wrap"
                                         >
-                                          <FiPlus fontSize="12px" /> Add
-                                          Variable Assignment
-                                        </Button>
-                                      }
-                                    />
-                                  </Box>
+                                          <Text
+                                            fontSize="xs"
+                                            color="fg.muted"
+                                            fontFamily="mono"
+                                            minW="2ch"
+                                          >
+                                            #{index + 1}
+                                          </Text>
+                                          <Badge
+                                            colorPalette="teal"
+                                            variant="solid"
+                                            fontSize="xs"
+                                          >
+                                            {script.condition}
+                                          </Badge>
+                                          <Text
+                                            fontSize="sm"
+                                            fontWeight="semibold"
+                                            fontFamily="mono"
+                                          >
+                                            ({script.key} == "{script.value}")
+                                          </Text>
+                                          {script.description && (
+                                            <Text
+                                              fontSize="xs"
+                                              color="fg.muted"
+                                            >
+                                              — {script.description}
+                                            </Text>
+                                          )}
+                                        </Flex>
+                                        <Flex align="center" gap={1}>
+                                          <MoveButtons
+                                            index={index}
+                                            count={profileScripts.length}
+                                            noun="script"
+                                            queryKey="profilescripts"
+                                            onMove={(position) =>
+                                              ProfilescriptsService.moveProfilescript(
+                                                {
+                                                  id: script.id,
+                                                  positionMove: { position },
+                                                },
+                                              )
+                                            }
+                                          />
+                                          <EditProfileScript
+                                            profilescript={script}
+                                            buttonElement={
+                                              <IconButton
+                                                size="xs"
+                                                variant="ghost"
+                                                aria-label="Edit script"
+                                              >
+                                                <FiEdit />
+                                              </IconButton>
+                                            }
+                                          />
+                                          <DeleteProfileScript
+                                            profilescript={script}
+                                            buttonElement={
+                                              <IconButton
+                                                size="xs"
+                                                variant="ghost"
+                                                colorPalette="red"
+                                                aria-label="Delete script"
+                                              >
+                                                <FiTrash2 />
+                                              </IconButton>
+                                            }
+                                          />
+                                        </Flex>
+                                      </Flex>
 
-                                  <Flex align="center" gap={1.5} pl={2}>
-                                    <Text
-                                      fontSize="xs"
-                                      fontWeight="bold"
-                                      color="fg.muted"
-                                    >
-                                      Result action:
-                                    </Text>
-                                    <Badge
-                                      colorPalette={
-                                        script.action === "permit"
-                                          ? "green"
-                                          : "orange"
-                                      }
-                                      variant="subtle"
-                                    >
-                                      {script.action}
-                                    </Badge>
-                                  </Flex>
-                                </Box>
-                              )
-                            })}
-                          </VStack>
+                                      <Box
+                                        pl={4}
+                                        ml={2}
+                                        borderLeftWidth="2px"
+                                        borderColor="border.muted"
+                                        mb={2}
+                                      >
+                                        {scriptSets.length === 0 ? (
+                                          <Text
+                                            fontSize="xs"
+                                            color="fg.muted"
+                                            fontStyle="italic"
+                                            mb={2}
+                                          >
+                                            No key-value assignments configured.
+                                          </Text>
+                                        ) : (
+                                          <VStack
+                                            align="stretch"
+                                            gap={1.5}
+                                            mb={2}
+                                          >
+                                            {scriptSets.map((set) => (
+                                              <Flex
+                                                key={set.id}
+                                                align="center"
+                                                justify="space-between"
+                                                bg="bg.subtle"
+                                                py={1}
+                                                px={2}
+                                                borderRadius="sm"
+                                                borderWidth="1px"
+                                                borderColor="border.subtle"
+                                              >
+                                                <Flex align="center" gap={2}>
+                                                  <Badge
+                                                    colorPalette="purple"
+                                                    variant="outline"
+                                                    size="sm"
+                                                  >
+                                                    set
+                                                  </Badge>
+                                                  <Text
+                                                    fontSize="xs"
+                                                    fontFamily="mono"
+                                                    fontWeight="medium"
+                                                  >
+                                                    {set.key} = "{set.value}"
+                                                  </Text>
+                                                  {set.description && (
+                                                    <Text
+                                                      fontSize="2xs"
+                                                      color="fg.muted"
+                                                    >
+                                                      ({set.description})
+                                                    </Text>
+                                                  )}
+                                                </Flex>
+                                                <Flex align="center" gap={0.5}>
+                                                  <EditProfileScriptSet
+                                                    profilescriptset={set}
+                                                    buttonElement={
+                                                      <IconButton
+                                                        size="2xs"
+                                                        variant="ghost"
+                                                        aria-label="Edit set"
+                                                      >
+                                                        <FiEdit fontSize="10px" />
+                                                      </IconButton>
+                                                    }
+                                                  />
+                                                  <DeleteProfileScriptSet
+                                                    profilescriptset={set}
+                                                    buttonElement={
+                                                      <IconButton
+                                                        size="2xs"
+                                                        variant="ghost"
+                                                        colorPalette="red"
+                                                        aria-label="Delete set"
+                                                      >
+                                                        <FiTrash2 fontSize="10px" />
+                                                      </IconButton>
+                                                    }
+                                                  />
+                                                </Flex>
+                                              </Flex>
+                                            ))}
+                                          </VStack>
+                                        )}
+                                        <AddProfileScriptSet
+                                          profilescriptId={script.id}
+                                          buttonElement={
+                                            <Button
+                                              size="xs"
+                                              variant="ghost"
+                                              colorPalette="teal"
+                                              height="6"
+                                              p="1"
+                                            >
+                                              <FiPlus fontSize="12px" /> Add
+                                              Variable Assignment
+                                            </Button>
+                                          }
+                                        />
+                                      </Box>
+
+                                      <Flex align="center" gap={1.5} pl={2}>
+                                        <Text
+                                          fontSize="xs"
+                                          fontWeight="bold"
+                                          color="fg.muted"
+                                        >
+                                          Result action:
+                                        </Text>
+                                        <Badge
+                                          colorPalette={
+                                            script.action === "permit"
+                                              ? "green"
+                                              : "orange"
+                                          }
+                                          variant="subtle"
+                                        >
+                                          {script.action}
+                                        </Badge>
+                                      </Flex>
+                                    </Box>
+                                  )
+                                })}
+                              </VStack>
+                            )}
+                            <Box
+                              mt={4}
+                              pt={3}
+                              borderTopWidth="1px"
+                              borderColor="border.subtle"
+                            >
+                              <Flex align="center" gap={2}>
+                                <Text
+                                  fontSize="xs"
+                                  fontWeight="bold"
+                                  color="fg.muted"
+                                >
+                                  Fallback Action:
+                                </Text>
+                                <Badge
+                                  colorPalette={
+                                    profile.action === "permit"
+                                      ? "green"
+                                      : "orange"
+                                  }
+                                  variant="solid"
+                                >
+                                  {profile.action}
+                                </Badge>
+                                <Text
+                                  fontSize="xs"
+                                  color="fg.muted"
+                                  display="inline-flex"
+                                  alignItems="center"
+                                  gap={1}
+                                >
+                                  (Applied if none of the script blocks above
+                                  match the request. Learn more in the{" "}
+                                  <Link
+                                    href="https://projects.pro-bono-publico.de/event-driven-servers/doc/tac_plus-ng.html#_scripts"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    color="blue.500"
+                                    display="inline-flex"
+                                    alignItems="center"
+                                    gap={0.5}
+                                  >
+                                    official documentation{" "}
+                                    <FiExternalLink size="12px" />
+                                  </Link>
+                                  )
+                                </Text>
+                              </Flex>
+                            </Box>
+                          </>
                         )}
-                        <Box
-                          mt={4}
-                          pt={3}
-                          borderTopWidth="1px"
-                          borderColor="border.subtle"
-                        >
-                          <Flex align="center" gap={2}>
-                            <Text
-                              fontSize="xs"
-                              fontWeight="bold"
-                              color="fg.muted"
-                            >
-                              Fallback Action:
-                            </Text>
-                            <Badge
-                              colorPalette={
-                                profile.action === "permit" ? "green" : "orange"
-                              }
-                              variant="solid"
-                            >
-                              {profile.action}
-                            </Badge>
-                            <Text
-                              fontSize="xs"
-                              color="fg.muted"
-                              display="inline-flex"
-                              alignItems="center"
-                              gap={1}
-                            >
-                              (Applied if none of the script blocks above match
-                              the request. Learn more in the{" "}
-                              <Link
-                                href="https://projects.pro-bono-publico.de/event-driven-servers/doc/tac_plus-ng.html#_scripts"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                color="blue.500"
-                                display="inline-flex"
-                                alignItems="center"
-                                gap={0.5}
-                              >
-                                official documentation{" "}
-                                <FiExternalLink size="12px" />
-                              </Link>
-                              )
-                            </Text>
-                          </Flex>
-                        </Box>
                       </Table.Cell>
                     </Table.Row>
                   )}

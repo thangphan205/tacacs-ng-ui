@@ -7,9 +7,13 @@ import { MenuContent, MenuRoot, MenuTrigger } from "../ui/menu"
 
 interface ProfileActionsMenuProps {
   profile: ProfilePublic
+  scriptCount?: number
 }
 
-export const ProfileActionsMenu = ({ profile }: ProfileActionsMenuProps) => {
+export const ProfileActionsMenu = ({
+  profile,
+  scriptCount,
+}: ProfileActionsMenuProps) => {
   return (
     <MenuRoot>
       <MenuTrigger asChild>
@@ -18,7 +22,7 @@ export const ProfileActionsMenu = ({ profile }: ProfileActionsMenuProps) => {
         </IconButton>
       </MenuTrigger>
       <MenuContent>
-        <EditProfile profile={profile} />
+        <EditProfile profile={profile} scriptCount={scriptCount} />
         <DeleteProfile profile={profile} />
       </MenuContent>
     </MenuRoot>

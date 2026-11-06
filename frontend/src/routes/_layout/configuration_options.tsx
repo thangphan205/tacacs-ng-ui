@@ -174,7 +174,15 @@ function ConfigurationOptionsTable() {
                       {configuration_option.name}
                     </Table.Cell>
                     <Table.Cell>
-                      <Code fontFamily="mono" fontSize="xs">
+                      {/* pre: the option is multi-line config text */}
+                      <Code
+                        fontFamily="mono"
+                        fontSize="xs"
+                        display="block"
+                        whiteSpace="pre"
+                        maxH="12em"
+                        overflow="auto"
+                      >
                         {configuration_option.config_option}
                       </Code>
                     </Table.Cell>

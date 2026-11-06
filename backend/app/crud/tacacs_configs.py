@@ -129,8 +129,15 @@ def reload_active_config_from_db(*, session: Session) -> bool:
     return True
 
 
-def generate_tacacs_ng_config(*, session: Session) -> Any:
+def generate_tacacs_ng_config(
+    *,
+    session: Session,
+    profile_override: tuple[uuid.UUID | None, str, str] | None = None,
+) -> Any:
     """
+    `profile_override` renders one profile's raw script from memory instead
+    of the database (see profiles.profile_generator); for checks only.
+
     Generate TACACS+ configuration file content based on database settings.
     1. Fetch TacacsNgSetting, Mavis, Hosts, TacacsGroups, TacacsUsers, Profiles, and Rulesets from the database.
     2. Construct the TACACS+ configuration file content as a string.
@@ -294,7 +301,9 @@ id = tac_plus-ng {{
             )
 
     # Begin profile
-    tacacs_profiles_template = profiles.profile_generator(session=session)
+    tacacs_profiles_template = profiles.profile_generator(
+        session=session, override=profile_override
+    )
     # Begin ruleset
     tacacs_rulesets_template = rulesets.ruleset_generator(session=session)
 

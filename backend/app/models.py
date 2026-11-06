@@ -10,6 +10,7 @@ from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
 
 from app.core.config import settings
+from app.core.raw_script import check_raw_script
 
 
 def _utc_now() -> datetime:
@@ -455,17 +456,47 @@ class TacacsServicesPublic(SQLModel):
 # -- Profile Table ---
 class ProfileBase(SQLModel):
     name: str = Field(index=True, unique=True, max_length=255)
+    # Fallback action after the structured scripts; not emitted for a raw
+    # script, which ends with its own permit/deny.
     action: str = Field(index=True, max_length=255)
     generate_config: bool = Field(default=True)
     description: str | None = None
+    # Raw tac_plus-ng text for the profile's `script { }` body (#359). Set =
+    # raw mode: emitted verbatim in place of Profile Scripts, which a raw
+    # profile may not have.
+    raw_script: str | None = Field(
+        default=None, sa_column=Column(sa.Text, nullable=True)
+    )
+
+
+def _normalize_raw_script(profile: "ProfileBase") -> "ProfileBase":
+    # Validated on Create/Update only, never on Base, so a stored row that an
+    # older or newer check would reject stays readable and editable.
+    if profile.raw_script is None:
+        return profile
+    text = profile.raw_script.strip("\n").rstrip()
+    if not text.strip():
+        profile.raw_script = None
+        return profile
+    errors = check_raw_script(text)
+    if errors:
+        raise ValueError(" ".join(errors))
+    profile.raw_script = text
+    return profile
 
 
 class ProfileCreate(ProfileBase):
-    pass
+    @model_validator(mode="after")
+    def _check_raw_script(self) -> "ProfileCreate":
+        _normalize_raw_script(self)
+        return self
 
 
 class ProfileUpdate(ProfileBase):
-    pass
+    @model_validator(mode="after")
+    def _check_raw_script(self) -> "ProfileUpdate":
+        _normalize_raw_script(self)
+        return self
 
 
 # Database model, database table inferred from class name
@@ -481,6 +512,21 @@ class ProfilePreviewPublic(SQLModel):
     data: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+
+class ProfileRawCheck(SQLModel):
+    """A raw script to syntax-check in the full config before saving it."""
+
+    id: uuid.UUID | None = None  # the profile being edited; None for a new one
+    name: str = Field(min_length=1, max_length=255)
+    raw_script: str
+
+
+class ProfileRawCheckResult(SQLModel):
+    status: str  # success / error
+    message: str
+    line: int  # line in the full candidate config, 0 when unknown
+    script_line: int | None = None  # the same line within the raw script
 
 
 class ProfilePublic(ProfileBase):

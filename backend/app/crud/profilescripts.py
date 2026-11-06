@@ -1,9 +1,15 @@
+import uuid
 from typing import Any
 
 from sqlmodel import Session
 
 from app.crud import ordering
-from app.models import ProfileScript, ProfileScriptCreate, ProfileScriptUpdate
+from app.models import (
+    Profile,
+    ProfileScript,
+    ProfileScriptCreate,
+    ProfileScriptUpdate,
+)
 
 # Scripts are ordered within their profile, as an if/elif/else chain.
 SIBLINGS = ordering.Siblings(
@@ -11,10 +17,23 @@ SIBLINGS = ordering.Siblings(
 )
 
 
+def _refuse_raw_parent(session: Session, profile_id: uuid.UUID | None) -> None:
+    # One mode per profile (#359): a raw script replaces the structured
+    # scripts, so a script added to it would sit unused.
+    profile = session.get(Profile, profile_id) if profile_id else None
+    if profile is not None and profile.raw_script:
+        raise ValueError(
+            f"Profile '{profile.name}' uses a raw script; structured scripts "
+            "can't be added to it."
+        )
+
+
 def create_profilescript(
     *, session: Session, profilescript_create: ProfileScriptCreate
 ) -> ProfileScript:
-    """Append, or insert at `position`. Raises `ValueError` on a broken chain."""
+    """Append, or insert at `position`. Raises `ValueError` on a broken chain
+    or a raw-script profile."""
+    _refuse_raw_parent(session, profilescript_create.profile_id)
     row: ProfileScript = ordering.create(
         session=session,
         spec=SIBLINGS,
@@ -32,13 +51,18 @@ def update_profilescript(
 ) -> Any:
     """Field changes keep the script's place unless `position` is given.
 
-    Raises `ValueError` if the result breaks an if/elif/else chain.
+    Raises `ValueError` if the result breaks an if/elif/else chain, or moves
+    the script to a raw-script profile.
     """
+    data = profilescript_in.model_dump(exclude_unset=True)
+    new_parent = data.get("profile_id")
+    if new_parent and new_parent != db_profilescript.profile_id:
+        _refuse_raw_parent(session, new_parent)
     return ordering.update(
         session=session,
         spec=SIBLINGS,
         row=db_profilescript,
-        data=profilescript_in.model_dump(exclude_unset=True),
+        data=data,
     )
 
 

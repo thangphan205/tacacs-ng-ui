@@ -315,9 +315,14 @@ passthrough blocks), then pattern matching on `key = "..."`,
 why `validate_generated_config` exists: it validates the real, unredacted config
 without any secret crossing the wire.
 
-> Content stored in `ConfigurationOption` rows is treated as non-secret unless
-> the same value also exists in a secret database column. Avoid pasting
-> credentials into raw passthrough blocks.
+> Content stored in `ConfigurationOption` rows and in a Profile's `raw_script`
+> is treated as non-secret unless the same value also exists in a secret
+> database column. Avoid pasting credentials into raw passthrough blocks.
+
+A profile's `raw_script` is writable with `mcp:write` through `create_entity` /
+`update_entity` like any other field. The same checks as the web form apply
+(body of `script { }` only, balanced braces, no `include`), and a refusal
+reaches the client as a readable tool error.
 
 ## Operational notes
 

@@ -11,14 +11,17 @@ from app.api.deps import (
     get_current_user,
     require_primary_node,
 )
+from app.core.raw_script import check_raw_script
 from app.crud import audit_logs as audit_logs_crud
-from app.crud import profiles
+from app.crud import profiles, tacacs_configs
 from app.models import (
     Message,
     Profile,
     ProfileCreate,
     ProfilePreviewPublic,
     ProfilePublic,
+    ProfileRawCheck,
+    ProfileRawCheckResult,
     ProfilesPublic,
     ProfileUpdate,
 )
@@ -79,6 +82,39 @@ def preview_profiles(session: SessionDep) -> Any:
 
     return ProfilePreviewPublic(
         data=profile_template, created_at=created_at, updated_at=updated_at
+    )
+
+
+@router.post("/check", response_model=ProfileRawCheckResult)
+def check_profile_raw_script(
+    *, session: SessionDep, _: SuperUser, check_in: ProfileRawCheck
+) -> Any:
+    """
+    Syntax-check a raw script with tac_plus-ng inside the full candidate
+    config, without saving it. Superuser only: it runs the tac_plus-ng binary.
+    """
+    text = check_in.raw_script.strip("\n").rstrip()
+    errors = check_raw_script(text) if text.strip() else ["The raw script is empty."]
+    if errors:
+        raise HTTPException(status_code=422, detail=" ".join(errors))
+
+    config = tacacs_configs.generate_tacacs_ng_config(
+        session=session, profile_override=(check_in.id, check_in.name, text)
+    )
+    try:
+        result = tacacs_configs.validate_config_text(text=config)
+    except tacacs_configs.ConfigCheckError as e:
+        raise HTTPException(status_code=503, detail=f"tac_plus-ng not available: {e}")
+
+    line = int(result.get("line") or 0)
+    script_line = profiles.script_line_of(
+        config=config, name=check_in.name, raw_script=text, config_line=line
+    )
+    return ProfileRawCheckResult(
+        status=result["status"],
+        message=result.get("message") or "",
+        line=line,
+        script_line=script_line,
     )
 
 
@@ -162,9 +198,12 @@ def update_profile(
         )
 
     old_values = db_profile.model_dump_json(exclude=_SENSITIVE)
-    db_profile = profiles.update_profile(
-        session=session, db_profile=db_profile, profile_in=profile_in
-    )
+    try:
+        db_profile = profiles.update_profile(
+            session=session, db_profile=db_profile, profile_in=profile_in
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     audit_logs_crud.log_entity_action(
         session=session,
         action="UPDATE",
