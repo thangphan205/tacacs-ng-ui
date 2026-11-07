@@ -22,6 +22,7 @@ from app.models import (
     TacacsGroup,
     TacacsNgSetting,
     TacacsUser,
+    check_remote_syslog_destination,
 )
 
 log = logging.getLogger(__name__)
@@ -129,6 +130,31 @@ def reload_active_config_from_db(*, session: Session) -> bool:
     return True
 
 
+def _remote_log_block(destination: str | None) -> str:
+    """Extra `log` lines sending every log to a remote syslog host (#373).
+
+    Added next to the local files, never instead of them: statistics, alerts
+    and the TACACS+ Logs page all read those files. tac_plus-ng needs one
+    `<type> log = …` line per log; a comma-separated list is rejected.
+    """
+    if not destination:
+        return ""
+    try:
+        destination = check_remote_syslog_destination(destination)
+    except ValueError:
+        # Only reachable if a bad value was written around the API; never
+        # interpolate it into the config.
+        log.error("Ignoring invalid remote_syslog_destination %r", destination)
+        return ""
+    return (
+        f"\n    log remotelog {{ destination = {destination} }}\n"
+        "    access log = remotelog\n"
+        "    authentication log = remotelog\n"
+        "    authorization log = remotelog\n"
+        "    accounting log = remotelog\n"
+    )
+
+
 def generate_tacacs_ng_config(
     *,
     session: Session,
@@ -178,7 +204,7 @@ id = tac_plus-ng {{
     authentication log = authenticationlog
     authorization log = authorizationlog
     accounting log = accountinglog
-    
+    {remote_log}
     {mavises_template}
 
     login backend = mavis
@@ -193,6 +219,7 @@ id = tac_plus-ng {{
         authenticationlog=tacacs_ng_info["authentication_logfile_destination"],
         authorizationlog=tacacs_ng_info["authorization_logfile_destination"],
         accountinglog=tacacs_ng_info["accounting_logfile_destination"],
+        remote_log=_remote_log_block(tacacs_ng_info.get("remote_syslog_destination")),
         mavises_template=mavises_template,
     )
 
