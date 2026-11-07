@@ -32,6 +32,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump @tanstack/react-query-devtools from 5.102.4 to 5.105.3 in /frontend. PR [#388](https://github.com/thangphan205/tacacs-ng-ui/pull/388) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump shiki from 4.5.0 to 4.6.0 in /frontend. PR [#384](https://github.com/thangphan205/tacacs-ng-ui/pull/384) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump tenacity from 9.1.4 to 9.2.1 in /backend. PR [#387](https://github.com/thangphan205/tacacs-ng-ui/pull/387) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump react-dom and @types/react-dom in /frontend. PR [#382](https://github.com/thangphan205/tacacs-ng-ui/pull/382) by [@dependabot[bot]](https://github.com/apps/dependabot).
