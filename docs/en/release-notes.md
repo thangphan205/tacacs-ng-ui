@@ -32,6 +32,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump coverage from 7.15.4 to 7.17.1 in /backend. PR [#386](https://github.com/thangphan205/tacacs-ng-ui/pull/386) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @vitejs/plugin-react-swc from 4.3.1 to 4.3.3 in /frontend. PR [#385](https://github.com/thangphan205/tacacs-ng-ui/pull/385) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump playwright from v1.64.1-noble to v1.65.0-noble in /frontend. PR [#380](https://github.com/thangphan205/tacacs-ng-ui/pull/380) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump react-hook-form from 7.81.0 to 7.91.0 in /frontend. PR [#389](https://github.com/thangphan205/tacacs-ng-ui/pull/389) by [@dependabot[bot]](https://github.com/apps/dependabot).
