@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlmodel import Session, delete, func, select
 
+from app.core.audit_redact import redact_audit_values
 from app.core.config import settings
 from app.crud import tacacs_siem
 from app.models import AuditLog, AuditLogCreate
@@ -21,8 +22,14 @@ def create_audit_log(
 ) -> AuditLog | None:
     if settings.NODE_ROLE == "standby":
         return None
+    data = audit_log_in.model_dump()
+    # The one place every audit write passes (REST routes, MCP, anything new):
+    # secrets never reach the table, the Audit Logs page or the SIEM.
+    data["old_values"], data["new_values"] = redact_audit_values(
+        audit_log_in.entity_type, audit_log_in.old_values, audit_log_in.new_values
+    )
     db_obj = AuditLog(
-        **audit_log_in.model_dump(),
+        **data,
         user_id=user_id,
         user_email=user_email,
         ip_address=ip_address,
@@ -85,6 +92,9 @@ def purge_old_audit_logs(*, session: Session) -> int:
     return deleted
 
 
+# Fields the routes drop when they dump a model. Not the full list: secret
+# fields are masked centrally by core/audit_redact.py, which every audit write
+# goes through, so a route that forgets to exclude one is still safe.
 _SENSITIVE: frozenset[str] = frozenset(
     {"hashed_password", "encrypted_secret", "key_hash", "plaintext_key"}
 )

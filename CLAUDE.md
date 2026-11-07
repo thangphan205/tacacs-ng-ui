@@ -205,6 +205,8 @@ Syslog is built by hand, not with `logging.handlers.SysLogHandler` (#373): that 
 
 Records CREATE/UPDATE/DELETE/ACTIVATE actions on entities with user_id, email, IP, user-agent, old/new values. Auto-purges via `AUDIT_LOG_RETENTION_DAYS` (default 90) and `AUDIT_LOG_MAX_ROWS`. Routes call `audit_logs_crud.log_entity_action()` after mutations.
 
+**Secrets never reach the audit table.** `create_audit_log` passes every entry through `core/audit_redact.redact_audit_values()` — the one place REST routes, MCP writes and any new caller all go through — which replaces secret fields in `old_values` / `new_values` with `[redacted]` (`[redacted: changed]` on the new side of an update whose secret changed). Secret fields: `SECRET_FIELDS` by exact name (`password`, `secret_key`, `hashed_password`, `encrypted_secret`, `key_hash`, `plaintext_key`, …), `config_text` for `TacacsConfig` (it embeds host secrets and password hashes), and `mavis_value` when the key looks secret (`LDAP_PASSWD`). By exact name, not a pattern, so `password_type` stays visible. A new model with a secret field needs an entry there — the per-route `_SENSITIVE` exclusion is not enough. Migration `d8a41f6b2c95` masked rows stored before this, irreversibly, from a frozen copy of the rules; `tests/api/routes/test_audit_redaction.py` and `tests/core/test_audit_redact*.py` guard it.
+
 ### MCP Server (`backend/app/mcp_server/`)
 
 Model Context Protocol endpoint letting an LLM client inspect TACACS+ entities, render config previews, syntax-check config text, and — with `mcp:write` — create/update/delete entities. On by default (`MCP_ENABLED=true`); set to `false` to disable. See `docs/en/mcp-server.md`.

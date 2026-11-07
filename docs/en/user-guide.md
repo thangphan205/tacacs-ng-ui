@@ -907,6 +907,10 @@ Every configuration change made through the UI is recorded:
 
 Use audit logs to track who changed what and when — essential for compliance and troubleshooting.
 
+**Secrets are not stored.** The snapshots show a secret field as `[redacted]`, so they say it exists without revealing it: a TACACS+ user's `password`, a host's `secret_key`, the `config_text` of a generated config (it embeds both), and the value of a MAVIS entry whose key looks secret (such as `LDAP_PASSWD`). When an update changes a secret, the *after* snapshot says `[redacted: changed]`. The other fields, including `password_type` and the non-secret MAVIS values, are kept.
+
+Entries written before this was added were masked in place by the upgrade migration `d8a41f6b2c95`. **That cannot be undone:** the old values are overwritten, and any database backup taken earlier still holds them.
+
 ---
 
 ## Application User Management
