@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 # Two-int4 advisory keys live in a separate key space from the single-bigint
 # keys that crud/ordering.py derives with hashtext(), so they cannot collide.
-LOCK_CLASS_ID = 7461636  # "tac"
+LOCK_CLASS_ID = 7461636  # arbitrary, app-specific; also documented in CLAUDE.md
 SCHEDULER_LOCK: tuple[int, int] = (LOCK_CLASS_ID, 1)
 
 _RETRY_SECONDS = 30.0
