@@ -25,6 +25,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Fixes
 
+* 🐛 Name the entity in SIEM audit events. PR [#396](https://github.com/thangphan205/tacacs-ng-ui/pull/396) by [@thangphan205](https://github.com/thangphan205).
 * 🐛 Keep the Actions column visible on Configuration Options. PR [#390](https://github.com/thangphan205/tacacs-ng-ui/pull/390) by [@thangphan205](https://github.com/thangphan205).
 * 🐛 Fix SIEM syslog framing and header; correct the SIEM docs (#373). PR [#377](https://github.com/thangphan205/tacacs-ng-ui/pull/377) by [@thangphan205](https://github.com/thangphan205).
 * 🐛 Stop the log viewer from freezing on big files; add download (#371). PR [#376](https://github.com/thangphan205/tacacs-ng-ui/pull/376) by [@thangphan205](https://github.com/thangphan205).
