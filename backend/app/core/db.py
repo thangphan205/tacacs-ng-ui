@@ -370,7 +370,13 @@ def _seed_siem_config(session: Session) -> None:
             ),
             syslog_host=settings.SIEM_SYSLOG_HOST or None,
             syslog_port=settings.SIEM_SYSLOG_PORT,
-            syslog_protocol="tcp" if settings.SIEM_SYSLOG_PROTOCOL == "tcp" else "udp",
+            # As the old sender did, anything but "udp" means TCP; case and
+            # surrounding spaces are ignored.
+            syslog_protocol=(
+                "udp"
+                if settings.SIEM_SYSLOG_PROTOCOL.strip().lower() == "udp"
+                else "tcp"
+            ),
             ship_access=False,
             ship_authentication=ship_tacacs,
             ship_authorization=ship_tacacs,

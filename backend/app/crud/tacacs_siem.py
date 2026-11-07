@@ -47,7 +47,7 @@ _PRI_INFO = 14
 _PRI_WARNING = 12
 _WARNING_RESULTS = frozenset({"failed", "deny"})
 _CONNECT_TIMEOUT = 3.0
-_HTTP_TIMEOUT = 5.0
+HTTP_TIMEOUT = 5.0
 # After a failed connect or send, skip syslog for this long instead of paying
 # the connect timeout once per message.
 _BACKOFF_SECONDS = 60.0
@@ -260,7 +260,7 @@ def send_webhook(
     try:
         if client is None:
             with httpx.Client(
-                verify=target.webhook_verify_tls, timeout=_HTTP_TIMEOUT
+                verify=target.webhook_verify_tls, timeout=HTTP_TIMEOUT
             ) as c:
                 resp = c.post(
                     target.webhook_url,
@@ -293,7 +293,7 @@ class _SyslogSender:
         self._sock: socket.socket | None = None
         self._target: tuple[str, int, str] | None = None
         self._paused_until = 0.0
-        self.last_error: str | None = None
+        self._pause_reason = ""
 
     def _close(self) -> None:
         if self._sock is not None:
@@ -306,26 +306,27 @@ class _SyslogSender:
     def _connect(self, host: str, port: int, proto: str) -> socket.socket:
         return _open_socket(host, port, proto)
 
-    def send(self, message: str, host: str, port: int, proto: str) -> bool:
+    def send(self, message: str, host: str, port: int, proto: str) -> str | None:
         return self.send_many([message], host, port, proto)
 
     def send_many(
         self, messages: Iterable[str], host: str, port: int, proto: str
-    ) -> bool:
-        """Send messages in order. False if they were dropped (unreachable/paused)."""
+    ) -> str | None:
+        """Send messages in order. Returns None, or why they were not all sent."""
         target = (host, port, proto)
         with self._lock:
             if time.monotonic() < self._paused_until:
-                return False
+                return f"{self._pause_reason} (paused after a failure)"
             if self._target != target:
                 self._close()
                 self._target = target
             for message in messages:
-                if not self._send_one(_frame(message, proto), host, port, proto):
-                    return False
-            return True
+                error = self._send_one(_frame(message, proto), host, port, proto)
+                if error:
+                    return error
+            return None
 
-    def _send_one(self, data: bytes, host: str, port: int, proto: str) -> bool:
+    def _send_one(self, data: bytes, host: str, port: int, proto: str) -> str | None:
         # One retry: a peer that closed an idle TCP connection only shows up on
         # the next send.
         for attempt in (1, 2):
@@ -333,12 +334,12 @@ class _SyslogSender:
                 if self._sock is None:
                     self._sock = self._connect(host, port, proto)
                 self._sock.sendall(data)
-                return True
+                return None
             except OSError as e:
                 self._close()
                 if attempt == 2:
                     self._paused_until = time.monotonic() + _BACKOFF_SECONDS
-                    self.last_error = f"syslog {host}:{port}/{proto}: {e}"
+                    self._pause_reason = f"syslog {host}:{port}/{proto}: {e}"
                     logger.warning(
                         "Failed to forward to syslog %s:%s/%s; "
                         "pausing syslog forwarding for %ds",
@@ -348,14 +349,15 @@ class _SyslogSender:
                         int(_BACKOFF_SECONDS),
                         exc_info=True,
                     )
-        return False
+                    return self._pause_reason
+        return None
 
     def reset(self) -> None:
         with self._lock:
             self._close()
             self._target = None
             self._paused_until = 0.0
-            self.last_error = None
+            self._pause_reason = ""
 
 
 def _frame(message: str, proto: str) -> bytes:
@@ -377,10 +379,10 @@ def _open_socket(host: str, port: int, proto: str) -> socket.socket:
 _sender = _SyslogSender()
 
 
-def send_syslog(target: SiemTarget, messages: list[str]) -> bool:
-    """Send messages over the shared connection. True if sent (or nothing to do)."""
+def send_syslog(target: SiemTarget, messages: list[str]) -> str | None:
+    """Send messages over the shared connection. Returns None, or the error."""
     if not target.syslog_host or not messages:
-        return True
+        return None
     return _sender.send_many(
         messages, target.syslog_host, target.syslog_port, target.syslog_protocol
     )

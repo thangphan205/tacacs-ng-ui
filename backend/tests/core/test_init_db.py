@@ -198,7 +198,8 @@ def test_siem_config_is_seeded_from_env_once(
     monkeypatch.setattr(db_module.settings, "SIEM_WEBHOOK_URL", "https://hec.example/x")
     monkeypatch.setattr(db_module.settings, "SIEM_WEBHOOK_TOKEN", "tok")
     monkeypatch.setattr(db_module.settings, "SIEM_FORWARD_TACACS_EVENTS", True)
-    monkeypatch.setattr(db_module.settings, "SIEM_SYSLOG_HOST", None)
+    monkeypatch.setattr(db_module.settings, "SIEM_SYSLOG_HOST", "syslog.example")
+    monkeypatch.setattr(db_module.settings, "SIEM_SYSLOG_PROTOCOL", " TCP ")
     try:
         db_module._seed_siem_config(db)
         db.commit()
@@ -208,6 +209,7 @@ def test_siem_config_is_seeded_from_env_once(
         assert not cfg.ship_access
         assert cfg.webhook_token_encrypted
         assert decrypt_secret(cfg.webhook_token_encrypted) == "tok"
+        assert cfg.syslog_protocol == "tcp"  # not downgraded to UDP by case
 
         cfg.enabled = False
         cfg.webhook_url = "https://changed.example/x"

@@ -698,9 +698,11 @@ The **Real-time shipper** card shows the shipper on the node serving the page: r
 **TACACS+ log events.** Each node runs a shipper process that follows its own tac_plus-ng log files under `/var/log/tacacs/` and sends **one event per log line**, normally within a second or two. Primary and standby nodes each ship their own events, so a receiver sees everything the cluster handled. The node name (`NODE_NAME`) is the event's host.
 
 - **No history replay.** When forwarding (or a log type) is switched on, shipping starts from the end of the current file. Nothing written before, or while forwarding was off, is sent.
-- **Restarts resume.** The shipper keeps its position in `/var/log/tacacs/.siem_offsets.json`, so a restart (or a shipper that was down over midnight) carries on where it stopped.
-- **Webhook delivery is at-least-once.** If the webhook fails, the shipper keeps the batch and retries with backoff (2 s up to 60 s) before reading anything newer, so a receiver outage delays events but does not lose them. A retry can repeat events the receiver had already stored.
-- **Syslog is best effort.** If the syslog receiver is unreachable, syslog sending pauses for 60 seconds and those messages are dropped. Over UDP there is no delivery confirmation at all.
+- **Restarts resume.** The shipper keeps its position in `/var/log/tacacs/.siem/offsets.json`, so a restart (or a shipper that was down over midnight) carries on where it stopped.
+- **Delivery is at-least-once** for one destination: the webhook if one is set, otherwise syslog. If it fails, the shipper keeps the batch and retries with backoff (2 s up to 60 s) before reading anything newer, so a receiver outage delays events but does not lose them. A retry can repeat events the receiver had already stored.
+- **With both a webhook and syslog**, the webhook decides. A syslog failure then drops those syslog messages (syslog sending pauses for 60 seconds after a failure) while the webhook still gets them.
+- **UDP has no delivery confirmation**, so a UDP receiver that is down is not noticed.
+- **Large backlogs** (for example after a restart) are worked off over several seconds, up to 10,000 lines per log type per second.
 
 **Audit log entries** (create / update / delete / activate, from the UI or MCP) are sent from the primary when they are recorded, with `sourcetype` `tacacs-ng-ui:audit`.
 

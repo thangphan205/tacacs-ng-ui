@@ -30,10 +30,15 @@ class Sinks:
         self.webhook: list[dict[str, Any]] = []
         self.webhook_error: str | None = None
         self.webhook_calls = 0
+        self.syslog_error: str | None = None
+        self.syslog_calls = 0
 
-        def fake_syslog(_t: SiemTarget, msgs: list[str]) -> bool:
+        def fake_syslog(_t: SiemTarget, msgs: list[str]) -> str | None:
+            self.syslog_calls += 1
+            if self.syslog_error:
+                return self.syslog_error
             self.syslog.extend(msgs)
-            return True
+            return None
 
         def fake_webhook(
             _t: SiemTarget, events: list[dict[str, Any]], _c: object = None
@@ -303,3 +308,80 @@ def test_offsets_file_is_written_atomically(env: dict[str, Any]) -> None:
     assert not os.path.exists(env["dir"] / "offsets.json.tmp")
     state = json.loads((env["dir"] / "offsets.json").read_text())
     assert state[str(p)]["offset"] == p.stat().st_size
+
+
+def test_unfinished_last_line_of_yesterday_does_not_block_today(
+    env: dict[str, Any], sinks: Sinks
+) -> None:
+    old = log_path(env)
+    old.touch()
+    t = tailer(env)
+    t.tick(SYSLOG)
+    append(old, line("late") + "2026-11-07 23:59:59 +0700\t10.0.0.1\tcut")  # no LF
+    env["today"][0] = NEXT
+    append(log_path(env, day=NEXT), line("early", day=NEXT))
+    t.tick(SYSLOG)
+    t.tick(SYSLOG)
+    append(log_path(env, day=NEXT), line("later", day=NEXT))
+    t.tick(SYSLOG)
+    assert sinks.syslog_users() == ["late", "early", "later"]
+
+
+def test_syslog_only_failure_holds_offset_and_retries(
+    env: dict[str, Any], sinks: Sinks
+) -> None:
+    p = log_path(env)
+    p.touch()
+    t = tailer(env)
+    t.tick(SYSLOG)
+    append(p, line("alice"))
+    sinks.syslog_error = "syslog 127.0.0.1:514/tcp: refused"
+    t.tick(SYSLOG)
+    assert t.status.last_error == sinks.syslog_error
+    calls = sinks.syslog_calls
+    t.tick(SYSLOG)  # backoff: not attempted
+    assert sinks.syslog_calls == calls
+
+    sinks.syslog_error = None
+    env["clock"].now += 120
+    t.tick(SYSLOG)
+    assert sinks.syslog_users() == ["alice"]
+    assert t.status.last_error is None  # cleared once delivery recovers
+
+
+def test_syslog_failure_with_webhook_is_not_retried(
+    env: dict[str, Any], sinks: Sinks
+) -> None:
+    """With both sinks the webhook decides; re-sending would duplicate it."""
+    p = log_path(env)
+    p.touch()
+    t = tailer(env)
+    t.tick(BOTH)
+    append(p, line("alice"))
+    sinks.syslog_error = "refused"
+    t.tick(BOTH)
+    assert sinks.webhook_users() == ["alice"]
+    assert t.status.last_error == "refused"  # the batch was not clean
+    sinks.syslog_error = None
+    append(p, line("bob"))
+    t.tick(BOTH)
+    assert sinks.webhook_users() == ["alice", "bob"]
+    assert t.status.last_error is None
+
+
+def test_backlog_is_spread_over_ticks_and_keeps_order(
+    env: dict[str, Any], sinks: Sinks, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(siem_tailer, "BATCH_LINES", 2)
+    monkeypatch.setattr(siem_tailer, "MAX_BATCHES_PER_TICK", 2)
+    old = log_path(env)
+    old.touch()
+    t = tailer(env)
+    t.tick(SYSLOG)
+    append(old, "".join(line(f"y{i}") for i in range(6)))
+    env["today"][0] = NEXT
+    append(log_path(env, day=NEXT), line("t0", day=NEXT))
+    t.tick(SYSLOG)
+    assert sinks.syslog_users() == ["y0", "y1", "y2", "y3"]  # capped, today waits
+    t.tick(SYSLOG)
+    assert sinks.syslog_users() == ["y0", "y1", "y2", "y3", "y4", "y5", "t0"]

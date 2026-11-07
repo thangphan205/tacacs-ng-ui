@@ -213,8 +213,8 @@ def test_tcp_messages_are_lf_framed_over_one_connection(
     tcp_server: tuple[SiemTarget, list[bytes], list[int]],
 ) -> None:
     target, received, conns = tcp_server
-    assert send_syslog(target, _msgs("alice", "bob"))
-    assert send_syslog(target, _msgs("carol"))
+    assert send_syslog(target, _msgs("alice", "bob")) is None
+    assert send_syslog(target, _msgs("carol")) is None
     data = _drain(received)
 
     assert b"\x00" not in data
@@ -235,7 +235,7 @@ def test_udp_sends_one_datagram_per_message() -> None:
     srv.settimeout(2)
     target = SiemTarget(syslog_host="127.0.0.1", syslog_port=srv.getsockname()[1])
     try:
-        assert send_syslog(target, _msgs("alice", "bob"))
+        assert send_syslog(target, _msgs("alice", "bob")) is None
         first, second = srv.recv(65536), srv.recv(65536)
     finally:
         srv.close()
@@ -268,10 +268,10 @@ def test_unreachable_receiver_does_not_raise_and_backs_off(
 
     monkeypatch.setattr(tacacs_siem._sender, "_connect", counting_connect)
     for _ in range(50):
-        assert send_syslog(target, _msgs("alice")) is False  # must not raise
+        error = send_syslog(target, _msgs("alice"))  # must not raise
+        assert error and "127.0.0.1" in error
     # Two attempts for the first message, then paused for the rest.
     assert len(calls) == 2
-    assert tacacs_siem._sender.last_error
 
 
 # --- test event -----------------------------------------------------------------

@@ -96,13 +96,23 @@ function toForm(cfg: SiemConfigPublic): FormState {
   }
 }
 
+/** The port as a number, or null when the field is empty or not 1–65535. */
+function parsePort(value: string): number | null {
+  const port = Number(value.trim())
+  return value.trim() !== "" &&
+    Number.isInteger(port) &&
+    port >= 1 &&
+    port <= 65535
+    ? port
+    : null
+}
+
 function toUpdate(f: FormState): SiemConfigUpdate {
   const update: SiemConfigUpdate = {
     enabled: f.enabled,
     webhook_url: f.webhook_url.trim(),
     webhook_verify_tls: f.webhook_verify_tls,
     syslog_host: f.syslog_host.trim(),
-    syslog_port: Number(f.syslog_port),
     syslog_protocol: f.syslog_protocol,
     ship_access: f.ship_access,
     ship_authentication: f.ship_authentication,
@@ -110,6 +120,9 @@ function toUpdate(f: FormState): SiemConfigUpdate {
     ship_accounting: f.ship_accounting,
     ship_audit: f.ship_audit,
   }
+  // An empty port is not sent (the stored one stays); "" would be 0 → 422.
+  const port = parsePort(f.syslog_port)
+  if (port !== null) update.syslog_port = port
   // Omitted keeps the stored token; "" clears it.
   if (f.clear_token) update.webhook_token = ""
   else if (f.webhook_token) update.webhook_token = f.webhook_token
@@ -263,10 +276,10 @@ function SiemPage() {
     setForm({ ...form, [key]: value })
   const dirty =
     JSON.stringify(toUpdate(form)) !== JSON.stringify(toUpdate(toForm(config)))
-  const port = Number(form.syslog_port)
+  // Required with a host; without one, only a malformed value is an error.
   const portInvalid =
-    form.syslog_host.trim() !== "" &&
-    (!Number.isInteger(port) || port < 1 || port > 65535)
+    parsePort(form.syslog_port) === null &&
+    (form.syslog_host.trim() !== "" || form.syslog_port.trim() !== "")
   const noSink = !form.webhook_url.trim() && !form.syslog_host.trim()
   const noSource =
     !form.ship_audit && !TACACS_SOURCES.some(({ key }) => form[key])

@@ -12,10 +12,14 @@ never replays history. A file that appears while running (a new day's file)
 is read from the start. After local midnight the previous day's file is
 drained to its end before it is dropped.
 
-Delivery to the webhook is at-least-once: the offset only moves once the
-webhook accepted the batch, and a failed batch is retried with backoff before
-anything newer is read. Syslog is sent once per batch, before the webhook, and
-is not re-sent when only the webhook retry is pending.
+Delivery is at-least-once for the deciding sink: the webhook when one is set,
+otherwise syslog. The offset only moves once that sink took the batch, and a
+failed batch is retried with backoff before anything newer is read. With both
+sinks, syslog is sent once per batch, before the webhook, and is not re-sent
+while only the webhook retry is pending, so a syslog outage then drops messages.
+
+A tick reads at most MAX_BATCHES_PER_TICK batches per type, so catching up a
+large backlog never blocks config reloads, shutdown or the status file.
 """
 
 import json
@@ -38,13 +42,26 @@ from scripts._log_stats_base import build_log_file_path, local_today
 
 logger = logging.getLogger(__name__)
 
-OFFSETS_FILE = os.path.join(settings.TACACS_LOG_DIRECTORY, ".siem_offsets.json")
+# On the log volume so it survives container rebuilds, in a dot-directory that
+# the TACACS Logs file listing skips.
+OFFSETS_FILE = os.path.join(settings.TACACS_LOG_DIRECTORY, ".siem", "offsets.json")
 STATUS_FILE = "/tmp/siem_shipper_status.json"
 
 BATCH_LINES = 500
-_READ_CHUNK = 1024 * 1024
+# Batches per log type per tick: bounds a tick while catching up a backlog, so
+# config reloads, SIGTERM and the status file are never held up for long.
+MAX_BATCHES_PER_TICK = 20
+# ~500 lines of tac_plus-ng output; a longer single line is skipped.
+_READ_CHUNK = 256 * 1024
 _RETRY_MIN = 2.0
 _RETRY_MAX = 60.0
+
+
+# _ship_file results
+_DONE = "done"  # read to the end
+_PARTIAL = "partial"  # only an unfinished last line left
+_MORE = "more"  # stopped at MAX_BATCHES_PER_TICK; continue next tick
+_FAILED = "failed"  # a sink failed; retry after backoff
 
 
 @dataclass
@@ -55,6 +72,7 @@ class _Pending:
     new_offset: int
     inode: int
     events: list[dict[str, Any]]
+    syslog_ok: bool
 
 
 @dataclass
@@ -69,6 +87,10 @@ class _Status:
     def error(self, message: str) -> None:
         self.last_error = message
         self.last_error_at = datetime.now(timezone.utc)
+
+    def clear_error(self) -> None:
+        self.last_error = None
+        self.last_error_at = None
 
     def to_json(self) -> dict[str, Any]:
         def iso(d: datetime | None) -> str | None:
@@ -134,6 +156,7 @@ class LogTailer:
             return
         tmp = f"{self._offsets_path}.tmp"
         try:
+            os.makedirs(os.path.dirname(self._offsets_path) or ".", exist_ok=True)
             with open(tmp, "w") as f:
                 json.dump(self._state, f)
             os.replace(tmp, self._offsets_path)
@@ -189,13 +212,13 @@ class LogTailer:
         self._primed &= enabled
         if target is None or not enabled:
             return
-        if self._pending and target.webhook_url and self._clock() < self._retry_at:
-            return  # webhook backoff: read nothing newer until it recovers
+        if self._clock() < self._retry_at:
+            return  # a sink just failed: read nothing newer until the retry
 
         today = self._today()
         for log_type in sorted(enabled):
-            if self._pending and self._clock() < self._retry_at:
-                break  # the webhook just failed; don't pay its timeout per type
+            if self._clock() < self._retry_at:
+                break  # failed for an earlier type; don't pay its timeout again
             self._ship_type(target, log_type, today)
             self._primed.add(log_type)
 
@@ -214,26 +237,29 @@ class LogTailer:
         # from the start even before the type is primed.
         tailing = yesterday_path in self._state
         if tailing:
-            if not self._ship_file(target, log_type, yesterday_path, from_start=True):
+            result = self._ship_file(target, log_type, yesterday_path, from_start=True)
+            if result in (_FAILED, _MORE):
                 return  # keep order: nothing from today before yesterday is done
+            # Done, or only a line tac_plus-ng never finished: once today's file
+            # exists nothing more will be appended to yesterday's.
             if os.path.exists(today_path):
                 self._drop(yesterday_path)
         self._ship_file(target, log_type, today_path, from_start=tailing)
 
     def _ship_file(
         self, target: SiemTarget, log_type: str, path: str, *, from_start: bool
-    ) -> bool:
-        """Ship new lines of one file. True when the file is read to its end."""
+    ) -> str:
+        """Ship new lines of one file: _DONE, _PARTIAL, _MORE or _FAILED."""
         try:
             st = os.stat(path)
         except OSError:
-            return True
+            return _DONE
         inode = st.st_ino
 
         pending = self._pending.get(path)
         if pending is not None:
             if not self._deliver_pending(target, path, pending):
-                return False
+                return _FAILED
 
         prev = self._state.get(path)
         if prev is None:
@@ -247,14 +273,16 @@ class LogTailer:
             offset = 0  # replaced or truncated
             self._set(path, log_type, 0, inode)
 
-        while offset < st.st_size:
+        for _ in range(MAX_BATCHES_PER_TICK):
+            if offset >= st.st_size:
+                return _DONE
             lines, new_offset = _read_lines(path, offset, BATCH_LINES)
             if new_offset == offset:
-                break  # only a partial line so far
+                return _PARTIAL  # only an unfinished line left
             if not self._send_batch(target, log_type, path, lines, new_offset, inode):
-                return False
+                return _FAILED
             offset = new_offset
-        return offset >= st.st_size
+        return _DONE if offset >= st.st_size else _MORE
 
     # --- sending ----------------------------------------------------------------
 
@@ -268,20 +296,27 @@ class LogTailer:
         inode: int,
     ) -> bool:
         parsed = [(line, parse_log_line(log_type, line)) for line in lines]
+        syslog_ok = True
         if target.syslog_host:
             msgs = [
                 tacacs_siem.format_tacacs_syslog(log_type, e, ln) for ln, e in parsed
             ]
-            if not tacacs_siem.send_syslog(target, msgs):
-                self.status.error(
-                    tacacs_siem._sender.last_error or "syslog receiver unreachable"
-                )
+            error = tacacs_siem.send_syslog(target, msgs)
+            if error:
+                syslog_ok = False
+                self.status.error(error)
+                if not target.webhook_url:
+                    # Syslog is the only destination: hold the position and
+                    # retry, as for the webhook. (With a webhook as well, the
+                    # webhook decides; re-sending to it would duplicate.)
+                    self._backoff(f"syslog: {error}", path)
+                    return False
         if target.webhook_url:
             events = [tacacs_siem.tacacs_hec(log_type, e, ln) for ln, e in parsed]
-            pending = _Pending(log_type, new_offset, inode, events)
+            pending = _Pending(log_type, new_offset, inode, events, syslog_ok)
             self._pending[path] = pending
             return self._deliver_pending(target, path, pending)
-        self._committed(path, log_type, new_offset, inode, len(lines))
+        self._delivered(path, log_type, new_offset, inode, len(lines), clean=True)
         return True
 
     def _deliver_pending(self, target: SiemTarget, path: str, p: _Pending) -> bool:
@@ -289,19 +324,38 @@ class LogTailer:
             error = tacacs_siem.send_webhook(target, p.events, self._http(target))
             if error:
                 self.status.error(f"webhook: {error}")
-                self._retry_at = self._clock() + self._retry_delay
-                self._retry_delay = min(self._retry_delay * 2, _RETRY_MAX)
-                logger.warning(
-                    "SIEM webhook failed (%s); retrying %s in %.0fs",
-                    error,
-                    path,
-                    self._retry_at - self._clock(),
-                )
+                self._backoff(f"webhook: {error}", path)
                 return False
-            self._retry_delay = _RETRY_MIN
         del self._pending[path]
-        self._committed(path, p.log_type, p.new_offset, p.inode, len(p.events))
+        self._delivered(
+            path, p.log_type, p.new_offset, p.inode, len(p.events), clean=p.syslog_ok
+        )
         return True
+
+    def _backoff(self, error: str, path: str) -> None:
+        self._retry_at = self._clock() + self._retry_delay
+        logger.warning(
+            "SIEM forwarding failed (%s); retrying %s in %.0fs",
+            error,
+            path,
+            self._retry_delay,
+        )
+        self._retry_delay = min(self._retry_delay * 2, _RETRY_MAX)
+
+    def _delivered(
+        self,
+        path: str,
+        log_type: str,
+        offset: int,
+        inode: int,
+        count: int,
+        *,
+        clean: bool,
+    ) -> None:
+        self._retry_delay = _RETRY_MIN
+        if clean:
+            self.status.clear_error()  # every sink took this batch
+        self._committed(path, log_type, offset, inode, count)
 
     def _committed(
         self, path: str, log_type: str, offset: int, inode: int, count: int
@@ -317,7 +371,7 @@ class LogTailer:
             if self._client is not None:
                 self._client.close()
             self._client = httpx.Client(
-                verify=target.webhook_verify_tls, timeout=tacacs_siem._HTTP_TIMEOUT
+                verify=target.webhook_verify_tls, timeout=tacacs_siem.HTTP_TIMEOUT
             )
             self._client_verify = target.webhook_verify_tls
         return self._client

@@ -388,8 +388,12 @@ def list_log_files(
         raise HTTPException(status_code=404, detail="Log directory not found.")
 
     new_logs = []
-    for root, _, files in os.walk(LOG_DIRECTORY):
+    for root, dirs, files in os.walk(LOG_DIRECTORY):
+        # Skip dot-entries: the SIEM shipper keeps its offsets in .siem/.
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
         for file in files:
+            if file.startswith("."):
+                continue
             relative_path = os.path.relpath(os.path.join(root, file), LOG_DIRECTORY)
 
             existing = session.exec(
