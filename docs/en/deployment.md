@@ -507,7 +507,7 @@ All variables with their defaults (from `.env.example`):
 | `MICROSOFT_REDIRECT_URI` | *(derived)* | Optional; defaults to `<FRONTEND_HOST>/api/v1/oauth/microsoft/callback` |
 | `SIEM_WEBHOOK_URL` | *(optional)* | Splunk HEC or Logstash HTTP input URL |
 | `SIEM_WEBHOOK_TOKEN` | *(optional)* | Splunk HEC token or bearer token |
-| `SIEM_FORWARD_TACACS_EVENTS` | `false` | Forward auth/authz/acct events to SIEM |
+| `SIEM_FORWARD_TACACS_EVENTS` | `false` | Forward daily auth/authz/acct statistics records to SIEM (see the user guide) |
 | `SIEM_SYSLOG_HOST` | *(optional)* | Syslog target host |
 | `SIEM_SYSLOG_PORT` | `514` | Syslog port |
 | `SIEM_SYSLOG_PROTOCOL` | `udp` | `udp` or `tcp` |

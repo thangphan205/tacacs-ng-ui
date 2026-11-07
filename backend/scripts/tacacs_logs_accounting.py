@@ -115,6 +115,7 @@ def save_statistics_to_db(
                     user_source_ip,
                     "start",
                     ts,
+                    node_name=node_name,
                     background=False,
                 )
             if stop_events.get(key, 0) > 0:
@@ -125,6 +126,7 @@ def save_statistics_to_db(
                     user_source_ip,
                     "stop",
                     ts,
+                    node_name=node_name,
                     background=False,
                 )
 

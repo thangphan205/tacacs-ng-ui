@@ -190,7 +190,9 @@ Today's live numbers in `crud/aaa_statistics.py` go through `_today_rows()`, whi
 
 ### SIEM Forwarding (`backend/app/crud/tacacs_siem.py`)
 
-Forwards parsed events to external SIEM via HTTP webhook (Splunk HEC / Logstash) and/or syslog. Controlled by env vars: `SIEM_WEBHOOK_URL`, `SIEM_WEBHOOK_TOKEN`, `SIEM_FORWARD_TACACS_EVENTS`, `SIEM_SYSLOG_HOST`.
+Forwards the stats scripts' **daily per (user, device, source, result) records** — not individual events — to an external SIEM via HTTP webhook (Splunk HEC format, not GELF) and/or syslog, from the primary only, on every stats run. Controlled by env vars: `SIEM_WEBHOOK_URL`, `SIEM_WEBHOOK_TOKEN`, `SIEM_FORWARD_TACACS_EVENTS`, `SIEM_SYSLOG_HOST`, `SIEM_SYSLOG_PORT`, `SIEM_SYSLOG_PROTOCOL`.
+
+Syslog is built by hand, not with `logging.handlers.SysLogHandler` (#373): that handler ends TCP messages with NUL, which Graylog's default TCP input silently drops, and sends no timestamp or hostname. Messages are RFC 5424 with HOSTNAME = node name and MSGID `-` (Graylog 5.2 leaves a MSGID inside `message`), LF-terminated over TCP, sent over one cached connection per process with a 60 s pause after a failure. `tests/crud/test_tacacs_siem.py` checks framing against real local sockets.
 
 ### Audit Logging (`backend/app/crud/audit_logs.py`)
 

@@ -506,7 +506,7 @@ Tất cả biến với giá trị mặc định (từ `.env.example`):
 | `MICROSOFT_REDIRECT_URI` | *(tự suy ra)* | Tùy chọn; mặc định `<FRONTEND_HOST>/api/v1/oauth/microsoft/callback` |
 | `SIEM_WEBHOOK_URL` | *(tùy chọn)* | URL Splunk HEC hoặc Logstash HTTP input |
 | `SIEM_WEBHOOK_TOKEN` | *(tùy chọn)* | Splunk HEC token hoặc bearer token |
-| `SIEM_FORWARD_TACACS_EVENTS` | `false` | Chuyển tiếp sự kiện auth/authz/acct đến SIEM |
+| `SIEM_FORWARD_TACACS_EVENTS` | `false` | Chuyển tiếp bản ghi thống kê auth/authz/acct theo ngày đến SIEM (xem hướng dẫn sử dụng) |
 | `SIEM_SYSLOG_HOST` | *(tùy chọn)* | Host syslog đích |
 | `SIEM_SYSLOG_PORT` | `514` | Cổng syslog |
 | `SIEM_SYSLOG_PROTOCOL` | `udp` | `udp` hoặc `tcp` |
