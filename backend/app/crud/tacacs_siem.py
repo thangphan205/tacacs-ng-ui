@@ -28,6 +28,7 @@ from typing import Any
 import httpx
 from sqlmodel import Session
 
+from app.core.audit_names import entity_name
 from app.core.config import settings
 from app.core.security import decrypt_secret
 from app.models import (
@@ -201,17 +202,29 @@ def tacacs_hec(log_type: str, event: TacacsLogEvent | None, raw: str) -> dict[st
 
 
 def format_audit_syslog(log: AuditLog, when: datetime | None = None) -> str:
-    """``when`` is the aware creation time; a naive ``created_at`` is read as UTC."""
+    """``when`` is the aware creation time; a naive ``created_at`` is read as UTC.
+
+    ``entity_name`` says what the id belongs to (it resolves to nothing after a
+    delete); left out when the entity has no name. The audit row's raw values
+    hold secrets and are never sent, only that name.
+    """
+    name, renamed_from = entity_name(log.entity_type, log.old_values, log.new_values)
+    named = ""
+    if name:
+        named += f" entity_name={_value(name)}"
+    if renamed_from:
+        named += f" renamed_from={_value(renamed_from)}"
     body = (
         f"type=audit action={_value(log.action)} "
-        f"entity_type={_value(log.entity_type)} entity_id={_value(log.entity_id)} "
-        f"user_email={_value(log.user_email)} ip={_value(log.ip_address)} "
+        f"entity_type={_value(log.entity_type)} entity_id={_value(log.entity_id)}"
+        f"{named} user_email={_value(log.user_email)} ip={_value(log.ip_address)} "
         f"msg={_free_text(log.description)}"
     )
     return _rfc5424(_PRI_INFO, when or _aware(log.created_at), AUDIT_APP_NAME, body)
 
 
 def audit_hec(log: AuditLog, when: datetime | None = None) -> dict[str, Any]:
+    name, renamed_from = entity_name(log.entity_type, log.old_values, log.new_values)
     return {
         "time": (when or _aware(log.created_at)).timestamp(),
         "host": node_name(),
@@ -222,6 +235,8 @@ def audit_hec(log: AuditLog, when: datetime | None = None) -> dict[str, Any]:
             "action": log.action,
             "entity_type": log.entity_type,
             "entity_id": log.entity_id,
+            "entity_name": name,
+            "renamed_from": renamed_from,
             "user_id": str(log.user_id) if log.user_id else None,
             "user_email": log.user_email,
             "ip_address": log.ip_address,
