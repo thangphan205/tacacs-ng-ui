@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Fixes
+
+* 🐛 Run background loops in exactly one uvicorn worker (#372). PR [#374](https://github.com/thangphan205/tacacs-ng-ui/pull/374) by [@thangphan205](https://github.com/thangphan205).
+
 ### Docs
 
 * 📝 List supported vendors and write the Cisco and Arista guides. PR [#370](https://github.com/thangphan205/tacacs-ng-ui/pull/370) by [@thangphan205](https://github.com/thangphan205).
