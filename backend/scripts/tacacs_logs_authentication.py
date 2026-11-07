@@ -125,6 +125,7 @@ def save_statistics_to_db(
                     user_source_ip,
                     "success",
                     ts,
+                    node_name=node_name,
                     background=False,
                 )
             if failed_logins.get(key, 0) > 0:
@@ -135,6 +136,7 @@ def save_statistics_to_db(
                     user_source_ip,
                     "failed",
                     ts,
+                    node_name=node_name,
                     background=False,
                 )
 

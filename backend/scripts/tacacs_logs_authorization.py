@@ -121,6 +121,7 @@ def save_statistics_to_db(
                     user_source_ip,
                     "permit",
                     ts,
+                    node_name=node_name,
                     background=False,
                 )
             if denied_authorizations.get(key, 0) > 0:
@@ -131,6 +132,7 @@ def save_statistics_to_db(
                     user_source_ip,
                     "deny",
                     ts,
+                    node_name=node_name,
                     background=False,
                 )
 
