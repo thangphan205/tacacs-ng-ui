@@ -32,6 +32,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump react-hook-form from 7.81.0 to 7.91.0 in /frontend. PR [#389](https://github.com/thangphan205/tacacs-ng-ui/pull/389) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @tanstack/react-query-devtools from 5.102.4 to 5.105.3 in /frontend. PR [#388](https://github.com/thangphan205/tacacs-ng-ui/pull/388) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump shiki from 4.5.0 to 4.6.0 in /frontend. PR [#384](https://github.com/thangphan205/tacacs-ng-ui/pull/384) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump tenacity from 9.1.4 to 9.2.1 in /backend. PR [#387](https://github.com/thangphan205/tacacs-ng-ui/pull/387) by [@dependabot[bot]](https://github.com/apps/dependabot).
