@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Features
+
+* ✨ Show what triggered an alert in Alert History (#372). PR [#375](https://github.com/thangphan205/tacacs-ng-ui/pull/375) by [@thangphan205](https://github.com/thangphan205).
+
 ### Fixes
 
 * 🐛 Run background loops in exactly one uvicorn worker (#372). PR [#374](https://github.com/thangphan205/tacacs-ng-ui/pull/374) by [@thangphan205](https://github.com/thangphan205).
