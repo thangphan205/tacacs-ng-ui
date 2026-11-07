@@ -15,6 +15,7 @@ from starlette.middleware.cors import CORSMiddleware
 from app.api.main import api_router
 from app.core.config import settings
 from app.core.db import engine
+from app.core.leader import run_as_leader
 from app.crud.alert_evaluator import evaluate_all_rules
 from app.crud.audit_logs import purge_old_audit_logs
 from app.crud.ml_anomaly_scorer import run_daily_anomaly_scoring
@@ -150,6 +151,22 @@ def _scheduler_enabled(cfg: HaConfig | None) -> bool:
     return cfg.scheduler_enabled if cfg else settings.SCHEDULER_ENABLED
 
 
+def _start_background_loops(stats_interval: int) -> list[asyncio.Task[None]]:
+    """Start the background write loops. Called only by the elected leader.
+
+    Never start a write loop from ``lifespan`` directly: every uvicorn worker
+    runs the lifespan, so the loop would run once per worker.
+    """
+    tasks = [
+        asyncio.create_task(_audit_purge_loop()),
+        asyncio.create_task(_alert_evaluation_loop()),
+        asyncio.create_task(_ml_scoring_loop()),
+    ]
+    if stats_interval > 0:
+        tasks.append(asyncio.create_task(_stats_collection_loop()))
+    return tasks
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     with Session(engine) as session:
@@ -171,20 +188,21 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
 
             await stack.enter_async_context(mcp_lifespan())
 
-        tasks = []
+        tasks: list[asyncio.Task[None]] = []
         if scheduler_on:
+            # One leader among the uvicorn workers runs the loops (#372).
             tasks = [
-                asyncio.create_task(_audit_purge_loop()),
-                asyncio.create_task(_alert_evaluation_loop()),
-                asyncio.create_task(_ml_scoring_loop()),
+                asyncio.create_task(
+                    run_as_leader(lambda: _start_background_loops(stats_interval))
+                )
             ]
-            if stats_interval > 0:
-                tasks.append(asyncio.create_task(_stats_collection_loop()))
         try:
             yield
         finally:
             for t in tasks:
                 t.cancel()
+            # Let the leader release its lock so a follower takes over promptly.
+            await asyncio.gather(*tasks, return_exceptions=True)
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:

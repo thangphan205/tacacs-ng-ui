@@ -141,13 +141,16 @@ Core domain logic in `backend/app/crud/tacacs_configs.py`. Reads/writes config f
 
 ### Background Tasks (`backend/app/main.py`)
 
-Three asyncio loops run in FastAPI lifespan:
+Four asyncio loops, started from FastAPI lifespan on a primary with the scheduler on:
 
 | Task | Interval | Description |
 |---|---|---|
 | `_alert_evaluation_loop()` | 5 min | Evaluates enabled alert rules; dispatches notifications |
 | `_ml_scoring_loop()` | 24 h | IsolationForest anomaly scoring on 30-day auth stats |
 | `_audit_purge_loop()` | 24 h | Purges old audit log entries per retention settings |
+| `_stats_collection_loop()` | `stats_interval_minutes` | Runs the three stats scripts for today (and SIEM forwarding), then collects from peers |
+
+**Exactly one uvicorn worker runs them (#372).** All 4 workers run the lifespan, so `run_as_leader()` in `app/core/leader.py` elects one by holding a session-level `pg_try_advisory_lock(7461636, 1)` on a dedicated autocommit connection; the others retry every 30 s and take over when the leader's session dies. Without it every alert fired and every stats/SIEM run happened 4 times. A per-iteration xact lock does not work — the runs are sequential, not concurrent. Start new write loops only inside `_start_background_loops()`, never from `lifespan` directly. `tests/core/test_scheduler_leader.py` guards this, using its own lock keys because the test `client` fixture's lifespan may hold the real one.
 
 ### Alert Rules & Events (`backend/app/crud/alert_evaluator.py`)
 
