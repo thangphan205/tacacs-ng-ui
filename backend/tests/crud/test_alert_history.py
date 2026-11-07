@@ -72,7 +72,10 @@ def test_fired_without_channels_is_recorded(db: Session, rule: AlertRule) -> Non
     ev = events[0]
     assert ev.status == "no_channel"
     assert ev.channel_id is None
-    assert json.loads(ev.payload_snapshot or "") == PAYLOAD
+    snapshot = json.loads(ev.payload_snapshot or "")
+    assert snapshot.items() >= PAYLOAD.items()
+    # context the notification shows is stored too
+    assert snapshot["node"] and snapshot["fired_at"]
     db.refresh(rule)
     assert rule.last_fired_at is not None
 

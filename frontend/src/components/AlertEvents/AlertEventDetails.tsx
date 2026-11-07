@@ -33,6 +33,13 @@ const PAYLOAD_LABELS: Record<string, string> = {
   deny_count: "Authz denials",
   config_change_count: "Config changes",
   changes: "Changes",
+  users: "Users",
+  sources: "Source IPs",
+  top_users: "Top users",
+  top_sources: "Top source IPs",
+  top_devices: "Top devices",
+  node: "Node",
+  fired_at: "Fired at",
   window_minutes: "Window (min)",
   actions_checked: "Actions",
 }
@@ -68,6 +75,14 @@ export function parsePayload(
 function Scalar({ value }: { value: JsonValue }) {
   if (value === null) return <Text color="fg.muted">—</Text>
   if (typeof value === "boolean") return <Text>{value ? "yes" : "no"}</Text>
+  // e.g. the source IPs or devices of one user row
+  if (Array.isArray(value) && value.every((v) => !isObject(v))) {
+    return value.length === 0 ? (
+      <Text color="fg.muted">—</Text>
+    ) : (
+      <Text wordBreak="break-all">{value.map(String).join(", ")}</Text>
+    )
+  }
   if (typeof value === "object") {
     return (
       <Code fontSize="xs" whiteSpace="pre-wrap">
