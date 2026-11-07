@@ -446,11 +446,22 @@ Kết quả phân trang. Mỗi sự kiện hiển thị: Thời gian, Loại (ba
 
 ## Tích Hợp SIEM
 
-tacacs-ng-ui có thể chuyển tiếp sự kiện log TACACS+ theo thời gian thực đến các nền tảng bảo mật bên ngoài.
+tacacs-ng-ui có thể chuyển tiếp **bản ghi thống kê AAA** và **mục nhật ký audit** đến SIEM bên ngoài, qua HTTP webhook (định dạng Splunk HEC) và/hoặc syslog.
 
-**Cấu hình trong `.env`:**
+### Dữ liệu được chuyển tiếp
+
+**Bản ghi thống kê TACACS+** (`SIEM_FORWARD_TACACS_EVENTS=true`). Mỗi lần chạy thống kê đọc file log của ngày và gửi **một bản ghi cho mỗi tổ hợp người dùng, thiết bị, IP nguồn và kết quả** trong ngày đó, ví dụ "alice, 10.0.0.1, từ 192.0.2.7, failed". Bản ghi không có số lần và không có thời điểm của từng sự kiện.
+
+- Chạy mỗi `STATS_INTERVAL_MINUTES` (mặc định 30) cho hôm nay, và một lần mỗi đêm cho hôm qua. Mỗi lần chạy gửi lại toàn bộ bản ghi của ngày, nên phía nhận sẽ thấy cùng bản ghi nhiều lần; hãy khử trùng lặp theo các trường của bản ghi nếu cần đếm.
+- Chỉ node **primary** chạy thống kê, nên chỉ primary chuyển tiếp.
+- Đây **không phải nhật ký audit theo từng sự kiện**: không có thời điểm sự kiện, profile, service hay lệnh accounting.
+
+**Mục nhật ký audit** (tạo / sửa / xoá / kích hoạt trên giao diện) được gửi đến webhook ngay khi xảy ra, miễn là `SIEM_WEBHOOK_URL` được đặt, với `sourcetype` là `tacacs-ng-ui:audit`.
+
+### Cấu hình trong `.env`
 
 ```bash
+# Chuyển tiếp bản ghi thống kê TACACS+
 SIEM_FORWARD_TACACS_EVENTS=true
 
 # HTTP Webhook (định dạng Splunk HEC)
@@ -460,10 +471,56 @@ SIEM_WEBHOOK_TOKEN=your-hec-token
 # Syslog (UDP hoặc TCP)
 SIEM_SYSLOG_HOST=syslog.example.com
 SIEM_SYSLOG_PORT=514
-SIEM_SYSLOG_PROTOCOL=udp
+SIEM_SYSLOG_PROTOCOL=udp   # hoặc tcp
 ```
 
-Sự kiện được gửi bất đồng bộ — xác thực TACACS+ không bị ảnh hưởng nếu endpoint SIEM không khả dụng.
+Khởi động lại backend sau khi thay đổi các biến này.
+
+### Định dạng syslog
+
+Thông điệp theo [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424), facility `user`, severity `info`:
+
+```
+<14>1 2026-11-07T06:46:25.100Z primary tacacs-ng - - - type=authentication ts=2026-10-25T17:00:00Z username=alice nas_ip=10.0.0.1 client_ip=192.0.2.7 result=failed
+```
+
+| Thành phần | Giá trị |
+|---|---|
+| Timestamp | Thời điểm gửi bản ghi (UTC) |
+| Hostname | Tên node (`NODE_NAME`), để phía nhận phân biệt các node |
+| App name | `tacacs-ng` |
+| `type` | `authentication`, `authorization` hoặc `accounting` |
+| `ts` | Đầu ngày mà bản ghi tổng hợp (nửa đêm giờ địa phương, quy về UTC) |
+| `result` | `success` / `failed`, `permit` / `deny`, hoặc `start` / `stop` |
+
+Qua **TCP**, mỗi thông điệp kết thúc bằng ký tự xuống dòng (RFC 6587, non-transparent framing), đúng với mặc định của các input syslog TCP. Qua **UDP**, mỗi thông điệp là một datagram. Nếu không kết nối được tới phía nhận, việc chuyển tiếp syslog tạm dừng 60 giây và lần chạy thống kê vẫn tiếp tục.
+
+### Payload webhook (định dạng Splunk HEC)
+
+```json
+{
+  "time": 1792947600,
+  "event": {
+    "type": "authentication",
+    "username": "alice",
+    "nas_ip": "10.0.0.1",
+    "client_ip": "192.0.2.7",
+    "result": "failed"
+  },
+  "sourcetype": "tacacs-ng:authentication"
+}
+```
+
+`time` là đầu ngày mà bản ghi tổng hợp. Khi đặt `SIEM_WEBHOOK_TOKEN`, request có header `Authorization: Splunk <token>`.
+
+### Nền tảng hỗ trợ
+
+| Nền tảng | Cách nhận |
+|----------|-----------|
+| Splunk | Webhook HTTP Event Collector (HEC), hoặc input syslog |
+| Graylog | Input **Syslog TCP** hoặc **Syslog UDP** với cấu hình mặc định. Không hỗ trợ GELF: payload webhook là Splunk HEC, không phải GELF. |
+| Elastic / Logstash | Input syslog, hoặc input HTTP nhận được JSON ở trên |
+| Bất kỳ syslog receiver nào | RFC 5424 qua UDP, hoặc TCP với framing xuống dòng |
 
 ---
 

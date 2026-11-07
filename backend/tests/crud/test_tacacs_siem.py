@@ -15,9 +15,7 @@ from app.crud.tacacs_siem import format_syslog_message, forward_tacacs_event_to_
 DAY_START = datetime(2026, 10, 25, 17, 0, tzinfo=timezone.utc).timestamp()
 NOW = datetime(2026, 11, 7, 6, 7, 19, 939000, tzinfo=timezone.utc)
 
-RFC5424 = re.compile(
-    r"^<14>1 (?P<ts>\S+) (?P<host>\S+) tacacs-ng - (?P<msgid>\S+) - (?P<msg>.*)$"
-)
+RFC5424 = re.compile(r"^<14>1 (?P<ts>\S+) (?P<host>\S+) tacacs-ng - - - (?P<msg>.*)$")
 
 
 def _send(**overrides: object) -> None:
@@ -54,7 +52,6 @@ def test_message_is_rfc5424_with_node_and_time() -> None:
     assert m, msg
     assert m["ts"] == "2026-11-07T06:07:19.939Z"
     assert m["host"] == "tacacs-01"
-    assert m["msgid"] == "authentication"
     assert m["msg"] == (
         "type=authentication ts=2026-10-25T17:00:00Z username=alice "
         "nas_ip=10.0.0.1 client_ip=192.0.2.7 result=failed"

@@ -678,15 +678,25 @@ Results are paginated. Use the date picker and filters to narrow down to specifi
 
 ## SIEM Integration
 
-tacacs-ng-ui can forward TACACS+ log events in real-time to external security platforms.
+tacacs-ng-ui can forward **AAA statistics records** and **audit log entries** to an external SIEM, over an HTTP webhook (Splunk HEC format) and/or syslog.
+
+### What is forwarded
+
+**TACACS+ statistics records** (`SIEM_FORWARD_TACACS_EVENTS=true`). Each statistics run reads the day's log files and sends **one record per user, device, source IP and result** for that day: for example "alice, 10.0.0.1, from 192.0.2.7, failed". A record has no count and no per-event time.
+
+- Runs every `STATS_INTERVAL_MINUTES` (default 30) for today, and once a night for yesterday. Every run sends the day's full set again, so a receiver sees the same records repeatedly; deduplicate on the record fields if you count them.
+- Only the **primary** node runs statistics, so only the primary forwards.
+- This is **not a per-event audit trail**. It has no event time, profile, service or accounting command.
+
+**Audit log entries** (create / update / delete / activate in the UI) go to the webhook as they happen, whenever `SIEM_WEBHOOK_URL` is set, with `sourcetype` `tacacs-ng-ui:audit`.
 
 ### Configuration (`.env`)
 
 ```bash
-# Enable SIEM forwarding
+# Forward TACACS+ statistics records
 SIEM_FORWARD_TACACS_EVENTS=true
 
-# HTTP Webhook (Splunk HEC format)
+# HTTP webhook (Splunk HEC format)
 SIEM_WEBHOOK_URL=https://splunk.example.com:8088/services/collector/event
 SIEM_WEBHOOK_TOKEN=your-hec-token
 
@@ -696,32 +706,53 @@ SIEM_SYSLOG_PORT=514
 SIEM_SYSLOG_PROTOCOL=udp   # or tcp
 ```
 
-### Webhook Payload (Splunk HEC format)
+Restart the backend after changing these.
+
+### Syslog format
+
+Messages are [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424), facility `user`, severity `info`:
+
+```
+<14>1 2026-11-07T06:46:25.100Z primary tacacs-ng - - - type=authentication ts=2026-10-25T17:00:00Z username=alice nas_ip=10.0.0.1 client_ip=192.0.2.7 result=failed
+```
+
+| Part | Value |
+|---|---|
+| Timestamp | When the record was sent (UTC) |
+| Hostname | The node's name (`NODE_NAME`), so a receiver can tell nodes apart |
+| App name | `tacacs-ng` |
+| `type` | `authentication`, `authorization` or `accounting` |
+| `ts` | Start of the day the record covers (local midnight, in UTC) |
+| `result` | `success` / `failed`, `permit` / `deny`, or `start` / `stop` |
+
+Over **TCP** each message ends with a newline (RFC 6587 non-transparent framing), which is what default syslog TCP inputs expect. Over **UDP** each message is one datagram. If the receiver is unreachable, syslog forwarding pauses for 60 seconds and the statistics run continues.
+
+### Webhook payload (Splunk HEC format)
 
 ```json
 {
-  "time": 1714012800,
+  "time": 1792947600,
   "event": {
-    "timestamp": "2026-04-25T10:30:00Z",
     "type": "authentication",
-    "result": "success",
-    "username": "admin",
-    "nas_ip": "192.168.1.1",
-    "message": "..."
-  }
+    "username": "alice",
+    "nas_ip": "10.0.0.1",
+    "client_ip": "192.0.2.7",
+    "result": "failed"
+  },
+  "sourcetype": "tacacs-ng:authentication"
 }
 ```
 
-Events are forwarded asynchronously — TACACS+ authentication is not blocked if the SIEM endpoint is unavailable.
+`time` is the start of the day the record covers. With `SIEM_WEBHOOK_TOKEN` set, the request carries `Authorization: Splunk <token>`.
 
-### Supported Integrations
+### Supported receivers
 
-| Platform | Method |
-|----------|--------|
-| Splunk | HTTP Event Collector (HEC) webhook |
-| Elastic / Logstash | HTTP webhook or syslog input |
-| Graylog | GELF HTTP or syslog UDP/TCP |
-| Any syslog receiver | UDP or TCP syslog |
+| Platform | How |
+|----------|-----|
+| Splunk | HTTP Event Collector (HEC) webhook, or a syslog input |
+| Graylog | **Syslog TCP** or **Syslog UDP** input with default settings. GELF is not supported: the webhook payload is Splunk HEC, not GELF. |
+| Elastic / Logstash | Syslog input, or an HTTP input that accepts the JSON above |
+| Any syslog receiver | RFC 5424 over UDP, or TCP with newline framing |
 
 ---
 

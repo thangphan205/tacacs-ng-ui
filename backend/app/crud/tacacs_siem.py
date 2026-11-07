@@ -122,20 +122,21 @@ def format_syslog_message(
     """One RFC 5424 message, without framing.
 
     The header TIMESTAMP is when the record was sent; ``ts=`` in the body is the
-    start of the day the record summarises.
+    start of the day the record summarises. MSGID is NILVALUE: Graylog 5.2's
+    syslog input keeps a MSGID in the ``message`` text, and the record type is
+    already in the body as ``type=``.
     """
     sent = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     header_ts = sent.isoformat(timespec="milliseconds").replace("+00:00", "Z")
     day_ts = datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime(
         "%Y-%m-%dT%H:%M:%SZ"
     )
-    msgid = _value(log_type)[:32]
     body = (
         f"type={_value(log_type)} ts={day_ts} username={_value(username)} "
         f"nas_ip={_value(nas_ip)} client_ip={_value(client_ip)} "
         f"result={_value(result)}"
     )
-    return f"<{_PRI}>1 {header_ts} {_hostname(node_name or settings.NODE_NAME)} {APP_NAME} - {msgid} - {body}"
+    return f"<{_PRI}>1 {header_ts} {_hostname(node_name or settings.NODE_NAME)} {APP_NAME} - - - {body}"
 
 
 class _SyslogSender:
