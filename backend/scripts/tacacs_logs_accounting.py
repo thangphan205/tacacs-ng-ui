@@ -9,10 +9,8 @@ from sqlmodel import Session, select
 
 from app.core.config import settings
 from app.core.db import engine
-from app.crud.tacacs_siem import forward_tacacs_event_to_siem
 from app.models import AccountingStatistics
 from scripts._log_stats_base import (
-    day_start_timestamp,
     get_target_date,
     parse_accounting_logs,
 )
@@ -102,33 +100,6 @@ def save_statistics_to_db(
 
         session.commit()
         print("\nAccounting statistics saved successfully.")
-
-    if settings.SIEM_FORWARD_TACACS_EVENTS:
-        ts = day_start_timestamp(summary_date)
-        for username, nas_ip, user_source_ip in sorted(all_keys):
-            key = (username, nas_ip, user_source_ip)
-            if start_events.get(key, 0) > 0:
-                forward_tacacs_event_to_siem(
-                    "accounting",
-                    username,
-                    nas_ip,
-                    user_source_ip,
-                    "start",
-                    ts,
-                    node_name=node_name,
-                    background=False,
-                )
-            if stop_events.get(key, 0) > 0:
-                forward_tacacs_event_to_siem(
-                    "accounting",
-                    username,
-                    nas_ip,
-                    user_source_ip,
-                    "stop",
-                    ts,
-                    node_name=node_name,
-                    background=False,
-                )
 
 
 if __name__ == "__main__":

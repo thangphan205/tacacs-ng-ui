@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.api.routes import tacacs_logs
 from app.core.config import settings
@@ -206,3 +206,23 @@ def test_list_filters_by_log_type_and_combines_with_search(
         f"{URL}/files", headers=superuser_token_headers, params={"log_type": "auth"}
     )
     assert r.status_code == 422
+
+
+def test_list_skips_dot_entries(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    log_dir: Path,
+    db: Session,
+) -> None:
+    """The SIEM shipper's state in .siem/ is not a TACACS+ log file."""
+    (log_dir / ".siem").mkdir()
+    (log_dir / ".siem" / "offsets.json").write_text("{}")
+    (log_dir / ".siem" / "offsets.json.tmp").write_text("{}")
+    (log_dir / "2026" / "11" / ".hidden.log").write_text("x\n")
+
+    r = client.get(f"{URL}/files", headers=superuser_token_headers)
+    assert r.status_code == 200
+    rows = db.exec(select(TacacsLog)).all()
+    assert not [
+        row for row in rows if "siem" in row.filepath or "hidden" in row.filepath
+    ]

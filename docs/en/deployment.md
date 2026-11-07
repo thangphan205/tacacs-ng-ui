@@ -505,12 +505,12 @@ All variables with their defaults (from `.env.example`):
 | `MICROSOFT_CLIENT_SECRET` | *(optional)* | Entra client secret value |
 | `MICROSOFT_TENANT` | `common` | `common`, `organizations`, `consumers`, or a tenant ID. Existing local accounts auto-link by email only for a single tenant or personal accounts |
 | `MICROSOFT_REDIRECT_URI` | *(derived)* | Optional; defaults to `<FRONTEND_HOST>/api/v1/oauth/microsoft/callback` |
-| `SIEM_WEBHOOK_URL` | *(optional)* | Splunk HEC or Logstash HTTP input URL |
-| `SIEM_WEBHOOK_TOKEN` | *(optional)* | Splunk HEC token or bearer token |
-| `SIEM_FORWARD_TACACS_EVENTS` | `false` | Forward daily auth/authz/acct statistics records to SIEM (see the user guide) |
-| `SIEM_SYSLOG_HOST` | *(optional)* | Syslog target host |
-| `SIEM_SYSLOG_PORT` | `514` | Syslog port |
-| `SIEM_SYSLOG_PROTOCOL` | `udp` | `udp` or `tcp` |
+| `SIEM_WEBHOOK_URL` | *(optional)* | **First start only:** seeds **Admin → SIEM Integration**, which owns the settings afterwards. Splunk HEC or Logstash HTTP input URL |
+| `SIEM_WEBHOOK_TOKEN` | *(optional)* | First start only. Splunk HEC token |
+| `SIEM_FORWARD_TACACS_EVENTS` | `false` | First start only. `true` ships authentication, authorization and accounting events |
+| `SIEM_SYSLOG_HOST` | *(optional)* | First start only. Syslog target host |
+| `SIEM_SYSLOG_PORT` | `514` | First start only. Syslog port |
+| `SIEM_SYSLOG_PROTOCOL` | `udp` | First start only. `udp` or `tcp` |
 | `AUDIT_LOG_RETENTION_DAYS` | `90` | Delete audit logs older than N days (0 = keep forever) |
 | `AUDIT_LOG_MAX_ROWS` | `0` | Keep only N most recent rows (0 = no limit) |
 

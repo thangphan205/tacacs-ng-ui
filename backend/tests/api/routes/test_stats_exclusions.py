@@ -347,6 +347,8 @@ def test_daily_summary_filters_events(
         "app/crud/anomaly_detection.py",
         "app/crud/ml_anomaly_scorer.py",
         "app/crud/tacacs_siem.py",
+        "app/crud/siem_tailer.py",
+        "scripts/siem_shipper.py",
         "app/api/routes/sync.py",
         "scripts/_log_stats_base.py",
         "scripts/tacacs_logs_authentication.py",

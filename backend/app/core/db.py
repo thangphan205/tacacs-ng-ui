@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlmodel import Session, create_engine, select
 
 from app.core.config import settings
+from app.core.security import encrypt_secret
 from app.crud import profilescripts as profilescripts_crud
 from app.crud import rulesets as rulesets_crud
 from app.crud import rulesetscripts as rulesetscripts_crud
@@ -30,6 +31,7 @@ from app.models import (
     RulesetScriptCreate,
     RulesetScriptSet,
     RulesetScriptSetCreate,
+    SiemConfig,
     TacacsGroup,
     TacacsGroupCreate,
     TacacsNgSetting,
@@ -343,7 +345,46 @@ def init_db(session: Session) -> None:
         logger.info("Existing database: demo data is never re-applied")
 
     _seed_system_alert_rules(session)
+    _seed_siem_config(session)
     session.commit()
+
+
+def _seed_siem_config(session: Session) -> None:
+    """Create the SIEM config row from the SIEM_* env vars, once.
+
+    Create-only: after the first start the UI owns these settings, and an
+    existing row is never reset from env.
+    """
+    if session.get(SiemConfig, 1) is not None:
+        return
+    ship_tacacs = settings.SIEM_FORWARD_TACACS_EVENTS
+    session.add(
+        SiemConfig(
+            id=1,
+            enabled=bool(settings.SIEM_WEBHOOK_URL or settings.SIEM_SYSLOG_HOST),
+            webhook_url=settings.SIEM_WEBHOOK_URL or None,
+            webhook_token_encrypted=(
+                encrypt_secret(settings.SIEM_WEBHOOK_TOKEN)
+                if settings.SIEM_WEBHOOK_TOKEN
+                else None
+            ),
+            syslog_host=settings.SIEM_SYSLOG_HOST or None,
+            syslog_port=settings.SIEM_SYSLOG_PORT,
+            # As the old sender did, anything but "udp" means TCP; case and
+            # surrounding spaces are ignored.
+            syslog_protocol=(
+                "udp"
+                if settings.SIEM_SYSLOG_PROTOCOL.strip().lower() == "udp"
+                else "tcp"
+            ),
+            ship_access=False,
+            ship_authentication=ship_tacacs,
+            ship_authorization=ship_tacacs,
+            ship_accounting=ship_tacacs,
+            # Audit entries went to the webhook whenever its URL was set.
+            ship_audit=bool(settings.SIEM_WEBHOOK_URL),
+        )
+    )
 
 
 def _seed_services(session: Session) -> None:

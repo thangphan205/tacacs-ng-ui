@@ -678,44 +678,91 @@ Results are paginated. Use the date picker and filters to narrow down to specifi
 
 ## SIEM Integration
 
-tacacs-ng-ui can forward **AAA statistics records** and **audit log entries** to an external SIEM, over an HTTP webhook (Splunk HEC format) and/or syslog.
+tacacs-ng-ui can send **every TACACS+ log event** and **every audit log entry** to an external SIEM as it happens, over an HTTP webhook (Splunk HEC format) and/or syslog (RFC 5424).
+
+### Configure in the UI
+
+**Admin → SIEM Integration** (superusers only):
+
+1. **Enable SIEM forwarding**.
+2. **What to ship**: any of the TACACS+ log types (**Authentication**, **Authorization**, **Accounting**, **Access**) and/or the app **Audit log**.
+3. A destination: a **Webhook** URL (with an optional token) and/or a **Syslog** host, port and protocol (UDP or TCP).
+4. **Save**, then **Send test event** to check the receiver gets it.
+
+Changes apply on every node within about 10 seconds, with no restart. Settings are edited on the primary; a standby shows them read-only and uses the copy replicated to it.
+
+The **Real-time shipper** card shows the shipper on the node serving the page: running or not, the last event sent, counts per log type, and the last error.
 
 ### What is forwarded
 
-**TACACS+ statistics records** (`SIEM_FORWARD_TACACS_EVENTS=true`). Each statistics run reads the day's log files and sends **one record per user, device, source IP and result** for that day: for example "alice, 10.0.0.1, from 192.0.2.7, failed". A record has no count and no per-event time.
+**TACACS+ log events.** Each node runs a shipper process that follows its own tac_plus-ng log files under `/var/log/tacacs/` and sends **one event per log line**, normally within a second or two. Primary and standby nodes each ship their own events, so a receiver sees everything the cluster handled. The node name (`NODE_NAME`) is the event's host.
 
-- Runs every `STATS_INTERVAL_MINUTES` (default 30) for today, and once a night for yesterday. Every run sends the day's full set again, so a receiver sees the same records repeatedly; deduplicate on the record fields if you count them.
-- Only the **primary** node runs statistics, so only the primary forwards.
-- This is **not a per-event audit trail**. It has no event time, profile, service or accounting command. For that, see [Per-event forwarding from every node](#per-event-forwarding-from-every-node-remote-syslog-destination).
+- **No history replay.** When forwarding (or a log type) is switched on, shipping starts from the end of the current file. Nothing written before, or while forwarding was off, is sent.
+- **Restarts resume.** The shipper keeps its position in `/var/log/tacacs/.siem/offsets.json`, so a restart (or a shipper that was down over midnight) carries on where it stopped.
+- **Delivery is at-least-once** for one destination: the webhook if one is set, otherwise syslog. If it fails, the shipper keeps the batch and retries with backoff (2 s up to 60 s) before reading anything newer, so a receiver outage delays events but does not lose them. A retry can repeat events the receiver had already stored.
+- **With both a webhook and syslog**, the webhook decides. A syslog failure then drops those syslog messages (syslog sending pauses for 60 seconds after a failure) while the webhook still gets them.
+- **UDP has no delivery confirmation**, so a UDP receiver that is down is not noticed.
+- **Large backlogs** (for example after a restart) are worked off over several seconds, up to 10,000 lines per log type per second.
 
-**Audit log entries** (create / update / delete / activate in the UI) go to the webhook as they happen, whenever `SIEM_WEBHOOK_URL` is set, with `sourcetype` `tacacs-ng-ui:audit`.
+**Audit log entries** (create / update / delete / activate, from the UI or MCP) are sent from the primary when they are recorded, with `sourcetype` `tacacs-ng-ui:audit`.
 
-### Configuration (`.env`)
+### Upgrading from env-var configuration
 
-```bash
-# Forward TACACS+ statistics records
-SIEM_FORWARD_TACACS_EVENTS=true
+Before this page existed, SIEM forwarding was configured with `SIEM_*` env vars and sent **one daily statistics record per user, device, source IP and result**, repeated on every statistics run. Those daily records are **no longer sent**; per-event shipping replaces them.
 
-# HTTP webhook (Splunk HEC format)
-SIEM_WEBHOOK_URL=https://splunk.example.com:8088/services/collector/event
-SIEM_WEBHOOK_TOKEN=your-hec-token
+On the first start after upgrading, the primary copies the `SIEM_*` env vars into the SIEM Integration settings once:
 
-# Syslog (UDP or TCP)
-SIEM_SYSLOG_HOST=syslog.example.com
-SIEM_SYSLOG_PORT=514
-SIEM_SYSLOG_PROTOCOL=udp   # or tcp
+| Env var | Becomes |
+|---|---|
+| `SIEM_WEBHOOK_URL`, `SIEM_WEBHOOK_TOKEN` | Webhook URL and token (stored encrypted) |
+| `SIEM_SYSLOG_HOST`, `SIEM_SYSLOG_PORT`, `SIEM_SYSLOG_PROTOCOL` | Syslog destination |
+| `SIEM_FORWARD_TACACS_EVENTS=true` | Ship Authentication, Authorization and Accounting |
+| `SIEM_WEBHOOK_URL` set | Ship Audit log (as before) |
+
+Forwarding is switched on if a webhook URL or syslog host was set. After that the UI owns the settings: editing the env vars has no effect.
+
+### Syslog format
+
+Messages are [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424), facility `user`. Severity is `warning` for a failed login or a denied command, `info` otherwise:
+
+```
+<12>1 2026-11-07T07:00:04.000Z primary tacacs-ng - - - type=authentication username=alice nas_ip=10.0.0.1 port=tty0 client_ip=192.0.2.7 result=failed msg=shell login failed
+<14>1 2026-11-07T07:00:05.000Z primary tacacs-ng - - - type=accounting username=alice nas_ip=10.0.0.1 port=tty0 client_ip=192.0.2.7 result=start command=show_version msg=start shell show version <cr>
+<14>1 2026-11-07T07:01:00.000Z primary tacacs-ng-ui - - - type=audit action=UPDATE entity_type=Host entity_id=… user_email=admin@example.com ip=198.51.100.4 msg=Updated host core-sw
 ```
 
-Restart the backend after changing these.
+| Part | Value |
+|---|---|
+| Timestamp | When tac_plus-ng wrote the line (UTC); for audit entries, when the change was made |
+| Hostname | The node's name (`NODE_NAME`) |
+| App name | `tacacs-ng` for TACACS+ events, `tacacs-ng-ui` for audit entries |
+| `type` | `authentication`, `authorization`, `accounting`, `access` or `audit` |
+| `result` | `success` / `failed`, `permit` / `deny`, `start` / `stop`, or `unknown` |
+| `command` | Authorization and accounting only, spaces replaced by `_` |
+| `msg` | The raw log message, last, with its spaces kept |
 
-### Per-event forwarding from every node (Remote Syslog Destination)
+Key=value fields never contain spaces. A line the shipper cannot parse is sent as `type=<log type> msg=<the line>`.
 
-For a full audit trail, let tac_plus-ng send **every event itself**. Each access, authentication, authorization and accounting event goes out as UDP syslog as it happens, from **every node**, including the accounting command.
+Over **TCP** each message ends with a newline (RFC 6587 non-transparent framing), which is what default syslog TCP inputs expect. Over **UDP** each message is one datagram.
+
+### Webhook payload (Splunk HEC format)
+
+Events are POSTed in batches of up to 500, one JSON object per line. Splunk HEC accepts that, and it is also `json_lines` for Logstash:
+
+```json
+{"time": 1794034804.0, "host": "primary", "source": "tacacs-ng", "sourcetype": "tacacs-ng:authentication", "event": {"type": "authentication", "node": "primary", "timestamp": "2026-11-07 14:00:04 +0700", "username": "alice", "nas_ip": "10.0.0.1", "port": "tty0", "client_ip": "192.0.2.7", "result": "failed", "command": null, "message": "shell login failed"}}
+```
+
+Audit entries use `"source": "tacacs-ng-ui"`, `"sourcetype": "tacacs-ng-ui:audit"` and carry `id`, `action`, `entity_type`, `entity_id`, `user_id`, `user_email`, `ip_address` and `description`. With a token set, each request carries `Authorization: Splunk <token>`. Any response other than 2xx counts as a failure and is retried.
+
+### Per-event forwarding by tac_plus-ng itself (Remote Syslog Destination)
+
+tac_plus-ng can also send its own syslog for every event, independent of the shipper above. You can use either or both.
 
 1. **TACACS NG Settings** → **Remote Syslog Destination**: an IPv4 address with an optional port, e.g. `192.0.2.10:514`. Leave it empty to disable.
 2. **Generate** and **Activate** a configuration. The setting is part of the tac_plus-ng config, so it reaches standby nodes with the normal config sync.
 
-The generated config adds these lines next to the local log files, which stay as they are, so statistics, alerts and the TACACS+ Logs page keep working:
+The generated config adds these lines next to the local log files, which stay as they are, so statistics, alerts, the TACACS+ Logs page and the SIEM shipper keep working:
 
 ```
 log remotelog { destination = 192.0.2.10:514 }
@@ -734,46 +781,7 @@ Messages are BSD syslog (RFC 3164), one per event, fields separated by `|`:
 
 - **Hostname** is the backend container's hostname, which `docker-compose.yml` sets to `NODE_NAME` from `.env`. Use a `NODE_NAME` without spaces, and recreate the backend container after changing it.
 - **Timestamp** is the node's local time **without a time zone**, as RFC 3164 defines it. Tell the receiver which zone that is. In Graylog, set **Time Zone** on the Syslog UDP input to the node's `TZ` (e.g. `Asia/Ho_Chi_Minh`); otherwise the time is read as UTC and is off by the zone offset.
-- **Limits:** UDP only, IPv4 only, one destination. tac_plus-ng does not accept a hostname here. Allow UDP from every node to the destination.
-
-This and the statistics forwarding above are independent; you can use either or both.
-
-### Syslog format (statistics records)
-
-Messages are [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424), facility `user`, severity `info`:
-
-```
-<14>1 2026-11-07T06:46:25.100Z primary tacacs-ng - - - type=authentication ts=2026-10-25T17:00:00Z username=alice nas_ip=10.0.0.1 client_ip=192.0.2.7 result=failed
-```
-
-| Part | Value |
-|---|---|
-| Timestamp | When the record was sent (UTC) |
-| Hostname | The node's name (`NODE_NAME`), so a receiver can tell nodes apart |
-| App name | `tacacs-ng` |
-| `type` | `authentication`, `authorization` or `accounting` |
-| `ts` | Start of the day the record covers (local midnight, in UTC) |
-| `result` | `success` / `failed`, `permit` / `deny`, or `start` / `stop` |
-
-Over **TCP** each message ends with a newline (RFC 6587 non-transparent framing), which is what default syslog TCP inputs expect. Over **UDP** each message is one datagram. If the receiver is unreachable, syslog forwarding pauses for 60 seconds and the statistics run continues.
-
-### Webhook payload (Splunk HEC format)
-
-```json
-{
-  "time": 1792947600,
-  "event": {
-    "type": "authentication",
-    "username": "alice",
-    "nas_ip": "10.0.0.1",
-    "client_ip": "192.0.2.7",
-    "result": "failed"
-  },
-  "sourcetype": "tacacs-ng:authentication"
-}
-```
-
-`time` is the start of the day the record covers. With `SIEM_WEBHOOK_TOKEN` set, the request carries `Authorization: Splunk <token>`.
+- **Limits:** UDP only, IPv4 only, one destination, no webhook. tac_plus-ng does not accept a hostname here. Allow UDP from every node to the destination.
 
 ### Supported receivers
 
@@ -781,7 +789,7 @@ Over **TCP** each message ends with a newline (RFC 6587 non-transparent framing)
 |----------|-----|
 | Splunk | HTTP Event Collector (HEC) webhook, or a syslog input |
 | Graylog | **Syslog TCP** or **Syslog UDP** input with default settings. GELF is not supported: the webhook payload is Splunk HEC, not GELF. |
-| Elastic / Logstash | Syslog input, or an HTTP input that accepts the JSON above |
+| Elastic / Logstash | Syslog input, or an HTTP input with the `json_lines` codec |
 | Any syslog receiver | RFC 5424 over UDP, or TCP with newline framing |
 
 ---

@@ -15,6 +15,7 @@ import {
   FiSend,
   FiServer,
   FiSettings,
+  FiShare2,
   FiShield,
   FiSliders,
   FiUser,
@@ -97,6 +98,7 @@ const ADMIN_SECTION: NavSection = {
       path: "/admin/users_management",
     },
     { icon: FiShield, title: "Auth Providers", path: "/admin/auth-providers" },
+    { icon: FiShare2, title: "SIEM Integration", path: "/admin/siem" },
   ],
 }
 

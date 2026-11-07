@@ -1,12 +1,11 @@
 import logging
-import threading
 import uuid
 from datetime import datetime, timedelta, timezone
 
-import httpx
 from sqlmodel import Session, delete, func, select
 
 from app.core.config import settings
+from app.crud import tacacs_siem
 from app.models import AuditLog, AuditLogCreate
 
 logger = logging.getLogger(__name__)
@@ -28,10 +27,13 @@ def create_audit_log(
         user_email=user_email,
         ip_address=ip_address,
     )
+    # Aware UTC; after refresh the column (timestamp without time zone) comes
+    # back naive in the database session's zone, which is not always UTC.
+    created_at = db_obj.created_at
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
-    _forward_to_siem(db_obj)
+    _forward_to_siem(session, db_obj, created_at)
     return db_obj
 
 
@@ -122,33 +124,12 @@ def log_entity_action(
     )
 
 
-def _forward_to_siem(log: AuditLog) -> None:
-    if not settings.SIEM_WEBHOOK_URL:
+def _forward_to_siem(session: Session, log: AuditLog, created_at: datetime) -> None:
+    try:
+        target = tacacs_siem.load_target(session)
+    except Exception:
+        session.rollback()  # leave the caller's session usable
+        logger.warning("Could not read SIEM config", exc_info=True)
         return
-    payload = {
-        "time": log.created_at.timestamp(),
-        "event": {
-            "id": str(log.id),
-            "action": log.action,
-            "entity_type": log.entity_type,
-            "entity_id": log.entity_id,
-            "user_id": str(log.user_id) if log.user_id else None,
-            "user_email": log.user_email,
-            "ip_address": log.ip_address,
-            "description": log.description,
-        },
-        "sourcetype": "tacacs-ng-ui:audit",
-    }
-    headers: dict[str, str] = {}
-    if settings.SIEM_WEBHOOK_TOKEN:
-        headers["Authorization"] = f"Splunk {settings.SIEM_WEBHOOK_TOKEN}"
-
-    def _post() -> None:
-        try:
-            httpx.post(
-                settings.SIEM_WEBHOOK_URL, json=payload, headers=headers, timeout=3
-            )  # type: ignore[arg-type]
-        except Exception:
-            logger.warning("Failed to forward audit log to SIEM", exc_info=True)
-
-    threading.Thread(target=_post, daemon=True).start()
+    if target is not None and target.ships("audit"):
+        tacacs_siem.forward_audit_log(target, log, when=created_at)

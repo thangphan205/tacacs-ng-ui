@@ -2631,6 +2631,188 @@ export type RulesetsPublic = {
 };
 
 /**
+ * SiemConfigPublic
+ */
+export type SiemConfigPublic = {
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * Webhook Url
+     */
+    webhook_url?: string | null;
+    /**
+     * Webhook Verify Tls
+     */
+    webhook_verify_tls?: boolean;
+    /**
+     * Syslog Host
+     */
+    syslog_host?: string | null;
+    /**
+     * Syslog Port
+     */
+    syslog_port?: number;
+    /**
+     * Syslog Protocol
+     */
+    syslog_protocol?: string;
+    /**
+     * Ship Access
+     */
+    ship_access?: boolean;
+    /**
+     * Ship Authentication
+     */
+    ship_authentication?: boolean;
+    /**
+     * Ship Authorization
+     */
+    ship_authorization?: boolean;
+    /**
+     * Ship Accounting
+     */
+    ship_accounting?: boolean;
+    /**
+     * Ship Audit
+     */
+    ship_audit?: boolean;
+    /**
+     * Webhook Token Is Set
+     */
+    webhook_token_is_set: boolean;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * SiemConfigUpdate
+ */
+export type SiemConfigUpdate = {
+    /**
+     * Enabled
+     */
+    enabled?: boolean | null;
+    /**
+     * Webhook Url
+     */
+    webhook_url?: string | null;
+    /**
+     * Webhook Token
+     */
+    webhook_token?: string | null;
+    /**
+     * Webhook Verify Tls
+     */
+    webhook_verify_tls?: boolean | null;
+    /**
+     * Syslog Host
+     */
+    syslog_host?: string | null;
+    /**
+     * Syslog Port
+     */
+    syslog_port?: number | null;
+    /**
+     * Syslog Protocol
+     */
+    syslog_protocol?: 'udp' | 'tcp' | null;
+    /**
+     * Ship Access
+     */
+    ship_access?: boolean | null;
+    /**
+     * Ship Authentication
+     */
+    ship_authentication?: boolean | null;
+    /**
+     * Ship Authorization
+     */
+    ship_authorization?: boolean | null;
+    /**
+     * Ship Accounting
+     */
+    ship_accounting?: boolean | null;
+    /**
+     * Ship Audit
+     */
+    ship_audit?: boolean | null;
+};
+
+/**
+ * SiemSinkTestResult
+ */
+export type SiemSinkTestResult = {
+    /**
+     * Sink
+     */
+    sink: string;
+    /**
+     * Ok
+     */
+    ok: boolean;
+    /**
+     * Error
+     */
+    error?: string | null;
+};
+
+/**
+ * SiemStatus
+ *
+ * Shipper status on the node that answered the request.
+ */
+export type SiemStatus = {
+    /**
+     * Node Name
+     */
+    node_name: string;
+    /**
+     * Node Role
+     */
+    node_role?: string;
+    /**
+     * Running
+     */
+    running: boolean;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
+     * Last Event At
+     */
+    last_event_at?: string | null;
+    /**
+     * Events Sent
+     */
+    events_sent?: {
+        [key: string]: number;
+    };
+    /**
+     * Last Error
+     */
+    last_error?: string | null;
+    /**
+     * Last Error At
+     */
+    last_error_at?: string | null;
+};
+
+/**
+ * SiemTestResult
+ */
+export type SiemTestResult = {
+    /**
+     * Results
+     */
+    results: Array<SiemSinkTestResult>;
+};
+
+/**
  * StatsExcludedUserCreate
  */
 export type StatsExcludedUserCreate = {
@@ -7048,6 +7230,79 @@ export type AuditLogsPurgeAuditLogsResponses = {
 };
 
 export type AuditLogsPurgeAuditLogsResponse = AuditLogsPurgeAuditLogsResponses[keyof AuditLogsPurgeAuditLogsResponses];
+
+export type SiemReadSiemConfigData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/siem/config';
+};
+
+export type SiemReadSiemConfigResponses = {
+    /**
+     * Successful Response
+     */
+    200: SiemConfigPublic;
+};
+
+export type SiemReadSiemConfigResponse = SiemReadSiemConfigResponses[keyof SiemReadSiemConfigResponses];
+
+export type SiemUpdateSiemConfigData = {
+    body: SiemConfigUpdate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/siem/config';
+};
+
+export type SiemUpdateSiemConfigErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SiemUpdateSiemConfigError = SiemUpdateSiemConfigErrors[keyof SiemUpdateSiemConfigErrors];
+
+export type SiemUpdateSiemConfigResponses = {
+    /**
+     * Successful Response
+     */
+    200: SiemConfigPublic;
+};
+
+export type SiemUpdateSiemConfigResponse = SiemUpdateSiemConfigResponses[keyof SiemUpdateSiemConfigResponses];
+
+export type SiemTestSiemData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/siem/test';
+};
+
+export type SiemTestSiemResponses = {
+    /**
+     * Successful Response
+     */
+    200: SiemTestResult;
+};
+
+export type SiemTestSiemResponse = SiemTestSiemResponses[keyof SiemTestSiemResponses];
+
+export type SiemReadSiemStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/siem/status';
+};
+
+export type SiemReadSiemStatusResponses = {
+    /**
+     * Successful Response
+     */
+    200: SiemStatus;
+};
+
+export type SiemReadSiemStatusResponse = SiemReadSiemStatusResponses[keyof SiemReadSiemStatusResponses];
 
 export type TacacsLogsGetLatestLogDateData = {
     body?: never;

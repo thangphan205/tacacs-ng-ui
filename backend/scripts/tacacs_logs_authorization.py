@@ -9,10 +9,8 @@ from sqlmodel import Session, select
 
 from app.core.config import settings
 from app.core.db import engine
-from app.crud.tacacs_siem import forward_tacacs_event_to_siem
 from app.models import AuthorizationStatistics
 from scripts._log_stats_base import (
-    day_start_timestamp,
     get_target_date,
     parse_authorization_logs,
 )
@@ -108,33 +106,6 @@ def save_statistics_to_db(
 
         session.commit()
         print("\nAuthorization statistics saved successfully.")
-
-    if settings.SIEM_FORWARD_TACACS_EVENTS:
-        ts = day_start_timestamp(summary_date)
-        for username, nas_ip, user_source_ip in sorted(all_keys):
-            key = (username, nas_ip, user_source_ip)
-            if permitted_authorizations.get(key, 0) > 0:
-                forward_tacacs_event_to_siem(
-                    "authorization",
-                    username,
-                    nas_ip,
-                    user_source_ip,
-                    "permit",
-                    ts,
-                    node_name=node_name,
-                    background=False,
-                )
-            if denied_authorizations.get(key, 0) > 0:
-                forward_tacacs_event_to_siem(
-                    "authorization",
-                    username,
-                    nas_ip,
-                    user_source_ip,
-                    "deny",
-                    ts,
-                    node_name=node_name,
-                    background=False,
-                )
 
 
 if __name__ == "__main__":
