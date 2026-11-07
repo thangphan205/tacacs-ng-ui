@@ -14,6 +14,7 @@ import { z } from "zod"
 
 import { ItemsService } from "@/client"
 import { ItemActionsMenu } from "@/components/Common/ItemActionsMenu"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
 import AddItem from "@/components/Items/AddItem"
@@ -172,14 +173,13 @@ function Items() {
       <Heading size="md" pt={6}>
         Items Management
       </Heading>
-      <Flex mt={4} align="center" justify="space-between">
-        <AddItem />
+      <ListToolbar actions={<AddItem />}>
         <SearchBox
           initialValue={search}
           onSearch={handleSearch}
           placeholder="Search by title, description..."
         />
-      </Flex>
+      </ListToolbar>
       <ItemsTable />
     </Container>
   )

@@ -16,6 +16,7 @@ import { FiLayers, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { TacacsServicesService } from "@/client"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
@@ -229,14 +230,13 @@ function TacacsServices() {
         description="Configure services and service options (such as shell, git, or custom protocols) mapped to TACACS+ policies."
         icon={FiLayers}
       />
-      <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
-        <AddTacacsService />
+      <ListToolbar actions={<AddTacacsService />}>
         <SearchBox
           initialValue={search}
           onSearch={handleSearch}
           placeholder="Search by service name, description..."
         />
-      </Flex>
+      </ListToolbar>
       <TacacsServicesTable />
     </Container>
   )

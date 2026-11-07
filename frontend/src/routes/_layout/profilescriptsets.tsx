@@ -4,6 +4,7 @@ import {
   EmptyState,
   Flex,
   Heading,
+  HStack,
   Table,
   Text,
   VStack,
@@ -15,6 +16,7 @@ import { FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { ProfilescriptsetsService } from "@/client"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { ProfileScriptSetActionsMenu } from "@/components/Common/ProfileScriptSetActionsMenu"
 import { SearchBox } from "@/components/Common/SearchBox"
@@ -198,17 +200,20 @@ function ProfileScriptSets() {
       <Heading size="md" pt={6}>
         ProfileScriptSets Management
       </Heading>
-      <Flex mt={4} align="center" justify="space-between">
-        <Flex gap={2}>
-          <AddProfileScriptSet />
-          <PreviewProfile />
-        </Flex>
+      <ListToolbar
+        actions={
+          <HStack gap={3} wrap="wrap">
+            <AddProfileScriptSet />
+            <PreviewProfile />
+          </HStack>
+        }
+      >
         <SearchBox
           initialValue={search}
           onSearch={handleSearch}
           placeholder="Search by key, value, description..."
         />
-      </Flex>
+      </ListToolbar>
       <ProfileScriptSetsTable />
     </Container>
   )

@@ -19,6 +19,8 @@ import { z } from "zod"
 
 import { type AlertEventPublic, AlertEventsService } from "@/client"
 import { AlertEventDetails } from "@/components/AlertEvents/AlertEventDetails"
+import { FilterSelect } from "@/components/Common/FilterSelect"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import {
   PaginationItems,
@@ -52,6 +54,12 @@ const STATUS_LABELS: Record<string, string> = {
   failed: "failed",
   no_channel: "no channel",
 }
+
+const STATUS_OPTIONS = [
+  { value: "sent", label: "Sent" },
+  { value: "failed", label: "Failed" },
+  { value: "no_channel", label: "No channel" },
+]
 
 function ChannelCell({ ev }: { ev: AlertEventPublic }) {
   if (ev.channel_name) return <>{ev.channel_name}</>
@@ -104,37 +112,17 @@ function AlertEventsTable() {
 
   return (
     <Box>
-      <Flex mb={4} gap={3} align="center">
-        <PageSizeSelect
-          value={perPage}
-          onChange={(v) => {
-            setPerPage(v)
-            navigate({ search: (s) => ({ ...s, page: 1 }) })
-          }}
-        />
-        <select
-          style={{
-            padding: "6px",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-          }}
-          value={status ?? ""}
-          onChange={(e) =>
-            navigate({
-              search: (s) => ({
-                ...s,
-                status: e.target.value || undefined,
-                page: 1,
-              }),
-            })
+      <ListToolbar mt={0} mb={4}>
+        <FilterSelect
+          value={status}
+          onChange={(v) =>
+            navigate({ search: (s) => ({ ...s, status: v, page: 1 }) })
           }
-        >
-          <option value="">All statuses</option>
-          <option value="sent">Sent</option>
-          <option value="failed">Failed</option>
-          <option value="no_channel">No channel</option>
-        </select>
-      </Flex>
+          options={STATUS_OPTIONS}
+          placeholder="All statuses"
+          ariaLabel="Filter by delivery status"
+        />
+      </ListToolbar>
 
       {count === 0 ? (
         <EmptyState.Root>
@@ -219,20 +207,35 @@ function AlertEventsTable() {
             </Table.Body>
           </Table.Root>
 
-          <PaginationRoot
-            count={count}
-            pageSize={perPage}
-            page={page}
-            onPageChange={(e) =>
-              navigate({ search: (s) => ({ ...s, page: e.page }) })
-            }
+          <Flex
+            justifyContent="space-between"
+            align="center"
+            mt={4}
+            gap={3}
+            wrap="wrap"
           >
-            <Flex mt={4} justify="center" gap={2}>
-              <PaginationPrevTrigger />
-              <PaginationItems />
-              <PaginationNextTrigger />
-            </Flex>
-          </PaginationRoot>
+            <PageSizeSelect
+              value={perPage}
+              onChange={(v) => {
+                setPerPage(v)
+                navigate({ search: (s) => ({ ...s, page: 1 }) })
+              }}
+            />
+            <PaginationRoot
+              count={count}
+              pageSize={perPage}
+              page={page}
+              onPageChange={(e) =>
+                navigate({ search: (s) => ({ ...s, page: e.page }) })
+              }
+            >
+              <Flex>
+                <PaginationPrevTrigger />
+                <PaginationItems />
+                <PaginationNextTrigger />
+              </Flex>
+            </PaginationRoot>
+          </Flex>
         </>
       )}
       <AlertEventDetails event={selected} onClose={() => setSelected(null)} />

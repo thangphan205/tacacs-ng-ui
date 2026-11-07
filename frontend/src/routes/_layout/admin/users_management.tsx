@@ -6,6 +6,7 @@ import { z } from "zod"
 
 import { type UserPublic, UsersService } from "@/client"
 import AddUser from "@/components/Admin/AddUser"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
 import { UserActionsMenu } from "@/components/Common/UserActionsMenu"
@@ -182,14 +183,13 @@ function Admin() {
       <Heading size="md" pt={6}>
         Users Management
       </Heading>
-      <Flex mt={4} align="center" justify="space-between">
-        <AddUser />
+      <ListToolbar actions={<AddUser />}>
         <SearchBox
           initialValue={search}
           onSearch={handleSearch}
           placeholder="Search by name, email..."
         />
-      </Flex>
+      </ListToolbar>
       <UsersTable />
     </Container>
   )

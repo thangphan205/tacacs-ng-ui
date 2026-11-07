@@ -33,6 +33,7 @@ import {
   RulesetscriptsService,
   RulesetsService,
 } from "@/client"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import MoveButtons from "@/components/Common/MoveButtons"
 import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
@@ -650,17 +651,20 @@ function Rulesets() {
         description="Rulesets match client properties (like usernames, client IPs, or service options) and map them to appropriate Profiles. Click the chevron (>) on any row to expand and view its script structure."
         icon={FiSliders}
       />
-      <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
-        <HStack gap={3}>
-          <AddRuleset />
-          <PreviewRuleset />
-        </HStack>
+      <ListToolbar
+        actions={
+          <HStack gap={3} wrap="wrap">
+            <AddRuleset />
+            <PreviewRuleset />
+          </HStack>
+        }
+      >
         <SearchBox
           initialValue={search}
           onSearch={handleSearch}
           placeholder="Search by name, action, description..."
         />
-      </Flex>
+      </ListToolbar>
       <RulesetsTable />
     </Container>
   )

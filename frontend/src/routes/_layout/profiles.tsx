@@ -34,6 +34,7 @@ import {
   ProfilescriptsService,
   ProfilesService,
 } from "@/client"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import MoveButtons from "@/components/Common/MoveButtons"
 import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
@@ -643,17 +644,20 @@ function Profiles() {
         description="Profiles group service configurations, authorization instructions, and command permissions returned to network clients. Click the chevron (>) on any row to expand and view its script structure."
         icon={FiFileText}
       />
-      <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
-        <HStack gap={3}>
-          <AddProfile />
-          <PreviewProfile />
-        </HStack>
+      <ListToolbar
+        actions={
+          <HStack gap={3} wrap="wrap">
+            <AddProfile />
+            <PreviewProfile />
+          </HStack>
+        }
+      >
         <SearchBox
           initialValue={search}
           onSearch={handleProfileSearch}
           placeholder="Search by name, action, description..."
         />
-      </Flex>
+      </ListToolbar>
 
       <ProfilesTable />
     </Container>

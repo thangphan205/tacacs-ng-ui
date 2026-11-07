@@ -21,6 +21,7 @@ import { z } from "zod"
 
 import type { NotificationChannelPublic } from "@/client"
 import { NotificationChannelsService } from "@/client"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import {
@@ -318,31 +319,28 @@ function NotificationChannelsTable() {
 
   return (
     <Box>
-      <Flex mb={4} justify="space-between" align="center">
-        <PageSizeSelect
-          value={perPage}
-          onChange={(v) => {
-            setPerPage(v)
-            navigate({ search: { page: 1 } })
-          }}
-        />
-        <DialogRoot open={addOpen} onOpenChange={(e) => setAddOpen(e.open)}>
-          <DialogTrigger asChild>
-            <Button colorPalette="blue" size="sm">
-              <FiPlus /> Add Channel
-            </Button>
-          </DialogTrigger>
-          <DialogContent maxW="xl">
-            <DialogHeader>
-              <DialogTitle>Create Notification Channel</DialogTitle>
-            </DialogHeader>
-            <DialogCloseTrigger />
-            <DialogBody>
-              <ChannelDialog onClose={() => setAddOpen(false)} />
-            </DialogBody>
-          </DialogContent>
-        </DialogRoot>
-      </Flex>
+      <ListToolbar
+        mt={0}
+        mb={4}
+        actions={
+          <DialogRoot open={addOpen} onOpenChange={(e) => setAddOpen(e.open)}>
+            <DialogTrigger asChild>
+              <Button colorPalette="blue" size="sm">
+                <FiPlus /> Add Channel
+              </Button>
+            </DialogTrigger>
+            <DialogContent maxW="xl">
+              <DialogHeader>
+                <DialogTitle>Create Notification Channel</DialogTitle>
+              </DialogHeader>
+              <DialogCloseTrigger />
+              <DialogBody>
+                <ChannelDialog onClose={() => setAddOpen(false)} />
+              </DialogBody>
+            </DialogContent>
+          </DialogRoot>
+        }
+      />
 
       {count === 0 ? (
         <EmptyState.Root>
@@ -429,18 +427,33 @@ function NotificationChannelsTable() {
             </Table.Root>
           </Box>
 
-          <PaginationRoot
-            count={count}
-            pageSize={perPage}
-            page={page}
-            onPageChange={(e) => navigate({ search: { page: e.page } })}
+          <Flex
+            justifyContent="space-between"
+            align="center"
+            mt={4}
+            gap={3}
+            wrap="wrap"
           >
-            <Flex mt={4} justify="center" gap={2}>
-              <PaginationPrevTrigger />
-              <PaginationItems />
-              <PaginationNextTrigger />
-            </Flex>
-          </PaginationRoot>
+            <PageSizeSelect
+              value={perPage}
+              onChange={(v) => {
+                setPerPage(v)
+                navigate({ search: { page: 1 } })
+              }}
+            />
+            <PaginationRoot
+              count={count}
+              pageSize={perPage}
+              page={page}
+              onPageChange={(e) => navigate({ search: { page: e.page } })}
+            >
+              <Flex>
+                <PaginationPrevTrigger />
+                <PaginationItems />
+                <PaginationNextTrigger />
+              </Flex>
+            </PaginationRoot>
+          </Flex>
         </>
       )}
     </Box>

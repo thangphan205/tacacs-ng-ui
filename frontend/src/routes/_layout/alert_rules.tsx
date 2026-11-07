@@ -22,6 +22,7 @@ import { z } from "zod"
 import type { ApiError } from "@/api"
 import type { AlertRulePublic } from "@/client"
 import { AlertRulesService } from "@/client"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import {
@@ -536,33 +537,28 @@ function AlertRulesTable() {
 
   return (
     <Box>
-      <Flex mb={4} justify="space-between" align="center">
-        <Flex gap={2} align="center">
-          <PageSizeSelect
-            value={perPage}
-            onChange={(v) => {
-              setPerPage(v)
-              navigate({ search: { page: 1 } })
-            }}
-          />
-        </Flex>
-        <DialogRoot open={addOpen} onOpenChange={(e) => setAddOpen(e.open)}>
-          <DialogTrigger asChild>
-            <Button colorPalette="blue" size="sm">
-              <FiPlus /> Add Rule
-            </Button>
-          </DialogTrigger>
-          <DialogContent maxW="2xl">
-            <DialogHeader>
-              <DialogTitle>Create Alert Rule</DialogTitle>
-            </DialogHeader>
-            <DialogCloseTrigger />
-            <DialogBody>
-              <RuleDialog onClose={() => setAddOpen(false)} />
-            </DialogBody>
-          </DialogContent>
-        </DialogRoot>
-      </Flex>
+      <ListToolbar
+        mt={0}
+        mb={4}
+        actions={
+          <DialogRoot open={addOpen} onOpenChange={(e) => setAddOpen(e.open)}>
+            <DialogTrigger asChild>
+              <Button colorPalette="blue" size="sm">
+                <FiPlus /> Add Rule
+              </Button>
+            </DialogTrigger>
+            <DialogContent maxW="2xl">
+              <DialogHeader>
+                <DialogTitle>Create Alert Rule</DialogTitle>
+              </DialogHeader>
+              <DialogCloseTrigger />
+              <DialogBody>
+                <RuleDialog onClose={() => setAddOpen(false)} />
+              </DialogBody>
+            </DialogContent>
+          </DialogRoot>
+        }
+      />
 
       {count === 0 ? (
         <EmptyState.Root>
@@ -670,18 +666,33 @@ function AlertRulesTable() {
             </Table.Root>
           </Box>
 
-          <PaginationRoot
-            count={count}
-            pageSize={perPage}
-            page={page}
-            onPageChange={(e) => navigate({ search: { page: e.page } })}
+          <Flex
+            justifyContent="space-between"
+            align="center"
+            mt={4}
+            gap={3}
+            wrap="wrap"
           >
-            <Flex mt={4} justify="center" gap={2}>
-              <PaginationPrevTrigger />
-              <PaginationItems />
-              <PaginationNextTrigger />
-            </Flex>
-          </PaginationRoot>
+            <PageSizeSelect
+              value={perPage}
+              onChange={(v) => {
+                setPerPage(v)
+                navigate({ search: { page: 1 } })
+              }}
+            />
+            <PaginationRoot
+              count={count}
+              pageSize={perPage}
+              page={page}
+              onPageChange={(e) => navigate({ search: { page: e.page } })}
+            >
+              <Flex>
+                <PaginationPrevTrigger />
+                <PaginationItems />
+                <PaginationNextTrigger />
+              </Flex>
+            </PaginationRoot>
+          </Flex>
         </>
       )}
     </Box>

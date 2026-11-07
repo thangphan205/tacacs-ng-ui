@@ -1,25 +1,24 @@
 import {
   Button,
   Container,
-  createListCollection,
   EmptyState,
   Flex,
   Heading,
-  Input,
-  InputGroup,
-  Select,
   Table,
   Tabs,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { FiEye, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 import { TacacsLogsService } from "@/client"
+import { FilterSelect } from "@/components/Common/FilterSelect"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { RefreshControl } from "@/components/Common/RefreshControl"
+import { SearchBox } from "@/components/Common/SearchBox"
 import { DownloadTacacsLogButton } from "@/components/TacacsLogs/DownloadTacacsLogButton"
 import ShowTacacsLog from "@/components/TacacsLogs/ShowTacacsLog"
 import TacacsLogEventsTable from "@/components/TacacsLogs/TacacsLogEventsTable"
@@ -30,31 +29,31 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination"
 
-interface TacacsLogsSearch {
-  page: number
-  search?: string
-}
+const LOG_FILE_TYPES = [
+  "access",
+  "authentication",
+  "authorization",
+  "accounting",
+] as const
+
+type LogFileType = (typeof LOG_FILE_TYPES)[number]
+
+const FILE_TYPE_OPTIONS = LOG_FILE_TYPES.map((t) => ({ value: t, label: t }))
 
 const tacacs_logsSearchSchema = z.object({
   page: z.number().catch(1),
   search: z.string().optional(),
+  type: z.enum(LOG_FILE_TYPES).optional().catch(undefined),
 })
+
+type TacacsLogsSearch = z.infer<typeof tacacs_logsSearchSchema>
 
 const DEFAULT_PER_PAGE = 10
-
-const fileTypeCollection = createListCollection({
-  items: [
-    { value: "", label: "All Types" },
-    { value: "access", label: "access" },
-    { value: "authentication", label: "authentication" },
-    { value: "authorization", label: "authorization" },
-    { value: "accounting", label: "accounting" },
-  ],
-})
 
 function getFilesQueryOptions({
   page,
   search,
+  type,
   perPage,
 }: TacacsLogsSearch & { perPage: number }) {
   return {
@@ -62,9 +61,10 @@ function getFilesQueryOptions({
       TacacsLogsService.listLogFiles({
         skip: (page - 1) * perPage,
         limit: perPage,
-        search: search,
+        search,
+        log_type: type,
       }),
-    queryKey: ["tacacs_logs_files", { page, search, perPage }],
+    queryKey: ["tacacs_logs_files", { page, search, type, perPage }],
   }
 }
 
@@ -75,35 +75,21 @@ export const Route = createFileRoute("/_layout/tacacs_logs")({
 
 function FilesTab() {
   const navigate = useNavigate({ from: Route.fullPath })
-  const { page, search } = Route.useSearch()
-  const [localSearchInput, setLocalSearchInput] = useState(search || "")
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const { page, search, type } = Route.useSearch()
 
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
 
   const { data, isLoading, isFetching, dataUpdatedAt, refetch } = useQuery({
-    ...getFilesQueryOptions({ page, search, perPage }),
+    ...getFilesQueryOptions({ page, search, type, perPage }),
     placeholderData: (prevData) => prevData,
   })
 
-  useEffect(() => {
-    setLocalSearchInput(search || "")
-  }, [search])
-
-  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setLocalSearchInput(val)
-    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current)
-    debounceTimeoutRef.current = setTimeout(() => {
-      navigate({
-        to: "/tacacs_logs",
-        search: (prev) => ({
-          ...prev,
-          page: 1,
-          search: val === "" ? undefined : val,
-        }),
-      })
-    }, 500)
+  // Each control owns one key, so a text search and a type filter combine.
+  const setFilter = (patch: { search?: string; type?: LogFileType }) => {
+    navigate({
+      to: "/tacacs_logs",
+      search: (prev) => ({ ...prev, ...patch, page: 1 }),
+    })
   }
 
   const setPage = (p: number) => {
@@ -117,62 +103,29 @@ function FilesTab() {
 
   return (
     <>
-      <Flex mt={4} gap={3} justifyContent="flex-end">
-        <InputGroup maxW="sm">
-          <Input
-            type="text"
-            placeholder="Search logs..."
-            value={localSearchInput}
-            onChange={handleSearchInputChange}
-            size="sm"
-          />
-        </InputGroup>
-
-        <Select.Root
-          collection={fileTypeCollection}
-          onValueChange={({ value }) => {
-            navigate({
-              to: "/tacacs_logs",
-              search: (prev) => ({
-                ...prev,
-                page: 1,
-                search: value[0] === "" ? undefined : value[0],
-              }),
-            })
-          }}
-          size="sm"
-          maxW="200px"
-        >
-          <Select.Control>
-            <Select.Trigger>
-              <Select.ValueText placeholder="Select file type" />
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              <Select.ClearTrigger />
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              <Select.ItemGroup>
-                {fileTypeCollection.items.map((item) => (
-                  <Select.Item key={item.value} item={item.value}>
-                    {item.label}
-                    <Select.ItemIndicator />
-                  </Select.Item>
-                ))}
-              </Select.ItemGroup>
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-
+      <ListToolbar mt={4}>
+        <SearchBox
+          initialValue={search}
+          onSearch={(val) => setFilter({ search: val || undefined })}
+          placeholder="Search by filename..."
+        />
+        <FilterSelect
+          value={type}
+          onChange={(val) =>
+            setFilter({ type: val as LogFileType | undefined })
+          }
+          options={FILE_TYPE_OPTIONS}
+          placeholder="All types"
+          ariaLabel="Filter by log file type"
+          width="200px"
+        />
         <RefreshControl
           onRefresh={() => refetch()}
           isFetching={isFetching}
           dataUpdatedAt={dataUpdatedAt}
           ariaLabel="Refresh log files"
         />
-      </Flex>
+      </ListToolbar>
 
       {logs.length === 0 ? (
         <EmptyState.Root>

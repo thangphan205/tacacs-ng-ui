@@ -171,3 +171,38 @@ def test_missing_file_and_auth(
         == 404
     )
     assert client.get(f"{URL}/{row.id}{suffix}").status_code == 401
+
+
+def test_list_filters_by_log_type_and_combines_with_search(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    log_dir: Path,
+    make_log: MakeLog,
+) -> None:
+    # A date no other test or seed uses, so ``search`` isolates these rows.
+    day = "2031-01-17"
+    for kind in ("authentication", "authorization", "accounting"):
+        rel = f"2026/11/{kind}-{day}.log"
+        _write(log_dir, rel, 1)
+        make_log(rel)  # pre-registered, so the listing adds no rows to clean up
+
+    r = client.get(
+        f"{URL}/files",
+        headers=superuser_token_headers,
+        params={"search": day, "log_type": "authentication"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["count"] == 1
+    assert [f["filename"] for f in body["data"]] == [f"authentication-{day}.log"]
+
+    r = client.get(
+        f"{URL}/files", headers=superuser_token_headers, params={"search": day}
+    )
+    assert r.json()["count"] == 3
+
+    # "auth" is a prefix of two types; only an exact type name is accepted.
+    r = client.get(
+        f"{URL}/files", headers=superuser_token_headers, params={"log_type": "auth"}
+    )
+    assert r.status_code == 422

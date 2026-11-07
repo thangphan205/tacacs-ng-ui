@@ -17,6 +17,7 @@ import { z } from "zod"
 import { HostsService } from "@/client"
 import { DefaultCredentialsAlert } from "@/components/Common/DefaultCredentialsAlert"
 import { HostActionsMenu } from "@/components/Common/HostActionsMenu"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
@@ -225,14 +226,13 @@ function Hosts() {
         icon={FiServer}
       />
       <DefaultCredentialsAlert mt={6} />
-      <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
-        <AddHost />
+      <ListToolbar actions={<AddHost />}>
         <SearchBox
           initialValue={search}
           onSearch={handleSearch}
           placeholder="Search by name, IP address, description..."
         />
-      </Flex>
+      </ListToolbar>
       <HostsTable />
     </Container>
   )

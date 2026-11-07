@@ -4,7 +4,7 @@ import re
 import uuid
 from collections import deque
 from datetime import datetime, time, timedelta
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 
@@ -32,6 +32,8 @@ from scripts._log_stats_base import local_today
 router = APIRouter(prefix="/tacacs_logs", tags=["tacacs_logs"])
 
 LOG_DIRECTORY = "/var/log/tacacs"
+
+LogFileType = Literal["access", "authentication", "authorization", "accounting"]
 
 IP_REGEX = r"([a-fA-F0-9:.]+|[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})"
 _LOG_REGEX = re.compile(
@@ -476,10 +478,13 @@ def list_log_files(
     sort_by: str = "created_at",
     sort_order: str = "desc",
     search: str | None = None,
+    log_type: LogFileType | None = None,
 ) -> Any:
     """
     List all TACACS+ log files in the log directory and its subfolders.
     Also persist discovered files into the TacacsLog table (id, filename, filepath).
+    log_type keeps only files of that type (tac_plus-ng names them
+    ``<type>-YYYY-MM-DD.log``); it combines with ``search``.
     """
     if not os.path.isdir(LOG_DIRECTORY):
         raise HTTPException(status_code=404, detail="Log directory not found.")
@@ -513,6 +518,8 @@ def list_log_files(
     query = select(TacacsLog)
     if search:
         query = query.where(TacacsLog.filename.ilike(f"%{search}%"))
+    if log_type:
+        query = query.where(TacacsLog.filename.startswith(f"{log_type}-"))
 
     count_query = select(func.count()).select_from(query.subquery())
     count = session.exec(count_query).one()
