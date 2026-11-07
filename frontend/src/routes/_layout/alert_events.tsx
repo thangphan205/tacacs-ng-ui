@@ -18,6 +18,7 @@ import { FiAlertCircle } from "react-icons/fi"
 import { z } from "zod"
 
 import { type AlertEventPublic, AlertEventsService } from "@/client"
+import { AlertEventDetails } from "@/components/AlertEvents/AlertEventDetails"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import {
   PaginationItems,
@@ -92,6 +93,7 @@ function AlertEventsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, status } = Route.useSearch()
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
+  const [selected, setSelected] = useState<AlertEventPublic | null>(null)
 
   const { data, isLoading } = useQuery(
     getQueryOptions({ page, perPage, status }),
@@ -163,7 +165,21 @@ function AlertEventsTable() {
             </Table.Header>
             <Table.Body>
               {data?.data.map((ev) => (
-                <Table.Row key={ev.id}>
+                <Table.Row
+                  key={ev.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Show details of ${ev.rule_name ?? "alert"}`}
+                  cursor="pointer"
+                  _hover={{ bg: "bg.muted" }}
+                  onClick={() => setSelected(ev)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      setSelected(ev)
+                    }
+                  }}
+                >
                   <Table.Cell fontSize="xs" whiteSpace="nowrap">
                     {ev.triggered_at
                       ? new Date(ev.triggered_at).toLocaleString("en-US", {
@@ -219,6 +235,7 @@ function AlertEventsTable() {
           </PaginationRoot>
         </>
       )}
+      <AlertEventDetails event={selected} onClose={() => setSelected(null)} />
     </Box>
   )
 }
