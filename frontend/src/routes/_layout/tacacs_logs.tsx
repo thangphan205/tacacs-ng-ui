@@ -28,6 +28,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
+import { formatDateTime } from "@/utils"
 
 const LOG_FILE_TYPES = [
   "access",
@@ -163,7 +164,7 @@ function FilesTab() {
                     </ShowTacacsLog>
                   </Table.Cell>
                   <Table.Cell truncate maxW="sm">
-                    {new Date(log.created_at).toLocaleString("en-US", {
+                    {formatDateTime(log.created_at, {
                       hour12: false,
                     })}
                   </Table.Cell>

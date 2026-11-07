@@ -28,6 +28,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
+import { formatDateTime } from "@/utils"
 
 const DEFAULT_PER_PAGE = 10
 
@@ -170,7 +171,7 @@ function AlertEventsTable() {
                 >
                   <Table.Cell fontSize="xs" whiteSpace="nowrap">
                     {ev.triggered_at
-                      ? new Date(ev.triggered_at).toLocaleString("en-US", {
+                      ? formatDateTime(ev.triggered_at, {
                           hour12: false,
                         })
                       : "—"}

@@ -30,7 +30,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Field } from "@/components/ui/field"
 import useAuth from "@/hooks/useAuth"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { formatDateTime, handleError } from "@/utils"
 
 export const Route = createFileRoute("/_layout/admin/siem")({
   component: SiemPage,
@@ -131,7 +131,7 @@ function toUpdate(f: FormState): SiemConfigUpdate {
 
 function formatTime(iso?: string | null): string {
   if (!iso) return "never"
-  return new Date(iso).toLocaleString()
+  return formatDateTime(iso)
 }
 
 function SwitchRow({

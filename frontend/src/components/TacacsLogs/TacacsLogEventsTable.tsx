@@ -38,7 +38,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
-import { toLocalISODate } from "@/utils"
+import useLogDays from "@/hooks/useLogDays"
 
 const TYPE_COLORS: Record<string, string> = {
   authentication: "purple",
@@ -338,7 +338,8 @@ function EventDetailDrawer({
 // ─── Main Table ─────────────────────────────────────────────────────────────
 
 export default function TacacsLogEventsTable() {
-  const today = toLocalISODate()
+  // The log time zone's day: the day of the file new lines are written to.
+  const { today } = useLogDays()
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)
   const [dateFrom, setDateFrom] = useState(today)

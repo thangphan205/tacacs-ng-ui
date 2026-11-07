@@ -49,7 +49,8 @@ import {
 import { AaaTrendChart } from "@/components/AaaStatistics/AaaTrendChart"
 import { StatsExclusionsNote } from "@/components/AaaStatistics/StatsExclusions"
 import { PageHeader } from "@/components/Common/PageHeader"
-import { toLocalISODate } from "@/utils"
+import useLogDays from "@/hooks/useLogDays"
+import { formatDateTime, formatISODate, shiftISODate } from "@/utils"
 
 export const Route = createFileRoute("/_layout/")({
   component: Dashboard,
@@ -116,20 +117,11 @@ function getRangeDate(
   mode: FilterMode,
   customStart: string,
   customEnd: string,
+  today: string,
 ): string | undefined {
-  const fmt = toLocalISODate
-  const today = new Date()
-  const end = fmt(today)
-  if (mode === "7d") {
-    const s = new Date(today)
-    s.setDate(today.getDate() - 6)
-    return `${fmt(s)},${end}`
-  }
-  if (mode === "30d") {
-    const s = new Date(today)
-    s.setDate(today.getDate() - 29)
-    return `${fmt(s)},${end}`
-  }
+  // `today` is the log time zone's day (useLogDays), not the browser's.
+  if (mode === "7d") return `${shiftISODate(today, -6)},${today}`
+  if (mode === "30d") return `${shiftISODate(today, -29)},${today}`
   if (customStart && customEnd) return `${customStart},${customEnd}`
   return undefined
 }
@@ -154,10 +146,7 @@ function buildRangeTrendData(stats: any) {
   const acctStop = toMap(stats.last_range_days_accounting_stop ?? [])
   return (stats.last_range_days_authentication_success as any[]).map(
     (d: any) => ({
-      date: new Date(`${d.date}T12:00:00`).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
+      date: formatISODate(d.date),
       "Auth Success": authSuccess[d.date] ?? 0,
       "Auth Fail": authFail[d.date] ?? 0,
       "Authz Permit": authzPermit[d.date] ?? 0,
@@ -669,7 +658,7 @@ function RecentActivity() {
                     fontSize="xs"
                     color="fg.muted"
                   >
-                    {new Date(log.created_at).toLocaleString("en-US", {
+                    {formatDateTime(log.created_at, {
                       hour12: false,
                     })}
                   </Table.Cell>
@@ -708,12 +697,10 @@ function RecentActivity() {
 }
 
 function LastTacacsLogs() {
-  const today = toLocalISODate()
-  const sevenDaysAgo = toLocalISODate(
-    new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-  )
+  const { today, daysAgo } = useLogDays()
+  const sevenDaysAgo = daysAgo(7)
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard_last_tacacs_logs"],
+    queryKey: ["dashboard_last_tacacs_logs", today],
     queryFn: () =>
       TacacsLogsService.listLogEvents({
         date_from: sevenDaysAgo,
@@ -779,14 +766,12 @@ function LastTacacsLogs() {
                     fontSize="xs"
                     color="fg.muted"
                   >
-                    {new Date(
+                    {formatDateTime(
                       log.timestamp.replace(
                         /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([+-]\d{2})(\d{2})$/,
                         "$1T$2$3:$4",
                       ),
-                    ).toLocaleString("en-US", {
-                      hour12: false,
-                    })}
+                    )}
                   </Table.Cell>
                   <Table.Cell>
                     <Badge
@@ -850,7 +835,8 @@ function Dashboard() {
   const [customEnd, setCustomEnd] = useState("")
   const queryClient = useQueryClient()
 
-  const rangeDate = getRangeDate(filterMode, customStart, customEnd)
+  const { today: logToday } = useLogDays()
+  const rangeDate = getRangeDate(filterMode, customStart, customEnd, logToday)
 
   const {
     data: stats,

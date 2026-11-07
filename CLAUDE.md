@@ -180,7 +180,7 @@ Cron is run via `scripts/cron_runner.sh` which sources `/etc/cron_env.sh` (full 
 
 **Timezone:** `scripts/_log_stats_base.py` reads timezone from `TacacsNgSetting.timezone` (DB-stored, editable in UI under TACACS NG Settings). Falls back to `TZ` env var, then UTC. The setting is seeded from `TACACS_TIMEZONE`, which defaults to `TZ`, so set `TZ=Asia/Ho_Chi_Minh` in `.env`. This controls which local day is "today" / "yesterday" when scanning log files.
 
-**One definition of "day" (#356):** tac_plus-ng names files and stamps lines in local time, so every "today" — read path, collectors, alert evaluator, frontend — must be the log-timezone day: `local_today()` / `local_date()` in `_log_stats_base.py` on the backend, `toLocalISODate()` in `frontend/src/utils.ts`. Never `datetime.now(timezone.utc).date()` or `toISOString()` for a log day. `log_date` on the three stats tables is a **`date`** column: a timestamp there was shifted a day by the PostgreSQL session time zone. `tests/crud/test_log_day.py` guards this.
+**One definition of "day" (#356):** tac_plus-ng names files and stamps lines in local time, so every "today" — read path, collectors, alert evaluator, frontend — must be the log-timezone day: `local_today()` / `local_date()` in `_log_stats_base.py` on the backend, `useLogDays()` (`frontend/src/hooks/useLogDays.ts`, from `TacacsNgSetting.timezone`) on the frontend — not the browser's zone, which differs for admins elsewhere. Label a YYYY-MM-DD with `formatISODate()`, never `new Date("YYYY-MM-DD")` (UTC midnight, the previous day west of UTC). Show API timestamps with `formatDateTime()` (viewer's zone, zone named). Never `datetime.now(timezone.utc).date()` or `toISOString()` for a log day. `log_date` on the three stats tables is a **`date`** column: a timestamp there was shifted a day by the PostgreSQL session time zone. `tests/crud/test_log_day.py` guards this.
 
 Pass a date argument to run for a specific date: `python scripts/tacacs_logs_authentication.py 2026-05-13`
 
@@ -269,6 +269,8 @@ All three providers derive their redirect URI from `FRONTEND_HOST` when neither 
 
 Multi-node active-passive HA via PostgreSQL streaming replication + config fan-out. See `docs/en/high-availability.md` for full setup guide.
 
+**One time zone for all nodes:** every node's `TZ` must equal `TacacsNgSetting.timezone` (tac_plus-ng names files in the process zone; log days use the replicated setting). Mixed zones are unsupported and are detected rather than handled: `core/node_timezone.py` (`node_timezone()`, `same_zone()` compares offsets over two years so aliases match), `GET /sync/internal/node-info` (token-guarded, not in OpenAPI) lets the primary read each peer's zone with its health check, `ha-info` returns `timezone` / `log_timezone` / `timezone_ok` (also per peer), the HA page warns, and `main._warn_on_timezone_mismatch` logs at startup.
+
 **Env-only settings** (require restart):
 - `NODE_ROLE` — `primary` or `standby`; controls DB write access and `require_primary_node()` dep
 - `INTERNAL_SYNC_TOKEN` — shared secret for inter-node API calls
@@ -289,6 +291,7 @@ Multi-node active-passive HA via PostgreSQL streaming replication + config fan-o
 
 - Python 3.12+ union syntax: `str | None`, `list[str]` — never `Optional`, `List`
 - Always timezone-aware datetimes: `datetime.now(timezone.utc)`, never `datetime.utcnow()`
+- Every timestamp column is `timestamptz`: declare datetime fields with `sa_type=TZ_DATETIME` (`models.py`); `tests/core/test_timestamps.py` fails on a naive column. `core/db.py` pins every app session to `TimeZone=UTC`, so values come back aware UTC and the API sends `…Z` whatever zone each node's db server runs in. Before migration `c3f8e2a91b47`, columns were naive and held the db server's wall time, which code read as UTC — off by the server's offset (alert cooldowns, API output). Alembic's engine is deliberately not pinned
 - `logging` module only, never `print()` in production code
 - Return type annotations required on all functions
 - Error messages in `HTTPException` must match the actual entity (avoid copy-paste errors)

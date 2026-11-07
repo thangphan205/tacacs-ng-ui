@@ -41,7 +41,8 @@ import {
 import { StatsExclusionsBar } from "@/components/AaaStatistics/StatsExclusions"
 import PageHeader from "@/components/Common/PageHeader"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError, toLocalISODate } from "@/utils"
+import useLogDays from "@/hooks/useLogDays"
+import { formatISODate, handleError } from "@/utils"
 
 export const Route = createFileRoute("/_layout/aaa_statistics")({
   component: AaaStatistics,
@@ -71,11 +72,23 @@ const NODE_COLORS = [
   "orange.500",
 ]
 
-const today = new Date()
-const yesterday = new Date(today)
-yesterday.setDate(yesterday.getDate() - 1)
-const sevenDaysAgo = new Date(today)
-sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+/**
+ * A start/end date pair defaulting to the last 7 complete log days. Until the
+ * user picks a date the defaults follow the log time zone, which loads after
+ * the first render.
+ */
+function useLogDateRange() {
+  const { yesterday, daysAgo } = useLogDays()
+  const [start, setStartDate] = useState<string | undefined>()
+  const [end, setEndDate] = useState<string | undefined>()
+  return {
+    startDate: start ?? daysAgo(7),
+    endDate: end ?? yesterday,
+    setStartDate,
+    setEndDate,
+    yesterday,
+  }
+}
 
 function sumField(list: { count?: number }[] | undefined): number {
   return (list ?? []).reduce((s, d) => s + (d.count ?? 0), 0)
@@ -343,10 +356,7 @@ function TodayStatsTab({ includeExcluded }: StatsTabProps) {
 
   const last_7_days_data =
     stats?.last_7_days_authentication_success?.map((item, index) => ({
-      date: new Date(item.date as string).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
+      date: formatISODate(item.date as string),
       "Auth Success": item.count,
       "Auth Fail": stats?.last_7_days_authentication_fail?.[index]?.count || 0,
       "Authz Permit":
@@ -492,10 +502,8 @@ function TodayStatsTab({ includeExcluded }: StatsTabProps) {
 }
 
 function RangeStatsTab({ includeExcluded }: StatsTabProps) {
-  const [startDate, setStartDate] = useState<string>(
-    toLocalISODate(sevenDaysAgo),
-  )
-  const [endDate, setEndDate] = useState<string>(toLocalISODate(yesterday))
+  const { startDate, endDate, setStartDate, setEndDate, yesterday } =
+    useLogDateRange()
   const [selectedNode, setSelectedNode] = useState<string>("")
 
   const { data: nodes } = useQuery({
@@ -556,10 +564,7 @@ function RangeStatsTab({ includeExcluded }: StatsTabProps) {
 
   const last_range_days_data =
     stats?.last_range_days_authentication_success?.map((item, index) => ({
-      date: new Date(item.date as string).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
+      date: formatISODate(item.date as string),
       "Auth Success": item.count,
       "Auth Fail":
         stats?.last_range_days_authentication_fail?.[index]?.count || 0,
@@ -640,7 +645,7 @@ function RangeStatsTab({ includeExcluded }: StatsTabProps) {
               maxW="150px"
               borderRadius="md"
               min={startDate}
-              max={toLocalISODate(yesterday)}
+              max={yesterday}
             />
           </Flex>
         </Flex>
@@ -777,10 +782,7 @@ function NodeCard({
 
   const trendData =
     stats?.last_range_days_authentication_success?.map((item, index) => ({
-      date: new Date(item.date as string).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
+      date: formatISODate(item.date as string),
       "Auth Success": item.count ?? 0,
       "Auth Fail":
         stats?.last_range_days_authentication_fail?.[index]?.count ?? 0,
@@ -1110,10 +1112,8 @@ function NodeCard({
 }
 
 function NodeStatsTab({ includeExcluded }: StatsTabProps) {
-  const [startDate, setStartDate] = useState<string>(
-    toLocalISODate(sevenDaysAgo),
-  )
-  const [endDate, setEndDate] = useState<string>(toLocalISODate(yesterday))
+  const { startDate, endDate, setStartDate, setEndDate, yesterday } =
+    useLogDateRange()
 
   const { data: nodes, isLoading: nodesLoading } = useQuery({
     queryKey: ["aaa_nodes"],
@@ -1164,7 +1164,7 @@ function NodeStatsTab({ includeExcluded }: StatsTabProps) {
               maxW="150px"
               borderRadius="md"
               min={startDate}
-              max={toLocalISODate(yesterday)}
+              max={yesterday}
             />
           </Flex>
         </Flex>

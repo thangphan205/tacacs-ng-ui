@@ -16,10 +16,11 @@ from app.api.main import api_router
 from app.core.config import settings
 from app.core.db import engine
 from app.core.leader import run_as_leader
+from app.core.node_timezone import node_timezone, same_zone
 from app.crud.alert_evaluator import evaluate_all_rules
 from app.crud.audit_logs import purge_old_audit_logs
 from app.crud.ml_anomaly_scorer import run_daily_anomaly_scoring
-from app.models import HaConfig, HaPeerNode
+from app.models import HaConfig, HaPeerNode, TacacsNgSetting
 from scripts._log_stats_base import local_today
 
 logger = logging.getLogger(__name__)
@@ -139,6 +140,28 @@ async def _stats_collection_loop() -> None:
         await asyncio.sleep(interval)
 
 
+def _warn_on_timezone_mismatch(session: Session) -> None:
+    """HA nodes must all run in the log time zone; say so if this one does not."""
+    try:
+        setting = session.exec(select(TacacsNgSetting)).first()
+    except Exception:
+        session.rollback()
+        return  # not migrated yet
+    log_tz = setting.timezone if setting and setting.timezone else None
+    node_tz = node_timezone()
+    if log_tz and not same_zone(node_tz, log_tz):
+        logger.warning(
+            "Node %s runs in time zone %s, but the log time zone (TACACS NG "
+            "Settings) is %s. tac_plus-ng names log files in the node's zone, "
+            "so this node's statistics, alerts and log days will be wrong. Set "
+            "TZ=%s in this node's .env and recreate the containers.",
+            settings.NODE_NAME,
+            node_tz,
+            log_tz,
+            log_tz,
+        )
+
+
 def _scheduler_enabled(cfg: HaConfig | None) -> bool:
     """Whether this node should run the background write loops.
 
@@ -171,6 +194,7 @@ def _start_background_loops(stats_interval: int) -> list[asyncio.Task[None]]:
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     with Session(engine) as session:
         _seed_ha_config(session)
+        _warn_on_timezone_mismatch(session)
 
     cfg: HaConfig | None
     with Session(engine) as session:

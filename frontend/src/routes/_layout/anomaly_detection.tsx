@@ -26,6 +26,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
+import { formatDateTime } from "@/utils"
 
 const DEFAULT_PER_PAGE = 10
 
@@ -191,7 +192,7 @@ function AnomalyTable() {
                     whiteSpace="nowrap"
                   >
                     {r.scored_at
-                      ? new Date(r.scored_at).toLocaleString("en-US", {
+                      ? formatDateTime(r.scored_at, {
                           hour12: false,
                         })
                       : "—"}

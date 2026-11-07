@@ -27,13 +27,10 @@ def create_audit_log(
         user_email=user_email,
         ip_address=ip_address,
     )
-    # Aware UTC; after refresh the column (timestamp without time zone) comes
-    # back naive in the database session's zone, which is not always UTC.
-    created_at = db_obj.created_at
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
-    _forward_to_siem(session, db_obj, created_at)
+    _forward_to_siem(session, db_obj, db_obj.created_at)
     return db_obj
 
 

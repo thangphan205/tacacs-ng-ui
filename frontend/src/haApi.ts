@@ -7,11 +7,18 @@ export interface HaPeer {
   enabled: boolean
   available: boolean | null
   last_push_at: string | null
+  /** null: unknown (unreachable, or a version that does not report it). */
+  timezone?: string | null
+  timezone_ok?: boolean | null
 }
 
 export interface HaInfo {
   node_role: "primary" | "standby"
   node_name: string
+  /** This node's zone (its TZ) and the log time zone from TACACS NG Settings. */
+  timezone?: string
+  log_timezone?: string
+  timezone_ok?: boolean
   sync_mode: "auto" | "manual"
   scheduler_enabled: boolean
   stats_interval_minutes: number

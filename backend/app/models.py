@@ -18,9 +18,20 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+# Every timestamp column is `timestamptz`. With `timestamp without time zone`,
+# psycopg turned an aware UTC value into the session's local wall time and
+# dropped the offset, so a value read back and treated as UTC was off by the
+# database server's UTC offset (alert cooldowns, API output). See also
+# core/db.py, which pins each connection's TimeZone to UTC.
+TZ_DATETIME = sa.DateTime(timezone=True)
+
+
 class TimestampModel(SQLModel):
-    created_at: datetime = Field(default_factory=_utc_now, nullable=False)
+    created_at: datetime = Field(
+        sa_type=TZ_DATETIME, default_factory=_utc_now, nullable=False
+    )
     updated_at: datetime = Field(
+        sa_type=TZ_DATETIME,
         default_factory=_utc_now,
         sa_column_kwargs={"onupdate": _utc_now},
     )
@@ -917,7 +928,7 @@ class TacacsConfigsPublic(SQLModel):
 class TacacsLogBase(SQLModel):
     filename: str = Field(index=True, max_length=255)
     filepath: str = Field(index=True, max_length=1024)
-    created_at: datetime = Field(default_factory=_utc_now)
+    created_at: datetime = Field(sa_type=TZ_DATETIME, default_factory=_utc_now)
 
 
 class TacacsLogCreate(TacacsLogBase):
@@ -932,7 +943,9 @@ class TacacsLogUpdate(TacacsLogBase):
 class TacacsLog(TacacsLogBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     updated_at: datetime = Field(
-        default_factory=_utc_now, sa_column_kwargs={"onupdate": _utc_now}
+        sa_type=TZ_DATETIME,
+        default_factory=_utc_now,
+        sa_column_kwargs={"onupdate": _utc_now},
     )
 
 
@@ -1329,8 +1342,10 @@ class WebAuthnCredential(SQLModel, table=True):
     public_key: bytes = Field(sa_column=Column(sa.LargeBinary, nullable=False))
     sign_count: int = Field(default=0, nullable=False)
     name: str | None = Field(default=None, max_length=100)
-    created_at: datetime = Field(default_factory=_utc_now, nullable=False)
-    last_used_at: datetime | None = Field(default=None)
+    created_at: datetime = Field(
+        sa_type=TZ_DATETIME, default_factory=_utc_now, nullable=False
+    )
+    last_used_at: datetime | None = Field(sa_type=TZ_DATETIME, default=None)
 
     user: User | None = Relationship(back_populates="webauthn_credentials")
 
@@ -1344,7 +1359,9 @@ class WebAuthnChallenge(SQLModel, table=True):
     expires_at: datetime = Field(
         sa_column=Column(sa.DateTime(timezone=True), nullable=False)
     )
-    created_at: datetime = Field(default_factory=_utc_now, nullable=False)
+    created_at: datetime = Field(
+        sa_type=TZ_DATETIME, default_factory=_utc_now, nullable=False
+    )
 
 
 # WebAuthn API schemas
@@ -1381,9 +1398,13 @@ class AuthProviderConfig(SQLModel, table=True):
     enabled: bool = Field(default=False)
     config_json: str = Field(default="{}")
     encrypted_secret: str | None = Field(default=None)
-    created_at: datetime = Field(default_factory=_utc_now, nullable=False)
+    created_at: datetime = Field(
+        sa_type=TZ_DATETIME, default_factory=_utc_now, nullable=False
+    )
     updated_at: datetime = Field(
-        default_factory=_utc_now, sa_column_kwargs={"onupdate": _utc_now}
+        sa_type=TZ_DATETIME,
+        default_factory=_utc_now,
+        sa_column_kwargs={"onupdate": _utc_now},
     )
 
 
@@ -1483,7 +1504,7 @@ class AlertRuleUpdate(SQLModel):
 
 class AlertRule(AlertRuleBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    last_fired_at: datetime | None = Field(default=None)
+    last_fired_at: datetime | None = Field(sa_type=TZ_DATETIME, default=None)
     alert_events: list["AlertEvent"] = Relationship(
         back_populates="alert_rule", cascade_delete=True
     )
@@ -1550,7 +1571,7 @@ class NotificationChannelsPublic(SQLModel):
 
 
 class AlertEventBase(SQLModel):
-    triggered_at: datetime = Field(default_factory=_utc_now)
+    triggered_at: datetime = Field(sa_type=TZ_DATETIME, default_factory=_utc_now)
     payload_snapshot: str | None = Field(
         default=None, sa_column=Column(sa.Text, nullable=True)
     )
@@ -1625,7 +1646,7 @@ class AlertStatistics(SQLModel):
 class AnomalyDetectionResultBase(SQLModel):
     subject_type: str = Field(max_length=20)  # "username" | "nas_ip"
     subject_value: str = Field(max_length=255, index=True)
-    scored_at: datetime = Field(default_factory=_utc_now)
+    scored_at: datetime = Field(sa_type=TZ_DATETIME, default_factory=_utc_now)
     anomaly_score: float
     is_anomaly: bool = Field(default=False)
     risk_level: str = Field(
@@ -1656,8 +1677,12 @@ class HaState(SQLModel, table=True):
     """Singleton row (id=1) tracking confirmed HA sync timestamps."""
 
     id: int = Field(default=1, primary_key=True)
-    last_push_at: datetime | None = Field(default=None, nullable=True)
-    last_received_at: datetime | None = Field(default=None, nullable=True)
+    last_push_at: datetime | None = Field(
+        sa_type=TZ_DATETIME, default=None, nullable=True
+    )
+    last_received_at: datetime | None = Field(
+        sa_type=TZ_DATETIME, default=None, nullable=True
+    )
 
 
 # --- Multi-Node HA Config ---
@@ -1729,7 +1754,9 @@ class HaNodeState(SQLModel, table=True):
         foreign_key="hapeernode.id",
         ondelete="CASCADE",
     )
-    last_push_at: datetime | None = Field(default=None, nullable=True)
+    last_push_at: datetime | None = Field(
+        sa_type=TZ_DATETIME, default=None, nullable=True
+    )
     last_available: bool | None = Field(default=None, nullable=True)
 
 
@@ -1906,7 +1933,7 @@ class ApiKeyBase(SQLModel):
     # may authenticate from. None/empty means "no restriction".
     allowed_ips: str | None = Field(default=None, max_length=1024)
     description: str | None = Field(default=None, max_length=1024)
-    expires_at: datetime | None = Field(default=None)
+    expires_at: datetime | None = Field(sa_type=TZ_DATETIME, default=None)
 
     @field_validator("allowed_ips")
     @classmethod

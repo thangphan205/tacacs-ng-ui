@@ -12,6 +12,7 @@ from sqlmodel import select
 
 from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
 from app.core.config import settings
+from app.core.node_timezone import node_timezone, same_zone
 from app.crud.auth_hourly import counter_to_rows
 from app.crud.tacacs_configs import reload_active_config_from_db
 from app.models import (
@@ -25,6 +26,7 @@ from app.models import (
     HaPeerNodesPublic,
     HaPeerNodeUpdate,
     HaState,
+    TacacsNgSetting,
 )
 
 log = logging.getLogger(__name__)
@@ -57,7 +59,8 @@ def _last_sync_ts(ha_state: HaState) -> str | None:
 
 
 _PEER_CACHE_TTL = 30  # seconds
-_peers_cache: dict[str, dict] = {}  # url -> {"available": bool|None, "ts": float}
+# url -> {"available": bool|None, "timezone": str|None, "ts": float}
+_peers_cache: dict[str, dict] = {}
 
 
 # --- helpers ---
@@ -87,19 +90,53 @@ def _check_peers_available(peer_urls: list[str]) -> dict[str, bool | None]:
     now = time.monotonic()
     result: dict[str, bool | None] = {}
     for url in peer_urls:
-        cache = _peers_cache.setdefault(url, {"available": None, "ts": 0.0})
+        cache = _peers_cache.setdefault(
+            url, {"available": None, "timezone": None, "ts": 0.0}
+        )
         if now - cache["ts"] < _PEER_CACHE_TTL:
             result[url] = cache["available"]
             continue
+        cache["timezone"] = None
         try:
             with httpx.Client(timeout=5) as client:
-                r = client.get(f"{url.rstrip('/')}/api/v1/utils/health-check/")
-            cache["available"] = r.status_code == 200
+                base = url.rstrip("/")
+                r = client.get(f"{base}/api/v1/utils/health-check/")
+                cache["available"] = r.status_code == 200
+                if cache["available"]:
+                    cache["timezone"] = _fetch_peer_timezone(client, base)
         except Exception:
             cache["available"] = False
         cache["ts"] = now
         result[url] = cache["available"]
     return result
+
+
+def _fetch_peer_timezone(client: httpx.Client, base: str) -> str | None:
+    """The peer's time zone, or None if it cannot say (e.g. an older version)."""
+    try:
+        r = client.get(
+            f"{base}/api/v1/sync/internal/node-info",
+            headers={"X-Internal-Token": settings.INTERNAL_SYNC_TOKEN or ""},
+        )
+        if r.status_code == 200:
+            tz = r.json().get("timezone")
+            return tz if isinstance(tz, str) else None
+    except Exception:
+        log.debug("Peer node-info failed for %s", base, exc_info=True)
+    return None
+
+
+def _timezone_info(session: SessionDep) -> dict:
+    """This node's zone against the log time zone (TACACS NG Settings)."""
+    node_tz = node_timezone()
+    setting = session.exec(select(TacacsNgSetting)).first()
+    log_tz = (setting.timezone if setting else None) or None
+    return {
+        "timezone": node_tz,
+        # Unset, the log time zone falls back to this node's TZ.
+        "log_timezone": log_tz or node_tz,
+        "timezone_ok": same_zone(node_tz, log_tz or node_tz),
+    }
 
 
 def _get_enabled_peers(session: SessionDep) -> list[HaPeerNode]:
@@ -122,6 +159,7 @@ def get_ha_info(_: CurrentUser, session: SessionDep) -> dict:
     if settings.NODE_ROLE == "standby":
         ha_state = _get_or_create_ha_state(session)
         return {
+            **_timezone_info(session),
             "node_role": "standby",
             "node_name": cfg.node_name,
             "sync_mode": cfg.sync_mode,
@@ -142,9 +180,11 @@ def get_ha_info(_: CurrentUser, session: SessionDep) -> dict:
         ns.peer_id: ns for ns in session.exec(select(HaNodeState)).all()
     }
 
+    tz_info = _timezone_info(session)
     peers_out = []
     for p in peers:
         ns = node_states.get(p.id)
+        peer_tz = _peers_cache.get(p.url, {}).get("timezone") if p.enabled else None
         peers_out.append(
             {
                 "id": str(p.id),
@@ -155,6 +195,11 @@ def get_ha_info(_: CurrentUser, session: SessionDep) -> dict:
                 "last_push_at": ns.last_push_at.isoformat()
                 if ns and ns.last_push_at
                 else None,
+                # None: unknown (unreachable, or a version that does not say).
+                "timezone": peer_tz,
+                "timezone_ok": None
+                if peer_tz is None
+                else same_zone(peer_tz, tz_info["log_timezone"]),
             }
         )
 
@@ -168,6 +213,7 @@ def get_ha_info(_: CurrentUser, session: SessionDep) -> dict:
     )
 
     return {
+        **tz_info,
         "node_role": settings.NODE_ROLE,
         "node_name": cfg.node_name,
         "sync_mode": cfg.sync_mode,
@@ -474,6 +520,17 @@ def internal_collect_stats(
             acct_start, acct_stop, "start_count", "stop_count"
         ),
     }
+
+
+@router.get("/internal/node-info", include_in_schema=False)
+def internal_node_info(request: Request) -> dict:
+    """Internal: this node's name and time zone, for the primary's HA page."""
+    token = request.headers.get("X-Internal-Token")
+    if not settings.INTERNAL_SYNC_TOKEN or token != settings.INTERNAL_SYNC_TOKEN:
+        raise HTTPException(
+            status_code=403, detail="Invalid or missing internal sync token."
+        )
+    return {"node_name": settings.NODE_NAME, "timezone": node_timezone()}
 
 
 @router.post("/internal/reload-config")

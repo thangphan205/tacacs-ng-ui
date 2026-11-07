@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query"
 import { FiKey } from "react-icons/fi"
 
 import { type ApiKeyPublic, ApiKeysService } from "@/client"
+import { formatDateTime } from "@/utils"
 import { Tooltip } from "../ui/tooltip"
 import AddApiKey from "./AddApiKey"
 import EditApiKeyAllowedIps from "./EditApiKeyAllowedIps"
@@ -38,7 +39,7 @@ const STATUS_COLOR: Record<KeyStatus, string> = {
 
 function formatDate(value: string | null | undefined, fallback = "—") {
   if (!value) return fallback
-  return new Date(value).toLocaleString("en-US", { hour12: false })
+  return formatDateTime(value, { hour12: false })
 }
 
 const ApiKeys = () => {

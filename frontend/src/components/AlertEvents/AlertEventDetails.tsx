@@ -10,6 +10,7 @@ import {
   DialogRoot,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { formatDateTime } from "@/utils"
 
 type JsonValue =
   | string
@@ -184,7 +185,7 @@ export function AlertEventDetails({ event, onClose }: AlertEventDetailsProps) {
                 <Field label="Triggered at">
                   <Text>
                     {event.triggered_at
-                      ? new Date(event.triggered_at).toLocaleString("en-US", {
+                      ? formatDateTime(event.triggered_at, {
                           hour12: false,
                         })
                       : "—"}
