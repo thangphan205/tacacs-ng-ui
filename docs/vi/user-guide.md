@@ -454,7 +454,7 @@ tacacs-ng-ui có thể chuyển tiếp **bản ghi thống kê AAA** và **mục
 
 - Chạy mỗi `STATS_INTERVAL_MINUTES` (mặc định 30) cho hôm nay, và một lần mỗi đêm cho hôm qua. Mỗi lần chạy gửi lại toàn bộ bản ghi của ngày, nên phía nhận sẽ thấy cùng bản ghi nhiều lần; hãy khử trùng lặp theo các trường của bản ghi nếu cần đếm.
 - Chỉ node **primary** chạy thống kê, nên chỉ primary chuyển tiếp.
-- Đây **không phải nhật ký audit theo từng sự kiện**: không có thời điểm sự kiện, profile, service hay lệnh accounting.
+- Đây **không phải nhật ký audit theo từng sự kiện**: không có thời điểm sự kiện, profile, service hay lệnh accounting. Để có điều đó, xem [Chuyển tiếp từng sự kiện từ mọi node](#chuyển-tiếp-từng-sự-kiện-từ-mọi-node-remote-syslog-destination).
 
 **Mục nhật ký audit** (tạo / sửa / xoá / kích hoạt trên giao diện) được gửi đến webhook ngay khi xảy ra, miễn là `SIEM_WEBHOOK_URL` được đặt, với `sourcetype` là `tacacs-ng-ui:audit`.
 
@@ -476,7 +476,37 @@ SIEM_SYSLOG_PROTOCOL=udp   # hoặc tcp
 
 Khởi động lại backend sau khi thay đổi các biến này.
 
-### Định dạng syslog
+### Chuyển tiếp từng sự kiện từ mọi node (Remote Syslog Destination)
+
+Để có nhật ký audit đầy đủ, hãy để tac_plus-ng **tự gửi từng sự kiện**. Mỗi sự kiện access, authentication, authorization và accounting được gửi ngay qua UDP syslog, từ **mọi node**, kể cả lệnh accounting.
+
+1. **TACACS NG Settings** → **Remote Syslog Destination**: địa chỉ IPv4, có thể kèm cổng, ví dụ `192.0.2.10:514`. Để trống để tắt.
+2. **Generate** rồi **Activate** một cấu hình. Thiết lập này nằm trong cấu hình tac_plus-ng, nên được đồng bộ sang node standby như bình thường.
+
+Cấu hình sinh ra thêm các dòng sau, bên cạnh các file log cục bộ (vẫn giữ nguyên), nên thống kê, cảnh báo và trang TACACS+ Logs vẫn hoạt động:
+
+```
+log remotelog { destination = 192.0.2.10:514 }
+access log = remotelog
+authentication log = remotelog
+authorization log = remotelog
+accounting log = remotelog
+```
+
+Thông điệp là BSD syslog (RFC 3164), mỗi sự kiện một thông điệp, các trường phân cách bằng `|`:
+
+```
+<70>Nov  7 14:00:04 primary tacplus[184]: AUTHC-FAIL|10.0.0.1|alice|tty0|192.0.2.7|shell login failed
+<70>Nov  7 14:00:05 primary tacplus[184]: ACCT-START|10.0.0.1|alice|tty0|192.0.2.7|start|shell|show version <cr>
+```
+
+- **Hostname** là hostname của container backend, được `docker-compose.yml` đặt bằng `NODE_NAME` trong `.env`. Dùng `NODE_NAME` không có dấu cách, và tạo lại container backend sau khi đổi.
+- **Timestamp** là giờ địa phương của node, **không kèm múi giờ**, theo đúng RFC 3164. Hãy cho phía nhận biết múi giờ đó. Trong Graylog, đặt **Time Zone** của input Syslog UDP bằng `TZ` của node (ví dụ `Asia/Ho_Chi_Minh`); nếu không, thời gian bị hiểu là UTC và lệch đúng bằng độ lệch múi giờ.
+- **Giới hạn:** chỉ UDP, chỉ IPv4, một đích. tac_plus-ng không chấp nhận hostname ở đây. Cho phép UDP từ mọi node tới đích.
+
+Cách này và việc chuyển tiếp bản ghi thống kê ở trên là độc lập; có thể dùng một hoặc cả hai.
+
+### Định dạng syslog (bản ghi thống kê)
 
 Thông điệp theo [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424), facility `user`, severity `info`:
 

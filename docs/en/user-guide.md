@@ -686,7 +686,7 @@ tacacs-ng-ui can forward **AAA statistics records** and **audit log entries** to
 
 - Runs every `STATS_INTERVAL_MINUTES` (default 30) for today, and once a night for yesterday. Every run sends the day's full set again, so a receiver sees the same records repeatedly; deduplicate on the record fields if you count them.
 - Only the **primary** node runs statistics, so only the primary forwards.
-- This is **not a per-event audit trail**. It has no event time, profile, service or accounting command.
+- This is **not a per-event audit trail**. It has no event time, profile, service or accounting command. For that, see [Per-event forwarding from every node](#per-event-forwarding-from-every-node-remote-syslog-destination).
 
 **Audit log entries** (create / update / delete / activate in the UI) go to the webhook as they happen, whenever `SIEM_WEBHOOK_URL` is set, with `sourcetype` `tacacs-ng-ui:audit`.
 
@@ -708,7 +708,37 @@ SIEM_SYSLOG_PROTOCOL=udp   # or tcp
 
 Restart the backend after changing these.
 
-### Syslog format
+### Per-event forwarding from every node (Remote Syslog Destination)
+
+For a full audit trail, let tac_plus-ng send **every event itself**. Each access, authentication, authorization and accounting event goes out as UDP syslog as it happens, from **every node**, including the accounting command.
+
+1. **TACACS NG Settings** → **Remote Syslog Destination**: an IPv4 address with an optional port, e.g. `192.0.2.10:514`. Leave it empty to disable.
+2. **Generate** and **Activate** a configuration. The setting is part of the tac_plus-ng config, so it reaches standby nodes with the normal config sync.
+
+The generated config adds these lines next to the local log files, which stay as they are, so statistics, alerts and the TACACS+ Logs page keep working:
+
+```
+log remotelog { destination = 192.0.2.10:514 }
+access log = remotelog
+authentication log = remotelog
+authorization log = remotelog
+accounting log = remotelog
+```
+
+Messages are BSD syslog (RFC 3164), one per event, fields separated by `|`:
+
+```
+<70>Nov  7 14:00:04 primary tacplus[184]: AUTHC-FAIL|10.0.0.1|alice|tty0|192.0.2.7|shell login failed
+<70>Nov  7 14:00:05 primary tacplus[184]: ACCT-START|10.0.0.1|alice|tty0|192.0.2.7|start|shell|show version <cr>
+```
+
+- **Hostname** is the backend container's hostname, which `docker-compose.yml` sets to `NODE_NAME` from `.env`. Use a `NODE_NAME` without spaces, and recreate the backend container after changing it.
+- **Timestamp** is the node's local time **without a time zone**, as RFC 3164 defines it. Tell the receiver which zone that is. In Graylog, set **Time Zone** on the Syslog UDP input to the node's `TZ` (e.g. `Asia/Ho_Chi_Minh`); otherwise the time is read as UTC and is off by the zone offset.
+- **Limits:** UDP only, IPv4 only, one destination. tac_plus-ng does not accept a hostname here. Allow UDP from every node to the destination.
+
+This and the statistics forwarding above are independent; you can use either or both.
+
+### Syslog format (statistics records)
 
 Messages are [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424), facility `user`, severity `info`:
 
