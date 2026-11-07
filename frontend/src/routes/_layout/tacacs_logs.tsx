@@ -20,6 +20,7 @@ import { z } from "zod"
 import { TacacsLogsService } from "@/client"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { RefreshControl } from "@/components/Common/RefreshControl"
+import { DownloadTacacsLogButton } from "@/components/TacacsLogs/DownloadTacacsLogButton"
 import ShowTacacsLog from "@/components/TacacsLogs/ShowTacacsLog"
 import TacacsLogEventsTable from "@/components/TacacsLogs/TacacsLogEventsTable"
 import {
@@ -194,6 +195,7 @@ function FilesTab() {
               <Table.Row>
                 <Table.ColumnHeader>Filename</Table.ColumnHeader>
                 <Table.ColumnHeader>Created At</Table.ColumnHeader>
+                <Table.ColumnHeader w="1%">Download</Table.ColumnHeader>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -211,6 +213,9 @@ function FilesTab() {
                     {new Date(log.created_at).toLocaleString("en-US", {
                       hour12: false,
                     })}
+                  </Table.Cell>
+                  <Table.Cell textAlign="center">
+                    <DownloadTacacsLogButton log={log} iconOnly />
                   </Table.Cell>
                 </Table.Row>
               ))}

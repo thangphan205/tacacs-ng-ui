@@ -2981,6 +2981,14 @@ export type TacacsLogPublic = {
      * Data
      */
     data?: string | null;
+    /**
+     * Total Lines
+     */
+    total_lines?: number | null;
+    /**
+     * Shown Lines
+     */
+    shown_lines?: number | null;
 };
 
 /**
@@ -7195,6 +7203,34 @@ export type TacacsLogsListLogFilesResponses = {
 
 export type TacacsLogsListLogFilesResponse = TacacsLogsListLogFilesResponses[keyof TacacsLogsListLogFilesResponses];
 
+export type TacacsLogsDownloadLogFileData = {
+    body?: never;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/tacacs_logs/{id}/download';
+};
+
+export type TacacsLogsDownloadLogFileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TacacsLogsDownloadLogFileError = TacacsLogsDownloadLogFileErrors[keyof TacacsLogsDownloadLogFileErrors];
+
+export type TacacsLogsDownloadLogFileResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type TacacsLogsReadLogFileData = {
     body?: never;
     path: {
@@ -7208,6 +7244,10 @@ export type TacacsLogsReadLogFileData = {
          * Search
          */
         search?: string | null;
+        /**
+         * Lines
+         */
+        lines?: number;
     };
     url: '/api/v1/tacacs_logs/{id}';
 };

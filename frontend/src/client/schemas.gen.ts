@@ -5250,6 +5250,28 @@ export const TacacsLogPublicSchema = {
                 }
             ],
             title: 'Data'
+        },
+        total_lines: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Total Lines'
+        },
+        shown_lines: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Shown Lines'
         }
     },
     type: 'object',
