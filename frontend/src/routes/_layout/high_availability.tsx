@@ -77,6 +77,48 @@ function formatAbsoluteTime(isoString: string): string {
   })
 }
 
+/**
+ * HA nodes must all run in the log time zone: tac_plus-ng names log files in
+ * the node's zone, while log days, statistics and alerts use the log zone.
+ */
+function TimezoneAlert({ haInfo }: { haInfo: HaInfo }) {
+  const wrong = [
+    ...(haInfo.timezone_ok === false
+      ? [`this node (${haInfo.node_name}) runs in ${haInfo.timezone}`]
+      : []),
+    ...haInfo.peers
+      .filter((p) => p.timezone_ok === false)
+      .map((p) => `${p.name} runs in ${p.timezone}`),
+  ]
+  if (wrong.length === 0) return null
+  return (
+    <Alert.Root status="warning" mb={6} borderRadius="md">
+      <Alert.Indicator />
+      <Alert.Content>
+        <Alert.Title>Nodes in different time zones</Alert.Title>
+        <Alert.Description>
+          All HA nodes must run in the log time zone,{" "}
+          <b>{haInfo.log_timezone}</b> (TACACS NG Settings). Now{" "}
+          {wrong.join("; ")}. Their log days, statistics and alerts will be
+          wrong. Set <Text as="code">TZ={haInfo.log_timezone}</Text> in each
+          node's <Text as="code">.env</Text> and recreate its containers.
+        </Alert.Description>
+      </Alert.Content>
+    </Alert.Root>
+  )
+}
+
+function PeerTimezone({ peer }: { peer: HaPeer }) {
+  if (!peer.timezone) return <Text as="span">—</Text>
+  return peer.timezone_ok === false ? (
+    <Badge colorPalette="red" variant="subtle">
+      {peer.timezone}
+    </Badge>
+  ) : (
+    <Text as="span">{peer.timezone}</Text>
+  )
+}
+
 function PeerAvailableBadge({ peer }: { peer: HaPeer }) {
   if (!peer.enabled)
     return (
@@ -199,6 +241,7 @@ function PeersTable({
             <Table.ColumnHeader>Name</Table.ColumnHeader>
             <Table.ColumnHeader>URL</Table.ColumnHeader>
             <Table.ColumnHeader>Status</Table.ColumnHeader>
+            <Table.ColumnHeader>Time zone</Table.ColumnHeader>
             <Table.ColumnHeader>Last Sync</Table.ColumnHeader>
             {isSuperuser && <Table.ColumnHeader />}
           </Table.Row>
@@ -212,6 +255,9 @@ function PeersTable({
               </Table.Cell>
               <Table.Cell>
                 <PeerAvailableBadge peer={peer} />
+              </Table.Cell>
+              <Table.Cell fontSize="xs" color="fg.muted">
+                <PeerTimezone peer={peer} />
               </Table.Cell>
               <Table.Cell fontSize="xs" color="fg.muted">
                 {peer.last_push_at ? (
@@ -481,9 +527,20 @@ function HighAvailabilityPage() {
                 {haInfo.node_name}
               </Badge>
             )}
+            {haInfo.timezone && (
+              <Badge
+                colorPalette={haInfo.timezone_ok === false ? "red" : "gray"}
+                variant="outline"
+                size="md"
+              >
+                {haInfo.timezone}
+              </Badge>
+            )}
           </>
         )}
       </Flex>
+
+      {haInfo && <TimezoneAlert haInfo={haInfo} />}
 
       {!haConfigured ? (
         <VStack gap={6} align="stretch">

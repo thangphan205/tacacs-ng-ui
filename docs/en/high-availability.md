@@ -69,6 +69,13 @@ Zone A is the primary (all writes). Zone B is a hot standby — its PostgreSQL r
 
 > **Security:** Expose port 5432 only on a private/VPN network, never to the public internet.
 
+**One time zone for every node.** Set the same `TZ` in every node's `.env`, equal to the **Timezone** under TACACS NG Settings (the log time zone), even when the nodes are in different regions. tac_plus-ng names its log files and stamps its lines in the node's own zone. Log days, statistics and alert windows use the one log time zone that every node shares through replication. A node in another zone looks for the wrong day's log file around midnight, and its daily statistics cover a different 24 hours from the other nodes'. Mixed zones are not supported:
+
+- The **High Availability** page shows each node's zone and warns about any node that differs. The primary asks each peer for its zone, so this needs a matching `INTERNAL_SYNC_TOKEN`.
+- Each node logs a warning at startup when its `TZ` differs from the log time zone.
+
+Admins can still be anywhere: the UI shows times in each viewer's own zone, with the zone named.
+
 ---
 
 ### Step 1 — Deploy Zone A (Primary)
@@ -679,6 +686,7 @@ All HA variables are optional. Defaults run as a standard single-node deployment
 | `NODE_ROLE` | `primary` | **Env-only.** `primary` or `standby`. Controls write access and `require_primary_node()` guard. Requires restart. |
 | `INTERNAL_SYNC_TOKEN` | _(empty)_ | **Env-only.** Shared secret for inter-node calls. Must match on all nodes. Generate with `openssl rand -hex 32`. Requires restart. |
 | `NODE_NAME` | `primary` | Seeded into DB on first startup. Human-readable node label (e.g. `dc1-primary`). Edit via HA UI after first start. |
+| `TZ` | `UTC` | **Env-only, same on every node**, equal to the TACACS NG Settings **Timezone**. See [Prerequisites](#prerequisites). Recreate the containers after changing it. |
 | `SCHEDULER_ENABLED` | `true` | Seeded into DB on first startup. Standby nodes never run these loops regardless of this value (a standby's DB is a replica of the primary's, so the row it reads is the primary's). Edit via HA UI. |
 | `SYNC_MODE` | `auto` | Seeded into DB on first startup. `auto` = standby polls DB every 10 s. `manual` = admin-triggered. Edit via HA UI. |
 | `PEER_BACKEND_URL` | _(empty)_ | Set on **both** primary and standby. On primary: seeded as the first peer entry on first startup. On standby: value is dormant until promotion — on first startup as primary, any env-configured URLs not yet in the peer table are added automatically. Use HA UI to manage peers after initial seeding. |

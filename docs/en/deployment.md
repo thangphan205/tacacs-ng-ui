@@ -472,7 +472,7 @@ All variables with their defaults (from `.env.example`):
 | `ENVIRONMENT` | `local` | `local`, `staging`, or `production` |
 | `PROJECT_NAME` | `TACACS+ NG UI` | Display name in UI and emails |
 | `STACK_NAME` | `tacacs-ng-ui` | Docker Compose project name |
-| `TZ` | `Asia/Ho_Chi_Minh` | Timezone for cron jobs and log rotation, and the day boundary of AAA statistics. Seeds the **Timezone** in TACACS NG Settings, which takes precedence once set. Must match the timezone tac_plus-ng writes its log files in |
+| `TZ` | `Asia/Ho_Chi_Minh` | Timezone for cron jobs and log rotation, and the day boundary of AAA statistics. Seeds the **Timezone** in TACACS NG Settings, which takes precedence once set. Must match the timezone tac_plus-ng writes its log files in. With HA, every node must use the same `TZ` |
 | `SECRET_KEY` | *(required)* | JWT signing key — generate with `openssl rand -hex 32` |
 | `FIRST_SUPERUSER` | *(required)* | Initial admin email |
 | `FIRST_SUPERUSER_PASSWORD` | *(required)* | Initial admin password |

@@ -269,6 +269,8 @@ All three providers derive their redirect URI from `FRONTEND_HOST` when neither 
 
 Multi-node active-passive HA via PostgreSQL streaming replication + config fan-out. See `docs/en/high-availability.md` for full setup guide.
 
+**One time zone for all nodes:** every node's `TZ` must equal `TacacsNgSetting.timezone` (tac_plus-ng names files in the process zone; log days use the replicated setting). Mixed zones are unsupported and are detected rather than handled: `core/node_timezone.py` (`node_timezone()`, `same_zone()` compares offsets over two years so aliases match), `GET /sync/internal/node-info` (token-guarded, not in OpenAPI) lets the primary read each peer's zone with its health check, `ha-info` returns `timezone` / `log_timezone` / `timezone_ok` (also per peer), the HA page warns, and `main._warn_on_timezone_mismatch` logs at startup.
+
 **Env-only settings** (require restart):
 - `NODE_ROLE` — `primary` or `standby`; controls DB write access and `require_primary_node()` dep
 - `INTERNAL_SYNC_TOKEN` — shared secret for inter-node API calls
