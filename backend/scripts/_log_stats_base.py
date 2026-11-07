@@ -140,9 +140,14 @@ def build_log_file_path(target_date: date, log_type: str, log_directory: str) ->
 
 
 def parse_authentication_logs(
-    target_date: date, log_directory: str
+    target_date: date, log_directory: str, hourly: Counter | None = None
 ) -> tuple[Counter, Counter]:
-    """Return (successful_logins, failed_logins) Counters keyed by (username, nas_ip, client_ip)."""
+    """Return (successful_logins, failed_logins) Counters keyed by (username, nas_ip, client_ip).
+
+    When `hourly` is given it is filled in the same pass with
+    `(username, hour, "success" | "fail")` counts, the hour being the one
+    tac_plus-ng stamped on the line (the log timezone).
+    """
     target_date_str = target_date.strftime("%Y-%m-%d")
     log_file_path = build_log_file_path(target_date, "authentication", log_directory)
 
@@ -168,10 +173,14 @@ def parse_authentication_logs(
                 nas_ip = log_data["nas_ip"]
                 client_ip = log_data["client_ip"] or nas_ip
                 key = (username, nas_ip, client_ip)
-                if "succeeded" in message:
+                outcome = "success" if "succeeded" in message else "fail"
+                if outcome == "success":
                     successful_logins[key] += 1
                 else:
                     failed_logins[key] += 1
+                if hourly is not None:
+                    # "YYYY-MM-DD HH:MM:SS +ZZZZ": the regex guarantees the shape
+                    hourly[(username, int(log_data["timestamp"][11:13]), outcome)] += 1
     except OSError:
         pass
 

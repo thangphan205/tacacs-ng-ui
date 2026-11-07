@@ -18,6 +18,7 @@ from app.api.deps import (
 from app.core.config import settings
 from app.core.db import engine
 from app.crud import aaa_statistics, stats_exclusions
+from app.crud.auth_hourly import upsert_hourly
 from app.models import (
     AaaStatisticsDateRangePublic,
     AaaStatisticsTodayPublic,
@@ -191,6 +192,17 @@ def _upsert_peer_stats(session: Session, data: dict[str, Any]) -> None:
                 node_name=peer_node,
             )
         session.add(auth_obj)
+
+    # The hourly rows carry no date of their own: they are for the day of the
+    # request, which every other section of the same response also covers.
+    hourly_rows = data.get("authentication_hourly", [])
+    if hourly_rows and data.get("date"):
+        upsert_hourly(
+            session,
+            node_name=peer_node,
+            log_date=parse_log_date(data["date"]),
+            rows=hourly_rows,
+        )
 
     for row in data.get("authorization", []):
         log_day = parse_log_date(row["log_date"])

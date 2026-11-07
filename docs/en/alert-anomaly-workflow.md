@@ -8,8 +8,8 @@
 AlertRule (DB table: alertrule)
   name, description, enabled, is_system
   log_type           → "auth" | "authz" | "config" | "all"
-  condition_field    → "fail_count" | "deny_count" | "username" | "client_ip" | "config_action"
-  condition_operator → "gt" | "lt" | "eq" | "new_value" | "any_change" | "created" | "updated" | "deleted" | "activated"
+  condition_field    → "fail_count" | "deny_count" | "username" | "client_ip" | "config_action" | "login_hour"
+  condition_operator → "gt" | "lt" | "eq" | "new_value" | "any_change" | "created" | "updated" | "deleted" | "activated" | "unusual"
   threshold          → float (min count to trigger)
   time_window_minutes → how far back to query
   severity           → "low" | "medium" | "high" | "critical"
@@ -110,6 +110,54 @@ condition_field="client_ip", operator="gt/lt/eq":
   with an explicit threshold. See the limitations note in the v0.5.3 release
   notes before using "lt"/"eq" or leaving the threshold blank.
 ```
+
+### 6a-2. Login at Unusual Hour
+
+**Files:** `backend/app/crud/login_hours.py`, `alert_evaluator._check_login_hours()`
+
+`condition_field="login_hour"`, `condition_operator="unusual"`. `threshold` is
+the **maximum share of the user's logins, in percent** (default 2).
+
+```
+Baseline  AuthenticationHourlyStatistics: successful logins per user and hour
+          of day (log timezone), summed over all nodes, for the 30 log days
+          before the window's first day. The window's own days are left out:
+          the stats run has already partly counted them, so a login would be
+          part of its own history.
+
+for each successful login in the window with time >= max(window_start, last_fired_at):
+  skip the user if the baseline spans fewer than 7 days (new accounts are
+       the New Username rule's job)
+  share = logins in {hour-1, hour, hour+1} / all baseline logins  (wraps midnight)
+  unusual if share < threshold
+
+payload = { unusual_logins: [{ username, login_at, hour, share, logins,
+            total_logins, usual_hours[], source_ips[], devices[] }], … }
+          one row per user, rarest first; login_at/hour/share describe the
+          earliest unusual login, logins counts all of them in the window.
+          usual_hours = hours holding at least 5 % of the user's logins.
+```
+
+The neighbouring hours absorb daylight saving and logins near an hour's edge.
+A share, rather than "never logged in at this hour", keeps one stray night
+login from making that hour normal for the next 30 days.
+
+**Off by default.** `[System] Login at Unusual Hour` is created disabled
+(window 10 min, cooldown 5 min, so a login during a cooldown is not missed and
+`last_fired_at` stops repeats). Turn it on with the switch in the Alert Rules
+table once history has built up. Like every system rule it is only created,
+never overwritten, so an admin's choice and threshold survive restarts.
+
+**Collecting the baseline.** `AuthenticationHourlyStatistics` (`node_name,
+username, log_date, hour, success_count, fail_count`) is filled on every
+authentication stats run, whether or not the rule is enabled, from the same
+pass over the log file. On HA, a standby's hourly counts come back in the
+`authentication_hourly` key of `collect-stats`; a peer on an older version
+omits it and is simply skipped. To fill history from log files still on disk,
+run `python scripts/tacacs_logs_authentication.py YYYY-MM-DD` for each day.
+
+Limit: like the other auth rules, the real-time check reads this node's log
+files, so a login on a standby is judged only once collected.
 
 ### 6b. Authz Stats Check
 
@@ -255,6 +303,7 @@ channel_type="webhook":
       client_ip new_value → new_source_ips, sources[]
         users[]/sources[] rows: { username | ip, success, fail,
           source_ips | usernames, devices, first_seen, last_seen }
+      login_hour unusual  → unusual_logins[] (see 6a-2)
       client_ip gt/lt/eq  → ip, fail_count, triggered_ips[{ip, fail_count}], sources[]
       fail_count gt/lt/eq → fail_count, top_users, top_sources, top_devices
       authz gt/lt/eq      → deny_count, top_users, top_devices

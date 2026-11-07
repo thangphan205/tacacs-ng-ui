@@ -16,6 +16,7 @@ from sqlmodel import Session, col, select
 from app.core.config import settings
 from app.crud import alert_events as crud_alert_events
 from app.crud import alert_rules as crud_alert_rules
+from app.crud import login_hours
 from app.crud.alert_formatter import build_alert_message, render_text
 from app.crud.notification_dispatcher import dispatch_notification
 from app.models import (
@@ -82,12 +83,16 @@ class _Activity:
     nas_ips: set[str] = field(default_factory=set)
     first: datetime | None = None
     last: datetime | None = None
+    # (time, peer, NAS IP) of each successful login, for the login-hour rule
+    logins: list[tuple[datetime, str, str]] = field(default_factory=list)
 
     def add(
         self, *, ts: datetime, ok: bool, failed: bool, peer: str, nas_ip: str
     ) -> None:
         self.success += ok
         self.fail += failed
+        if ok:
+            self.logins.append((ts, peer, nas_ip))
         self.peers.add(peer)
         self.nas_ips.add(nas_ip)
         self.first = ts if self.first is None else min(self.first, ts)
@@ -451,6 +456,15 @@ def _check_auth_stats(
     window = _parse_auth_log(window_start, now)
     common = {"window_minutes": rule.time_window_minutes, "rule": rule.name}
 
+    if field == "login_hour" and operator == "unusual":
+        return _check_login_hours(
+            rule=rule,
+            session=session,
+            window=window,
+            window_start=window_start,
+            common=common,
+        )
+
     if field == "username" and operator == "new_value":
         baseline = _baseline_usernames(window_start, session)
         new_usernames = sorted(window.seen_usernames - baseline)
@@ -527,6 +541,43 @@ def _check_auth_stats(
         }
 
     return False, {}
+
+
+def _check_login_hours(
+    *,
+    rule: AlertRule,
+    session: Session,
+    window: AuthWindow,
+    window_start: datetime,
+    common: dict[str, Any],
+) -> tuple[bool, dict[str, Any]]:
+    """Successful logins at an hour the user rarely logs in (see login_hours)."""
+    # Logins the previous firing already reported are not reported again, so a
+    # window longer than the cooldown does not repeat them.
+    since = window_start
+    if rule.last_fired_at is not None:
+        since = max(since, _as_utc(rule.last_fired_at))
+    logins = {
+        username: fresh
+        for username, act in window.by_user.items()
+        if (fresh := [login for login in act.logins if login[0] >= since])
+    }
+    if not logins:
+        return False, {}
+
+    first_day, last_day = login_hours.baseline_days(window_start)
+    profiles = login_hours.load_profiles(session, logins, first_day, last_day)
+    max_share = (
+        rule.threshold if rule.threshold is not None else login_hours.DEFAULT_MAX_SHARE
+    )
+    found = login_hours.find_unusual(logins, profiles, max_share=max_share)
+    if not found:
+        return False, {}
+
+    labels = _device_labels(session, {ip for row in found for ip in row["nas_ips"]})
+    for row in found:
+        row["devices"] = [labels.get(ip, ip) for ip in row.pop("nas_ips")]
+    return True, {"unusual_logins": found, **common}
 
 
 def _check_authz_stats(

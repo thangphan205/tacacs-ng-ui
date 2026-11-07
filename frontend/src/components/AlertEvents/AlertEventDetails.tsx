@@ -34,6 +34,7 @@ const PAYLOAD_LABELS: Record<string, string> = {
   config_change_count: "Config changes",
   changes: "Changes",
   users: "Users",
+  unusual_logins: "Unusual logins",
   sources: "Source IPs",
   top_users: "Top users",
   top_sources: "Top source IPs",
