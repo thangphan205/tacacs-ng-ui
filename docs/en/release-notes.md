@@ -32,6 +32,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump python-multipart from 0.0.32 to 0.0.33 in /backend. PR [#381](https://github.com/thangphan205/tacacs-ng-ui/pull/381) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * 🔖 Release 0.6.6. PR [#369](https://github.com/thangphan205/tacacs-ng-ui/pull/369) by [@thangphan205](https://github.com/thangphan205).
 
 ## v0.6.6
