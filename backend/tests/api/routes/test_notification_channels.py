@@ -7,6 +7,7 @@ from sqlmodel import Session
 
 from app.core.config import settings
 from app.crud import notification_channels as crud_channels
+from app.crud.alert_formatter import AlertMessage, Code
 from app.models import NotificationChannel, NotificationChannelCreate
 
 
@@ -282,6 +283,46 @@ class TestNotificationDispatcher:
         payload = mock_post.call_args.kwargs["json"]
         assert payload["chat_id"] == "-100123"
         assert "TG Alert" in payload["text"]
+
+    @staticmethod
+    def _message() -> AlertMessage:
+        return AlertMessage(
+            severity="critical",
+            title="TACACS Config Activated",
+            body=[["1. ACTIVATE ", Code("live_<1>.cfg")]],
+            footer=[["fired now"]],
+            link="https://tacacs.example.com/audit_logs",
+        )
+
+    def test_telegram_renders_structured_message_as_html(self) -> None:
+        from app.crud.notification_dispatcher import dispatch_notification
+        ch = self._channel("telegram", {"bot_token": "t", "chat_id": "1"})
+        mock_resp = MagicMock()
+        mock_resp.is_success = True
+        msg = self._message()
+        with patch("httpx.post", return_value=mock_resp) as mock_post:
+            ok, _ = dispatch_notification(
+                channel=ch, subject=msg.subject, body="plain", message=msg
+            )
+        assert ok is True
+        text = mock_post.call_args.kwargs["json"]["text"]
+        assert text.startswith("<b>🚨 CRITICAL · TACACS Config Activated</b>")
+        assert "<code>live_&lt;1&gt;.cfg</code>" in text
+        assert "plain" not in text
+
+    def test_discord_color_comes_from_message_severity(self) -> None:
+        from app.crud.notification_dispatcher import dispatch_notification
+        ch = self._channel("discord", {"webhook_url": "https://discord.example/hook"})
+        mock_resp = MagicMock()
+        mock_resp.is_success = True
+        msg = self._message()
+        with patch("httpx.post", return_value=mock_resp) as mock_post:
+            dispatch_notification(
+                channel=ch, subject="no severity here", body="b", message=msg
+            )
+        embed = mock_post.call_args.kwargs["json"]["embeds"][0]
+        assert embed["color"] == 0x992D22
+        assert "`live_<1>.cfg`" in embed["description"]
 
 
 # ---------------------------------------------------------------------------

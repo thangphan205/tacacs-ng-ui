@@ -55,12 +55,15 @@ for each due rule:
   triggered, payload = _evaluate_rule(rule)
 
   if triggered:
+    payload += { node: NODE_NAME, fired_at: now in the log timezone }
     if no channels:
       create AlertEvent(rule_id, channel_id=NULL, status="no_channel")
+    message = build_alert_message(rule, payload)   ← alert_formatter.py
     for each channel:
-      success, err = dispatch_notification(channel, subject, body)
+      success, err = dispatch_notification(channel, message.subject,
+                                           render_text(message), payload, message)
       create AlertEvent(rule_id, channel_id, status, error_message)
-    set rule.last_fired_at = now
+    set rule.last_fired_at = now   ← the same instant the window ended at
 ```
 
 ### 5. Rule Check Dispatch
@@ -137,11 +140,16 @@ action_map = {
   "activated"  → ["ACTIVATE"]
 }
 
+since = max(window_start, rule.last_fired_at)   ← never re-report rows the
+                                                   previous firing sent
 count = COUNT(*) WHERE entity_type="TacacsConfig"
                    AND action IN action_map[operator]
-                   AND created_at >= window_start
+                   AND created_at >= since
 
 triggered = count >= threshold
+changes   = newest 10 rows as { action, filename, entity_id, by, ip_address, at }
+            filename from the audit row's new_values (old_values for DELETE)
+            at is ISO 8601 in the log timezone
 ```
 
 ### 7. ACTIVATE Audit Log
@@ -156,43 +164,110 @@ if not old_active AND db_tacacs_config.active:
 
 Written in addition to the standard UPDATE log when a config's `active` field flips `false → true`.
 
-### 8. Notification Dispatch
+### 8. Notification Message
+
+**File:** `backend/app/crud/alert_formatter.py` — `build_alert_message()`
+
+Every message answers what happened, who, from where, on which device, when,
+and on which node, and ends with a link to the page to investigate
+(`FRONTEND_HOST` + `/aaa_statistics` or `/audit_logs`). Times are in the log
+timezone (TACACS NG Settings). Lists stop at 10 entries (`… +N more`); a
+successful login by a *new* username or from a *new* source IP is called out
+on its own line, because that is the case that needs a look first.
+
+```
+🟠 MEDIUM · New Username Detected
+
+2 usernames not seen in the past 30 days appeared in the last 60 min.
+⚠️ Logged in successfully: abc
+
+👤 abc — ✅ 2 ok · ❌ 3 failed
+   Source: 192.168.252.1
+   Device: core-sw1 (10.1.1.1)
+   Seen: 2026-11-07 21:02:11 +07 → 21:07:40
+
+Node primary · fired 2026-11-07 21:08:00 +07
+Open: https://tacacs.example.com/aaa_statistics
+```
+
+```
+🚨 CRITICAL · TACACS Config Activated
+
+1 TACACS config activation in the last 5 min.
+
+1. 🚀 ACTIVATE tacacs_2100.cfg
+   By: admin@example.com from 10.0.0.4
+   At: 2026-11-07 21:00:25 +07
+```
+
+Threshold rules state the condition in words and list the top contributors:
+`14 failed logins in the last 10 min (threshold > 10).` followed by
+`Top users`, `Top sources` and `Top devices`.
+
+The device name comes from the **Hosts** page: a NAS IP is matched against each
+host's IPv4/IPv6 address or network, most specific first (a `/0` catch-all is
+ignored). An unmatched device is shown by IP.
+
+Usernames, IPs, filenames and emails are code-formatted and escaped per
+channel, so a crafted value cannot inject markup.
+
+### 9. Notification Dispatch
 
 **File:** `backend/app/crud/notification_dispatcher.py` — `dispatch_notification()`
 
 ```
 parse channel.config_json → dict
+subject = "[SEVERITY] <rule name without the [System] prefix>"
 
 channel_type="telegram":
   POST https://api.telegram.org/bot{token}/sendMessage
-  body: { chat_id, text="*{subject}*\n{body}", parse_mode="Markdown" }
+  body: { chat_id, text=<message as HTML>, parse_mode="HTML",
+          disable_web_page_preview=true }
   optional: message_thread_id=topic_id  ← for supergroup forum topics
 
 channel_type="slack":
   POST webhook_url
-  body: { text="*{subject}*\n{body}" }
+  body: { text=subject, blocks=[header, divider, mrkdwn section, divider] }
 
 channel_type="discord":
   POST webhook_url
-  body: { content="**{subject}**\n{body}" }
+  body: { embeds=[{ title, description=<markdown>, color by severity }] }
 
 channel_type="teams":
   POST webhook_url
-  body: AdaptiveCard JSON with subject + body
+  body: AdaptiveCard JSON with subject + plain-text body
+
+channel_type="gchat":
+  POST webhook_url
+  body: { text=<message with *bold* and `code`> }
+
+channel_type="email":
+  SMTP; HTML part = escaped message in <pre>, text part = plain body
 
 channel_type="webhook":
   POST webhook_url
   headers: { Authorization: "Bearer {token}" }  if token present
   body: { subject, body, data }
-    data — the structured alert payload, present only when the rule produced
-    one. For client_ip gt/lt/eq rules it carries { ip, fail_count,
-    triggered_ips }. Webhook is the only channel type that receives it.
+    data — the structured alert payload (also stored as the alert's
+    payload_snapshot). Webhook is the only channel type that receives it.
+    Always: rule, window_minutes, node, fired_at (ISO 8601, log timezone).
+      username new_value  → new_usernames, users[]
+      client_ip new_value → new_source_ips, sources[]
+        users[]/sources[] rows: { username | ip, success, fail,
+          source_ips | usernames, devices, first_seen, last_seen }
+      client_ip gt/lt/eq  → ip, fail_count, triggered_ips[{ip, fail_count}], sources[]
+      fail_count gt/lt/eq → fail_count, top_users, top_sources, top_devices
+      authz gt/lt/eq      → deny_count, top_users, top_devices
+        top_*: [{ name, count }], highest first
+      config              → config_change_count, changes[]
+
+The test button sends subject + body to every channel type unchanged.
 
 returns: (success: bool, error_message: str | None)
 timeout: 10 seconds
 ```
 
-### 9. Alert Event Record
+### 10. Alert Event Record
 
 ```
 AlertEvent (DB table: alertevent)
