@@ -32,6 +32,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump playwright from v1.64.1-noble to v1.65.0-noble in /frontend. PR [#380](https://github.com/thangphan205/tacacs-ng-ui/pull/380) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump react-hook-form from 7.81.0 to 7.91.0 in /frontend. PR [#389](https://github.com/thangphan205/tacacs-ng-ui/pull/389) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @tanstack/react-query-devtools from 5.102.4 to 5.105.3 in /frontend. PR [#388](https://github.com/thangphan205/tacacs-ng-ui/pull/388) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump shiki from 4.5.0 to 4.6.0 in /frontend. PR [#384](https://github.com/thangphan205/tacacs-ng-ui/pull/384) by [@dependabot[bot]](https://github.com/apps/dependabot).
