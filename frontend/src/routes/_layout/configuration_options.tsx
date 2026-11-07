@@ -142,68 +142,79 @@ function ConfigurationOptionsTable() {
             mt={6}
             shadow="sm"
           >
-            <Table.Root size={{ base: "sm", md: "md" }}>
-              <Table.Header bg="bg.muted">
-                <Table.Row>
-                  <Table.ColumnHeader w="xs">ID</Table.ColumnHeader>
-                  <Table.ColumnHeader w="sm">Name</Table.ColumnHeader>
-                  <Table.ColumnHeader w="md">Config Option</Table.ColumnHeader>
-                  <Table.ColumnHeader w="md">Description</Table.ColumnHeader>
-                  <Table.ColumnHeader w="24" textAlign="right">
-                    Actions
-                  </Table.ColumnHeader>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {configuration_options?.map((configuration_option) => (
-                  <Table.Row
-                    key={configuration_option.id}
-                    opacity={isPlaceholderData ? 0.5 : 1}
-                    _hover={{ bg: "bg.muted/50" }}
-                    transition="background 0.2s"
-                  >
-                    <Table.Cell>
-                      <HStack gap={2}>
-                        <Text fontFamily="mono" fontSize="xs" color="fg.muted">
-                          {configuration_option.id.substring(0, 8)}...
-                        </Text>
-                        <CopyButton text={configuration_option.id} />
-                      </HStack>
-                    </Table.Cell>
-                    <Table.Cell truncate maxW="sm" fontWeight="medium">
-                      {configuration_option.name}
-                    </Table.Cell>
-                    <Table.Cell>
-                      {/* pre: the option is multi-line config text */}
-                      <Code
-                        fontFamily="mono"
-                        fontSize="xs"
-                        display="block"
-                        whiteSpace="pre"
-                        maxH="12em"
-                        overflow="auto"
-                      >
-                        {configuration_option.config_option}
-                      </Code>
-                    </Table.Cell>
-                    <Table.Cell
-                      color={
-                        !configuration_option.description ? "gray" : "inherit"
-                      }
-                      truncate
-                      maxW="sm"
-                    >
-                      {configuration_option.description || "—"}
-                    </Table.Cell>
-                    <Table.Cell textAlign="right">
-                      <ConfigurationOptionActionsMenu
-                        configuration_option={configuration_option}
-                      />
-                    </Table.Cell>
+            <Table.ScrollArea>
+              <Table.Root size={{ base: "sm", md: "md" }}>
+                <Table.Header bg="bg.muted">
+                  <Table.Row>
+                    <Table.ColumnHeader w="xs">ID</Table.ColumnHeader>
+                    <Table.ColumnHeader w="sm">Name</Table.ColumnHeader>
+                    <Table.ColumnHeader w="md">
+                      Config Option
+                    </Table.ColumnHeader>
+                    <Table.ColumnHeader w="md">Description</Table.ColumnHeader>
+                    <Table.ColumnHeader w="24" textAlign="right">
+                      Actions
+                    </Table.ColumnHeader>
                   </Table.Row>
-                ))}
-              </Table.Body>
-            </Table.Root>
+                </Table.Header>
+                <Table.Body>
+                  {configuration_options?.map((configuration_option) => (
+                    <Table.Row
+                      key={configuration_option.id}
+                      opacity={isPlaceholderData ? 0.5 : 1}
+                      _hover={{ bg: "bg.muted/50" }}
+                      transition="background 0.2s"
+                    >
+                      <Table.Cell>
+                        <HStack gap={2}>
+                          <Text
+                            fontFamily="mono"
+                            fontSize="xs"
+                            color="fg.muted"
+                          >
+                            {configuration_option.id.substring(0, 8)}...
+                          </Text>
+                          <CopyButton text={configuration_option.id} />
+                        </HStack>
+                      </Table.Cell>
+                      <Table.Cell truncate maxW="sm" fontWeight="medium">
+                        {configuration_option.name}
+                      </Table.Cell>
+                      {/* maxW=0 + w=full: the cell takes the remaining width
+                        instead of growing to the longest `pre` line, which
+                        pushed the Actions column out of the clipped box */}
+                      <Table.Cell maxW="0" w="full">
+                        {/* pre: the option is multi-line config text */}
+                        <Code
+                          fontFamily="mono"
+                          fontSize="xs"
+                          display="block"
+                          whiteSpace="pre"
+                          maxH="12em"
+                          overflow="auto"
+                        >
+                          {configuration_option.config_option}
+                        </Code>
+                      </Table.Cell>
+                      <Table.Cell
+                        color={
+                          !configuration_option.description ? "gray" : "inherit"
+                        }
+                        truncate
+                        maxW="sm"
+                      >
+                        {configuration_option.description || "—"}
+                      </Table.Cell>
+                      <Table.Cell textAlign="right" whiteSpace="nowrap">
+                        <ConfigurationOptionActionsMenu
+                          configuration_option={configuration_option}
+                        />
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table.Root>
+            </Table.ScrollArea>
           </Box>
           <Flex justifyContent="space-between" align="center" mt={4}>
             <PageSizeSelect
