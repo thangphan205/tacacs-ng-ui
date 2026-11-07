@@ -47,6 +47,7 @@ import {
 } from "@/haApi"
 import useAuth from "@/hooks/useAuth"
 import useCustomToast from "@/hooks/useCustomToast"
+import { formatDateTime } from "@/utils"
 
 export const Route = createFileRoute("/_layout/high_availability")({
   component: HighAvailabilityPage,
@@ -66,9 +67,13 @@ function formatRelativeTime(isoString: string): string {
 }
 
 function formatAbsoluteTime(isoString: string): string {
-  return new Date(isoString).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "medium",
+  return formatDateTime(isoString, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   })
 }
 

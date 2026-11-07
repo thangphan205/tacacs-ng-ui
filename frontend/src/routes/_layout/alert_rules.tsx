@@ -41,7 +41,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
-import { handleError } from "@/utils"
+import { formatDateTime, handleError } from "@/utils"
 
 const DEFAULT_PER_PAGE = 10
 
@@ -623,7 +623,7 @@ function AlertRulesTable() {
                     <Table.Cell>{rule.time_window_minutes}m</Table.Cell>
                     <Table.Cell fontSize="xs" color="fg.muted">
                       {rule.last_fired_at
-                        ? new Date(rule.last_fired_at).toLocaleString("en-US", {
+                        ? formatDateTime(rule.last_fired_at, {
                             hour12: false,
                           })
                         : "Never"}

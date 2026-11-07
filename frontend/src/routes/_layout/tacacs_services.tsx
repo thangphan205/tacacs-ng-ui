@@ -30,6 +30,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
+import { formatDateTime } from "@/utils"
 
 const tacacs_serviceSearchSchema = z.object({
   page: z.number().catch(1),
@@ -162,12 +163,9 @@ function TacacsServicesTable() {
                       {tacacs_service.description || "N/A"}
                     </Table.Cell>
                     <Table.Cell fontSize="sm" color="fg.muted">
-                      {new Date(tacacs_service.updated_at).toLocaleString(
-                        "en-US",
-                        {
-                          hour12: false,
-                        },
-                      )}
+                      {formatDateTime(tacacs_service.updated_at, {
+                        hour12: false,
+                      })}
                     </Table.Cell>
                     <Table.Cell>
                       <TacacsServiceActionsMenu

@@ -36,6 +36,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
+import { formatDateTime } from "@/utils"
 
 const DEFAULT_PER_PAGE = 10
 
@@ -213,7 +214,7 @@ function AuditLogsTable() {
               {logs.map((log) => (
                 <Table.Row key={log.id}>
                   <Table.Cell whiteSpace="nowrap">
-                    {new Date(log.created_at).toLocaleString("en-US", {
+                    {formatDateTime(log.created_at, {
                       hour12: false,
                     })}
                   </Table.Cell>

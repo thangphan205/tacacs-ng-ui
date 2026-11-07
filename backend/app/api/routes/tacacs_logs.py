@@ -3,7 +3,7 @@ import os
 import re
 import uuid
 from collections import deque
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone
 from typing import Any, Literal
 
 import httpx
@@ -28,7 +28,7 @@ from app.models import (
     TacacsLogsPublic,
     TacacsLogTypeSummary,
 )
-from scripts._log_stats_base import local_today
+from scripts._log_stats_base import local_today, local_tz
 
 router = APIRouter(prefix="/tacacs_logs", tags=["tacacs_logs"])
 
@@ -402,10 +402,13 @@ def list_log_files(
             if not existing:
                 try:
                     date_str = "-".join(file.split("-")[1:4]).split(".")[0]
-                    log_date = datetime.strptime(date_str, "%Y-%m-%d")
+                    # Local midnight of the file's day, in the log time zone.
+                    log_date = datetime.strptime(date_str, "%Y-%m-%d").replace(
+                        tzinfo=local_tz()
+                    )
                 except (IndexError, ValueError):
                     log_date = datetime.fromtimestamp(
-                        os.path.getmtime(os.path.join(root, file))
+                        os.path.getmtime(os.path.join(root, file)), tz=timezone.utc
                     )
                 new_logs.append(
                     TacacsLog(

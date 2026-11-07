@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { handleError } from "@/utils"
+import { formatDateTime, handleError } from "@/utils"
 
 const shikiAdapter = createShikiAdapter<HighlighterGeneric<any, any>>({
   async load() {
@@ -69,7 +69,7 @@ const ShowActiveTacacsConfig = () => {
           <DialogTitle>
             Active TACACS+ Config, Created At:{" "}
             {activeConfigData?.created_at
-              ? new Date(activeConfigData.created_at).toLocaleString("en-US", {
+              ? formatDateTime(activeConfigData.created_at, {
                   hour12: false,
                 })
               : "N/A"}

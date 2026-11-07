@@ -14,7 +14,7 @@ import { useState } from "react"
 
 import { apiBaseUrl } from "@/api"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { formatDateTime, handleError } from "@/utils"
 
 interface PasskeyItem {
   id: string
@@ -138,13 +138,13 @@ const PasskeyManager = () => {
               <Table.Row key={pk.id}>
                 <Table.Cell>{pk.name ?? "Unnamed key"}</Table.Cell>
                 <Table.Cell>
-                  {new Date(pk.created_at).toLocaleString("en-US", {
+                  {formatDateTime(pk.created_at, {
                     hour12: false,
                   })}
                 </Table.Cell>
                 <Table.Cell>
                   {pk.last_used_at
-                    ? new Date(pk.last_used_at).toLocaleString("en-US", {
+                    ? formatDateTime(pk.last_used_at, {
                         hour12: false,
                       })
                     : "Never"}

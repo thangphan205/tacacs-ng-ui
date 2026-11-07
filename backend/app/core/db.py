@@ -46,7 +46,16 @@ from app.models import (
 
 logger = logging.getLogger(__name__)
 
-engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+# Every app session runs in UTC, whatever zone the database server is in
+# (each HA node's db container takes its own TZ). Timestamp columns are
+# timestamptz, so this only fixes the zone values come back in, and any naive
+# value that still reaches the database is read as UTC on every node alike.
+# Alembic (alembic/env.py) deliberately does not pin: the timestamptz migration
+# reads the old naive values in the server's own zone.
+engine = create_engine(
+    str(settings.SQLALCHEMY_DATABASE_URI),
+    connect_args={"options": "-c timezone=UTC"},
+)
 
 
 # make sure all SQLModel models are imported (app.models) before initializing DB
