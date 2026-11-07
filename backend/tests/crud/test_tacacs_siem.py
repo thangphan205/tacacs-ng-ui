@@ -125,6 +125,7 @@ def test_audit_formats() -> None:
     m = RFC5424.match(format_audit_syslog(log))
     assert m and m["app"] == "tacacs-ng-ui"
     assert m["ts"] == "2026-11-07T07:00:00.000Z"
+    # No values on this row, so no name: the field is left out, not "-".
     assert m["msg"] == (
         "type=audit action=UPDATE entity_type=Host entity_id=h1 "
         "user_email=admin@example.com ip=198.51.100.4 msg=Updated host core-sw"
@@ -132,6 +133,60 @@ def test_audit_formats() -> None:
     hec = audit_hec(log)
     assert hec["sourcetype"] == "tacacs-ng-ui:audit"
     assert hec["event"]["action"] == "UPDATE"
+    assert hec["event"]["entity_name"] is None
+
+
+def _deleted_user() -> AuditLog:
+    log = _audit()
+    log.action = "DELETE"
+    log.entity_type = "TacacsUser"
+    log.entity_id = "a22b4a0f-debd-40b6-87aa-b67517da12e2"
+    log.description = None
+    log.old_values = json.dumps(
+        {
+            "username": "abc",
+            "password": "$6$rounds=656000$Szdz7M9F1SS6i5Bk$secrethash",
+            "secret_key": "shared-secret-123",
+            "mavis_value": "ldap-bind-password",
+            "config_text": "huge config",
+        }
+    )
+    return log
+
+
+def test_audit_names_the_entity_and_leaks_no_values() -> None:
+    log = _deleted_user()
+    syslog = format_audit_syslog(log)
+    m = RFC5424.match(syslog)
+    assert m
+    assert m["msg"] == (
+        "type=audit action=DELETE entity_type=TacacsUser "
+        "entity_id=a22b4a0f-debd-40b6-87aa-b67517da12e2 entity_name=abc "
+        "user_email=admin@example.com ip=198.51.100.4 msg=-"
+    )
+    hec = json.dumps(audit_hec(log))
+    assert json.loads(hec)["event"]["entity_name"] == "abc"
+    # The raw values hold secrets; only the name may be sent.
+    for text in (syslog, hec):
+        for secret in ("secrethash", "shared-secret-123", "ldap-bind-password", "huge"):
+            assert secret not in text
+
+
+def test_audit_rename_and_unsafe_name() -> None:
+    log = _audit()
+    log.old_values = json.dumps({"name": "core sw"})
+    log.new_values = json.dumps({"name": "edge\nsw <13>1 x"})
+    syslog = format_audit_syslog(log)
+    assert "\n" not in syslog
+    m = RFC5424.match(syslog)
+    assert m and m["msg"].startswith("type=audit action=UPDATE entity_type=Host ")
+    assert " entity_name=edge_sw_<13>1_x renamed_from=core_sw user_email=" in m["msg"]
+    assert m["msg"].endswith("msg=Updated host core-sw")
+    event = audit_hec(log)["event"]
+    assert (event["entity_name"], event["renamed_from"]) == (
+        "edge\nsw <13>1 x",
+        "core sw",
+    )
 
 
 # --- webhook ------------------------------------------------------------------

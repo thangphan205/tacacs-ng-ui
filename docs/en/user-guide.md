@@ -728,7 +728,8 @@ Messages are [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424), facility
 ```
 <12>1 2026-11-07T07:00:04.000Z primary tacacs-ng - - - type=authentication username=alice nas_ip=10.0.0.1 port=tty0 client_ip=192.0.2.7 result=failed msg=shell login failed
 <14>1 2026-11-07T07:00:05.000Z primary tacacs-ng - - - type=accounting username=alice nas_ip=10.0.0.1 port=tty0 client_ip=192.0.2.7 result=start command=show_version msg=start shell show version <cr>
-<14>1 2026-11-07T07:01:00.000Z primary tacacs-ng-ui - - - type=audit action=UPDATE entity_type=Host entity_id=… user_email=admin@example.com ip=198.51.100.4 msg=Updated host core-sw
+<14>1 2026-11-07T07:01:00.000Z primary tacacs-ng-ui - - - type=audit action=UPDATE entity_type=Host entity_id=… entity_name=core-sw user_email=admin@example.com ip=198.51.100.4 msg=Updated host core-sw
+<14>1 2026-11-07T11:27:30.811Z primary tacacs-ng-ui - - - type=audit action=DELETE entity_type=TacacsUser entity_id=a22b4a0f-… entity_name=abc user_email=admin@example.com ip=198.51.100.4 msg=-
 ```
 
 | Part | Value |
@@ -739,6 +740,8 @@ Messages are [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424), facility
 | `type` | `authentication`, `authorization`, `accounting`, `access` or `audit` |
 | `result` | `success` / `failed`, `permit` / `deny`, `start` / `stop`, or `unknown` |
 | `command` | Authorization and accounting only, spaces replaced by `_` |
+| `entity_name` | Audit entries only: the name of the object the entry is about (a TACACS+ user's username, a host's name, a group's name, …), spaces replaced by `_`. An id resolves to nothing after a delete, so this is how you tell what was deleted. Left out for objects without a name (the settings pages). Script rows (profile and ruleset scripts) show `key=value`, such as `service=shell` |
+| `renamed_from` | Audit entries only, and only when the entry renamed the object: the previous name |
 | `msg` | The raw log message, last, with its spaces kept |
 
 Key=value fields never contain spaces. A line the shipper cannot parse is sent as `type=<log type> msg=<the line>`.
@@ -753,7 +756,7 @@ Events are POSTed in batches of up to 500, one JSON object per line. Splunk HEC 
 {"time": 1794034804.0, "host": "primary", "source": "tacacs-ng", "sourcetype": "tacacs-ng:authentication", "event": {"type": "authentication", "node": "primary", "timestamp": "2026-11-07 14:00:04 +0700", "username": "alice", "nas_ip": "10.0.0.1", "port": "tty0", "client_ip": "192.0.2.7", "result": "failed", "command": null, "message": "shell login failed"}}
 ```
 
-Audit entries use `"source": "tacacs-ng-ui"`, `"sourcetype": "tacacs-ng-ui:audit"` and carry `id`, `action`, `entity_type`, `entity_id`, `user_id`, `user_email`, `ip_address` and `description`. With a token set, each request carries `Authorization: Splunk <token>`. Any response other than 2xx counts as a failure and is retried.
+Audit entries use `"source": "tacacs-ng-ui"`, `"sourcetype": "tacacs-ng-ui:audit"` and carry `id`, `action`, `entity_type`, `entity_id`, `entity_name`, `renamed_from`, `user_id`, `user_email`, `ip_address` and `description`. Only the name is sent from an entry's before and after values, never the values themselves. With a token set, each request carries `Authorization: Splunk <token>`. Any response other than 2xx counts as a failure and is retried.
 
 ### Per-event forwarding by tac_plus-ng itself (Remote Syslog Destination)
 
