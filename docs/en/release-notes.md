@@ -16,6 +16,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Features
 
+* ✨ SIEM Integration page and real-time log shipping. PR [#394](https://github.com/thangphan205/tacacs-ng-ui/pull/394) by [@thangphan205](https://github.com/thangphan205).
 * ✨ Alert on logins at an hour the user rarely uses. PR [#392](https://github.com/thangphan205/tacacs-ng-ui/pull/392) by [@thangphan205](https://github.com/thangphan205).
 * ✨ Clearer alert notifications with context to judge activity. PR [#391](https://github.com/thangphan205/tacacs-ng-ui/pull/391) by [@thangphan205](https://github.com/thangphan205).
 * ✨ Optional remote syslog destination: per-event logs from every node (#373). PR [#379](https://github.com/thangphan205/tacacs-ng-ui/pull/379) by [@thangphan205](https://github.com/thangphan205).
