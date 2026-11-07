@@ -18,6 +18,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Fixes
 
+* 🐛 Fix SIEM syslog framing and header; correct the SIEM docs (#373). PR [#377](https://github.com/thangphan205/tacacs-ng-ui/pull/377) by [@thangphan205](https://github.com/thangphan205).
 * 🐛 Stop the log viewer from freezing on big files; add download (#371). PR [#376](https://github.com/thangphan205/tacacs-ng-ui/pull/376) by [@thangphan205](https://github.com/thangphan205).
 * 🐛 Run background loops in exactly one uvicorn worker (#372). PR [#374](https://github.com/thangphan205/tacacs-ng-ui/pull/374) by [@thangphan205](https://github.com/thangphan205).
 
