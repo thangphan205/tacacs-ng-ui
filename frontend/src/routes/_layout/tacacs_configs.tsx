@@ -7,6 +7,7 @@ import {
   EmptyState,
   Flex,
   Heading,
+  HStack,
   Table,
   Text,
   VStack,
@@ -19,6 +20,7 @@ import { z } from "zod"
 
 import { TacacsConfigsService } from "@/client"
 import { DefaultCredentialsAlert } from "@/components/Common/DefaultCredentialsAlert"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
 import { TacacsConfigActionsMenu } from "@/components/Common/TacacsConfigActionsMenu"
@@ -298,20 +300,23 @@ function TacacsConfigs() {
       <DefaultCredentialsAlert mb={4} />
       <PendingChangesAlert />
 
-      <Flex mt={4} align="center" justify="space-between">
-        <Flex gap={2} flexWrap="wrap">
-          <AddTacacsConfig />
-          <PreviewTacacsConfig />
-          <ShowActiveTacacsConfig />
-          <CompareConfigs />
-          <SyncToStandby />
-        </Flex>
+      <ListToolbar
+        actions={
+          <HStack gap={3} wrap="wrap">
+            <AddTacacsConfig />
+            <PreviewTacacsConfig />
+            <ShowActiveTacacsConfig />
+            <CompareConfigs />
+            <SyncToStandby />
+          </HStack>
+        }
+      >
         <SearchBox
           initialValue={search}
           onSearch={handleSearch}
           placeholder="Search by filename, description..."
         />
-      </Flex>
+      </ListToolbar>
 
       <TacacsConfigsTable />
     </Container>

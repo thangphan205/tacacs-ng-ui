@@ -25,6 +25,7 @@ import { z } from "zod"
 
 import { ConfigurationOptionsService } from "@/client"
 import { ConfigurationOptionActionsMenu } from "@/components/Common/ConfigurationOptionActionsMenu"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
@@ -274,17 +275,20 @@ function ConfigurationOptions() {
           />
         </Link>
       </Box>
-      <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
-        <HStack gap={3}>
-          <AddConfigurationOption />
-          <PreviewTacacsConfig />
-        </HStack>
+      <ListToolbar
+        actions={
+          <HStack gap={3} wrap="wrap">
+            <AddConfigurationOption />
+            <PreviewTacacsConfig />
+          </HStack>
+        }
+      >
         <SearchBox
           initialValue={search}
           onSearch={handleSearch}
           placeholder="Search by name, config option, description..."
         />
-      </Flex>
+      </ListToolbar>
       <ConfigurationOptionsTable />
     </Container>
   )

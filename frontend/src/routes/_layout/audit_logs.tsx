@@ -18,6 +18,7 @@ import { FiEye, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 import type { AuditLogPublic } from "@/client"
 import { AuditLogsService } from "@/client"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
 import {
@@ -289,13 +290,13 @@ function AuditLogsPage() {
       <Heading size="md" pt={6}>
         Audit Logs
       </Heading>
-      <Flex mt={4} justify="flex-end">
+      <ListToolbar>
         <SearchBox
           initialValue={search}
           onSearch={handleSearch}
           placeholder="Search by user, entity, action..."
         />
-      </Flex>
+      </ListToolbar>
       <AuditLogsTable />
     </Container>
   )

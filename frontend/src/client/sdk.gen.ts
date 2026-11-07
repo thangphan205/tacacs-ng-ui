@@ -2540,6 +2540,8 @@ export class TacacsLogsService {
      *
      * List all TACACS+ log files in the log directory and its subfolders.
      * Also persist discovered files into the TacacsLog table (id, filename, filepath).
+     * log_type keeps only files of that type (tac_plus-ng names them
+     * ``<type>-YYYY-MM-DD.log``); it combines with ``search``.
      */
     public static listLogFiles<ThrowOnError extends boolean = true>(parameters?: {
         skip?: number;
@@ -2547,13 +2549,15 @@ export class TacacsLogsService {
         sort_by?: string;
         sort_order?: string;
         search?: string | null;
+        log_type?: 'access' | 'authentication' | 'authorization' | 'accounting' | null;
     }, options?: Options<never, ThrowOnError>): RequestResult<TacacsLogsListLogFilesResponses, TacacsLogsListLogFilesErrors, ThrowOnError, 'data'> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'query', key: 'skip' },
                     { in: 'query', key: 'limit' },
                     { in: 'query', key: 'sort_by' },
                     { in: 'query', key: 'sort_order' },
-                    { in: 'query', key: 'search' }
+                    { in: 'query', key: 'search' },
+                    { in: 'query', key: 'log_type' }
                 ] }]);
         return (options?.client ?? client).get<TacacsLogsListLogFilesResponses, TacacsLogsListLogFilesErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',

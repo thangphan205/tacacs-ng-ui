@@ -1,18 +1,13 @@
 import {
   Badge,
   Box,
-  Button,
   Code,
-  createListCollection,
   DatePicker,
   type DateValue,
   EmptyState,
   Flex,
-  Input,
-  InputGroup,
   Portal,
   parseDate,
-  Select,
   Spinner,
   Table,
   Text,
@@ -24,8 +19,10 @@ import { FiCalendar, FiSearch, FiUser } from "react-icons/fi"
 import { MdLayers } from "react-icons/md"
 import type { TacacsLogEvent } from "@/client"
 import { TacacsLogsService } from "@/client"
+import { FilterSelect } from "@/components/Common/FilterSelect"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { RefreshControl } from "@/components/Common/RefreshControl"
+import { SearchBox } from "@/components/Common/SearchBox"
 import {
   DrawerBackdrop,
   DrawerBody,
@@ -65,26 +62,20 @@ const LOG_TYPE_LABEL: Record<string, string> = {
   accounting: "ACCT",
 }
 
-const logTypeCollection = createListCollection({
-  items: [
-    { value: "all", label: "All Types" },
-    { value: "authentication", label: "Authentication" },
-    { value: "authorization", label: "Authorization" },
-    { value: "accounting", label: "Accounting" },
-  ],
-})
+const LOG_TYPE_OPTIONS = [
+  { value: "authentication", label: "Authentication" },
+  { value: "authorization", label: "Authorization" },
+  { value: "accounting", label: "Accounting" },
+]
 
-const resultCollection = createListCollection({
-  items: [
-    { value: "", label: "All Results" },
-    { value: "success", label: "Success" },
-    { value: "failed", label: "Failed" },
-    { value: "permit", label: "Permit" },
-    { value: "deny", label: "Deny" },
-    { value: "start", label: "Start" },
-    { value: "stop", label: "Stop" },
-  ],
-})
+const RESULT_OPTIONS = [
+  { value: "success", label: "Success" },
+  { value: "failed", label: "Failed" },
+  { value: "permit", label: "Permit" },
+  { value: "deny", label: "Deny" },
+  { value: "start", label: "Start" },
+  { value: "stop", label: "Stop" },
+]
 
 // ─── Event Detail Drawer ────────────────────────────────────────────────────
 
@@ -356,15 +347,13 @@ export default function TacacsLogEventsTable() {
     parseDate(today),
     parseDate(today),
   ])
-  const [logType, setLogType] = useState("all")
-  const [result, setResult] = useState("")
-  const [searchInput, setSearchInput] = useState("")
+  const [logType, setLogType] = useState<string | undefined>()
+  const [result, setResult] = useState<string | undefined>()
   const [search, setSearch] = useState("")
   const [selectedEvent, setSelectedEvent] = useState<TacacsLogEvent | null>(
     null,
   )
   const [autoRefreshMs, setAutoRefreshMs] = useState(0)
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const { data: latestDateData } = useQuery({
     queryKey: ["tacacs_log_latest_date"],
@@ -382,14 +371,6 @@ export default function TacacsLogEventsTable() {
       ])
     }
   }, [latestDateData?.date, today])
-
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      setSearch(searchInput)
-      setPage(1)
-    }, 500)
-  }, [searchInput])
 
   // New lines only land in today's file, and polling while the detail drawer
   // is open would move the rows its prev/next buttons walk through.
@@ -411,8 +392,8 @@ export default function TacacsLogEventsTable() {
       TacacsLogsService.listLogEvents({
         date_from: dateFrom,
         date_to: dateTo,
-        log_type: logType === "all" ? undefined : logType,
-        result: result || undefined,
+        log_type: logType,
+        result,
         search: search || undefined,
         skip: (page - 1) * perPage,
         limit: perPage,
@@ -425,7 +406,6 @@ export default function TacacsLogEventsTable() {
   const count = data?.count ?? 0
 
   const handleUsernameClick = (u: string) => {
-    setSearchInput(u)
     setSearch(u)
     setPage(1)
   }
@@ -433,10 +413,11 @@ export default function TacacsLogEventsTable() {
   return (
     <>
       <VStack align="stretch" gap={4} mt={4}>
-        <Flex gap={3} align="center" flexWrap="nowrap" overflowX="auto">
+        <Flex gap={3} align="center" wrap="wrap">
           <DatePicker.Root
             selectionMode="range"
             openOnClick
+            width="auto"
             value={rangeValue}
             onValueChange={({ value }) => {
               setRangeValue(value)
@@ -480,92 +461,37 @@ export default function TacacsLogEventsTable() {
             </Portal>
           </DatePicker.Root>
 
-          <Select.Root
-            collection={logTypeCollection}
-            value={[logType]}
-            onValueChange={({ value }) => {
-              setLogType(value[0] ?? "all")
+          <FilterSelect
+            value={logType}
+            onChange={(v) => {
+              setLogType(v)
               setPage(1)
             }}
-            size="sm"
-            maxW="180px"
-          >
-            <Select.Control>
-              <Select.Trigger>
-                <Select.ValueText />
-              </Select.Trigger>
-              <Select.IndicatorGroup>
-                <Select.Indicator />
-              </Select.IndicatorGroup>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content>
-                <Select.ItemGroup>
-                  {logTypeCollection.items.map((item) => (
-                    <Select.Item key={item.value} item={item.value}>
-                      {item.label}
-                      <Select.ItemIndicator />
-                    </Select.Item>
-                  ))}
-                </Select.ItemGroup>
-              </Select.Content>
-            </Select.Positioner>
-          </Select.Root>
+            options={LOG_TYPE_OPTIONS}
+            placeholder="All types"
+            ariaLabel="Filter by log type"
+          />
 
-          <Select.Root
-            collection={resultCollection}
-            value={[result]}
-            onValueChange={({ value }) => {
-              setResult(value[0] ?? "")
+          <FilterSelect
+            value={result}
+            onChange={(v) => {
+              setResult(v)
               setPage(1)
             }}
-            size="sm"
-            maxW="160px"
-          >
-            <Select.Control>
-              <Select.Trigger>
-                <Select.ValueText placeholder="All Results" />
-              </Select.Trigger>
-              <Select.IndicatorGroup>
-                <Select.Indicator />
-              </Select.IndicatorGroup>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content>
-                <Select.ItemGroup>
-                  {resultCollection.items.map((item) => (
-                    <Select.Item key={item.value} item={item.value}>
-                      {item.label}
-                      <Select.ItemIndicator />
-                    </Select.Item>
-                  ))}
-                </Select.ItemGroup>
-              </Select.Content>
-            </Select.Positioner>
-          </Select.Root>
+            options={RESULT_OPTIONS}
+            placeholder="All results"
+            ariaLabel="Filter by result"
+          />
 
-          <InputGroup maxW="220px">
-            <Input
-              placeholder="Search anything..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              size="sm"
-            />
-          </InputGroup>
-
-          {search && (
-            <Button
-              size="xs"
-              variant="ghost"
-              onClick={() => {
-                setSearchInput("")
-                setSearch("")
-                setPage(1)
-              }}
-            >
-              ✕ Clear
-            </Button>
-          )}
+          <SearchBox
+            initialValue={search}
+            onSearch={(v) => {
+              setSearch(v)
+              setPage(1)
+            }}
+            placeholder="Search user, device, command..."
+            maxW="xs"
+          />
 
           <Box ml="auto">
             <RefreshControl

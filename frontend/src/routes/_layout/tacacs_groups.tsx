@@ -16,6 +16,7 @@ import { FiFolder, FiSearch, FiUsers } from "react-icons/fi"
 import { z } from "zod"
 
 import { TacacsGroupsService } from "@/client"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
@@ -225,14 +226,13 @@ function TacacsGroups() {
         description="Groups serve as templates for user authorizations and exec parameters, which are mapped to Profiles via Ruleset evaluation."
         icon={FiFolder}
       />
-      <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
-        <AddTacacsGroup />
+      <ListToolbar actions={<AddTacacsGroup />}>
         <SearchBox
           initialValue={search}
           onSearch={handleSearch}
           placeholder="Search by group name, description..."
         />
-      </Flex>
+      </ListToolbar>
       <TacacsGroupsTable />
     </Container>
   )

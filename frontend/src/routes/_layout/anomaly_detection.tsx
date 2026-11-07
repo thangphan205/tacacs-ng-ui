@@ -18,6 +18,7 @@ import { FiCpu, FiRefreshCw } from "react-icons/fi"
 import { z } from "zod"
 
 import { AnomalyDetectionService } from "@/client"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import {
   PaginationItems,
@@ -113,14 +114,7 @@ function AnomalyTable() {
 
   return (
     <Box>
-      <Flex mb={4} gap={4} align="center">
-        <PageSizeSelect
-          value={perPage}
-          onChange={(v) => {
-            setPerPage(v)
-            navigate({ search: (s) => ({ ...s, page: 1 }) })
-          }}
-        />
+      <ListToolbar mt={0} mb={4}>
         <Flex align="center" gap={2}>
           <Switch.Root
             checked={anomaly_only}
@@ -137,7 +131,7 @@ function AnomalyTable() {
           </Switch.Root>
           <Text fontSize="sm">Anomalies only</Text>
         </Flex>
-      </Flex>
+      </ListToolbar>
 
       {count === 0 ? (
         <EmptyState.Root>
@@ -207,20 +201,35 @@ function AnomalyTable() {
             </Table.Body>
           </Table.Root>
 
-          <PaginationRoot
-            count={count}
-            pageSize={perPage}
-            page={page}
-            onPageChange={(e) =>
-              navigate({ search: (s) => ({ ...s, page: e.page }) })
-            }
+          <Flex
+            justifyContent="space-between"
+            align="center"
+            mt={4}
+            gap={3}
+            wrap="wrap"
           >
-            <Flex mt={4} justify="center" gap={2}>
-              <PaginationPrevTrigger />
-              <PaginationItems />
-              <PaginationNextTrigger />
-            </Flex>
-          </PaginationRoot>
+            <PageSizeSelect
+              value={perPage}
+              onChange={(v) => {
+                setPerPage(v)
+                navigate({ search: (s) => ({ ...s, page: 1 }) })
+              }}
+            />
+            <PaginationRoot
+              count={count}
+              pageSize={perPage}
+              page={page}
+              onPageChange={(e) =>
+                navigate({ search: (s) => ({ ...s, page: e.page }) })
+              }
+            >
+              <Flex>
+                <PaginationPrevTrigger />
+                <PaginationItems />
+                <PaginationNextTrigger />
+              </Flex>
+            </PaginationRoot>
+          </Flex>
         </>
       )}
     </Box>

@@ -16,6 +16,7 @@ import { z } from "zod"
 
 import { TacacsUsersService } from "@/client"
 import { DefaultCredentialsAlert } from "@/components/Common/DefaultCredentialsAlert"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageHeader } from "@/components/Common/PageHeader"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
@@ -258,14 +259,13 @@ function TacacsUsers() {
         icon={FiUsers}
       />
       <DefaultCredentialsAlert mt={6} />
-      <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
-        <AddTacacsUser />
+      <ListToolbar actions={<AddTacacsUser />}>
         <SearchBox
           initialValue={search}
           onSearch={handleSearch}
           placeholder="Search by username, group, description..."
         />
-      </Flex>
+      </ListToolbar>
       <TacacsUsersTable />
     </Container>
   )

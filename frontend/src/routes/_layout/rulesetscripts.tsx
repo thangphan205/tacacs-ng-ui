@@ -4,6 +4,7 @@ import {
   EmptyState,
   Flex,
   Heading,
+  HStack,
   Table,
   Text,
   VStack,
@@ -15,6 +16,7 @@ import { FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { RulesetscriptsService } from "@/client"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { RulesetScriptActionsMenu } from "@/components/Common/RulesetScriptActionsMenu"
 import { SearchBox } from "@/components/Common/SearchBox"
@@ -198,17 +200,20 @@ function RulesetScripts() {
       <Heading size="md" pt={6}>
         RulesetScripts Management
       </Heading>
-      <Flex mt={4} align="center" justify="space-between">
-        <Flex gap={2}>
-          <AddRulesetScript />
-          <PreviewRuleset />
-        </Flex>
+      <ListToolbar
+        actions={
+          <HStack gap={3} wrap="wrap">
+            <AddRulesetScript />
+            <PreviewRuleset />
+          </HStack>
+        }
+      >
         <SearchBox
           initialValue={search}
           onSearch={handleSearch}
           placeholder="Search by condition, key, value, description..."
         />
-      </Flex>
+      </ListToolbar>
       <RulesetScriptsTable />
     </Container>
   )

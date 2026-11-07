@@ -25,6 +25,7 @@ import {
 import { z } from "zod"
 
 import { MavisesService } from "@/client"
+import { ListToolbar } from "@/components/Common/ListToolbar"
 import { MavisActionsMenu } from "@/components/Common/MavisActionsMenu"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
 import { SearchBox } from "@/components/Common/SearchBox"
@@ -292,18 +293,21 @@ function Mavises() {
           </VStack>
         </HStack>
       </Flex>
-      <Flex mt={6} align="center" justify="space-between" gap={4} wrap="wrap">
-        <HStack gap={3}>
-          <AddMavis />
-          <LoadMavisTemplate />
-          <PreviewMavis />
-        </HStack>
+      <ListToolbar
+        actions={
+          <HStack gap={3} wrap="wrap">
+            <AddMavis />
+            <LoadMavisTemplate />
+            <PreviewMavis />
+          </HStack>
+        }
+      >
         <SearchBox
           initialValue={search}
           onSearch={handleSearch}
           placeholder="Search by key, value..."
         />
-      </Flex>
+      </ListToolbar>
       <MavisesTable />
     </Container>
   )

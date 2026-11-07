@@ -7189,6 +7189,10 @@ export type TacacsLogsListLogFilesData = {
          * Search
          */
         search?: string | null;
+        /**
+         * Log Type
+         */
+        log_type?: 'access' | 'authentication' | 'authorization' | 'accounting' | null;
     };
     url: '/api/v1/tacacs_logs/files';
 };
