@@ -1,3 +1,4 @@
+import ipaddress
 import re
 import uuid
 from datetime import date, datetime, timezone
@@ -195,14 +196,53 @@ class TacacsNgSettingBase(SQLModel):
     user_backend: str = Field(default="mavis")
     pap_backend: str = Field(default="mavis")
     timezone: str = Field(default="UTC")
+    # Optional `IPv4[:port]` that tac_plus-ng sends every access,
+    # authentication, authorization and accounting event to as UDP syslog, in
+    # addition to the local files, from every node (#373). Empty = disabled.
+    remote_syslog_destination: str = Field(default="", max_length=21)
+
+
+def check_remote_syslog_destination(value: str) -> str:
+    """Normalise and validate a remote syslog destination; "" disables it.
+
+    tac_plus-ng takes `IPv4[:port]` (default port 514). Verified against the
+    binary: a hostname silently fails to create the log, and an IPv6 port is
+    ambiguous (`2001:db8::1:514` is one address). `tac_plus-ng -P` accepts
+    junk after the address, so this is the only real check; the value is
+    written into the config verbatim.
+    """
+    value = value.strip()
+    if not value:
+        return ""
+    host, sep, port = value.partition(":")
+    try:
+        ipaddress.IPv4Address(host)
+    except ValueError:
+        raise ValueError(
+            "Remote syslog destination must be an IPv4 address, optionally with "
+            "a port (e.g. 192.0.2.10:514). Hostnames and IPv6 are not supported."
+        ) from None
+    if sep:
+        if not port.isdigit() or not 1 <= int(port) <= 65535:
+            raise ValueError("Remote syslog port must be a number from 1 to 65535.")
+        return f"{host}:{int(port)}"
+    return host
 
 
 class TacacsNgSettingCreate(TacacsNgSettingBase):
-    pass
+    @field_validator("remote_syslog_destination")
+    @classmethod
+    def _check_remote_syslog(cls, v: str) -> str:
+        return check_remote_syslog_destination(v)
 
 
+# Validated on Create/Update only: Public and the table model also inherit
+# Base, and a stored value must stay readable even if the rules tighten.
 class TacacsNgSettingUpdate(TacacsNgSettingBase):
-    pass
+    @field_validator("remote_syslog_destination")
+    @classmethod
+    def _check_remote_syslog(cls, v: str) -> str:
+        return check_remote_syslog_destination(v)
 
 
 # Database model, database table inferred from class name

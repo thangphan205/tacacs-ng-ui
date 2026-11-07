@@ -86,6 +86,9 @@ services:
 
   backend:
     image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
+    # tac_plus-ng puts the container hostname in the syslog it sends to a
+    # remote syslog destination (#373), so name it after the node.
+    hostname: "${NODE_NAME:-primary}"
     restart: always
     networks:
       - traefik-public
