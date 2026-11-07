@@ -213,7 +213,7 @@ exist in the UI but are **not** emitted into the config.
 
 | Entity | Fields that reach the config | Notes |
 |---|---|---|
-| `TacacsNgSetting` | `ipv4_address`, `ipv4_port`, `instances_min`, `instances_max`, `background`, the four `*_logfile_destination` | Singleton. `ipv6_*`, `login_backend`, `user_backend`, `pap_backend` and `timezone` are stored but **not** emitted — the backends are hardcoded to `mavis`. |
+| `TacacsNgSetting` | `ipv4_address`, `ipv4_port`, `instances_min`, `instances_max`, `background`, the four `*_logfile_destination`, `remote_syslog_destination` (IPv4[:port]; when set, every log also goes there as UDP syslog) | Singleton. `ipv6_*`, `login_backend`, `user_backend`, `pap_backend` and `timezone` are stored but **not** emitted — the backends are hardcoded to `mavis`. |
 | `Mavis` | `mavis_key`, `mavis_value` → `setenv K="V"` | All rows, unfiltered. A `MAVIS_OVERRIDE_<key>` environment variable takes precedence over the stored value (used for per-zone LDAP servers in HA). |
 | `Host` | `name`, `ipv4_address`, `secret_key`, `parent` | `parent` emits `parent = <host>` and parents are written before children; a child with no `secret_key` inherits its parent's key. `ipv6_address`, the four banner fields and `description` are stored but **not** emitted. |
 | `TacacsGroup` | `group_name` | Emits a bare `group = <name>`. |

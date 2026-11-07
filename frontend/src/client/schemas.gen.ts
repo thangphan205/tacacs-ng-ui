@@ -5435,6 +5435,12 @@ export const TacacsNgSettingPublicSchema = {
             title: 'Timezone',
             default: 'UTC'
         },
+        remote_syslog_destination: {
+            type: 'string',
+            maxLength: 21,
+            title: 'Remote Syslog Destination',
+            default: ''
+        },
         id: {
             type: 'string',
             format: 'uuid',
@@ -5546,6 +5552,12 @@ export const TacacsNgSettingUpdateSchema = {
             type: 'string',
             title: 'Timezone',
             default: 'UTC'
+        },
+        remote_syslog_destination: {
+            type: 'string',
+            maxLength: 21,
+            title: 'Remote Syslog Destination',
+            default: ''
         }
     },
     type: 'object',

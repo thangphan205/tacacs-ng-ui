@@ -3112,6 +3112,10 @@ export type TacacsNgSettingPublic = {
      */
     timezone?: string;
     /**
+     * Remote Syslog Destination
+     */
+    remote_syslog_destination?: string;
+    /**
      * Id
      */
     id: string;
@@ -3197,6 +3201,10 @@ export type TacacsNgSettingUpdate = {
      * Timezone
      */
     timezone?: string;
+    /**
+     * Remote Syslog Destination
+     */
+    remote_syslog_destination?: string;
 };
 
 /**

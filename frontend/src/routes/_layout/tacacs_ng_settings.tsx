@@ -77,6 +77,7 @@ function TacacsNgSettingsForm() {
       authentication_logfile_destination: "",
       authorization_logfile_destination: "",
       accounting_logfile_destination: "",
+      remote_syslog_destination: "",
       login_backend: "mavis",
       user_backend: "mavis",
       pap_backend: "mavis",
@@ -567,6 +568,24 @@ function TacacsNgSettingsForm() {
                   />
                 </Field>
               </VStack>
+
+              <Field
+                label="Remote Syslog Destination"
+                invalid={!!errors.remote_syslog_destination}
+                errorText={errors.remote_syslog_destination?.message}
+                helperText="Optional. IPv4 address and port (e.g. 192.0.2.10:514). tac_plus-ng then also sends every access, authentication, authorization and accounting event there as UDP syslog, from every node. The local log files are kept. Leave empty to disable."
+              >
+                <Input
+                  {...register("remote_syslog_destination", {
+                    pattern: {
+                      value: /^\s*(\d{1,3}(\.\d{1,3}){3}(:\d{1,5})?)?\s*$/,
+                      message:
+                        "Use an IPv4 address with an optional port, e.g. 192.0.2.10:514.",
+                    },
+                  })}
+                  placeholder="192.0.2.10:514"
+                />
+              </Field>
             </VStack>
           )}
         </Box>
