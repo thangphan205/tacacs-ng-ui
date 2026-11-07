@@ -1733,6 +1733,115 @@ class HaNodeState(SQLModel, table=True):
     last_available: bool | None = Field(default=None, nullable=True)
 
 
+# --- SIEM forwarding config ---
+
+SIEM_TACACS_LOG_TYPES: tuple[str, ...] = (
+    "access",
+    "authentication",
+    "authorization",
+    "accounting",
+)
+
+_SYSLOG_HOST_RE = re.compile(r"^[A-Za-z0-9._:-]{1,255}$")
+
+
+class SiemConfigBase(SQLModel):
+    enabled: bool = Field(default=False)
+    webhook_url: str | None = Field(default=None, max_length=1000)
+    webhook_verify_tls: bool = Field(default=True)
+    syslog_host: str | None = Field(default=None, max_length=255)
+    syslog_port: int = Field(default=514)
+    syslog_protocol: str = Field(default="udp", max_length=3)
+    ship_access: bool = Field(default=False)
+    ship_authentication: bool = Field(default=False)
+    ship_authorization: bool = Field(default=False)
+    ship_accounting: bool = Field(default=False)
+    ship_audit: bool = Field(default=False)
+
+
+class SiemConfig(SiemConfigBase, TimestampModel, table=True):
+    """Singleton row (id=1). Written only on primary; replicated to standbys,
+    whose SIEM shipper reads it from the replica."""
+
+    id: int = Field(default=1, primary_key=True)
+    webhook_token_encrypted: str | None = Field(default=None)
+
+
+class SiemConfigPublic(SiemConfigBase):
+    webhook_token_is_set: bool
+    updated_at: datetime
+
+
+class SiemConfigUpdate(SQLModel):
+    enabled: bool | None = None
+    webhook_url: str | None = None
+    # None keeps the stored token, "" clears it.
+    webhook_token: str | None = None
+    webhook_verify_tls: bool | None = None
+    syslog_host: str | None = None
+    syslog_port: int | None = None
+    syslog_protocol: Literal["udp", "tcp"] | None = None
+    ship_access: bool | None = None
+    ship_authentication: bool | None = None
+    ship_authorization: bool | None = None
+    ship_accounting: bool | None = None
+    ship_audit: bool | None = None
+
+    @field_validator("webhook_url")
+    @classmethod
+    def _check_webhook_url(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            return ""
+        if len(v) > 1000:
+            raise ValueError("Webhook URL is too long (max 1000 characters).")
+        if not re.match(r"^https?://[^\s/?#]+", v, re.IGNORECASE):
+            raise ValueError("Webhook URL must start with http:// or https://.")
+        return v
+
+    @field_validator("syslog_host")
+    @classmethod
+    def _check_syslog_host(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        if v and not _SYSLOG_HOST_RE.match(v):
+            raise ValueError("Syslog host must be a hostname or IP address.")
+        return v
+
+    @field_validator("syslog_port")
+    @classmethod
+    def _check_syslog_port(cls, v: int | None) -> int | None:
+        if v is not None and not 1 <= v <= 65535:
+            raise ValueError("Syslog port must be between 1 and 65535.")
+        return v
+
+
+class SiemSinkTestResult(SQLModel):
+    sink: str  # "webhook" | "syslog"
+    ok: bool
+    error: str | None = None
+
+
+class SiemTestResult(SQLModel):
+    results: list[SiemSinkTestResult]
+
+
+class SiemStatus(SQLModel):
+    """Shipper status on the node that answered the request."""
+
+    node_name: str
+    node_role: str = "primary"
+    running: bool
+    updated_at: datetime | None = None
+    last_event_at: datetime | None = None
+    events_sent: dict[str, int] = Field(default_factory=dict)
+    last_error: str | None = None
+    last_error_at: datetime | None = None
+
+
 # --- API Keys (machine credentials, currently used by the MCP server) ---
 
 

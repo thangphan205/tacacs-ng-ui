@@ -42,6 +42,7 @@ import { Route as LayoutAlert_eventsRouteImport } from './routes/_layout/alert_e
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutAaa_statisticsRouteImport } from './routes/_layout/aaa_statistics'
 import { Route as LayoutAdminUsers_managementRouteImport } from './routes/_layout/admin/users_management'
+import { Route as LayoutAdminSiemRouteImport } from './routes/_layout/admin/siem'
 import { Route as LayoutAdminAuthProvidersRouteImport } from './routes/_layout/admin/auth-providers'
 
 const SignupRoute = SignupRouteImport.update({
@@ -212,6 +213,11 @@ const LayoutAdminUsers_managementRoute =
     path: '/users_management',
     getParentRoute: () => LayoutAdminRoute,
   } as any)
+const LayoutAdminSiemRoute = LayoutAdminSiemRouteImport.update({
+  id: '/siem',
+  path: '/siem',
+  getParentRoute: () => LayoutAdminRoute,
+} as any)
 const LayoutAdminAuthProvidersRoute =
   LayoutAdminAuthProvidersRouteImport.update({
     id: '/auth-providers',
@@ -252,6 +258,7 @@ export interface FileRoutesByFullPath {
   '/tacacs_users': typeof LayoutTacacs_usersRoute
   '/': typeof LayoutIndexRoute
   '/admin/auth-providers': typeof LayoutAdminAuthProvidersRoute
+  '/admin/siem': typeof LayoutAdminSiemRoute
   '/admin/users_management': typeof LayoutAdminUsers_managementRoute
 }
 export interface FileRoutesByTo {
@@ -287,6 +294,7 @@ export interface FileRoutesByTo {
   '/tacacs_users': typeof LayoutTacacs_usersRoute
   '/': typeof LayoutIndexRoute
   '/admin/auth-providers': typeof LayoutAdminAuthProvidersRoute
+  '/admin/siem': typeof LayoutAdminSiemRoute
   '/admin/users_management': typeof LayoutAdminUsers_managementRoute
 }
 export interface FileRoutesById {
@@ -324,6 +332,7 @@ export interface FileRoutesById {
   '/_layout/tacacs_users': typeof LayoutTacacs_usersRoute
   '/_layout/': typeof LayoutIndexRoute
   '/_layout/admin/auth-providers': typeof LayoutAdminAuthProvidersRoute
+  '/_layout/admin/siem': typeof LayoutAdminSiemRoute
   '/_layout/admin/users_management': typeof LayoutAdminUsers_managementRoute
 }
 export interface FileRouteTypes {
@@ -361,6 +370,7 @@ export interface FileRouteTypes {
     | '/tacacs_users'
     | '/'
     | '/admin/auth-providers'
+    | '/admin/siem'
     | '/admin/users_management'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -396,6 +406,7 @@ export interface FileRouteTypes {
     | '/tacacs_users'
     | '/'
     | '/admin/auth-providers'
+    | '/admin/siem'
     | '/admin/users_management'
   id:
     | '__root__'
@@ -432,6 +443,7 @@ export interface FileRouteTypes {
     | '/_layout/tacacs_users'
     | '/_layout/'
     | '/_layout/admin/auth-providers'
+    | '/_layout/admin/siem'
     | '/_layout/admin/users_management'
   fileRoutesById: FileRoutesById
 }
@@ -684,16 +696,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminAuthProvidersRouteImport
       parentRoute: typeof LayoutAdminRoute
     }
+    '/_layout/admin/siem': {
+      id: '/_layout/admin/siem'
+      path: '/siem'
+      fullPath: '/admin/siem'
+      preLoaderRoute: typeof LayoutAdminSiemRouteImport
+      parentRoute: typeof LayoutAdminRoute
+    }
   }
 }
 
 interface LayoutAdminRouteChildren {
   LayoutAdminAuthProvidersRoute: typeof LayoutAdminAuthProvidersRoute
+  LayoutAdminSiemRoute: typeof LayoutAdminSiemRoute
   LayoutAdminUsers_managementRoute: typeof LayoutAdminUsers_managementRoute
 }
 
 const LayoutAdminRouteChildren: LayoutAdminRouteChildren = {
   LayoutAdminAuthProvidersRoute: LayoutAdminAuthProvidersRoute,
+  LayoutAdminSiemRoute: LayoutAdminSiemRoute,
   LayoutAdminUsers_managementRoute: LayoutAdminUsers_managementRoute,
 }
 

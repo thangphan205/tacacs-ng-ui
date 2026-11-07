@@ -4,7 +4,6 @@ import sys
 import time as _time
 from collections import Counter
 from datetime import date, datetime, timedelta
-from datetime import time as time_
 from zoneinfo import ZoneInfo
 
 # IPv4 or IPv6 — requires dots or colons so plain port/session numbers (e.g. "39001") don't match.
@@ -110,11 +109,6 @@ def get_target_date() -> date:
                 f"Invalid date argument '{sys.argv[1]}'. Expected YYYY-MM-DD. Using yesterday."
             )
     return (datetime.now(_get_local_tz()) - timedelta(days=1)).date()
-
-
-def day_start_timestamp(d: date) -> float:
-    """Epoch seconds of local midnight starting day `d`, for SIEM event times."""
-    return datetime.combine(d, time_.min, tzinfo=local_tz()).timestamp()
 
 
 def parse_log_date(value: str) -> date:

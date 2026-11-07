@@ -4647,6 +4647,365 @@ export const RulesetsPublicSchema = {
     title: 'RulesetsPublic'
 } as const;
 
+export const SiemConfigPublicSchema = {
+    properties: {
+        enabled: {
+            type: 'boolean',
+            title: 'Enabled',
+            default: false
+        },
+        webhook_url: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1000
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Webhook Url'
+        },
+        webhook_verify_tls: {
+            type: 'boolean',
+            title: 'Webhook Verify Tls',
+            default: true
+        },
+        syslog_host: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Syslog Host'
+        },
+        syslog_port: {
+            type: 'integer',
+            title: 'Syslog Port',
+            default: 514
+        },
+        syslog_protocol: {
+            type: 'string',
+            maxLength: 3,
+            title: 'Syslog Protocol',
+            default: 'udp'
+        },
+        ship_access: {
+            type: 'boolean',
+            title: 'Ship Access',
+            default: false
+        },
+        ship_authentication: {
+            type: 'boolean',
+            title: 'Ship Authentication',
+            default: false
+        },
+        ship_authorization: {
+            type: 'boolean',
+            title: 'Ship Authorization',
+            default: false
+        },
+        ship_accounting: {
+            type: 'boolean',
+            title: 'Ship Accounting',
+            default: false
+        },
+        ship_audit: {
+            type: 'boolean',
+            title: 'Ship Audit',
+            default: false
+        },
+        webhook_token_is_set: {
+            type: 'boolean',
+            title: 'Webhook Token Is Set'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: [
+        'webhook_token_is_set',
+        'updated_at'
+    ],
+    title: 'SiemConfigPublic'
+} as const;
+
+export const SiemConfigUpdateSchema = {
+    properties: {
+        enabled: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Enabled'
+        },
+        webhook_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Webhook Url'
+        },
+        webhook_token: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Webhook Token'
+        },
+        webhook_verify_tls: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Webhook Verify Tls'
+        },
+        syslog_host: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Syslog Host'
+        },
+        syslog_port: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Syslog Port'
+        },
+        syslog_protocol: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: [
+                        'udp',
+                        'tcp'
+                    ]
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Syslog Protocol'
+        },
+        ship_access: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ship Access'
+        },
+        ship_authentication: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ship Authentication'
+        },
+        ship_authorization: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ship Authorization'
+        },
+        ship_accounting: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ship Accounting'
+        },
+        ship_audit: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ship Audit'
+        }
+    },
+    type: 'object',
+    title: 'SiemConfigUpdate'
+} as const;
+
+export const SiemSinkTestResultSchema = {
+    properties: {
+        sink: {
+            type: 'string',
+            title: 'Sink'
+        },
+        ok: {
+            type: 'boolean',
+            title: 'Ok'
+        },
+        error: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Error'
+        }
+    },
+    type: 'object',
+    required: [
+        'sink',
+        'ok'
+    ],
+    title: 'SiemSinkTestResult'
+} as const;
+
+export const SiemStatusSchema = {
+    properties: {
+        node_name: {
+            type: 'string',
+            title: 'Node Name'
+        },
+        node_role: {
+            type: 'string',
+            title: 'Node Role',
+            default: 'primary'
+        },
+        running: {
+            type: 'boolean',
+            title: 'Running'
+        },
+        updated_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Updated At'
+        },
+        last_event_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Last Event At'
+        },
+        events_sent: {
+            additionalProperties: {
+                type: 'integer'
+            },
+            type: 'object',
+            title: 'Events Sent'
+        },
+        last_error: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Last Error'
+        },
+        last_error_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Last Error At'
+        }
+    },
+    type: 'object',
+    required: [
+        'node_name',
+        'running'
+    ],
+    title: 'SiemStatus',
+    description: 'Shipper status on the node that answered the request.'
+} as const;
+
+export const SiemTestResultSchema = {
+    properties: {
+        results: {
+            items: {
+                $ref: '#/components/schemas/SiemSinkTestResult'
+            },
+            type: 'array',
+            title: 'Results'
+        }
+    },
+    type: 'object',
+    required: [
+        'results'
+    ],
+    title: 'SiemTestResult'
+} as const;
+
 export const StatsExcludedUserCreateSchema = {
     properties: {
         pattern: {

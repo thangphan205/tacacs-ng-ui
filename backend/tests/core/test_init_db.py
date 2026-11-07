@@ -181,3 +181,47 @@ def test_first_initialization_honours_seed_demo_data(
             outer.rollback()
 
     assert calls == (["services", "demo"] if seed_demo else ["services"])
+
+
+def test_siem_config_is_seeded_from_env_once(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """SIEM_* env vars seed the row on first start; the UI owns it afterwards."""
+    from app.core.security import decrypt_secret
+    from app.models import SiemConfig
+
+    saved = db.get(SiemConfig, 1)
+    saved_copy = saved.model_dump() if saved else None
+    if saved:
+        db.delete(saved)
+        db.commit()
+    monkeypatch.setattr(db_module.settings, "SIEM_WEBHOOK_URL", "https://hec.example/x")
+    monkeypatch.setattr(db_module.settings, "SIEM_WEBHOOK_TOKEN", "tok")
+    monkeypatch.setattr(db_module.settings, "SIEM_FORWARD_TACACS_EVENTS", True)
+    monkeypatch.setattr(db_module.settings, "SIEM_SYSLOG_HOST", None)
+    try:
+        db_module._seed_siem_config(db)
+        db.commit()
+        cfg = db.get(SiemConfig, 1)
+        assert cfg is not None
+        assert cfg.enabled and cfg.ship_authentication and cfg.ship_audit
+        assert not cfg.ship_access
+        assert cfg.webhook_token_encrypted
+        assert decrypt_secret(cfg.webhook_token_encrypted) == "tok"
+
+        cfg.enabled = False
+        cfg.webhook_url = "https://changed.example/x"
+        db.add(cfg)
+        db.commit()
+        db_module._seed_siem_config(db)
+        db.commit()
+        db.expire_all()
+        cfg = db.get(SiemConfig, 1)
+        assert cfg is not None
+        assert cfg.enabled is False
+        assert cfg.webhook_url == "https://changed.example/x"
+    finally:
+        db.exec(delete(SiemConfig))  # type: ignore[call-overload]
+        if saved_copy:
+            db.add(SiemConfig(**saved_copy))
+        db.commit()

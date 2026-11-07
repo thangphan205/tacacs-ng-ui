@@ -10,10 +10,8 @@ from sqlmodel import Session, select
 from app.core.config import settings
 from app.core.db import engine
 from app.crud.auth_hourly import counter_to_rows, upsert_hourly
-from app.crud.tacacs_siem import forward_tacacs_event_to_siem
 from app.models import AuthenticationStatistics
 from scripts._log_stats_base import (
-    day_start_timestamp,
     get_target_date,
     parse_authentication_logs,
 )
@@ -123,33 +121,6 @@ def save_statistics_to_db(
 
         session.commit()
         print("\nStatistics saved successfully.")
-
-    if settings.SIEM_FORWARD_TACACS_EVENTS:
-        ts = day_start_timestamp(summary_date)
-        for username, nas_ip, user_source_ip in sorted(all_keys):
-            key = (username, nas_ip, user_source_ip)
-            if successful_logins.get(key, 0) > 0:
-                forward_tacacs_event_to_siem(
-                    "authentication",
-                    username,
-                    nas_ip,
-                    user_source_ip,
-                    "success",
-                    ts,
-                    node_name=node_name,
-                    background=False,
-                )
-            if failed_logins.get(key, 0) > 0:
-                forward_tacacs_event_to_siem(
-                    "authentication",
-                    username,
-                    nas_ip,
-                    user_source_ip,
-                    "failed",
-                    ts,
-                    node_name=node_name,
-                    background=False,
-                )
 
 
 if __name__ == "__main__":
