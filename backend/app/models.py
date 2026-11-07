@@ -901,6 +901,11 @@ class TacacsLogPublic(TacacsLogBase):
     id: uuid.UUID
     updated_at: datetime
     data: str | None = None
+    # Set by GET /tacacs_logs/{id}: `data` holds only the last `shown_lines` of
+    # `total_lines` (matching lines when searching), so a large file cannot
+    # freeze the browser (#371). The full file is at /{id}/download.
+    total_lines: int | None = None
+    shown_lines: int | None = None
 
 
 class TacacsLogsPublic(SQLModel):

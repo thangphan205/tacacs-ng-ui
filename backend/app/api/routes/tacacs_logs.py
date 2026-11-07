@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import uuid
+from collections import deque
 from datetime import datetime, time, timedelta
 from typing import Any
 
@@ -9,7 +10,8 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlmodel import func, select
 
 from app.api.deps import SessionDep, get_current_user
@@ -527,6 +529,45 @@ def list_log_files(
     return TacacsLogsPublic(data=tacacs_logs, count=count)
 
 
+DEFAULT_TAIL_LINES = 1000
+MAX_TAIL_LINES = 20000
+
+
+def _resolve_log_file(session: SessionDep, id: uuid.UUID) -> tuple[TacacsLog, str]:
+    """Return the row and the absolute path of a log file, or raise 404.
+
+    The stored relative path is resolved and must stay inside LOG_DIRECTORY, so
+    a crafted ``filepath`` (``../``, or a symlink) cannot read other files.
+    """
+    db_tacacs_log = session.get(TacacsLog, id)
+    if not db_tacacs_log:
+        raise HTTPException(status_code=404, detail="Log file not found in database.")
+
+    root = os.path.realpath(LOG_DIRECTORY)
+    log_path = os.path.realpath(os.path.join(root, db_tacacs_log.filepath))
+    if os.path.commonpath([root, log_path]) != root or not os.path.isfile(log_path):
+        raise HTTPException(status_code=404, detail="Log file not found.")
+    return db_tacacs_log, log_path
+
+
+@router.get(
+    "/{id}/download",
+    dependencies=[Depends(get_current_user)],
+    response_class=FileResponse,
+    responses={200: {"content": {"text/plain": {}}}},
+)
+def download_log_file(id: uuid.UUID, session: SessionDep) -> FileResponse:
+    """
+    Download a TACACS+ log file as-is, as a text/plain attachment.
+    """
+    db_tacacs_log, log_path = _resolve_log_file(session, id)
+    return FileResponse(
+        log_path,
+        media_type="text/plain; charset=utf-8",
+        filename=db_tacacs_log.filename,
+    )
+
+
 @router.get(
     "/{id}",
     dependencies=[Depends(get_current_user)],
@@ -536,29 +577,30 @@ def read_log_file(
     id: uuid.UUID,
     session: SessionDep,
     search: str | None = None,
+    lines: int = Query(DEFAULT_TAIL_LINES, ge=1, le=MAX_TAIL_LINES),
 ) -> Any:
     """
-    Read a specific TACACS+ log file. Can be filtered by a search term.
+    Read the last `lines` lines of a TACACS+ log file, optionally only the
+    lines containing `search`. `total_lines` is the number of lines (or
+    matches) in the whole file; download it for the full content.
     """
-    db_tacacs_log = session.get(TacacsLog, id)
-    if not db_tacacs_log:
-        raise HTTPException(status_code=404, detail="Log file not found in database.")
+    db_tacacs_log, log_path = _resolve_log_file(session, id)
 
-    log_path = os.path.join(LOG_DIRECTORY, db_tacacs_log.filepath)
-    if not os.path.exists(log_path):
-        raise HTTPException(status_code=404, detail="Log file not found.")
-
+    needle = search.lower() if search else None
+    tail: deque[str] = deque(maxlen=lines)
+    total = 0
     try:
         with open(log_path, errors="ignore") as f:
-            file_content_lines = f.readlines()
+            for line in f:
+                if needle is None or needle in line.lower():
+                    total += 1
+                    tail.append(line)
+    except OSError as e:
+        logger.warning("Could not read log file %s: %s", log_path, e)
+        raise HTTPException(status_code=500, detail="Error reading log file.")
 
-        if search:
-            file_content_lines = [
-                line for line in file_content_lines if search.lower() in line.lower()
-            ]
-
-        tacacs_log_result = TacacsLogPublic.model_validate(db_tacacs_log)
-        tacacs_log_result.data = "".join(file_content_lines)
-        return tacacs_log_result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error reading log file: {e}")
+    tacacs_log_result = TacacsLogPublic.model_validate(db_tacacs_log)
+    tacacs_log_result.data = "".join(tail)
+    tacacs_log_result.total_lines = total
+    tacacs_log_result.shown_lines = len(tail)
+    return tacacs_log_result

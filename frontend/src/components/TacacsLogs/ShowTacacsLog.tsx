@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   ButtonGroup,
   CodeBlock,
@@ -14,7 +15,7 @@ import type React from "react"
 import { useState } from "react"
 import { FaEye } from "react-icons/fa"
 import type { HighlighterGeneric } from "shiki"
-import { TacacsLogsService } from "@/client"
+import { type TacacsLogPublic, TacacsLogsService } from "@/client"
 import { useColorMode } from "@/components/ui/color-mode"
 
 import {
@@ -28,9 +29,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog"
+import { DownloadTacacsLogButton } from "./DownloadTacacsLogButton"
+
+// Shiki emits a span per token: ~20 per log line. Above this many lines the
+// highlighted DOM froze the tab for seconds (#371), so larger tails are shown
+// as plain text.
+const HIGHLIGHT_MAX_LINES = 300
 
 interface ShowTacacsLogProps {
-  tacacs_log: any
+  tacacs_log: Pick<TacacsLogPublic, "id" | "filename">
   children?: React.ReactNode
 }
 
@@ -47,6 +54,26 @@ const shikiAdapter = createShikiAdapter<HighlighterGeneric<any, any>>({
     dark: "github-dark",
   },
 })
+
+function TruncationNote({
+  shown,
+  total,
+  searching,
+}: {
+  shown: number
+  total: number
+  searching: boolean
+}) {
+  if (shown >= total) return null
+  const what = searching ? "matching lines" : "lines"
+  return (
+    <Text fontSize="sm" color="fg.muted" data-testid="log-truncation-note">
+      Showing the last {shown.toLocaleString("en-US")} of{" "}
+      {total.toLocaleString("en-US")} {what}. Download the file for the full
+      content.
+    </Text>
+  )
+}
 
 const ShowTacacsLog = ({ tacacs_log, children }: ShowTacacsLogProps) => {
   const [isOpen, setIsOpen] = useState(false)
@@ -74,10 +101,54 @@ const ShowTacacsLog = ({ tacacs_log, children }: ShowTacacsLogProps) => {
       return <Spinner />
     }
     if (error) {
-      return <Text color="red.500">Error loading configuration.</Text>
+      return <Text color="red.500">Error loading log file.</Text>
     }
-    if (data?.data) {
+    if (!data?.data) {
       return (
+        <Text>
+          {submittedSearchTerm ? "No matching lines." : "No content available."}
+        </Text>
+      )
+    }
+
+    const shown = data.shown_lines ?? 0
+    const total = data.total_lines ?? shown
+    const note = (
+      <TruncationNote
+        shown={shown}
+        total={total}
+        searching={submittedSearchTerm !== ""}
+      />
+    )
+
+    if (shown > HIGHLIGHT_MAX_LINES) {
+      return (
+        <>
+          {note}
+          <Box
+            as="pre"
+            data-testid="log-plain-text"
+            flex="1"
+            minH={0}
+            overflow="auto"
+            p={3}
+            borderWidth="1px"
+            borderRadius="md"
+            bg="bg.subtle"
+            fontFamily="mono"
+            fontSize="xs"
+            lineHeight="tall"
+            whiteSpace="pre"
+          >
+            {data.data}
+          </Box>
+        </>
+      )
+    }
+
+    return (
+      <>
+        {note}
         <CodeBlock.AdapterProvider value={shikiAdapter}>
           <CodeBlock.Root
             code={data.data}
@@ -111,10 +182,8 @@ const ShowTacacsLog = ({ tacacs_log, children }: ShowTacacsLogProps) => {
             </CodeBlock.Content>
           </CodeBlock.Root>
         </CodeBlock.AdapterProvider>
-      )
-    }
-
-    return <Text>No content available.</Text>
+      </>
+    )
   }
 
   const handleSearch = () => {
@@ -137,7 +206,7 @@ const ShowTacacsLog = ({ tacacs_log, children }: ShowTacacsLogProps) => {
         {children || (
           <Button variant="ghost" size="sm">
             <FaEye fontSize="16px" />
-            Show Config
+            Show Log
           </Button>
         )}
       </DialogTrigger>
@@ -145,7 +214,13 @@ const ShowTacacsLog = ({ tacacs_log, children }: ShowTacacsLogProps) => {
         <DialogHeader>
           <DialogTitle>Log for: {tacacs_log.filename}</DialogTitle>
         </DialogHeader>
-        <DialogBody display="flex" flexDirection="column" gap={4} maxLines={30}>
+        <DialogBody
+          display="flex"
+          flexDirection="column"
+          gap={4}
+          minH={0}
+          overflow="auto"
+        >
           <Group attached w="full" maxW="md">
             <Input
               placeholder="Search in log content..."
@@ -161,9 +236,10 @@ const ShowTacacsLog = ({ tacacs_log, children }: ShowTacacsLogProps) => {
         </DialogBody>
         <DialogFooter gap={2}>
           <ButtonGroup>
+            <DownloadTacacsLogButton log={tacacs_log} />
             <DialogActionTrigger asChild>
               <Button variant="subtle" colorPalette="gray">
-                Cancel
+                Close
               </Button>
             </DialogActionTrigger>
           </ButtonGroup>
