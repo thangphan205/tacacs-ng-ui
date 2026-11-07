@@ -12,6 +12,8 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+* ♻️ Unify search and filter controls across list pages. PR [#393](https://github.com/thangphan205/tacacs-ng-ui/pull/393) by [@thangphan205](https://github.com/thangphan205).
+
 ### Features
 
 * ✨ Alert on logins at an hour the user rarely uses. PR [#392](https://github.com/thangphan205/tacacs-ng-ui/pull/392) by [@thangphan205](https://github.com/thangphan205).
