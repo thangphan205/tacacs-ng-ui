@@ -312,6 +312,53 @@ def _authz_denials(
     _top_lines(msg, payload)
 
 
+def _hour_ranges(hours: Sequence[int]) -> str:
+    """`[8, 9, 10, 11, 13, 14]` -> `08–12, 13–15` (end hour exclusive)."""
+    if not hours:
+        return "none yet"
+    if len(set(hours)) == 24:
+        return "all hours"
+    ranges: list[tuple[int, int]] = []
+    for hour in sorted(set(hours)):
+        if ranges and ranges[-1][1] == hour:
+            ranges[-1] = (ranges[-1][0], hour + 1)
+        else:
+            ranges.append((hour, hour + 1))
+    return ", ".join(f"{start:02d}–{end % 24:02d}" for start, end in ranges)
+
+
+def _unusual_logins(msg: AlertMessage, payload: dict[str, Any]) -> None:
+    rows = payload.get("unusual_logins") or []
+    msg.body.append(
+        [
+            f"{_plural(len(rows), 'user')} logged in at an hour they rarely use "
+            f"(based on their last 30 days)."
+        ]
+    )
+    for row in rows[:MAX_ENTRIES]:
+        extra = int(row.get("logins") or 1) - 1
+        head: Line = [
+            "👤 ",
+            Code(str(row.get("username", "?"))),
+            f" — logged in at {format_time(row.get('login_at'))}",
+        ]
+        if extra > 0:
+            head.append(f" (+{extra} more unusual in this window)")
+        msg.body.append([])
+        msg.body.append(head)
+        hour = int(row.get("hour") or 0)
+        msg.body.append(
+            [
+                f"   Only {row.get('share', 0)}% of their {row.get('total_logins', 0)} "
+                f"logins fall around {hour:02d}:00 "
+                f"(usual hours: {_hour_ranges(row.get('usual_hours') or [])})"
+            ]
+        )
+        msg.body.append(["   Source: ", *_codes(row.get("source_ips") or [])])
+        msg.body.append(["   Device: ", *_codes(row.get("devices") or [])])
+    _more(msg.body, len(rows), min(len(rows), MAX_ENTRIES))
+
+
 def _config_changes(
     msg: AlertMessage, rule: AlertRule, payload: dict[str, Any], window: int
 ) -> None:
@@ -362,7 +409,9 @@ def build_alert_message(*, rule: AlertRule, payload: dict[str, Any]) -> AlertMes
     window = int(payload.get("window_minutes") or rule.time_window_minutes)
     path = "/aaa_statistics"
 
-    if "new_usernames" in payload:
+    if "unusual_logins" in payload:
+        _unusual_logins(msg, payload)
+    elif "new_usernames" in payload:
         _new_usernames(msg, payload, window)
     elif "new_source_ips" in payload:
         _new_source_ips(msg, payload, window)

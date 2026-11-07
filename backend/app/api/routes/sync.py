@@ -1,6 +1,7 @@
 import logging
 import time
 import uuid
+from collections import Counter
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from sqlmodel import select
 
 from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
 from app.core.config import settings
+from app.crud.auth_hourly import counter_to_rows
 from app.crud.tacacs_configs import reload_active_config_from_db
 from app.models import (
     HaConfig,
@@ -81,7 +83,7 @@ def _get_ha_config(session: SessionDep) -> HaConfig:
 def _check_peers_available(peer_urls: list[str]) -> dict[str, bool | None]:
     """Return {url: available} for each URL. Results cached 30 s per URL."""
     if not settings.INTERNAL_SYNC_TOKEN:
-        return {url: None for url in peer_urls}
+        return dict.fromkeys(peer_urls)
     now = time.monotonic()
     result: dict[str, bool | None] = {}
     for url in peer_urls:
@@ -435,7 +437,10 @@ def internal_collect_stats(
         sys.argv = orig_argv
 
     log_dir = settings.TACACS_LOG_DIRECTORY
-    auth_success, auth_fail = parse_authentication_logs(target_date, log_dir)
+    auth_hourly: Counter[tuple[str, int, str]] = Counter()
+    auth_success, auth_fail = parse_authentication_logs(
+        target_date, log_dir, auth_hourly
+    )
     authz_permit, authz_deny = parse_authorization_logs(target_date, log_dir)
     acct_start, acct_stop = parse_accounting_logs(target_date, log_dir)
 
@@ -459,6 +464,9 @@ def internal_collect_stats(
         "authentication": _counters_to_list(
             auth_success, auth_fail, "success_count", "fail_count"
         ),
+        # Hourly counts for the unusual-login-hour baseline. A primary on an
+        # older version ignores the key; a peer on an older version omits it.
+        "authentication_hourly": counter_to_rows(auth_hourly),
         "authorization": _counters_to_list(
             authz_permit, authz_deny, "permit_count", "deny_count"
         ),

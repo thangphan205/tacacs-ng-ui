@@ -19,6 +19,7 @@ import { useState } from "react"
 import { FiBell, FiLock, FiPlus } from "react-icons/fi"
 import { z } from "zod"
 
+import type { ApiError } from "@/api"
 import type { AlertRulePublic } from "@/client"
 import { AlertRulesService } from "@/client"
 import { PageHeader } from "@/components/Common/PageHeader"
@@ -39,6 +40,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
+import { handleError } from "@/utils"
 
 const DEFAULT_PER_PAGE = 10
 
@@ -174,6 +176,29 @@ function RuleDialog({
       setForm((prev) => ({ ...prev, [k]: e.target.value }))
     }
 
+  const handleFieldChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const field = e.target.value
+    setForm((p) => {
+      if (field === "login_hour") {
+        // The only operator that makes sense, and its usual threshold (percent)
+        return {
+          ...p,
+          condition_field: field,
+          condition_operator: "unusual",
+          threshold: "2",
+        }
+      }
+      // Leaving login_hour: its operator does not exist on the other fields
+      const leaving = p.condition_field === "login_hour"
+      return {
+        ...p,
+        condition_field: field,
+        condition_operator: leaving ? "gt" : p.condition_operator,
+        threshold: leaving ? "5" : p.threshold,
+      }
+    })
+  }
+
   const handleLogTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const t = e.target.value
     if (t === "config") {
@@ -195,6 +220,7 @@ function RuleDialog({
   }
 
   const isConfig = form.log_type === "config"
+  const isLoginHour = form.condition_field === "login_hour"
 
   return (
     <Stack gap={3}>
@@ -274,13 +300,22 @@ function RuleDialog({
                 border: "1px solid #ccc",
               }}
               value={form.condition_field}
-              onChange={f("condition_field")}
+              onChange={handleFieldChange}
             >
               <option value="fail_count">Fail Count</option>
               <option value="deny_count">Deny Count</option>
               <option value="username">New Username</option>
               <option value="client_ip">Source IP</option>
+              <option value="login_hour">Login at Unusual Hour</option>
             </select>
+            {isLoginHour && (
+              <Text fontSize="xs" color="fg.muted" mt={1}>
+                Fires when a user logs in at an hour that holds less than the
+                threshold share of their logins over the last 30 days (the hour
+                before and after count too). Users with under 7 days of history
+                are skipped. Needs auth log type.
+              </Text>
+            )}
             {form.condition_field === "client_ip" && (
               <Text fontSize="xs" color="fg.muted" mt={1}>
                 {form.condition_operator === "new_value"
@@ -311,6 +346,19 @@ function RuleDialog({
               <option value="deleted">Deleted</option>
               <option value="activated">Activated</option>
             </select>
+          ) : isLoginHour ? (
+            <select
+              style={{
+                width: "100%",
+                padding: "6px",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+              }}
+              value="unusual"
+              disabled
+            >
+              <option value="unusual">Unusual Hour</option>
+            </select>
           ) : (
             <select
               style={{
@@ -331,12 +379,16 @@ function RuleDialog({
         </Box>
         <Box flex={1}>
           <Text fontSize="sm" mb={1}>
-            {isConfig ? "Min occurrences" : "Threshold"}
+            {isConfig
+              ? "Min occurrences"
+              : isLoginHour
+                ? "Max share of logins (%)"
+                : "Threshold"}
           </Text>
           <Input
             value={form.threshold}
             onChange={f("threshold")}
-            placeholder={isConfig ? "1" : "5"}
+            placeholder={isConfig ? "1" : isLoginHour ? "2" : "5"}
             type="number"
           />
         </Box>
@@ -436,6 +488,37 @@ function DeleteRuleButton({ rule }: { rule: AlertRulePublic }) {
         </DialogFooter>
       </DialogContent>
     </DialogRoot>
+  )
+}
+
+function RuleEnabledSwitch({ rule }: { rule: AlertRulePublic }) {
+  const queryClient = useQueryClient()
+  const mutation = useMutation({
+    mutationFn: (enabled: boolean) =>
+      AlertRulesService.updateAlertRule({
+        id: rule.id,
+        alertRuleUpdate: { enabled },
+      }),
+    onError: (err: ApiError) => handleError(err),
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ["alert_rules"] }),
+  })
+  const enabled = rule.enabled ?? true
+
+  return (
+    <Switch.Root
+      size="sm"
+      colorPalette="green"
+      checked={enabled}
+      disabled={mutation.isPending}
+      onCheckedChange={(e) => mutation.mutate(e.checked)}
+      aria-label={`${enabled ? "Disable" : "Enable"} ${rule.name}`}
+    >
+      <Switch.HiddenInput />
+      <Switch.Control>
+        <Switch.Thumb />
+      </Switch.Control>
+    </Switch.Root>
   )
 }
 
@@ -550,9 +633,7 @@ function AlertRulesTable() {
                         : "Never"}
                     </Table.Cell>
                     <Table.Cell>
-                      <Badge colorPalette={rule.enabled ? "green" : "gray"}>
-                        {rule.enabled ? "On" : "Off"}
-                      </Badge>
+                      <RuleEnabledSwitch rule={rule} />
                     </Table.Cell>
                     <Table.Cell>
                       <Flex gap={1}>

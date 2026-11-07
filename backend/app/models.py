@@ -1081,6 +1081,37 @@ class AuthenticationStatisticsPublic(SQLModel):
     count: int
 
 
+# -- Authentication Hourly Statistics Table ---
+class AuthenticationHourlyStatistics(TimestampModel, table=True):
+    """
+    Logins per user and hour of day, in the log timezone.
+
+    The baseline for the "Login at Unusual Hour" alert rule: it needs to know
+    at which hours a user normally logs in, which the per-day statistics
+    cannot tell. Collected on every stats run whether or not the rule is on,
+    so the baseline is ready the day an admin enables it.
+    """
+
+    __table_args__ = (
+        UniqueConstraint(
+            "username",
+            "log_date",
+            "hour",
+            "node_name",
+            name="uq_authenticationhourlystatistics_user_date_hour_node",
+        ),
+    )
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    node_name: str = Field(default="primary", index=True, max_length=255)
+    username: str = Field(index=True, max_length=255)
+    # Calendar day of the log file, in the log timezone (same as the other
+    # statistics tables, #356).
+    log_date: date = Field(index=True)
+    hour: int  # 0-23, the hour tac_plus-ng stamped on the line
+    success_count: int = Field(default=0)
+    fail_count: int = Field(default=0)
+
+
 # -- Authrorization Statistics Table ---
 class AuthorizationStatisticsBase(SQLModel):
     node_name: str = Field(default="primary", index=True, max_length=255)

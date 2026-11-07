@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 
 from app.core.config import settings
 from app.core.db import engine
+from app.crud.auth_hourly import counter_to_rows, upsert_hourly
 from app.crud.tacacs_siem import forward_tacacs_event_to_siem
 from app.models import AuthenticationStatistics
 from scripts._log_stats_base import (
@@ -33,8 +34,9 @@ def process_authentication_logs(node_name: str | None = None) -> None:
         f"Processing authentication log file for date {target_date_str} (node: {node_name})"
     )
 
+    hourly: Counter = Counter()
     successful_logins, failed_logins = parse_authentication_logs(
-        summary_date, settings.TACACS_LOG_DIRECTORY
+        summary_date, settings.TACACS_LOG_DIRECTORY, hourly
     )
 
     total_events = sum(successful_logins.values()) + sum(failed_logins.values())
@@ -59,7 +61,7 @@ def process_authentication_logs(node_name: str | None = None) -> None:
         )
 
     save_statistics_to_db(
-        summary_date, all_keys, successful_logins, failed_logins, node_name
+        summary_date, all_keys, successful_logins, failed_logins, node_name, hourly
     )
 
 
@@ -69,6 +71,7 @@ def save_statistics_to_db(
     successful_logins: Counter,
     failed_logins: Counter,
     node_name: str,
+    hourly: Counter | None = None,
 ) -> None:
     """
     Inserts or updates authentication statistics in the database for a given date and node.
@@ -109,6 +112,14 @@ def save_statistics_to_db(
                     node_name=node_name,
                 )
             session.add(db_stat)
+
+        if hourly:
+            upsert_hourly(
+                session,
+                node_name=node_name,
+                log_date=summary_date,
+                rows=counter_to_rows(hourly),
+            )
 
         session.commit()
         print("\nStatistics saved successfully.")

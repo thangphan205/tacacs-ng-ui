@@ -657,6 +657,24 @@ _SYSTEM_ALERT_RULES: list[dict[str, Any]] = [
         "cooldown_minutes": 30,
     },
     {
+        "name": "[System] Login at Unusual Hour",
+        "description": (
+            "Fires when a user logs in at an hour they rarely use: the hour of "
+            "the login (and one either side) holds less than the threshold "
+            "percentage of their logins over the prior 30 days. Users with "
+            "under 7 days of history are skipped. Off by default; enable it "
+            "once login history has built up."
+        ),
+        "log_type": "auth",
+        "condition_field": "login_hour",
+        "condition_operator": "unusual",
+        "threshold": 2.0,
+        "time_window_minutes": 10,
+        "severity": "medium",
+        "cooldown_minutes": 5,
+        "enabled": False,
+    },
+    {
         "name": "[System] TACACS Config Changed",
         "description": "Fires when any TACACS config is created, updated, or deleted.",
         "log_type": "config",
@@ -686,9 +704,7 @@ def _seed_system_alert_rules(session: Session) -> None:
     for rule_def in _SYSTEM_ALERT_RULES:
         if rule_def["name"] in existing_names:
             continue
-        rule = AlertRule(
-            **rule_def,
-            enabled=True,
-            is_system=True,
-        )
+        # A definition may start disabled; the row is never touched again, so
+        # whatever an admin sets afterwards stays.
+        rule = AlertRule(**{"enabled": True, **rule_def}, is_system=True)
         session.add(rule)

@@ -156,6 +156,8 @@ Four asyncio loops, started from FastAPI lifespan on a primary with the schedule
 
 Rules evaluate live TACACS logs (auth/authz log files) and AuditLog table. Fields: `log_type` (auth/authz/config/all), `condition_field`, `condition_operator` (gt/lt/eq/new_value/any_change/created/updated/deleted/activated), `threshold`, `time_window_minutes`, `cooldown_minutes`, `severity`. Triggered alerts dispatch to all enabled `NotificationChannel` rows and write one `AlertEvent` per channel (`sent` / `failed`); with no enabled channel they write one `no_channel` event with `channel_id = NULL`, so Alert History never misses a fired rule. `alertevent.channel_id` is `ON DELETE SET NULL` and the ORM relationship uses `passive_deletes` — deleting a channel must not delete its history.
 
+**Login at Unusual Hour (`crud/login_hours.py`):** a `login_hour` / `unusual` rule compares each successful login's hour with the user's own `AuthenticationHourlyStatistics` baseline (30 log days before the window's first day — the window's own days are excluded so a login is never part of its own history; users with under 7 days are skipped). Hourly rows are collected on every auth stats run **whether or not the rule is enabled**, so the baseline exists the day it is switched on; standbys send them as `authentication_hourly` in `collect-stats`. `_SYSTEM_ALERT_RULES` entries may set `"enabled": False` — this rule does, and seeding is create-only, so an admin's switch is never reset. Like the stats tables, the baseline keeps every user (no `stats_exclusions`).
+
 ### Notification Channels (`backend/app/crud/notification_dispatcher.py`)
 
 Supported: Telegram, Slack (Block Kit), Discord, Teams, Webhook, Google Chat, Email.
