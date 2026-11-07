@@ -14,6 +14,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Features
 
+* ✨ Clearer alert notifications with context to judge activity. PR [#391](https://github.com/thangphan205/tacacs-ng-ui/pull/391) by [@thangphan205](https://github.com/thangphan205).
 * ✨ Optional remote syslog destination: per-event logs from every node (#373). PR [#379](https://github.com/thangphan205/tacacs-ng-ui/pull/379) by [@thangphan205](https://github.com/thangphan205).
 * ✨ Show what triggered an alert in Alert History (#372). PR [#375](https://github.com/thangphan205/tacacs-ng-ui/pull/375) by [@thangphan205](https://github.com/thangphan205).
 
