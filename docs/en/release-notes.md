@@ -12,29 +12,49 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
-* ♻️ Unify search and filter controls across list pages. PR [#393](https://github.com/thangphan205/tacacs-ng-ui/pull/393) by [@thangphan205](https://github.com/thangphan205).
+## v0.6.7
+
+This release adds real-time SIEM forwarding configured in the UI, a remote syslog option in tac_plus-ng, clearer alert notifications and a new rule for logins at unusual hours. It keeps secrets out of the audit log, stores every timestamp with its time zone, and stops background jobs from running once per uvicorn worker. It has five database migrations, one of them irreversible; see **Upgrading from 0.6.6**.
+
+### Security
+
+* 🔒 **Secrets no longer reach the audit log.** Audit entries stored a snapshot of the changed object, and the Audit Logs page shows it to every superuser. For TACACS+ users, hosts, MAVIS entries and generated configs, that snapshot held the password hash, the host's shared secret, the LDAP bind password or the whole config. Every new entry is now redacted when written, whichever path creates it (REST, MCP, anything later). A redacted field shows `[redacted]`, or `[redacted: changed]` when an update changed it. Migration `d8a41f6b2c95` applies the same rules to rows already stored. The values were never sent to a SIEM. If access to the audit page or to database backups was wider than you trust, consider rotating host secrets and TACACS+ passwords. PR [#397](https://github.com/thangphan205/tacacs-ng-ui/pull/397) by [@thangphan205](https://github.com/thangphan205).
 
 ### Features
 
-* 🐛 Store timestamps as timestamptz; show them in the viewer's time zone. PR [#395](https://github.com/thangphan205/tacacs-ng-ui/pull/395) by [@thangphan205](https://github.com/thangphan205).
-* ✨ SIEM Integration page and real-time log shipping. PR [#394](https://github.com/thangphan205/tacacs-ng-ui/pull/394) by [@thangphan205](https://github.com/thangphan205).
-* ✨ Alert on logins at an hour the user rarely uses. PR [#392](https://github.com/thangphan205/tacacs-ng-ui/pull/392) by [@thangphan205](https://github.com/thangphan205).
-* ✨ Clearer alert notifications with context to judge activity. PR [#391](https://github.com/thangphan205/tacacs-ng-ui/pull/391) by [@thangphan205](https://github.com/thangphan205).
-* ✨ Optional remote syslog destination: per-event logs from every node (#373). PR [#379](https://github.com/thangphan205/tacacs-ng-ui/pull/379) by [@thangphan205](https://github.com/thangphan205).
-* ✨ Show what triggered an alert in Alert History (#372). PR [#375](https://github.com/thangphan205/tacacs-ng-ui/pull/375) by [@thangphan205](https://github.com/thangphan205).
+* ✨ **SIEM Integration page and real-time log shipping.** **Admin → SIEM Integration** (superusers only) configures forwarding: the sources (Authentication, Authorization, Accounting, Access, the app audit log), a Splunk HEC webhook and an RFC 5424 syslog receiver over UDP or TCP. It has **Send test event** and a status card, and is read-only on a standby. A new `siem_shipper` process on **every node** follows that node's log files and sends one event per line, usually within a second or two. Enabling forwarding starts at the end of the file; history is never replayed. Webhook delivery is at-least-once, with retry and backoff. Audit entries go to both sinks. The daily summary records sent before are gone. The `SIEM_*` env vars now only seed the settings once; after that the UI owns them. PR [#394](https://github.com/thangphan205/tacacs-ng-ui/pull/394) by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Remote syslog destination in tac_plus-ng.** **TACACS NG Settings → Remote Syslog Destination** (`IPv4[:port]`) makes tac_plus-ng send every event as UDP syslog (RFC 3164) from every node, in addition to the local log files. The syslog hostname is the node's `NODE_NAME`. Only an IPv4 address is accepted: tac_plus-ng silently ignores a hostname and misreads an IPv6 port. PR [#379](https://github.com/thangphan205/tacacs-ng-ui/pull/379) by [@thangphan205](https://github.com/thangphan205), closes [#373](https://github.com/thangphan205/tacacs-ng-ui/issues/373).
+* ✨ **Clearer alert notifications.** Each channel gets a formatted message instead of a Python repr: the condition in words, top users, sources and devices (named from the Hosts table), whether a new username logged in successfully, config file names, actor IP, and times in the log time zone. Values are escaped per channel. Webhook `data` keeps every existing key and adds new ones. ⚠️ `changes[].at` is now ISO 8601 in the log time zone (`2026-11-07T21:00:25+07:00`) instead of `"… UTC"`; update webhook consumers that parse it. PR [#391](https://github.com/thangphan205/tacacs-ng-ui/pull/391) by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Login at Unusual Hour.** A new system rule flags a successful login whose hour, plus one hour either side, holds less than 2 % (the threshold) of that user's logins over the previous 30 days. Users with under 7 days of history are skipped. The rule is created **disabled**. Hourly login counts are collected on every statistics run whether or not it is on, so the baseline is ready when you switch it on. The On/Off badge in Alert Rules is now a switch that saves at once, for every rule. PR [#392](https://github.com/thangphan205/tacacs-ng-ui/pull/392) by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Alert details in Alert History.** Clicking a row opens what triggered the alert: usernames, source IPs, counts, config changes and the full delivery error. PR [#375](https://github.com/thangphan205/tacacs-ng-ui/pull/375) by [@thangphan205](https://github.com/thangphan205).
+* ♻️ **One search and filter toolbar on every list page.** Filters use a shared select that is readable in dark mode, and rows-per-page sits next to the pagination everywhere. On **TACACS Logs → Files** the file type no longer overwrites the search text; `GET /tacacs_logs/files` takes `log_type`. PR [#393](https://github.com/thangphan205/tacacs-ng-ui/pull/393) by [@thangphan205](https://github.com/thangphan205).
 
 ### Fixes
 
-* 🔒 Keep secrets out of the audit log. PR [#397](https://github.com/thangphan205/tacacs-ng-ui/pull/397) by [@thangphan205](https://github.com/thangphan205).
-* 🐛 Name the entity in SIEM audit events. PR [#396](https://github.com/thangphan205/tacacs-ng-ui/pull/396) by [@thangphan205](https://github.com/thangphan205).
-* 🐛 Keep the Actions column visible on Configuration Options. PR [#390](https://github.com/thangphan205/tacacs-ng-ui/pull/390) by [@thangphan205](https://github.com/thangphan205).
-* 🐛 Fix SIEM syslog framing and header; correct the SIEM docs (#373). PR [#377](https://github.com/thangphan205/tacacs-ng-ui/pull/377) by [@thangphan205](https://github.com/thangphan205).
-* 🐛 Stop the log viewer from freezing on big files; add download (#371). PR [#376](https://github.com/thangphan205/tacacs-ng-ui/pull/376) by [@thangphan205](https://github.com/thangphan205).
-* 🐛 Run background loops in exactly one uvicorn worker (#372). PR [#374](https://github.com/thangphan205/tacacs-ng-ui/pull/374) by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **Timestamps are stored with their time zone.** Timestamp columns held the database server's local time, which the app read as UTC. Alert cooldowns and dedupe were off by the server's UTC offset (at UTC+7, a rule stayed silent 7 h longer than its cooldown), and the UI showed times in the wrong zone for admins elsewhere. Every column is now `timestamptz`, the API sends `…Z`, and the UI shows times in the viewer's zone with the zone named. Dashboard, AAA Statistics and Log Events take "today" from the log time zone. On HA, every node must run in the log time zone; the HA page and startup log now warn when one does not. PR [#395](https://github.com/thangphan205/tacacs-ng-ui/pull/395) by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **Background jobs run in one uvicorn worker, not four.** Each of the four workers ran its own alert, statistics, ML and audit-purge loops, so alerts fired up to four times and SIEM summaries were sent four times. A PostgreSQL advisory lock now elects one worker; another takes over if it dies. PR [#374](https://github.com/thangphan205/tacacs-ng-ui/pull/374) by [@thangphan205](https://github.com/thangphan205), part of [#372](https://github.com/thangphan205/tacacs-ng-ui/issues/372).
+* 🐛 **Large log files open without freezing the tab.** The log viewer shows the last 1,000 lines (or matches) and renders big files as plain text. Log files can be downloaded from the dialog and from each row. Both routes refuse a stored path outside the log directory. PR [#376](https://github.com/thangphan205/tacacs-ng-ui/pull/376) by [@thangphan205](https://github.com/thangphan205), closes [#371](https://github.com/thangphan205/tacacs-ng-ui/issues/371).
+* 🐛 **SIEM syslog reaches Graylog.** Messages over TCP ended with a NUL byte, which Graylog's default TCP input drops silently, and carried no timestamp or hostname. Syslog is now RFC 5424 with the node name, LF-terminated over one reused connection. PR [#377](https://github.com/thangphan205/tacacs-ng-ui/pull/377) by [@thangphan205](https://github.com/thangphan205), part of [#373](https://github.com/thangphan205/tacacs-ng-ui/issues/373).
+* 🐛 SIEM audit events carry `entity_name` (and `renamed_from`), so a deleted object can still be identified. No other values are sent. PR [#396](https://github.com/thangphan205/tacacs-ng-ui/pull/396) by [@thangphan205](https://github.com/thangphan205).
+* 🐛 The Actions column on Configuration Options stays visible when an option has long lines. PR [#390](https://github.com/thangphan205/tacacs-ng-ui/pull/390) by [@thangphan205](https://github.com/thangphan205).
 
 ### Docs
 
-* 📝 List supported vendors and write the Cisco and Arista guides. PR [#370](https://github.com/thangphan205/tacacs-ng-ui/pull/370) by [@thangphan205](https://github.com/thangphan205).
+* 📝 List supported vendors and write the Cisco IOS-XE and Arista EOS guides, with a raw-script profile that limits read-only users to show commands. PR [#370](https://github.com/thangphan205/tacacs-ng-ui/pull/370) by [@thangphan205](https://github.com/thangphan205).
+
+### Upgrading from 0.6.6
+
+There are five database migrations. They run on the primary at start; standbys receive them through replication. Upgrade standbys together with the primary.
+
+**Take a database backup first.** `d8a41f6b2c95` cannot be undone, and the backup will still hold the secrets it removes.
+
+* `c4e9a2b7d815` adds `tacacsngsetting.remote_syslog_destination`, empty by default, so the generated config is unchanged.
+* `b7d3f1a9c2e4` adds the `authenticationhourlystatistics` table. It fills from the next statistics run; to backfill a past day whose log file is still on disk, run `python scripts/tacacs_logs_authentication.py YYYY-MM-DD`.
+* `a9c4e7f21d36` adds the `siemconfig` table. On the first primary start it is seeded once from the `SIEM_*` env vars; after that changes to those vars have no effect.
+* `c3f8e2a91b47` converts every timestamp column to `timestamptz`, reading stored values in the database server's `TimeZone`. It assumes that setting has not changed since the rows were written. Each table is rewritten once; a large `auditlog` takes a moment.
+* `d8a41f6b2c95` overwrites secrets already stored in `auditlog` with `[redacted]`. Its downgrade does nothing.
+
+Also pull the new `docker-compose.yml`: the backend's `hostname` is now `${NODE_NAME:-primary}`, which tac_plus-ng uses as the syslog hostname. Every HA node's `TZ` must equal **TACACS NG Settings → Timezone**.
 
 ### Internal
 
