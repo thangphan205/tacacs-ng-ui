@@ -5478,7 +5478,14 @@ export const TacacsLogEventSchema = {
             title: 'Nas Ip'
         },
         client_ip: {
-            type: 'string',
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
             title: 'Client Ip'
         },
         result: {
@@ -5529,7 +5536,6 @@ export const TacacsLogEventSchema = {
         'log_type',
         'username',
         'nas_ip',
-        'client_ip',
         'result',
         'message'
     ],

@@ -971,7 +971,9 @@ class TacacsLogEvent(SQLModel):
     log_type: str  # "authentication" | "authorization" | "accounting"
     username: str
     nas_ip: str
-    client_ip: str
+    # The client as the device reported it: an IP address, free text such as
+    # "console" or "localhost", or None when the device sent none (#400).
+    client_ip: str | None = None
     result: str  # "success" | "failed" | "permit" | "deny" | "start" | "stop"
     message: str
     command: str | None = (

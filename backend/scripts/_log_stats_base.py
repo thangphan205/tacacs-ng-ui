@@ -1,46 +1,14 @@
 import os
-import re
 import sys
 import time as _time
 from collections import Counter
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-# IPv4 or IPv6 — requires dots or colons so plain port/session numbers (e.g. "39001") don't match.
-# Supported log formats (tab-separated after timestamp+nas_ip):
-#   with client IP:    nas_ip\tuser\t[tty]\tclient_ip\tmessage
-#   without client IP: nas_ip\tuser\tport\tflag\tmessage  (e.g. PAP where client IP absent)
-_IP = r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}|[a-fA-F0-9]{0,4}(?::[a-fA-F0-9]{0,4})+"
-
-# Optional non-IP field (tty/port/flag) — skipped only when it is NOT a valid IP.
-_NON_IP_FIELD = rf"(?:\t(?!(?:{_IP})(?:\t|$))[^\t]*)?"
-
-AUTH_LOG_REGEX = re.compile(
-    r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
-    rf"(?P<nas_ip>{_IP})\t"
-    r"(?P<username>[\w.-]+)"
-    + _NON_IP_FIELD  # optional tty / port / flag (not an IP)
-    + rf"(?:\t(?P<client_ip>{_IP}))?"  # optional real client IP
-    + r"\t(?P<message>[^\n]+)$"
-)
-
-_AUTHZ_IP = r"([a-fA-F0-9:.]+|[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})"
-AUTHZ_LOG_REGEX = re.compile(
-    r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
-    rf"(?P<nas_ip>{_AUTHZ_IP})\s+"
-    r"(?P<username>[\w.-]+)\s+"
-    r"(?P<tty>[\w/.-]+)\s+"
-    rf"(?P<client_ip>{_AUTHZ_IP})\s+"
-    r"(?:(?P<profile>[\w.-]+)\s+)?(?P<message>.*)$"
-)
-
-ACCT_LOG_REGEX = re.compile(
-    r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
-    rf"(?P<nas_ip>{_AUTHZ_IP})\s+"
-    r"(?P<username>[\w.-]+)\s+"
-    r"(?P<tty>[\w/.-]+)\s+"
-    rf"(?P<client_ip>{_AUTHZ_IP})\s+"
-    r"(?P<action>start|stop)\s*(?P<message>.*)$"
+from app.core.tacacs_log_parse import (
+    accounting_action,
+    authorization_result,
+    split_log_line,
 )
 
 
@@ -156,25 +124,22 @@ def parse_authentication_logs(
             for line in f:
                 if not line.startswith(target_date_str):
                     continue
-                match = AUTH_LOG_REGEX.search(line)
-                if not match:
+                fields = split_log_line(line)
+                if fields is None:
                     continue
-                log_data = match.groupdict()
-                message = log_data["message"]
+                message = fields.message
                 if "login" not in message:
                     continue
-                username = log_data["username"]
-                nas_ip = log_data["nas_ip"]
-                client_ip = log_data["client_ip"] or nas_ip
-                key = (username, nas_ip, client_ip)
+                username = fields.username
+                key = (username, fields.nas_ip, fields.source_ip)
                 outcome = "success" if "succeeded" in message else "fail"
                 if outcome == "success":
                     successful_logins[key] += 1
                 else:
                     failed_logins[key] += 1
                 if hourly is not None:
-                    # "YYYY-MM-DD HH:MM:SS +ZZZZ": the regex guarantees the shape
-                    hourly[(username, int(log_data["timestamp"][11:13]), outcome)] += 1
+                    # "YYYY-MM-DD HH:MM:SS +ZZZZ": split_log_line checked the shape
+                    hourly[(username, int(fields.timestamp[11:13]), outcome)] += 1
     except OSError:
         pass
 
@@ -199,20 +164,14 @@ def parse_authorization_logs(
             for line in f:
                 if not line.startswith(target_date_str):
                     continue
-                match = AUTHZ_LOG_REGEX.search(line)
-                if not match:
+                fields = split_log_line(line)
+                if fields is None:
                     continue
-                log_data = match.groupdict()
-                message = log_data["message"].strip()
-                if "permit" not in message and "deny" not in message:
-                    continue
-                username = log_data["username"]
-                nas_ip = log_data["nas_ip"]
-                client_ip = log_data["client_ip"]
-                key = (username, nas_ip, client_ip)
-                if "permit" in message:
+                result = authorization_result(fields.message)
+                key = (fields.username, fields.nas_ip, fields.source_ip)
+                if result == "permit":
                     permitted[key] += 1
-                elif "deny" in message:
+                elif result == "deny":
                     denied[key] += 1
     except OSError:
         pass
@@ -238,17 +197,11 @@ def parse_accounting_logs(
             for line in f:
                 if not line.startswith(target_date_str):
                     continue
-                match = ACCT_LOG_REGEX.search(line)
-                if not match:
+                fields = split_log_line(line)
+                if fields is None:
                     continue
-                log_data = match.groupdict()
-                action = log_data.get("action")
-                if not action:
-                    continue
-                username = log_data["username"]
-                nas_ip = log_data["nas_ip"]
-                client_ip = log_data["client_ip"]
-                key = (username, nas_ip, client_ip)
+                action = accounting_action(fields.message)
+                key = (fields.username, fields.nas_ip, fields.source_ip)
                 if action == "start":
                     start_events[key] += 1
                 elif action == "stop":

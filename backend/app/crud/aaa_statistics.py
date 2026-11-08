@@ -11,6 +11,7 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.core.config import settings
+from app.core.tacacs_log_parse import split_log_line
 from app.crud.stats_exclusions import filter_rows, not_excluded_clause
 from app.models import (
     AccountingStatistics,
@@ -18,7 +19,6 @@ from app.models import (
     AuthorizationStatistics,
 )
 from scripts._log_stats_base import (
-    AUTH_LOG_REGEX,
     local_today,
     parse_accounting_logs,
     parse_authorization_logs,
@@ -97,15 +97,11 @@ def parse_local_today_authentication_details() -> list[dict]:
             for line in f:
                 if not line.startswith(today_str):
                     continue
-                match = AUTH_LOG_REGEX.search(line)
-                if not match:
+                fields = split_log_line(line)
+                if fields is None:
                     continue
-                log_data = match.groupdict()
-                msg = log_data["message"].lower()
-                username = log_data["username"]
-                nas_ip = log_data["nas_ip"]
-                client_ip = log_data["client_ip"]
-                key = (username, nas_ip, client_ip)
+                msg = fields.message.lower()
+                key = (fields.username, fields.nas_ip, fields.source_ip)
                 if "succeeded" in msg:
                     successful_logins[key] += 1
                 elif "failed" in msg or "denied" in msg:

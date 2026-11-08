@@ -4,7 +4,6 @@ import ipaddress
 import json
 import logging
 import os
-import re
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -14,6 +13,7 @@ from typing import Any
 from sqlmodel import Session, col, select
 
 from app.core.config import settings
+from app.core.tacacs_log_parse import authorization_result, split_log_line
 from app.crud import alert_events as crud_alert_events
 from app.crud import alert_rules as crud_alert_rules
 from app.crud import login_hours
@@ -33,25 +33,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Live log parsing — real-time (no dependency on daily cron)
 # ---------------------------------------------------------------------------
-
-_IP = r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}|[a-fA-F0-9]{0,4}(?::[a-fA-F0-9]{0,4})+"
-_NON_IP_FIELD = rf"(?:\t(?!(?:{_IP})(?:\t|$))[^\t]*)?"
-_AUTH_REGEX = re.compile(
-    r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
-    rf"(?P<nas_ip>{_IP})\t"
-    r"(?P<username>[\w.-]+)"
-    + _NON_IP_FIELD
-    + rf"(?:\t(?P<client_ip>{_IP}))?"
-    + r"\t(?P<message>[^\n]+)$"
-)
-_AUTHZ_REGEX = re.compile(
-    r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4})\s+"
-    rf"(?P<nas_ip>{_IP})\s+"
-    r"(?P<username>[\w.-]+)\s+"
-    r"(?P<tty>[\w/.-]+)\s+"
-    rf"(?P<client_ip>{_IP})\s+"
-    r"(?:(?P<profile>[\w.-]+)\s+)?(?P<message>.*)$"
-)
 
 
 def _log_paths_for_window(
@@ -135,21 +116,19 @@ def _parse_auth_log(window_start: datetime, now: datetime) -> AuthWindow:
         try:
             with open(path, errors="ignore") as f:
                 for line in f:
-                    m = _AUTH_REGEX.match(line)
-                    if not m:
+                    fields = split_log_line(line)
+                    if fields is None:
                         continue
                     try:
-                        ts = datetime.strptime(
-                            m.group("timestamp"), "%Y-%m-%d %H:%M:%S %z"
-                        )
+                        ts = datetime.strptime(fields.timestamp, "%Y-%m-%d %H:%M:%S %z")
                     except ValueError:
                         continue
                     if ts < window_start or ts > now:
                         continue
-                    msg = m.group("message").lower()
-                    username = m.group("username")
-                    nas_ip = m.group("nas_ip")
-                    client_ip = m.group("client_ip") or nas_ip
+                    msg = fields.message.lower()
+                    username = fields.username
+                    nas_ip = fields.nas_ip
+                    client_ip = fields.source_ip
                     ok = "succeeded" in msg
                     failed = "failed" in msg or "denied" in msg
                     by_user[username].add(
@@ -185,21 +164,18 @@ def _parse_authz_log(
         try:
             with open(path, errors="ignore") as f:
                 for line in f:
-                    m = _AUTHZ_REGEX.match(line)
-                    if not m:
+                    fields = split_log_line(line)
+                    if fields is None:
                         continue
                     try:
-                        ts = datetime.strptime(
-                            m.group("timestamp"), "%Y-%m-%d %H:%M:%S %z"
-                        )
+                        ts = datetime.strptime(fields.timestamp, "%Y-%m-%d %H:%M:%S %z")
                     except ValueError:
                         continue
                     if ts < window_start or ts > now:
                         continue
-                    msg = m.group("message").lower()
-                    if "deny" in msg:
-                        deny_by_user[m.group("username")] += 1
-                        deny_by_nas[m.group("nas_ip")] += 1
+                    if authorization_result(fields.message) == "deny":
+                        deny_by_user[fields.username] += 1
+                        deny_by_nas[fields.nas_ip] += 1
         except OSError:
             pass
 

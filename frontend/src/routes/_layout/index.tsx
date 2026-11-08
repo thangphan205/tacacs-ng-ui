@@ -794,7 +794,7 @@ function LastTacacsLogs() {
                     {log.nas_ip}
                   </Table.Cell>
                   <Table.Cell fontSize="xs" color="fg.muted" fontFamily="mono">
-                    {log.client_ip}
+                    {log.client_ip ?? "—"}
                   </Table.Cell>
                   <Table.Cell>
                     <Badge

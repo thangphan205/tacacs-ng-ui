@@ -177,7 +177,7 @@ function EventDetailDrawer({
                 </Flex>
                 <Flex justify="space-between">
                   <Text color="fg.muted">Client IP</Text>
-                  <Code fontSize="xs">{event.client_ip}</Code>
+                  <Code fontSize="xs">{event.client_ip ?? "—"}</Code>
                 </Flex>
                 {event.port && (
                   <Flex justify="space-between">
