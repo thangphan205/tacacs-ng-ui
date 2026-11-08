@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Internal
+
+* 🔖 Release 0.6.7. PR [#398](https://github.com/thangphan205/tacacs-ng-ui/pull/398) by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.6.7
 
 This release adds real-time SIEM forwarding configured in the UI, a remote syslog option in tac_plus-ng, clearer alert notifications and a new rule for logins at unusual hours. It keeps secrets out of the audit log, stores every timestamp with its time zone, and stops background jobs from running once per uvicorn worker. It has five database migrations, one of them irreversible; see **Upgrading from 0.6.6**.
