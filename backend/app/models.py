@@ -969,7 +969,8 @@ class TacacsLogsPublic(SQLModel):
 class TacacsLogEvent(SQLModel):
     timestamp: str
     log_type: str  # "authentication" | "authorization" | "accounting"
-    username: str
+    # None when the device sent no username (#400): such lines are shown, not dropped.
+    username: str | None
     nas_ip: str
     # The client as the device reported it: an IP address, free text such as
     # "console" or "localhost", or None when the device sent none (#400).

@@ -169,7 +169,7 @@ function EventDetailDrawer({
                 </Flex>
                 <Flex justify="space-between">
                   <Text color="fg.muted">Username</Text>
-                  <Code fontSize="xs">{event.username}</Code>
+                  <Code fontSize="xs">{event.username ?? "—"}</Code>
                 </Flex>
                 <Flex justify="space-between">
                   <Text color="fg.muted">NAS IP</Text>
@@ -565,25 +565,34 @@ export default function TacacsLogEventsTable() {
                       </Badge>
                     </Table.Cell>
                     <Table.Cell>
-                      {/* Clickable username badge — sets the username filter */}
-                      <Badge
-                        variant="subtle"
-                        colorPalette="blue"
-                        size="sm"
-                        cursor="pointer"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleUsernameClick(event.username)
-                        }}
-                        _hover={{ opacity: 0.75 }}
-                        title={`Filter by ${event.username}`}
-                        display="inline-flex"
-                        alignItems="center"
-                        gap={1}
-                      >
-                        <FiUser />
-                        {event.username}
-                      </Badge>
+                      {/* Clickable username badge — sets the username filter.
+                          A line can carry no username (#400): nothing to filter by. */}
+                      {event.username === null ? (
+                        <Text as="span" color="fg.muted">
+                          —
+                        </Text>
+                      ) : (
+                        <Badge
+                          variant="subtle"
+                          colorPalette="blue"
+                          size="sm"
+                          cursor="pointer"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (event.username) {
+                              handleUsernameClick(event.username)
+                            }
+                          }}
+                          _hover={{ opacity: 0.75 }}
+                          title={`Filter by ${event.username}`}
+                          display="inline-flex"
+                          alignItems="center"
+                          gap={1}
+                        >
+                          <FiUser />
+                          {event.username}
+                        </Badge>
+                      )}
                     </Table.Cell>
                     <Table.Cell
                       fontFamily="mono"

@@ -17,11 +17,17 @@ split on TABs by position rather than matched field by field: a regex that
 requires a non-empty port and an IP-shaped client dropped most lines from
 some devices, and whitespace matching between fields let an empty column
 shift the rest.
+
+Only ``nas`` is required. ``user`` can be empty too — tac_plus-ng logs an
+authorization request that carried no username as ``${nas}<TAB><TAB>…deny`` —
+and such a line is kept: the Events tab and the SIEM show it, and NAS-level
+counters count it, while per-user statistics and alert counters skip it.
 """
 
 import ipaddress
 import re
 from dataclasses import dataclass
+from typing import Literal
 
 from app.models import TacacsLogEvent
 
@@ -48,7 +54,7 @@ class LogFields:
 
     timestamp: str
     nas_ip: str
-    username: str
+    username: str | None  # None when the column is empty
     port: str | None  # None when the column is empty
     client: str | None  # the nac column as logged; None when empty
     message: str  # the rest of the line, its TABs kept
@@ -80,12 +86,12 @@ def split_log_line(line: str) -> LogFields | None:
     # Only the end is stripped: a leading TAB is an empty first column
     # (an authorization line with no profile), and positions matter.
     message = columns[4].rstrip()
-    if not nas_ip or not username:
+    if not nas_ip:
         return None
     return LogFields(
         timestamp=line[:_TIMESTAMP_LEN],
         nas_ip=nas_ip,
-        username=username,
+        username=username or None,
         port=port or None,
         client=client or None,
         message=message,
@@ -139,6 +145,24 @@ def accounting_action(message: str) -> str | None:
     return action if action in ("start", "stop") else None
 
 
+def authentication_outcome(message: str) -> Literal["success", "fail"] | None:
+    """Whether an authentication line is a successful or a failed login.
+
+    None for a line that is not a login (``password change failed […]``,
+    ``password change succeeded``): a password-policy rejection is not a
+    failed login and must not feed brute-force alerts, and a password change
+    is not a login for the new-source-IP and login-hour rules. Any other
+    login line that did not succeed (``failed``, ``denied by ACL``) is a
+    failure. The daily statistics collector always counted this way; today's
+    live numbers and the alert evaluator use the same rule, so a day's count
+    does not change once it is collected.
+    """
+    msg = message.lower()
+    if "login" not in msg:
+        return None
+    return "success" if "succeeded" in msg else "fail"
+
+
 def classify_result(log_type: str, message: str) -> str:
     if log_type == "authorization" and (result := authorization_result(message)):
         return result
@@ -175,7 +199,7 @@ def parse_log_line(log_type: str, line: str) -> TacacsLogEvent | None:
     message = fields.message
     # Session ID: deterministic grouping key (no DB needed)
     session_id = "|".join(
-        [fields.username, fields.nas_ip, fields.client or "", fields.port or ""]
+        [fields.username or "", fields.nas_ip, fields.client or "", fields.port or ""]
     )
     return TacacsLogEvent(
         timestamp=fields.timestamp,

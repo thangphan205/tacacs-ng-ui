@@ -15,8 +15,13 @@ from pathlib import Path
 
 import pytest
 
-from app.core.tacacs_log_parse import parse_log_line, split_log_line
-from app.crud import alert_evaluator
+from app.core.config import settings
+from app.core.tacacs_log_parse import (
+    authentication_outcome,
+    parse_log_line,
+    split_log_line,
+)
+from app.crud import aaa_statistics, alert_evaluator
 from app.crud.tacacs_siem import format_tacacs_syslog
 from scripts._log_stats_base import (
     build_log_file_path,
@@ -150,8 +155,7 @@ def test_usernames_are_not_limited_to_word_characters() -> None:
         "not a log line\n",
         "2026-11-08 08:00:00\t10.0.0.1\talice\ttty0\t192.0.2.7\tshell login succeeded\n",
         _line("10.0.0.1", "alice", "tty0", "192.0.2.7"),  # no message column
-        _line("10.0.0.1", "", "tty0", "192.0.2.7", "shell login succeeded"),
-        _line("", "alice", "tty0", "192.0.2.7", "shell login succeeded"),
+        _line("", "alice", "tty0", "192.0.2.7", "shell login succeeded"),  # no NAS
     ],
 )
 def test_lines_in_another_shape_are_still_rejected(line: str) -> None:
@@ -273,3 +277,154 @@ def test_alert_evaluator_reads_the_same_lines(
     deny_by_user, deny_by_nas = alert_evaluator._parse_authz_log(start, now)
     assert deny_by_user == {"alice": 1}
     assert deny_by_nas == {"192.0.2.20": 1}
+
+
+# --- lines without a username (#400 follow-up) ---------------------------------
+
+# The reporter's shape: an authorization request that carried no username,
+# logged with only the NAS and the result.
+AUTHZ_NO_USER = _line("192.0.2.10", "", "", "", "", "deny", "", "")
+AUTH_NO_USER = _line("192.0.2.11", "", "tty1", "198.51.100.9", "shell login failed")
+
+
+def test_a_line_without_username_is_kept() -> None:
+    fields = split_log_line(AUTHZ_NO_USER)
+    assert fields is not None
+    assert fields.username is None
+    assert fields.nas_ip == "192.0.2.10"
+
+    event = parse_log_line("authorization", AUTHZ_NO_USER)
+    assert event is not None
+    assert event.username is None
+    assert event.result == "deny"
+    assert event.command is None
+
+    msg = format_tacacs_syslog("authorization", event, AUTHZ_NO_USER)
+    assert "username=- nas_ip=192.0.2.10 port=- client_ip=- result=deny" in msg
+
+
+def test_statistics_skip_a_line_without_username(tmp_path: Path) -> None:
+    log_dir = _write(tmp_path / "z", "authorization", AUTHZ_NO_USER, AUTHZ_NO_CLIENT)
+    permitted, denied = parse_authorization_logs(DAY, log_dir)
+    assert permitted == {("alice", "192.0.2.20", "192.0.2.20"): 1}
+    assert denied == {}
+
+    log_dir = _write(tmp_path / "a", "authentication", AUTH_NO_USER)
+    assert parse_authentication_logs(DAY, log_dir) == ({}, {})
+
+    no_user_acct = _line("192.0.2.30", "", "", "", "stop", "shell", "exit")
+    log_dir = _write(tmp_path / "c", "accounting", no_user_acct)
+    assert parse_accounting_logs(DAY, log_dir) == ({}, {})
+
+
+def test_alerts_count_a_line_without_username_per_nas_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    auth = _write(tmp_path / "a", "authentication", AUTH_NO_USER)
+    authz = _write(tmp_path / "z", "authorization", AUTHZ_NO_USER)
+    paths = {
+        "authentication": [build_log_file_path(DAY, "authentication", auth)],
+        "authorization": [build_log_file_path(DAY, "authorization", authz)],
+    }
+    monkeypatch.setattr(
+        alert_evaluator,
+        "_log_paths_for_window",
+        lambda _start, _now, log_type: paths[log_type],
+    )
+    start = datetime(2026, 11, 7, tzinfo=timezone.utc)
+    now = datetime(2026, 11, 9, tzinfo=timezone.utc)
+
+    deny_by_user, deny_by_nas = alert_evaluator._parse_authz_log(start, now)
+    assert deny_by_user == {}
+    assert deny_by_nas == {"192.0.2.10": 1}
+
+    window = alert_evaluator._parse_auth_log(start, now)
+    assert window.fail_by_user == {}
+    assert window.fail_by_ip == {"198.51.100.9": 1}
+    assert window.fail_by_nas == {"192.0.2.11": 1}
+    # new-user / new-source-IP baselines come from the statistics, which skip it
+    assert window.by_user == {} and window.by_ip == {}
+
+
+# --- one rule for authentication outcomes (#400 follow-up) ---------------------
+
+
+@pytest.mark.parametrize(
+    ("message", "outcome"),
+    [
+        ("shell login succeeded", "success"),
+        ("pap login succeeded", "success"),
+        ("shell login failed", "fail"),
+        ("pap login failed [Invalid credentials.]", "fail"),
+        ("shell login denied by ACL", "fail"),
+        ("password change failed [Password change rejected by policy.]", None),
+        ("password change succeeded", None),
+    ],
+)
+def test_authentication_outcome(message: str, outcome: str | None) -> None:
+    assert authentication_outcome(message) == outcome
+
+
+PASSWORD_CHANGE_FAILED = _line(
+    "192.0.2.40",
+    "carol",
+    "ssh",
+    "198.51.100.5",
+    "password change failed [Password change rejected by policy.]",
+)
+PASSWORD_CHANGE_OK = _line(
+    "192.0.2.40", "carol", "ssh", "198.51.100.5", "password change succeeded"
+)
+LOGIN_DENIED_BY_ACL = _line(
+    "192.0.2.40", "carol", "ssh", "198.51.100.5", "shell login denied by ACL"
+)
+
+
+def test_collector_live_today_and_alerts_agree_on_logins(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A password change is not a login anywhere: today's live numbers must
+    not shrink once the day is collected, and a password-policy rejection
+    must not feed brute-force alerts."""
+    lines = (
+        PASSWORD_CHANGE_FAILED,
+        PASSWORD_CHANGE_FAILED,
+        PASSWORD_CHANGE_OK,
+        LOGIN_DENIED_BY_ACL,
+        AUTH_EMPTY_PORT,
+    )
+    log_dir = _write(tmp_path, "authentication", *lines)
+    key = ("carol", "192.0.2.40", "198.51.100.5")
+
+    ok, failed = parse_authentication_logs(DAY, log_dir)
+    assert ok == {("collector", "192.0.2.10", "198.51.100.4"): 1}
+    assert failed == {key: 1}
+
+    monkeypatch.setattr(aaa_statistics, "local_today", lambda: DAY)
+    monkeypatch.setattr(settings, "TACACS_LOG_DIRECTORY", log_dir)
+    live = {
+        (r["username"], r["nas_ip"], r["user_source_ip"]): (
+            r["success_count"],
+            r["fail_count"],
+        )
+        for r in aaa_statistics.parse_local_today_authentication_details()
+    }
+    assert live == {
+        ("collector", "192.0.2.10", "198.51.100.4"): (1, 0),
+        key: (0, 1),
+    }
+
+    path = build_log_file_path(DAY, "authentication", log_dir)
+    monkeypatch.setattr(alert_evaluator, "_log_paths_for_window", lambda *_a: [path])
+    window = alert_evaluator._parse_auth_log(
+        datetime(2026, 11, 7, tzinfo=timezone.utc),
+        datetime(2026, 11, 9, tzinfo=timezone.utc),
+    )
+    assert window.fail_by_user == {"carol": 1}
+    # the password change is not a successful login for the login-hour rule
+    assert window.by_user["carol"].success == 0
+    assert window.by_user["carol"].logins == []
+
+    # the Events tab still shows each line with its own result
+    event = parse_log_line("authentication", PASSWORD_CHANGE_FAILED)
+    assert event is not None and event.result == "failed"

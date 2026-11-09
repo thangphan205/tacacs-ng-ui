@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 from app.core.tacacs_log_parse import (
     accounting_action,
+    authentication_outcome,
     authorization_result,
     split_log_line,
 )
@@ -125,14 +126,14 @@ def parse_authentication_logs(
                 if not line.startswith(target_date_str):
                     continue
                 fields = split_log_line(line)
-                if fields is None:
+                # per-user rows: a line without a username has no row to go in
+                if fields is None or fields.username is None:
                     continue
-                message = fields.message
-                if "login" not in message:
+                outcome = authentication_outcome(fields.message)
+                if outcome is None:
                     continue
                 username = fields.username
                 key = (username, fields.nas_ip, fields.source_ip)
-                outcome = "success" if "succeeded" in message else "fail"
                 if outcome == "success":
                     successful_logins[key] += 1
                 else:
@@ -165,7 +166,8 @@ def parse_authorization_logs(
                 if not line.startswith(target_date_str):
                     continue
                 fields = split_log_line(line)
-                if fields is None:
+                # per-user rows: a line without a username has no row to go in
+                if fields is None or fields.username is None:
                     continue
                 result = authorization_result(fields.message)
                 key = (fields.username, fields.nas_ip, fields.source_ip)
@@ -198,7 +200,8 @@ def parse_accounting_logs(
                 if not line.startswith(target_date_str):
                     continue
                 fields = split_log_line(line)
-                if fields is None:
+                # per-user rows: a line without a username has no row to go in
+                if fields is None or fields.username is None:
                     continue
                 action = accounting_action(fields.message)
                 key = (fields.username, fields.nas_ip, fields.source_ip)

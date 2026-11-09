@@ -1,5 +1,4 @@
 import logging
-import os
 import time as _time
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterator
@@ -11,7 +10,6 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.core.config import settings
-from app.core.tacacs_log_parse import split_log_line
 from app.crud.stats_exclusions import filter_rows, not_excluded_clause
 from app.models import (
     AccountingStatistics,
@@ -21,6 +19,7 @@ from app.models import (
 from scripts._log_stats_base import (
     local_today,
     parse_accounting_logs,
+    parse_authentication_logs,
     parse_authorization_logs,
 )
 
@@ -81,49 +80,14 @@ def get_peer_urls() -> list[str]:
 
 
 def parse_local_today_authentication_details() -> list[dict]:
-    """Parse local authentication log files for today and return details list."""
+    """Today's authentication rows from the local log, parsed like the nightly job.
+
+    Same parser as the collector, so a day's numbers do not change once it is
+    collected (#400: this path used to count password-change failures too).
+    """
     today = local_today()
-    today_str = today.isoformat()
-    log_file_path = today.strftime(
-        settings.TACACS_LOG_DIRECTORY + "%Y/%m/authentication-%Y-%m-%d.log"
-    )
-    if not os.path.exists(log_file_path):
-        return []
-
-    successful_logins = Counter()
-    failed_logins = Counter()
-    try:
-        with open(log_file_path, errors="ignore") as f:
-            for line in f:
-                if not line.startswith(today_str):
-                    continue
-                fields = split_log_line(line)
-                if fields is None:
-                    continue
-                msg = fields.message.lower()
-                key = (fields.username, fields.nas_ip, fields.source_ip)
-                if "succeeded" in msg:
-                    successful_logins[key] += 1
-                elif "failed" in msg or "denied" in msg:
-                    failed_logins[key] += 1
-    except OSError as e:
-        logger.error(f"Error reading file {log_file_path}: {e}")
-        return []
-
-    all_keys = set(successful_logins.keys()) | set(failed_logins.keys())
-    list_authentication_details = []
-    for username, nas_ip, user_source_ip in sorted(all_keys):
-        key = (username, nas_ip, user_source_ip)
-        list_authentication_details.append(
-            {
-                "username": username,
-                "nas_ip": nas_ip,
-                "user_source_ip": user_source_ip,
-                "success_count": successful_logins.get(key, 0),
-                "fail_count": failed_logins.get(key, 0),
-            }
-        )
-    return list_authentication_details
+    ok, failed = parse_authentication_logs(today, settings.TACACS_LOG_DIRECTORY)
+    return _counters_to_rows(ok, failed, "success_count", "fail_count")
 
 
 def _db_today_rows(

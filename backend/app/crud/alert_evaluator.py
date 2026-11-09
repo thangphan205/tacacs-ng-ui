@@ -13,7 +13,11 @@ from typing import Any
 from sqlmodel import Session, col, select
 
 from app.core.config import settings
-from app.core.tacacs_log_parse import authorization_result, split_log_line
+from app.core.tacacs_log_parse import (
+    authentication_outcome,
+    authorization_result,
+    split_log_line,
+)
 from app.crud import alert_events as crud_alert_events
 from app.crud import alert_rules as crud_alert_rules
 from app.crud import login_hours
@@ -103,8 +107,11 @@ def _parse_auth_log(window_start: datetime, now: datetime) -> AuthWindow:
     """
     Parse the auth log for the time window.
 
-    Success follows the stats collector (`succeeded` in the message); a
-    failure is a `failed` or `denied` message, as before.
+    Only login lines count, decided by `authentication_outcome()` like the
+    statistics collector: a `password change failed` is not a failed login
+    (#400). A line without a username counts only in the per-IP and per-NAS
+    failure totals: `by_user` / `by_ip` feed the new-user / new-source-IP
+    rules, whose baseline (the statistics tables) has no such lines either.
     """
     fail_by_user: dict[str, int] = defaultdict(int)
     fail_by_ip: dict[str, int] = defaultdict(int)
@@ -125,20 +132,24 @@ def _parse_auth_log(window_start: datetime, now: datetime) -> AuthWindow:
                         continue
                     if ts < window_start or ts > now:
                         continue
-                    msg = fields.message.lower()
+                    outcome = authentication_outcome(fields.message)
+                    if outcome is None:
+                        continue
                     username = fields.username
                     nas_ip = fields.nas_ip
                     client_ip = fields.source_ip
-                    ok = "succeeded" in msg
-                    failed = "failed" in msg or "denied" in msg
-                    by_user[username].add(
-                        ts=ts, ok=ok, failed=failed, peer=client_ip, nas_ip=nas_ip
-                    )
-                    by_ip[client_ip].add(
-                        ts=ts, ok=ok, failed=failed, peer=username, nas_ip=nas_ip
-                    )
+                    ok = outcome == "success"
+                    failed = outcome == "fail"
+                    if username is not None:
+                        by_user[username].add(
+                            ts=ts, ok=ok, failed=failed, peer=client_ip, nas_ip=nas_ip
+                        )
+                        by_ip[client_ip].add(
+                            ts=ts, ok=ok, failed=failed, peer=username, nas_ip=nas_ip
+                        )
                     if failed:
-                        fail_by_user[username] += 1
+                        if username is not None:
+                            fail_by_user[username] += 1
                         fail_by_ip[client_ip] += 1
                         fail_by_nas[nas_ip] += 1
         except OSError:
@@ -156,7 +167,10 @@ def _parse_auth_log(window_start: datetime, now: datetime) -> AuthWindow:
 def _parse_authz_log(
     window_start: datetime, now: datetime
 ) -> tuple[dict[str, int], dict[str, int]]:
-    """Parse authz log for the time window. Returns (deny_by_user, deny_by_nas)."""
+    """Parse authz log for the time window. Returns (deny_by_user, deny_by_nas).
+
+    A deny without a username (#400) counts for its NAS only.
+    """
     deny_by_user: dict[str, int] = defaultdict(int)
     deny_by_nas: dict[str, int] = defaultdict(int)
 
@@ -174,7 +188,8 @@ def _parse_authz_log(
                     if ts < window_start or ts > now:
                         continue
                     if authorization_result(fields.message) == "deny":
-                        deny_by_user[fields.username] += 1
+                        if fields.username is not None:
+                            deny_by_user[fields.username] += 1
                         deny_by_nas[fields.nas_ip] += 1
         except OSError:
             pass

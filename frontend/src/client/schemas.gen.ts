@@ -5470,7 +5470,14 @@ export const TacacsLogEventSchema = {
             title: 'Log Type'
         },
         username: {
-            type: 'string',
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
             title: 'Username'
         },
         nas_ip: {
