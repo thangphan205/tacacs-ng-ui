@@ -3080,7 +3080,7 @@ export type TacacsLogEvent = {
     /**
      * Username
      */
-    username: string;
+    username: string | null;
     /**
      * Nas Ip
      */
@@ -3088,7 +3088,7 @@ export type TacacsLogEvent = {
     /**
      * Client Ip
      */
-    client_ip: string;
+    client_ip?: string | null;
     /**
      * Result
      */

@@ -50,7 +50,7 @@ def log_tz(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
 
 
 def _log_line(ts: str, user: str, outcome: str) -> str:
-    return f"{ts} +0700\t{NAS}\t{user}\t{SRC}\tshell login {outcome}\n"
+    return f"{ts} +0700\t{NAS}\t{user}\ttty0\t{SRC}\tshell login {outcome}\n"
 
 
 def test_parser_counts_logins_per_user_and_hour(tmp_path: Path) -> None:

@@ -341,7 +341,9 @@ def list_log_events(
         all_events = [e for e in all_events if e.result == result]
     if username:
         lower = username.lower()
-        all_events = [e for e in all_events if lower in e.username.lower()]
+        all_events = [
+            e for e in all_events if e.username and lower in e.username.lower()
+        ]
     if nas_ip:
         all_events = [e for e in all_events if nas_ip in e.nas_ip]
     if search:
@@ -349,7 +351,7 @@ def list_log_events(
         all_events = [
             e
             for e in all_events
-            if q in e.username.lower()
+            if (e.username and q in e.username.lower())
             or q in e.nas_ip.lower()
             or (e.client_ip and q in e.client_ip.lower())
             or (e.port and q in e.port.lower())
