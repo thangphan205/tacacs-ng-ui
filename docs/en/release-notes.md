@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Fixes
+
+* 🐛 Parse log lines with an empty port or a non-IP client. PR [#401](https://github.com/thangphan205/tacacs-ng-ui/pull/401) by [@thangphan205](https://github.com/thangphan205).
+
 ### Internal
 
 * 🔖 Release 0.6.7. PR [#398](https://github.com/thangphan205/tacacs-ng-ui/pull/398) by [@thangphan205](https://github.com/thangphan205).
