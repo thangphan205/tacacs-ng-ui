@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Internal
+
+* 🔖 Release 0.6.8. PR [#402](https://github.com/thangphan205/tacacs-ng-ui/pull/402) by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.6.8
 
 This release fixes how log lines are read. Lines with an empty port, an empty or non-IP client, or no username were dropped from the Events tab, the SIEM fields, the authorization and accounting statistics and the alert evaluator: up to 83 % of some devices' lines. It has no database migration.
