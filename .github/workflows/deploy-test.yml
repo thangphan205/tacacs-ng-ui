@@ -1,0 +1,61 @@
+name: Deploy to Test Server
+
+# Runs on the self-hosted runner (label `test`) installed on the test server.
+# It does not use a fresh checkout: it updates the long-lived clone in
+# ~/tacacs-ng-ui so the server's .env and existing volumes are kept.
+# Always `-f docker-compose.yml`: docker-compose.override.yml would put the
+# frontend on a private traefik network and the shared Traefik would 504.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-test
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on:
+      - self-hosted
+      - test
+    env:
+      DEPLOY_DIR: /home/ubuntu/tacacs-ng-ui
+      BACKUP_DIR: /home/ubuntu/backups
+    steps:
+      - name: Update clone to this commit
+        run: |
+          cd "$DEPLOY_DIR"
+          git fetch --tags origin main
+          git checkout -q --detach "$GITHUB_SHA"
+          git log -1 --oneline
+
+      - name: Back up database
+        run: |
+          cd "$DEPLOY_DIR"
+          mkdir -p "$BACKUP_DIR"
+          set -a; . ./.env; set +a
+          docker compose -f docker-compose.yml exec -T db \
+            pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB" \
+            > "$BACKUP_DIR/auto-$(date +%Y%m%d-%H%M%S).dump"
+          ls -1t "$BACKUP_DIR"/auto-*.dump | tail -n +11 | xargs -r rm --
+
+      - name: Build and start
+        run: |
+          cd "$DEPLOY_DIR"
+          export GIT_BRANCH=main GIT_COMMIT="$(git rev-parse --short HEAD)"
+          docker compose -f docker-compose.yml build backend frontend
+          docker compose -f docker-compose.yml up -d
+
+      - name: Wait for backend
+        run: |
+          cd "$DEPLOY_DIR"
+          for i in $(seq 1 30); do
+            s=$(docker compose -f docker-compose.yml ps --format '{{.Health}}' backend)
+            [ "$s" = "healthy" ] && { echo healthy; exit 0; }
+            sleep 5
+          done
+          docker compose -f docker-compose.yml logs --tail 50 backend
+          exit 1
