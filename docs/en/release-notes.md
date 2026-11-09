@@ -12,9 +12,24 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+## v0.6.8
+
+This release fixes how log lines are read. Lines with an empty port, an empty or non-IP client, or no username were dropped from the Events tab, the SIEM fields, the authorization and accounting statistics and the alert evaluator: up to 83 % of some devices' lines. It has no database migration.
+
 ### Fixes
 
-* 🐛 Parse log lines with an empty port or a non-IP client. PR [#401](https://github.com/thangphan205/tacacs-ng-ui/pull/401) by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **Every tac_plus-ng log line is parsed.** tac_plus-ng often leaves the port or the client empty, or logs a client that is not an IP address (`localhost`, `console`, `Unknown host - non-tty`). Every parser required a non-empty port and an IP-shaped client, so it dropped those lines. Lines are now split by their TAB columns, in one parser shared by the Events tab, the SIEM shipper, the three statistics collectors, today's live numbers and the alert evaluator.
+  * The Events tab and the SIEM show the client as logged, and `—` / `client_ip=-` when there is none. A line with no username is kept too: it shows `—` / `username=-` and counts in the per-device alert totals, but not in per-user statistics.
+  * Statistics and alerts attribute a line to the client when it is an IP address, and otherwise to the NAS, as authentication statistics already did.
+  * The authorization result and the accounting action are read from their own columns. A profile name such as `permit_all` can no longer decide the result, and a Juniper NETCONF `hello` mentioning `startup` is no longer counted as an accounting `start`.
+  * Usernames are no longer limited to letters, digits, `.`, `_` and `-` (`user@domain`, `DOMAIN\user`).
+  * Failed logins are counted the same way everywhere. Today's live numbers and the alert evaluator counted every `failed` or `denied` line, including `password change failed`, so password-policy rejections fed brute-force alerts, and today's count dropped once the day was collected. They now count login lines only, like the daily statistics. The Events tab still marks a failed password change as `failed`.
+
+  ⚠️ API: `TacacsLogEvent.client_ip` and `TacacsLogEvent.username` can now be `null`. PR [#401](https://github.com/thangphan205/tacacs-ng-ui/pull/401) by [@thangphan205](https://github.com/thangphan205), closes [#400](https://github.com/thangphan205/tacacs-ng-ui/issues/400). Thanks to [@luccascruz](https://github.com/luccascruz) for the report and for testing on real logs.
+
+### Upgrading from 0.6.7
+
+No database migration and no new settings. Statistics already stored are not recomputed: to recount a past day whose log file is still on disk, run the three statistics scripts with its date, for example `python scripts/tacacs_logs_authorization.py YYYY-MM-DD`. On HA, upgrade every node: each one parses its own log files.
 
 ### Internal
 
