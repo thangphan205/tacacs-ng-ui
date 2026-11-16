@@ -12,6 +12,8 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+* ⬆ Bump coverage from 7.17.1 to 7.17.3 in /backend. PR [#417](https://github.com/thangphan205/tacacs-ng-ui/pull/417) by [@dependabot[bot]](https://github.com/apps/dependabot).
+
 ### Internal
 
 * ⬆ Bump @tanstack/react-query from 5.105.3 to 5.107.1 in /frontend. PR [#413](https://github.com/thangphan205/tacacs-ng-ui/pull/413) by [@dependabot[bot]](https://github.com/apps/dependabot).
