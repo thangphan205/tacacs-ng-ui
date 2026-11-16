@@ -33,6 +33,7 @@ dependencies = [
     "scikit-learn>=1.9.0,<2.0.0",
     "numpy>=2.5.3,<3.0.0",
     "mcp>=2.2.0,<3.0.0",
+    "tzdata>=2025.1",
 ]
 
 [dependency-groups]

@@ -30,6 +30,8 @@ updates:
       interval: weekly
     commit-message:
       prefix: ⬆
+    ignore:
+      - dependency-name: python
   # Docker Compose
   - package-ecosystem: docker-compose
     directory: /
