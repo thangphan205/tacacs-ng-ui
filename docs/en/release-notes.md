@@ -14,6 +14,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump vite from 8.3.5 to 8.3.8 in /frontend. PR [#408](https://github.com/thangphan205/tacacs-ng-ui/pull/408) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump opentelemetry-api from 1.45.1 to 1.45.2 in /backend. PR [#405](https://github.com/thangphan205/tacacs-ng-ui/pull/405) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump actions/add-to-project from 2.0.0 to 2.0.1. PR [#403](https://github.com/thangphan205/tacacs-ng-ui/pull/403) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * 🔖 Release 0.6.8. PR [#402](https://github.com/thangphan205/tacacs-ng-ui/pull/402) by [@thangphan205](https://github.com/thangphan205).
