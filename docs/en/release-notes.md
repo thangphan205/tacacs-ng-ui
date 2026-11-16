@@ -16,6 +16,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump @simplewebauthn/browser from 13.3.0 to 14.0.0 in /frontend. PR [#414](https://github.com/thangphan205/tacacs-ng-ui/pull/414) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @tanstack/react-router from 1.170.32 to 1.170.46 in /frontend. PR [#415](https://github.com/thangphan205/tacacs-ng-ui/pull/415) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump pydantic-settings from 2.15.0 to 2.16.2 in /backend. PR [#412](https://github.com/thangphan205/tacacs-ng-ui/pull/412) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump playwright from v1.65.0-noble to v1.65.1-noble in /frontend. PR [#407](https://github.com/thangphan205/tacacs-ng-ui/pull/407) by [@dependabot[bot]](https://github.com/apps/dependabot).
