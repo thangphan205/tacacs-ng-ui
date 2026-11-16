@@ -14,6 +14,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump actions/add-to-project from 2.0.0 to 2.0.1. PR [#403](https://github.com/thangphan205/tacacs-ng-ui/pull/403) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * 🔖 Release 0.6.8. PR [#402](https://github.com/thangphan205/tacacs-ng-ui/pull/402) by [@thangphan205](https://github.com/thangphan205).
 
 ## v0.6.8
