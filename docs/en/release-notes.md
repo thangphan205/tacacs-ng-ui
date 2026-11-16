@@ -16,6 +16,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump pydantic-settings from 2.15.0 to 2.16.2 in /backend. PR [#412](https://github.com/thangphan205/tacacs-ng-ui/pull/412) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump playwright from v1.65.0-noble to v1.65.1-noble in /frontend. PR [#407](https://github.com/thangphan205/tacacs-ng-ui/pull/407) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @tanstack/react-query from 5.105.3 to 5.107.1 in /frontend. PR [#413](https://github.com/thangphan205/tacacs-ng-ui/pull/413) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump pyjwt from 2.15.0 to 2.15.1 in /backend. PR [#409](https://github.com/thangphan205/tacacs-ng-ui/pull/409) by [@dependabot[bot]](https://github.com/apps/dependabot).
