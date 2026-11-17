@@ -945,6 +945,7 @@ Configure which authentication methods are enabled for the dashboard:
 | `google` | Requires client ID and client secret (UI or `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `.env`). The redirect URI is prefilled from the site URL |
 | `keycloak` | Requires Keycloak server URL, client ID, and client secret |
 | `microsoft` | Requires tenant, application (client) ID, and client secret. See [Microsoft Entra ID setup](#microsoft-entra-id-setup) |
+| `ldap` | LDAP / LDAPS against FreeIPA, Active Directory or OpenLDAP. See [LDAP / Active Directory setup](#ldap--active-directory-setup) |
 | `passkeys` | WebAuthn — no extra config required; users register passkeys from their profile settings |
 
 #### Microsoft Entra ID setup
@@ -965,6 +966,43 @@ One provider covers personal Microsoft accounts and Entra ID (work/school) accou
 > **Existing accounts.** A person whose email already has a local account is linked to it on first Microsoft sign-in **only** with a single-tenant setup or a personal account. With `common` or `organizations` the sign-in is refused (HTTP 403) instead, because Entra's email claim is not verified and linking on it would let another tenant take over the account. New users are still created normally. To let existing users sign in with Microsoft, restrict the tenant to your own organization.
 
 New users are created without admin rights.
+
+#### LDAP / Active Directory setup
+
+Lets people sign in to the dashboard with their directory account — no identity provider or internet access needed. It is for the **Web UI only**; device logins over TACACS+ still go through MAVIS, and the two are configured separately (**Prefill from MAVIS** copies the non-secret connection settings as a starting point).
+
+1. In **Admin → Auth Providers → LDAP / AD**, pick the **provider type**. It fills in the attributes and filters below; every field stays editable.
+2. Add the **servers** in priority order. All of them must be replicas of the same directory.
+3. Set the **Base DN**, and the **Bind DN** / **Bind Password** of a read-only service account (leave both blank for an anonymous search).
+4. Click **Test Connection**, then **Test User Login** with a real account, then **Save** and **Enable**.
+
+The login form then accepts a directory username as well as an email. Sign-in order:
+
+1. The local account is tried first, so a local administrator can always sign in, even with every LDAP server down.
+2. Otherwise the user is searched with the service account, then the password is checked by binding as that user.
+3. If a **Required LDAP Group** is set, the user must be a member of it.
+
+| Provider | Base DN example | User filter default | Unique ID |
+|----------|-----------------|---------------------|-----------|
+| FreeIPA | `cn=accounts,dc=example,dc=com` | `(&(objectClass=posixAccount)(\|(uid={username})(krbPrincipalName={username})))` | `ipaUniqueID` |
+| Active Directory | `DC=example,DC=com` | `(&(objectClass=user)(\|(sAMAccountName={username})(userPrincipalName={username})))` | `objectGUID` |
+| OpenLDAP | `ou=people,dc=example,dc=com` | `(&(objectClass=inetOrgPerson)(uid={username}))` | `entryUUID` |
+
+**Failover.** Servers are tried in priority order on every sign-in. The next one is used only when a server cannot be reached (connection refused, timeout, TLS failure). A wrong password, an unknown user, a missing group or a wrong Base DN gives the same answer on every replica, so it ends the sign-in. Each failover is written to the audit log as `LDAP_FAILOVER`. While the primary is down, each sign-in waits up to the **Connect Timeout** for it first.
+
+**Group gate.** A **Required LDAP Group** can be a name (`tacacs-ui-users`) or a full DN. A full DN must match exactly; a name matches any group with that `cn` under the **Group Base DN**. Membership is read from the user's `memberOf` first, then by searching the groups' membership attributes (`member`, `uniqueMember` with the user's DN, `memberUid` with the username), so OpenLDAP without the `memberOf` overlay works. Nested AD groups are matched with `LDAP_MATCHING_RULE_IN_CHAIN`; FreeIPA's `memberOf` already includes indirect groups.
+
+**Roles stay local.** LDAP decides *who* can sign in, not what they can do. A first LDAP sign-in creates a regular (non-admin) account; promote it in **Users Management**. Group-to-role mapping is not supported.
+
+**Accounts are linked to the directory entry's unique ID**, not its username, so a renamed or re-created username never inherits someone else's account. Clear **Unique ID Attribute** to link on the username instead.
+
+> **Existing local accounts.** By default, a directory user whose email already belongs to a local account is refused (HTTP 403) rather than linked: LDAP `mail` is often editable by help desks or self-service, and linking on it would let whoever sets it sign in as that account. Turn on **Link existing local accounts by email** only if your users cannot change their own `mail`. A **superuser** account is never linked this way.
+
+Directory users without a valid email are refused unless a **Fallback Email Domain** is set (the account then gets `username@domain`).
+
+On a standby node, users who have signed in before can sign in again; a first sign-in must happen on the primary. Passkey-only settings apply to LDAP too: with password login disabled globally or for the account, LDAP sign-in is refused.
+
+Changing the servers, Bind DN or TLS settings and pressing **Test** asks for the Bind Password again, so the saved password is only ever sent to the servers it was saved for.
 
 ### Password Recovery
 

@@ -154,7 +154,7 @@ The web UI deliberately stays with the basic case; the advanced cases are writte
 - **High Availability**: Run one primary with N standby nodes. Config changes fan out to every enabled peer, standbys follow via PostgreSQL streaming replication, and peers are added, disabled, or removed from the HA UI without restarting a service. Promotion to primary is a single click.
 - **MCP Server for LLM Clients**: A [Model Context Protocol](https://modelcontextprotocol.io) endpoint lets Claude Desktop, Claude Code, Antigravity, Gemini, Cursor or Windsurf inspect TACACS+ entities, render config previews and diffs, and syntax-check config text with the real `tac_plus-ng -P` parser — and, with a read-write key, create, update and delete entities. **It can never deploy**: no tool saves a config file, activates one, or reloads the daemon, so changes reach the daemon only after a human presses Generate and Activate in the UI. On by default (can be turned off), authenticated with scoped and revocable API keys, and secrets are redacted from every response.
 - **Scoped API Keys**: Machine credentials managed under User Settings. Two access levels (read-only or read-write), an independent opt-in for unredacted secrets, expiry, one-time plaintext display, soft revoke, and full audit logging. Each key can also be locked to an allowlist of source IPs/CIDRs, editable at any time without reissuing the key.
-- **Multi-Factor Auth**: Google OAuth, Keycloak OIDC, Microsoft (personal accounts and Entra ID), and Passkeys (WebAuthn) in addition to email/password.
+- **Multi-Factor & Directory Auth**: Google OAuth, Keycloak OIDC, Microsoft (personal accounts and Entra ID), native LDAP / Active Directory / FreeIPA / OpenLDAP (with multi-server failover), and Passkeys (WebAuthn) in addition to email/password.
 - **Secure by Design**: PCI DSS-compliant password policy, JWT authentication, and email-based password recovery.
 - **Integrated Tooling**: Traefik reverse proxy, automatic API documentation via Swagger UI, and end-to-end testing with Playwright.
 
@@ -478,6 +478,22 @@ GOOGLE_REDIRECT_URI=http://<your-host>:8000/api/v1/oauth/google/callback
 ```
 
 Also add `GOOGLE_REDIRECT_URI` as an **Authorized Redirect URI** in Google Console. If Google OAuth is not configured, the "Sign in with Google" button shows an error and email/password login continues to work normally.
+
+### LDAP / Active Directory for Web UI (optional)
+
+For air-gapped or intranet-only environments, configure native LDAP / LDAPS authentication under **Admin → Authentication Providers → LDAP / AD** (or via `.env` fallback variables):
+
+- **Supported Providers**: **FreeIPA**, **Microsoft Active Directory**, **OpenLDAP**, and **Generic LDAP** (selecting a provider populates default user/group attributes and search filters; you can also click **Prefill from MAVIS**).
+- **Multiple Servers & Failover**: Configure multiple LDAP/LDAPS servers with priority ordering (`1 = Primary`, `2 = Secondary`, etc.). Failover occurs automatically on socket/TLS/connection unavailability only (never on invalid credentials).
+- **Optional Custom Group Gate**: Set **Required LDAP Group** to a custom group name (e.g. `tacacs-ui-users`) or full DN (`cn=network-admins,cn=groups,dc=example,dc=com`) to restrict who can sign in, or leave it blank to allow any valid user under `Base DN`.
+- **Local RBAC on TACACS-NG-UI**: LDAP is used for authentication only. First-time LDAP users are provisioned as **Read-Only** (`is_superuser = False`), and Superuser promotion or account deactivation is managed locally in **Admin → Users Management**.
+- **Safe account linking**: accounts are keyed on the entry's immutable ID (`objectGUID` / `ipaUniqueID` / `entryUUID`). An existing local account with the same email is linked only when you opt in, and a superuser account never is. See the [user guide](docs/en/user-guide.md#ldap--active-directory-setup).
+
+| Provider | Base DN Example | User Search Filter Default |
+|---|---|---|
+| **FreeIPA** | `cn=accounts,dc=example,dc=com` | `(&(objectClass=posixAccount)(\|(uid={username})(krbPrincipalName={username})))` |
+| **Active Directory** | `DC=example,DC=com` | `(&(objectClass=user)(\|(sAMAccountName={username})(userPrincipalName={username})))` |
+| **OpenLDAP** | `ou=people,dc=example,dc=com` | `(&(objectClass=inetOrgPerson)(uid={username}))` |
 
 ## High Availability (HA) Deployment
 

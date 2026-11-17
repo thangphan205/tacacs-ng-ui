@@ -81,6 +81,7 @@ class User(UserBase, TimestampModel, table=True):
     google_id: str | None = Field(default=None, index=True, unique=True)
     keycloak_id: str | None = Field(default=None, index=True, unique=True)
     microsoft_id: str | None = Field(default=None, index=True, unique=True)
+    ldap_id: str | None = Field(default=None, index=True, unique=True)
     password_login_disabled: bool = Field(default=False)
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
     webauthn_credentials: list["WebAuthnCredential"] = Relationship(
@@ -100,6 +101,8 @@ class User(UserBase, TimestampModel, table=True):
             methods.append("Keycloak")
         if self.microsoft_id:
             methods.append("Microsoft")
+        if self.ldap_id:
+            methods.append("LDAP")
         if self.webauthn_credentials:
             methods.append("Passkeys")
         return methods
@@ -1422,6 +1425,49 @@ class AuthProviderConfigUpdate(SQLModel):
     enabled: bool | None = None
     config: dict | None = None  # type: ignore[type-arg]
     secret: str | None = None
+
+
+class LdapServerDiagResult(SQLModel):
+    server: str
+    priority: int = 1
+    ok: bool
+    latency_ms: float | None = None
+    tls_active: bool = False
+    bind_ok: bool = False
+    error: str | None = None
+
+
+class LdapTestConnectionRequest(SQLModel):
+    config: dict | None = None  # type: ignore[type-arg]
+    secret: str | None = None
+
+
+class LdapTestConnectionResponse(SQLModel):
+    ok: bool
+    active_server: str | None = None
+    failover_occurred: bool = False
+    servers: list[LdapServerDiagResult] = Field(default_factory=list)
+    message: str
+
+
+class LdapTestAuthRequest(SQLModel):
+    username: str = Field(min_length=1, max_length=255)
+    password: str = Field(min_length=1, max_length=255)
+    config: dict | None = None  # type: ignore[type-arg]
+    secret: str | None = None
+
+
+class LdapTestAuthResponse(SQLModel):
+    ok: bool
+    server_used: str | None = None
+    failover_occurred: bool = False
+    user_dn: str | None = None
+    ldap_id: str | None = None
+    email: str | None = None
+    full_name: str | None = None
+    group_check_passed: bool | None = None
+    required_group: str | None = None
+    message: str
 
 
 # Audit Logging

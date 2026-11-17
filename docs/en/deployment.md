@@ -505,6 +505,12 @@ All variables with their defaults (from `.env.example`):
 | `MICROSOFT_CLIENT_SECRET` | *(optional)* | Entra client secret value |
 | `MICROSOFT_TENANT` | `common` | `common`, `organizations`, `consumers`, or a tenant ID. Existing local accounts auto-link by email only for a single tenant or personal accounts |
 | `MICROSOFT_REDIRECT_URI` | *(derived)* | Optional; defaults to `<FRONTEND_HOST>/api/v1/oauth/microsoft/callback` |
+| `LDAP_HOSTS` | *(optional)* | Web UI LDAP servers, priority order, comma-separated (`ldaps://ipa01:636, ldaps://ipa02:636`). Used only while **Admin → Auth Providers → LDAP / AD** has never been saved |
+| `LDAP_PROVIDER_TYPE` | `freeipa` | `freeipa`, `active_directory`, `openldap` or `generic` — picks default attributes and filters |
+| `LDAP_BASE_DN` | *(optional)* | Search base for users and groups |
+| `LDAP_BIND_DN` | *(optional)* | Service account DN; blank = anonymous search |
+| `LDAP_BIND_PASSWORD` | *(optional)* | Service account password |
+| `LDAP_REQUIRED_GROUP` | *(optional)* | Group name or full DN a user must belong to |
 | `SIEM_WEBHOOK_URL` | *(optional)* | **First start only:** seeds **Admin → SIEM Integration**, which owns the settings afterwards. Splunk HEC or Logstash HTTP input URL |
 | `SIEM_WEBHOOK_TOKEN` | *(optional)* | First start only. Splunk HEC token |
 | `SIEM_FORWARD_TACACS_EVENTS` | `false` | First start only. `true` ships authentication, authorization and accounting events |

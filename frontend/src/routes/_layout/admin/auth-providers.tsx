@@ -15,12 +15,14 @@ import {
   LuBuilding2,
   LuFolder,
   LuKey,
+  LuServer,
   LuSquareCheck,
   LuUser,
 } from "react-icons/lu"
 
 import { apiBaseUrl } from "@/api"
 import AuthProviderCard from "@/components/Admin/AuthProviderCard"
+import LdapAuthProviderCard from "@/components/Admin/LdapAuthProviderCard"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -145,6 +147,10 @@ function AuthProvidersPage() {
     queryKey: ["auth-provider", "microsoft"],
     queryFn: () => fetchProvider("microsoft"),
   })
+  const { data: ldapData } = useQuery({
+    queryKey: ["auth-provider", "ldap"],
+    queryFn: () => fetchProvider("ldap"),
+  })
   const { data: passkeyData } = useQuery({
     queryKey: ["auth-provider", "passkey"],
     queryFn: () => fetchProvider("passkey"),
@@ -206,6 +212,11 @@ function AuthProvidersPage() {
             Microsoft Entra ID
             <StatusBadge enabled={microsoftData?.enabled} />
           </Tabs.Trigger>
+          <Tabs.Trigger value="ldap">
+            <LuServer />
+            LDAP / AD
+            <StatusBadge enabled={ldapData?.enabled} />
+          </Tabs.Trigger>
           <Tabs.Trigger value="passkey">
             <LuSquareCheck />
             Passkeys (WebAuthn)
@@ -241,6 +252,9 @@ function AuthProvidersPage() {
             title="Microsoft Entra ID"
             fields={microsoftFields}
           />
+        </Tabs.Content>
+        <Tabs.Content value="ldap">
+          <LdapAuthProviderCard />
         </Tabs.Content>
         <Tabs.Content value="passkey">
           <AuthProviderCard

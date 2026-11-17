@@ -218,6 +218,14 @@ class Settings(BaseSettings):
     MICROSOFT_TENANT: str = "common"
     MICROSOFT_REDIRECT_URI: str = ""
 
+    # LDAP / Active Directory (Web UI Authentication)
+    LDAP_PROVIDER_TYPE: str = "freeipa"
+    LDAP_HOSTS: str = ""
+    LDAP_BASE_DN: str = ""
+    LDAP_BIND_DN: str = ""
+    LDAP_BIND_PASSWORD: str = ""
+    LDAP_REQUIRED_GROUP: str = ""
+
     # High Availability
     NODE_ROLE: Literal["primary", "standby"] = "primary"
     NODE_NAME: str = "primary"

@@ -28,3 +28,5 @@ docs/**/config-examples/*.backup
 # Local deploy notes (host/credentials) - never commit
 server.txt
 credentials.txt
+
+poc/

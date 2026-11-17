@@ -34,6 +34,7 @@ import { emailPattern, passwordRules } from "../utils"
 interface ProvidersStatus {
   google: boolean
   keycloak: boolean
+  ldap: boolean
   microsoft: boolean
   passkey: boolean
   open_registration: boolean
@@ -54,6 +55,7 @@ function Login() {
   const [providers, setProviders] = useState<ProvidersStatus>({
     google: false,
     keycloak: false,
+    ldap: false,
     microsoft: false,
     passkey: false,
     open_registration: false,
@@ -234,17 +236,17 @@ function Login() {
           </Text>
 
           <Field
-            label="Email"
+            label={providers.ldap ? "Username or Email" : "Email"}
             invalid={!!errors.username}
             errorText={errors.username?.message || !!error}
           >
             <Input
               {...register("username", {
                 required: "Username is required",
-                pattern: emailPattern,
+                ...(providers.ldap ? {} : { pattern: emailPattern }),
               })}
-              placeholder="Email"
-              type="email"
+              placeholder={providers.ldap ? "Username or Email" : "Email"}
+              type={providers.ldap ? "text" : "email"}
               size="md"
             />
           </Field>

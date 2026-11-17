@@ -205,6 +205,74 @@ def get_or_create_microsoft_user(
     return user
 
 
+def get_user_by_ldap_id(*, session: Session, ldap_id: str) -> User | None:
+    return session.exec(select(User).where(User.ldap_id == ldap_id)).first()
+
+
+def get_or_create_ldap_user(
+    *,
+    session: Session,
+    ldap_id: str,
+    email: str,
+    full_name: str | None,
+    allow_email_link: bool,
+) -> User | None:
+    """Find, link or create the user for an authenticated LDAP identity.
+
+    Returns ``None`` when the identity cannot be given an account:
+
+    - an account with this email exists, is not linked yet, and either email
+      linking is off (the default) or that account is a superuser. LDAP
+      ``mail`` is directory data that help desks and self-service portals can
+      often edit, so linking on it would let whoever controls an entry's
+      ``mail`` sign in as the local account holding that address — including
+      the emergency administrator;
+    - the identity is new and this node is a standby (read-only replica).
+
+    Authentication only: an existing account keeps its ``is_superuser`` and
+    ``is_active`` flags, and new accounts are created read-only.
+    """
+    normalized_id = ldap_id.strip().lower()
+    normalized_email = email.strip().lower()
+
+    # 1. Already linked via ldap_id
+    user = get_user_by_ldap_id(session=session, ldap_id=normalized_id)
+    if user:
+        return user
+
+    # 2. Existing account with same email — link it only when the admin opted in
+    user = get_user_by_email(session=session, email=normalized_email)
+    if user:
+        if not allow_email_link or user.is_superuser:
+            return None
+        if settings.NODE_ROLE == "standby":
+            return user
+        user.ldap_id = normalized_id
+        if full_name and not user.full_name:
+            user.full_name = full_name
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return user
+
+    # 3. New user — created on the primary only, with a random unguessable
+    # password and the read-only role
+    if settings.NODE_ROLE == "standby":
+        return None
+    user = User(
+        email=normalized_email,
+        full_name=full_name,
+        is_active=True,
+        is_superuser=False,
+        hashed_password=get_password_hash(secrets.token_hex(32)),
+        ldap_id=normalized_id,
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
 def create_item(*, session: Session, item_in: ItemCreate, owner_id: uuid.UUID) -> Item:
     db_item = Item.model_validate(item_in, update={"owner_id": owner_id})
     session.add(db_item)

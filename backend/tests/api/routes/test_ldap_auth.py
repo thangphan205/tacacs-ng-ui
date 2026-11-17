@@ -1,0 +1,391 @@
+"""LDAP Web UI sign-in (#404): login route, account linking, admin test routes."""
+
+from collections.abc import Generator
+from typing import Any
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlmodel import Session, delete, select
+
+from app.core.config import settings
+from app.core.ldap_auth import LdapAuthOutcome, LdapIdentity
+from app.core.security import get_password_hash
+from app.crud import auth_providers as auth_providers_crud
+from app.models import (
+    AuditLog,
+    AuthProviderConfig,
+    LdapTestConnectionResponse,
+    Mavis,
+    User,
+)
+
+LOGIN_URL = f"{settings.API_V1_STR}/login/access-token"
+ADMIN_LDAP_URL = f"{settings.API_V1_STR}/admin/auth-providers/ldap"
+
+LDAP_CONFIG: dict[str, str] = {
+    "provider_type": "freeipa",
+    "hosts": "ldaps://ipa01.example.com:636, ldaps://ipa02.example.com:636",
+    "base_dn": "dc=example,dc=com",
+    "bind_dn": "uid=svc,cn=users,dc=example,dc=com",
+}
+
+_TEST_EMAILS = (
+    "netadmin1@example.com",
+    "ldap-existing@example.com",
+    "ldap-passkey-only@example.com",
+    "ldap-standby@example.com",
+)
+
+
+@pytest.fixture(autouse=True)
+def clean_state(db: Session) -> Generator[None, None, None]:
+    """Provider rows are singletons and these users are ours — leave no trace."""
+    yield
+    db.rollback()
+    db.execute(delete(AuthProviderConfig))
+    db.execute(delete(User).where(User.email.in_(_TEST_EMAILS)))  # type: ignore[attr-defined]
+    superuser = db.exec(
+        select(User).where(User.email == settings.FIRST_SUPERUSER)
+    ).first()
+    if superuser is not None and superuser.ldap_id is not None:
+        superuser.ldap_id = None
+        db.add(superuser)
+    db.commit()
+    db.expire_all()
+
+
+def _enable_ldap(db: Session, **extra: str) -> None:
+    auth_providers_crud.upsert_provider_config(
+        session=db,
+        provider="ldap",
+        enabled=True,
+        config={**LDAP_CONFIG, **extra},
+        secret="bind-secret",
+    )
+
+
+def _fake_ldap_success(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    ldap_id: str,
+    email: str,
+    failed_servers: list[tuple[str, str]] | None = None,
+) -> list[dict[str, Any]]:
+    calls: list[dict[str, Any]] = []
+
+    def fake_auth(**kwargs: Any) -> LdapAuthOutcome:
+        calls.append(kwargs)
+        return LdapAuthOutcome(
+            ok=True,
+            reason="ok",
+            message="LDAP authentication succeeded.",
+            identity=LdapIdentity(
+                ldap_id=ldap_id,
+                user_dn=f"uid={ldap_id},cn=users,dc=example,dc=com",
+                email=email,
+                full_name="Directory User",
+            ),
+            server_used="ldaps://ipa02.example.com:636",
+            failover_occurred=bool(failed_servers),
+            failed_servers=failed_servers or [],
+        )
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", fake_auth)
+    return calls
+
+
+def _never_call_ldap(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_auth(**_kwargs: Any) -> LdapAuthOutcome:
+        raise AssertionError("LDAP must not be contacted here")
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", fake_auth)
+
+
+def _login(client: TestClient, username: str, password: str = "ldap-pw") -> Any:
+    return client.post(LOGIN_URL, data={"username": username, "password": password})
+
+
+# --- status / presets / MAVIS import -------------------------------------------
+
+
+def test_auth_providers_status_includes_ldap(client: TestClient, db: Session) -> None:
+    r = client.get(f"{settings.API_V1_STR}/auth-providers/status")
+    assert r.status_code == 200
+    assert r.json()["ldap"] is False
+
+    _enable_ldap(db)
+    r = client.get(f"{settings.API_V1_STR}/auth-providers/status")
+    assert r.json()["ldap"] is True
+
+
+def test_admin_ldap_presets_and_mavis_import(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.get(f"{ADMIN_LDAP_URL}/presets", headers=superuser_token_headers)
+    assert r.status_code == 200
+    presets = r.json()
+    assert {"active_directory", "freeipa", "openldap", "generic"} <= set(presets)
+    assert presets["active_directory"]["unique_id_attr"] == "objectGUID"
+
+    saved: dict[str, str | None] = {}
+    wanted = {
+        "LDAP_HOSTS": "ldaps://ipa.example.com:636",
+        "LDAP_PASSWD": "do-not-expose",
+    }
+    for key, value in wanted.items():
+        row = db.exec(select(Mavis).where(Mavis.mavis_key == key)).first()
+        saved[key] = row.mavis_value if row else None
+        if row is None:
+            row = Mavis(mavis_key=key, mavis_value=value)
+        row.mavis_value = value
+        db.add(row)
+    db.commit()
+    try:
+        r = client.get(
+            f"{ADMIN_LDAP_URL}/mavis-import", headers=superuser_token_headers
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert data["hosts"] == "ldaps://ipa.example.com:636"
+        assert "do-not-expose" not in str(data)
+    finally:
+        for key, old in saved.items():
+            row = db.exec(select(Mavis).where(Mavis.mavis_key == key)).one()
+            if old is None:
+                db.delete(row)
+            else:
+                row.mavis_value = old
+                db.add(row)
+        db.commit()
+
+
+# --- login ---------------------------------------------------------------------
+
+
+def test_ldap_login_creates_read_only_user_and_preserves_local_rbac(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+    _fake_ldap_success(
+        monkeypatch,
+        ldap_id="netadmin1",
+        email="netadmin1@example.com",
+        failed_servers=[("ldaps://ipa01.example.com:636", "Connection refused")],
+    )
+
+    r = _login(client, "netadmin1")
+    assert r.status_code == 200, r.text
+
+    user = db.exec(select(User).where(User.ldap_id == "netadmin1")).one()
+    assert user.email == "netadmin1@example.com"
+    assert user.is_superuser is False
+    assert "LDAP" in user.login_methods
+
+    failover = db.exec(
+        select(AuditLog)
+        .where(AuditLog.action == "LDAP_FAILOVER")
+        .order_by(AuditLog.created_at.desc())  # type: ignore[attr-defined]
+    ).first()
+    assert failover is not None
+    assert "ipa01.example.com" in (failover.description or "")
+
+    # A local promotion survives the next LDAP sign-in.
+    user.is_superuser = True
+    db.add(user)
+    db.commit()
+    assert _login(client, "netadmin1").status_code == 200
+    db.refresh(user)
+    assert user.is_superuser is True
+
+
+def test_ldap_group_denied_returns_generic_403(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db, required_group="custom-tacacs-group")
+
+    def fake_auth(**_kwargs: Any) -> LdapAuthOutcome:
+        return LdapAuthOutcome(
+            ok=False,
+            reason="group_denied",
+            message="User 'outsider' is not a member of required LDAP group 'custom-tacacs-group'.",
+            server_used="ldaps://ipa01.example.com:636",
+        )
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", fake_auth)
+
+    r = _login(client, "outsider")
+    assert r.status_code == 403
+    # The group name stays in the audit log, not in the unauthenticated response.
+    assert "custom-tacacs-group" not in r.json()["detail"]
+    audit = db.exec(
+        select(AuditLog)
+        .where(AuditLog.action == "LOGIN_FAILED", AuditLog.entity_id == "outsider")
+        .order_by(AuditLog.created_at.desc())  # type: ignore[attr-defined]
+    ).first()
+    assert audit is not None
+    assert "custom-tacacs-group" in (audit.description or "")
+
+
+def test_local_emergency_superuser_login_never_contacts_ldap(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+    _never_call_ldap(monkeypatch)
+
+    r = _login(client, settings.FIRST_SUPERUSER, settings.FIRST_SUPERUSER_PASSWORD)
+    assert r.status_code == 200
+    assert "access_token" in r.json()
+
+
+@pytest.mark.parametrize("allow_email_link", ["false", "true"])
+def test_ldap_never_links_to_a_superuser_by_email(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    allow_email_link: str,
+) -> None:
+    """A directory entry whose `mail` is the admin's must not become the admin."""
+    _enable_ldap(db, allow_email_link=allow_email_link)
+    _fake_ldap_success(monkeypatch, ldap_id="mallory", email=settings.FIRST_SUPERUSER)
+
+    r = _login(client, "mallory")
+    assert r.status_code == 403
+    superuser = db.exec(
+        select(User).where(User.email == settings.FIRST_SUPERUSER)
+    ).one()
+    db.refresh(superuser)
+    assert superuser.ldap_id is None
+
+
+def test_ldap_links_existing_account_only_when_enabled(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    existing = User(
+        email="ldap-existing@example.com",
+        hashed_password=get_password_hash("local-password-1"),
+        is_superuser=False,
+    )
+    db.add(existing)
+    db.commit()
+    _fake_ldap_success(monkeypatch, ldap_id="existing", email=existing.email)
+
+    _enable_ldap(db)  # allow_email_link absent -> off
+    assert _login(client, "existing").status_code == 403
+    db.refresh(existing)
+    assert existing.ldap_id is None
+
+    _enable_ldap(db, allow_email_link="true")
+    assert _login(client, "existing").status_code == 200
+    db.refresh(existing)
+    assert existing.ldap_id == "existing"
+
+
+def test_passkey_only_mode_refuses_ldap_without_contacting_it(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+    auth_providers_crud.upsert_provider_config(
+        session=db,
+        provider="passkey",
+        enabled=True,
+        config={"allow_password_login": "false"},
+    )
+    _never_call_ldap(monkeypatch)
+
+    r = _login(client, "netadmin1")
+    assert r.status_code == 400
+    assert "disabled by the administrator" in r.json()["detail"]
+
+
+def test_per_user_password_login_disabled_applies_to_ldap(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+    db.add(
+        User(
+            email="ldap-passkey-only@example.com",
+            hashed_password=get_password_hash("local-password-1"),
+            ldap_id="passkeyonly",
+            password_login_disabled=True,
+        )
+    )
+    db.commit()
+    _fake_ldap_success(
+        monkeypatch, ldap_id="passkeyonly", email="ldap-passkey-only@example.com"
+    )
+
+    r = _login(client, "passkeyonly")
+    assert r.status_code == 400
+    assert "Use a passkey" in r.json()["detail"]
+
+
+def test_standby_does_not_provision_new_ldap_users(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+    _fake_ldap_success(
+        monkeypatch, ldap_id="standbyuser", email="ldap-standby@example.com"
+    )
+    monkeypatch.setattr(settings, "NODE_ROLE", "standby")
+
+    r = _login(client, "standbyuser")
+    assert r.status_code == 403
+    assert "primary" in r.json()["detail"]
+    monkeypatch.setattr(settings, "NODE_ROLE", "primary")
+    assert db.exec(select(User).where(User.ldap_id == "standbyuser")).first() is None
+
+
+# --- admin test routes ---------------------------------------------------------
+
+
+def test_connection_test_needs_bind_password_for_new_destination(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    """The stored bind password is never sent somewhere it was not saved for."""
+    _enable_ldap(db)
+    secrets_used: list[str | None] = []
+
+    def fake_check(
+        *, raw_config: dict[str, Any] | None, secret: str | None
+    ) -> LdapTestConnectionResponse:
+        _ = raw_config
+        secrets_used.append(secret)
+        return LdapTestConnectionResponse(ok=True, message="ok")
+
+    monkeypatch.setattr(
+        "app.api.routes.admin_auth.check_ldap_servers_connection", fake_check
+    )
+    url = f"{ADMIN_LDAP_URL}/test-connection"
+
+    # Same servers, same Bind DN: the stored secret is reused.
+    r = client.post(url, headers=superuser_token_headers, json={"config": LDAP_CONFIG})
+    assert r.status_code == 200, r.text
+    assert secrets_used == ["bind-secret"]
+
+    for changed in (
+        {"hosts": "ldap://attacker.example.net:389"},
+        {"bind_dn": "uid=other,dc=example,dc=com"},
+        {"verify_tls": "false"},
+    ):
+        r = client.post(
+            url,
+            headers=superuser_token_headers,
+            json={"config": {**LDAP_CONFIG, **changed}},
+        )
+        assert r.status_code == 400, changed
+    assert secrets_used == ["bind-secret"]
+
+    # Typing the password again is allowed.
+    r = client.post(
+        url,
+        headers=superuser_token_headers,
+        json={
+            "config": {**LDAP_CONFIG, "hosts": "ldap://new.example.com"},
+            "secret": "typed-again",
+        },
+    )
+    assert r.status_code == 200
+    assert secrets_used[-1] == "typed-again"
