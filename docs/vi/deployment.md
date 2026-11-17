@@ -504,6 +504,12 @@ Tất cả biến với giá trị mặc định (từ `.env.example`):
 | `MICROSOFT_CLIENT_SECRET` | *(tùy chọn)* | Giá trị client secret trên Entra |
 | `MICROSOFT_TENANT` | `common` | `common`, `organizations`, `consumers` hoặc tenant ID. Tài khoản local có sẵn chỉ tự liên kết theo email với single tenant hoặc tài khoản cá nhân |
 | `MICROSOFT_REDIRECT_URI` | *(tự suy ra)* | Tùy chọn; mặc định `<FRONTEND_HOST>/api/v1/oauth/microsoft/callback` |
+| `LDAP_HOSTS` | *(tùy chọn)* | Các server LDAP cho Web UI, theo thứ tự ưu tiên, phân cách bằng dấu phẩy (`ldaps://ipa01:636, ldaps://ipa02:636`). Chỉ dùng khi **Admin → Auth Providers → LDAP / AD** chưa từng được lưu |
+| `LDAP_PROVIDER_TYPE` | `freeipa` | `freeipa`, `active_directory`, `openldap` hoặc `generic` — chọn thuộc tính và bộ lọc mặc định |
+| `LDAP_BASE_DN` | *(tùy chọn)* | Search base cho user và group |
+| `LDAP_BIND_DN` | *(tùy chọn)* | DN của service account; để trống = tìm kiếm ẩn danh |
+| `LDAP_BIND_PASSWORD` | *(tùy chọn)* | Mật khẩu service account |
+| `LDAP_REQUIRED_GROUP` | *(tùy chọn)* | Tên group hoặc DN đầy đủ mà user phải là thành viên |
 | `SIEM_WEBHOOK_URL` | *(tùy chọn)* | URL Splunk HEC hoặc Logstash HTTP input |
 | `SIEM_WEBHOOK_TOKEN` | *(tùy chọn)* | Splunk HEC token hoặc bearer token |
 | `SIEM_FORWARD_TACACS_EVENTS` | `false` | Chuyển tiếp bản ghi thống kê auth/authz/acct theo ngày đến SIEM (xem hướng dẫn sử dụng) |

@@ -930,7 +930,7 @@ These are users who log into the **dashboard** (not TACACS device users).
 | `full_name` | Display name |
 | `is_active` | Activate or deactivate the account |
 | `is_superuser` | Grant full admin access |
-| `password_login_disabled` | Force OAuth/Passkey login only (disable password) |
+| `password_login_disabled` | Force OAuth/Passkey/LDAP login only (disable the local password) |
 
 ### Auth Providers
 
