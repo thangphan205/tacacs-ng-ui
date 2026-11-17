@@ -1563,6 +1563,152 @@ export type ItemsPublic = {
 };
 
 /**
+ * LdapServerDiagResult
+ */
+export type LdapServerDiagResult = {
+    /**
+     * Server
+     */
+    server: string;
+    /**
+     * Priority
+     */
+    priority?: number;
+    /**
+     * Ok
+     */
+    ok: boolean;
+    /**
+     * Latency Ms
+     */
+    latency_ms?: number | null;
+    /**
+     * Tls Active
+     */
+    tls_active?: boolean;
+    /**
+     * Bind Ok
+     */
+    bind_ok?: boolean;
+    /**
+     * Error
+     */
+    error?: string | null;
+};
+
+/**
+ * LdapTestAuthRequest
+ */
+export type LdapTestAuthRequest = {
+    /**
+     * Username
+     */
+    username: string;
+    /**
+     * Password
+     */
+    password: string;
+    /**
+     * Config
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Secret
+     */
+    secret?: string | null;
+};
+
+/**
+ * LdapTestAuthResponse
+ */
+export type LdapTestAuthResponse = {
+    /**
+     * Ok
+     */
+    ok: boolean;
+    /**
+     * Server Used
+     */
+    server_used?: string | null;
+    /**
+     * Failover Occurred
+     */
+    failover_occurred?: boolean;
+    /**
+     * User Dn
+     */
+    user_dn?: string | null;
+    /**
+     * Ldap Id
+     */
+    ldap_id?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Full Name
+     */
+    full_name?: string | null;
+    /**
+     * Group Check Passed
+     */
+    group_check_passed?: boolean | null;
+    /**
+     * Required Group
+     */
+    required_group?: string | null;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * LdapTestConnectionRequest
+ */
+export type LdapTestConnectionRequest = {
+    /**
+     * Config
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Secret
+     */
+    secret?: string | null;
+};
+
+/**
+ * LdapTestConnectionResponse
+ */
+export type LdapTestConnectionResponse = {
+    /**
+     * Ok
+     */
+    ok: boolean;
+    /**
+     * Active Server
+     */
+    active_server?: string | null;
+    /**
+     * Failover Occurred
+     */
+    failover_occurred?: boolean;
+    /**
+     * Servers
+     */
+    servers?: Array<LdapServerDiagResult>;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
  * MavisCreate
  */
 export type MavisCreate = {
@@ -4262,6 +4408,98 @@ export type PasskeysAuthenticateCompleteResponses = {
 };
 
 export type PasskeysAuthenticateCompleteResponse = PasskeysAuthenticateCompleteResponses[keyof PasskeysAuthenticateCompleteResponses];
+
+export type AdminGetLdapPresetsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/auth-providers/ldap/presets';
+};
+
+export type AdminGetLdapPresetsResponses = {
+    /**
+     * Response Admin-Get Ldap Presets
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: {
+            [key: string]: string;
+        };
+    };
+};
+
+export type AdminGetLdapPresetsResponse = AdminGetLdapPresetsResponses[keyof AdminGetLdapPresetsResponses];
+
+export type AdminImportLdapFromMavisData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/auth-providers/ldap/mavis-import';
+};
+
+export type AdminImportLdapFromMavisResponses = {
+    /**
+     * Response Admin-Import Ldap From Mavis
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: string;
+    };
+};
+
+export type AdminImportLdapFromMavisResponse = AdminImportLdapFromMavisResponses[keyof AdminImportLdapFromMavisResponses];
+
+export type AdminTestLdapConnectionRouteData = {
+    body: LdapTestConnectionRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/auth-providers/ldap/test-connection';
+};
+
+export type AdminTestLdapConnectionRouteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminTestLdapConnectionRouteError = AdminTestLdapConnectionRouteErrors[keyof AdminTestLdapConnectionRouteErrors];
+
+export type AdminTestLdapConnectionRouteResponses = {
+    /**
+     * Successful Response
+     */
+    200: LdapTestConnectionResponse;
+};
+
+export type AdminTestLdapConnectionRouteResponse = AdminTestLdapConnectionRouteResponses[keyof AdminTestLdapConnectionRouteResponses];
+
+export type AdminTestLdapAuthRouteData = {
+    body: LdapTestAuthRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/auth-providers/ldap/test-auth';
+};
+
+export type AdminTestLdapAuthRouteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminTestLdapAuthRouteError = AdminTestLdapAuthRouteErrors[keyof AdminTestLdapAuthRouteErrors];
+
+export type AdminTestLdapAuthRouteResponses = {
+    /**
+     * Successful Response
+     */
+    200: LdapTestAuthResponse;
+};
+
+export type AdminTestLdapAuthRouteResponse = AdminTestLdapAuthRouteResponses[keyof AdminTestLdapAuthRouteResponses];
 
 export type AdminListAuthProvidersData = {
     body?: never;
