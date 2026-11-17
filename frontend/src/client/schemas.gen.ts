@@ -1829,6 +1829,66 @@ export const Body_login_login_access_tokenSchema = {
     title: 'Body_login-login_access_token'
 } as const;
 
+export const Body_login_login_ldap_access_tokenSchema = {
+    properties: {
+        grant_type: {
+            anyOf: [
+                {
+                    type: 'string',
+                    pattern: '^password$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Grant Type'
+        },
+        username: {
+            type: 'string',
+            title: 'Username'
+        },
+        password: {
+            type: 'string',
+            format: 'password',
+            title: 'Password'
+        },
+        scope: {
+            type: 'string',
+            title: 'Scope',
+            default: ''
+        },
+        client_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Client Id'
+        },
+        client_secret: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            format: 'password',
+            title: 'Client Secret'
+        }
+    },
+    type: 'object',
+    required: [
+        'username',
+        'password'
+    ],
+    title: 'Body_login-login_ldap_access_token'
+} as const;
+
 export const ConfigurationOptionCreateSchema = {
     properties: {
         name: {

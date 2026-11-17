@@ -6,6 +6,7 @@ import {
   Input,
   Link,
   Separator,
+  Tabs,
   Text,
 } from "@chakra-ui/react"
 import { startAuthentication } from "@simplewebauthn/browser"
@@ -37,7 +38,131 @@ interface ProvidersStatus {
   ldap: boolean
   microsoft: boolean
   passkey: boolean
+  password_login: boolean
   open_registration: boolean
+}
+
+type LoginMethod = "ldap" | "local"
+
+// Remembers which tab this browser used last; LDAP otherwise.
+const LOGIN_TAB_KEY = "login_tab"
+
+function readSavedTab(): LoginMethod {
+  try {
+    return localStorage.getItem(LOGIN_TAB_KEY) === "local" ? "local" : "ldap"
+  } catch {
+    return "ldap"
+  }
+}
+
+interface CredentialsFormProps {
+  method: LoginMethod
+  onSubmit: (data: AccessToken) => Promise<unknown>
+  error: string | null
+}
+
+/** One sign-in form: local (email) or LDAP (directory username). */
+function CredentialsForm({ method, onSubmit, error }: CredentialsFormProps) {
+  const isLocal = method === "local"
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<AccessToken>({
+    mode: "onBlur",
+    criteriaMode: "all",
+    defaultValues: { username: "", password: "" },
+  })
+
+  const submit: SubmitHandler<AccessToken> = async (data) => {
+    if (isSubmitting) return
+    try {
+      await onSubmit(data)
+    } catch {
+      // error is handled by useAuth hook
+    }
+  }
+
+  return (
+    <Box
+      as="form"
+      onSubmit={handleSubmit(submit)}
+      display="flex"
+      flexDirection="column"
+      gap={5}
+    >
+      {!isLocal && (
+        <Text fontSize="sm" color="fg.muted">
+          Use your directory (LDAP / Active Directory) account.
+        </Text>
+      )}
+
+      <Field
+        label={isLocal ? "Email" : "Username"}
+        invalid={!!errors.username}
+        errorText={errors.username?.message || !!error}
+      >
+        <Input
+          {...register("username", {
+            required: "Username is required",
+            ...(isLocal ? { pattern: emailPattern } : {}),
+          })}
+          placeholder={isLocal ? "Email" : "Username"}
+          type={isLocal ? "email" : "text"}
+          autoComplete="username"
+          size="md"
+        />
+      </Field>
+
+      <PasswordInput
+        type="password"
+        label={
+          isLocal ? (
+            <Flex justify="space-between" align="center" w="full">
+              <Text as="span">Password</Text>
+              <Link
+                asChild
+                fontSize="xs"
+                fontWeight="medium"
+                color="gray.600"
+                _hover={{ textDecoration: "underline" }}
+              >
+                <RouterLink
+                  to="/recover-password"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Forgot password?
+                </RouterLink>
+              </Link>
+            </Flex>
+          ) : (
+            "Password"
+          )
+        }
+        // Directory passwords follow the directory's policy, not ours.
+        {...register(
+          "password",
+          isLocal ? passwordRules() : { required: "Password is required" },
+        )}
+        placeholder="Password"
+        autoComplete="current-password"
+        errors={errors}
+        size="md"
+      />
+
+      <Button
+        variant="solid"
+        colorPalette="teal"
+        type="submit"
+        loading={isSubmitting}
+        size="md"
+        w="full"
+        mt={2}
+      >
+        Log In
+      </Button>
+    </Box>
+  )
 }
 
 export const Route = createFileRoute("/login")({
@@ -50,7 +175,7 @@ export const Route = createFileRoute("/login")({
 })
 
 function Login() {
-  const { loginMutation, error, resetError } = useAuth()
+  const { loginMutation, ldapLoginMutation, error, resetError } = useAuth()
   const navigate = useNavigate()
   const [providers, setProviders] = useState<ProvidersStatus>({
     google: false,
@@ -58,18 +183,11 @@ function Login() {
     ldap: false,
     microsoft: false,
     passkey: false,
+    // Shown until the status says otherwise, as before LDAP existed.
+    password_login: true,
     open_registration: false,
   })
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<AccessToken>({
-    mode: "onBlur",
-    criteriaMode: "all",
-    defaultValues: { username: "", password: "" },
-  })
+  const [tab, setTab] = useState<LoginMethod>(readSavedTab)
 
   useEffect(() => {
     fetch(`${apiBaseUrl()}/api/v1/auth-providers/status`)
@@ -169,15 +287,39 @@ function Login() {
     }
   }
 
-  const onSubmit: SubmitHandler<AccessToken> = async (data) => {
-    if (isSubmitting) return
+  const changeTab = (value: LoginMethod) => {
+    setTab(value)
     resetError()
     try {
-      await loginMutation.mutateAsync(data)
+      localStorage.setItem(LOGIN_TAB_KEY, value)
     } catch {
-      // error is handled by useAuth hook
+      // private mode / blocked storage: the tab just isn't remembered
     }
   }
+
+  const showLocal = providers.password_login
+  const showLdap = providers.ldap
+
+  const localForm = (
+    <CredentialsForm
+      method="local"
+      error={error}
+      onSubmit={(data) => {
+        resetError()
+        return loginMutation.mutateAsync(data)
+      }}
+    />
+  )
+  const ldapForm = (
+    <CredentialsForm
+      method="ldap"
+      error={error}
+      onSubmit={(data) => {
+        resetError()
+        return ldapLoginMutation.mutateAsync(data)
+      }}
+    />
+  )
 
   const hasOAuthProviders =
     providers.google ||
@@ -215,15 +357,7 @@ function Login() {
         h="full"
         p={{ base: 6, md: 12 }}
       >
-        <Box
-          as="form"
-          onSubmit={handleSubmit(onSubmit)}
-          w="full"
-          maxW="sm"
-          display="flex"
-          flexDirection="column"
-          gap={5}
-        >
+        <Box w="full" maxW="sm" display="flex" flexDirection="column" gap={5}>
           <Text
             as="h1"
             fontSize="2xl"
@@ -235,62 +369,31 @@ function Login() {
             Login to your account
           </Text>
 
-          <Field
-            label={providers.ldap ? "Username or Email" : "Email"}
-            invalid={!!errors.username}
-            errorText={errors.username?.message || !!error}
-          >
-            <Input
-              {...register("username", {
-                required: "Username is required",
-                ...(providers.ldap ? {} : { pattern: emailPattern }),
-              })}
-              placeholder={providers.ldap ? "Username or Email" : "Email"}
-              type={providers.ldap ? "text" : "email"}
-              size="md"
-            />
-          </Field>
+          {showLocal && showLdap ? (
+            <Tabs.Root
+              value={tab}
+              onValueChange={(e) => changeTab(e.value as LoginMethod)}
+              variant="line"
+              fitted
+            >
+              <Tabs.List>
+                <Tabs.Trigger value="ldap">LDAP</Tabs.Trigger>
+                <Tabs.Trigger value="local">Local Account</Tabs.Trigger>
+              </Tabs.List>
+              <Tabs.Content value="ldap" pt={5}>
+                {ldapForm}
+              </Tabs.Content>
+              <Tabs.Content value="local" pt={5}>
+                {localForm}
+              </Tabs.Content>
+            </Tabs.Root>
+          ) : showLdap ? (
+            ldapForm
+          ) : showLocal ? (
+            localForm
+          ) : null}
 
-          <PasswordInput
-            type="password"
-            label={
-              <Flex justify="space-between" align="center" w="full">
-                <Text as="span">Password</Text>
-                <Link
-                  asChild
-                  fontSize="xs"
-                  fontWeight="medium"
-                  color="gray.600"
-                  _hover={{ textDecoration: "underline" }}
-                >
-                  <RouterLink
-                    to="/recover-password"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    Forgot password?
-                  </RouterLink>
-                </Link>
-              </Flex>
-            }
-            {...register("password", passwordRules())}
-            placeholder="Password"
-            errors={errors}
-            size="md"
-          />
-
-          <Button
-            variant="solid"
-            colorPalette="teal"
-            type="submit"
-            loading={isSubmitting}
-            size="md"
-            w="full"
-            mt={2}
-          >
-            Log In
-          </Button>
-
-          {hasOAuthProviders && <Separator my={2} />}
+          {hasOAuthProviders && (showLocal || showLdap) && <Separator my={2} />}
 
           {providers.google && (
             <Button

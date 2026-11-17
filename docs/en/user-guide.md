@@ -976,11 +976,13 @@ Lets people sign in to the dashboard with their directory account — no identit
 3. Set the **Base DN**, and the **Bind DN** / **Bind Password** of a read-only service account (leave both blank for an anonymous search).
 4. Click **Test Connection**, then **Test User Login** with a real account, then **Save** and **Enable**.
 
-The login form then accepts a directory username as well as an email. Sign-in order:
+The login page then shows two tabs: **LDAP** (directory username and password) and **Local Account** (email and password, unchanged). LDAP is selected first, and the browser remembers the last tab used. The two are separate: the Local Account tab never contacts the directory (so a local password is never sent to it), and the LDAP tab never checks local passwords. A local administrator can therefore always sign in on the Local Account tab, even with every LDAP server down.
 
-1. The local account is tried first, so a local administrator can always sign in, even with every LDAP server down.
-2. Otherwise the user is searched with the service account, then the password is checked by binding as that user.
-3. If a **Required LDAP Group** is set, the user must be a member of it.
+An LDAP sign-in searches for the user with the service account, checks the password by binding as that user, then checks the **Required LDAP Group** if one is set.
+
+When **Allow password login** is turned off under **Passkeys**, the Local Account tab disappears and only the LDAP tab remains. That switch, and the per-account *disable password login* flag in **Users Management**, apply to local passwords only; LDAP sign-in is controlled by the LDAP provider's own **Enable** switch. With both local passwords and LDAP off, the page offers only the passkey and single sign-on buttons.
+
+API clients use `POST /api/v1/login/access-token` for local accounts and `POST /api/v1/login/ldap/access-token` for LDAP; both take the same `username` / `password` form.
 
 | Provider | Base DN example | User filter default | Unique ID |
 |----------|-----------------|---------------------|-----------|
@@ -1000,7 +1002,7 @@ The login form then accepts a directory username as well as an email. Sign-in or
 
 Directory users without a valid email are refused unless a **Fallback Email Domain** is set (the account then gets `username@domain`).
 
-On a standby node, users who have signed in before can sign in again; a first sign-in must happen on the primary. Passkey-only settings apply to LDAP too: with password login disabled globally or for the account, LDAP sign-in is refused.
+On a standby node, users who have signed in before can sign in again; a first sign-in must happen on the primary.
 
 Changing the servers, Bind DN or TLS settings and pressing **Test** asks for the Bind Password again, so the saved password is only ever sent to the servers it was saved for.
 

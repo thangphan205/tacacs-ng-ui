@@ -20,6 +20,7 @@ from app.models import (
 )
 
 LOGIN_URL = f"{settings.API_V1_STR}/login/access-token"
+LDAP_LOGIN_URL = f"{settings.API_V1_STR}/login/ldap/access-token"
 ADMIN_LDAP_URL = f"{settings.API_V1_STR}/admin/auth-providers/ldap"
 
 LDAP_CONFIG: dict[str, str] = {
@@ -102,6 +103,13 @@ def _never_call_ldap(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _login(client: TestClient, username: str, password: str = "ldap-pw") -> Any:
+    """LDAP sign-in."""
+    return client.post(
+        LDAP_LOGIN_URL, data={"username": username, "password": password}
+    )
+
+
+def _local_login(client: TestClient, username: str, password: str) -> Any:
     return client.post(LOGIN_URL, data={"username": username, "password": password})
 
 
@@ -232,7 +240,9 @@ def test_local_emergency_superuser_login_never_contacts_ldap(
     _enable_ldap(db)
     _never_call_ldap(monkeypatch)
 
-    r = _login(client, settings.FIRST_SUPERUSER, settings.FIRST_SUPERUSER_PASSWORD)
+    r = _local_login(
+        client, settings.FIRST_SUPERUSER, settings.FIRST_SUPERUSER_PASSWORD
+    )
     assert r.status_code == 200
     assert "access_token" in r.json()
 
@@ -280,9 +290,10 @@ def test_ldap_links_existing_account_only_when_enabled(
     assert existing.ldap_id == "existing"
 
 
-def test_passkey_only_mode_refuses_ldap_without_contacting_it(
+def test_passkey_only_switch_turns_off_local_passwords_not_ldap(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """ "Allow password login" off hides local passwords; LDAP has its own switch."""
     _enable_ldap(db)
     auth_providers_crud.upsert_provider_config(
         session=db,
@@ -290,14 +301,22 @@ def test_passkey_only_mode_refuses_ldap_without_contacting_it(
         enabled=True,
         config={"allow_password_login": "false"},
     )
-    _never_call_ldap(monkeypatch)
+    _fake_ldap_success(monkeypatch, ldap_id="netadmin1", email="netadmin1@example.com")
 
-    r = _login(client, "netadmin1")
+    status = client.get(f"{settings.API_V1_STR}/auth-providers/status").json()
+    assert status["password_login"] is False
+    assert status["ldap"] is True
+
+    r = _local_login(
+        client, settings.FIRST_SUPERUSER, settings.FIRST_SUPERUSER_PASSWORD
+    )
     assert r.status_code == 400
     assert "disabled by the administrator" in r.json()["detail"]
 
+    assert _login(client, "netadmin1").status_code == 200
 
-def test_per_user_password_login_disabled_applies_to_ldap(
+
+def test_per_user_password_flag_restricts_local_password_only(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _enable_ldap(db)
@@ -314,9 +333,36 @@ def test_per_user_password_login_disabled_applies_to_ldap(
         monkeypatch, ldap_id="passkeyonly", email="ldap-passkey-only@example.com"
     )
 
-    r = _login(client, "passkeyonly")
+    r = _local_login(client, "ldap-passkey-only@example.com", "local-password-1")
     assert r.status_code == 400
     assert "Use a passkey" in r.json()["detail"]
+    assert _login(client, "passkeyonly").status_code == 200
+
+
+def test_local_endpoint_never_contacts_ldap(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A local password, or a typo of one, is never sent to the directory."""
+    _enable_ldap(db)
+    _never_call_ldap(monkeypatch)
+
+    r = _local_login(client, "netadmin1", "whatever-password")
+    assert r.status_code == 400
+    assert r.json()["detail"] == "Incorrect email or password"
+
+
+def test_ldap_endpoint_refuses_when_ldap_disabled(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _never_call_ldap(monkeypatch)
+    r = _login(client, "netadmin1")
+    assert r.status_code == 400
+    assert r.json()["detail"] == "LDAP sign-in is not enabled"
+
+
+def test_status_reports_password_login_on_by_default(client: TestClient) -> None:
+    status = client.get(f"{settings.API_V1_STR}/auth-providers/status").json()
+    assert status["password_login"] is True
 
 
 def test_standby_does_not_provision_new_ldap_users(

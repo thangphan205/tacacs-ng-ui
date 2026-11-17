@@ -62,3 +62,18 @@ def resolve_provider_secret(db: AuthProviderConfig) -> str | None:
     if db.encrypted_secret:
         return decrypt_secret(db.encrypted_secret)
     return None
+
+
+def password_login_allowed(*, session: Session) -> bool:
+    """False when an admin turned local password sign-in off (passkey-only).
+
+    Governs local accounts only: LDAP sign-in has its own Enable switch.
+    """
+    row = get_provider_config(session=session, provider="passkey")
+    if row is None or not row.enabled:
+        return True
+    try:
+        cfg = json.loads(row.config_json or "{}")
+    except ValueError:
+        return True
+    return bool(cfg.get("allow_password_login") != "false")

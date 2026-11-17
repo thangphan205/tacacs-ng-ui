@@ -58,33 +58,59 @@ def _ldap_provider_creds(
     return False, {}, None
 
 
-_GLOBAL_PASSWORD_LOGIN_OFF = "Password login has been disabled by the administrator."
-
-
-def _global_password_login_disabled(session: SessionDep) -> bool:
-    passkey_cfg = auth_providers_crud.get_provider_config(
-        session=session, provider="passkey"
+def _audit_login_failure(
+    session: SessionDep,
+    *,
+    username: str,
+    description: str,
+    user_agent: str | None,
+    ip: str | None,
+) -> None:
+    audit_logs_crud.create_audit_log(
+        session=session,
+        audit_log_in=AuditLogCreate(
+            action="LOGIN_FAILED",
+            entity_type="User",
+            entity_id=username,
+            description=description[:1024],
+            user_agent=user_agent,
+        ),
+        user_id=None,
+        user_email=username,
+        ip_address=ip,
     )
-    if passkey_cfg and passkey_cfg.enabled:
-        cfg = json.loads(passkey_cfg.config_json)
-        return bool(cfg.get("allow_password_login") == "false")
-    return False
 
 
-def _check_password_login_allowed(session: SessionDep, user: User) -> None:
-    """Apply the passkey-only switches to any password-based sign-in.
+def _audit_login_success(
+    session: SessionDep,
+    *,
+    user: User,
+    description: str,
+    user_agent: str | None,
+    ip: str | None,
+) -> None:
+    audit_logs_crud.create_audit_log(
+        session=session,
+        audit_log_in=AuditLogCreate(
+            action="LOGIN_SUCCESS",
+            entity_type="User",
+            entity_id=str(user.id),
+            description=description,
+            user_agent=user_agent,
+        ),
+        user_id=user.id,
+        user_email=user.email,
+        ip_address=ip,
+    )
 
-    LDAP is a password login too: skipping these on that path would let a
-    directory password sign in to an account an administrator restricted to
-    passkeys.
-    """
-    if _global_password_login_disabled(session):
-        raise HTTPException(status_code=400, detail=_GLOBAL_PASSWORD_LOGIN_OFF)
-    if user.password_login_disabled:
-        raise HTTPException(
-            status_code=400,
-            detail="Password login is disabled for this account. Use a passkey to sign in.",
+
+def _token_for(user: User) -> Token:
+    return Token(
+        access_token=security.create_access_token(
+            user.id,
+            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
         )
+    )
 
 
 @router.post("/login/access-token")
@@ -93,63 +119,72 @@ def login_access_token(
     session: SessionDep,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
+    """Local account sign-in (email + password). Never contacts LDAP.
+
+    LDAP has its own endpoint, so a local password — or a typo of one — is
+    never sent to the directory.
+    """
     ip = get_client_ip(request)
     user_agent = request.headers.get("user-agent")
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    def _audit_failure(description: str) -> None:
-        audit_logs_crud.create_audit_log(
-            session=session,
-            audit_log_in=AuditLogCreate(
-                action="LOGIN_FAILED",
-                entity_type="User",
-                entity_id=form_data.username,
-                description=description[:1024],
-                user_agent=user_agent,
-            ),
-            user_id=None,
-            user_email=form_data.username,
-            ip_address=ip,
-        )
-
-    # 1. Local password authentication first (ensures local emergency admin
-    # accounts remain accessible even if external LDAP servers are unreachable).
     user = users.authenticate(
         session=session, email=form_data.username, password=form_data.password
     )
-    if user:
-        if not user.is_active:
-            raise HTTPException(status_code=400, detail="Inactive user")
-        _check_password_login_allowed(session, user)
-
-        audit_logs_crud.create_audit_log(
-            session=session,
-            audit_log_in=AuditLogCreate(
-                action="LOGIN_SUCCESS",
-                entity_type="User",
-                entity_id=str(user.id),
-                description="Password login",
-                user_agent=user_agent,
-            ),
-            user_id=user.id,
-            user_email=user.email,
-            ip_address=ip,
+    if not user:
+        _audit_login_failure(
+            session,
+            username=form_data.username,
+            description="Incorrect email or password",
+            user_agent=user_agent,
+            ip=ip,
         )
-        return Token(
-            access_token=security.create_access_token(
-                user.id, expires_delta=access_token_expires
-            )
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    if not auth_providers_crud.password_login_allowed(session=session):
+        raise HTTPException(
+            status_code=400,
+            detail="Password login has been disabled by the administrator.",
+        )
+    if user.password_login_disabled:
+        raise HTTPException(
+            status_code=400,
+            detail="Password login is disabled for this account. Use a passkey to sign in.",
         )
 
-    # 2. If local authentication did not match, attempt LDAP authentication when enabled.
+    _audit_login_success(
+        session, user=user, description="Password login", user_agent=user_agent, ip=ip
+    )
+    return _token_for(user)
+
+
+@router.post("/login/ldap/access-token")
+def login_ldap_access_token(
+    request: Request,
+    session: SessionDep,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+) -> Token:
+    """LDAP / Active Directory sign-in (directory username + password).
+
+    Governed only by the LDAP provider's Enable switch: the passkey-only
+    switches ("allow password login", per-user ``password_login_disabled``)
+    restrict local passwords, not directory accounts.
+    """
+    ip = get_client_ip(request)
+    user_agent = request.headers.get("user-agent")
+
+    def _fail(description: str) -> None:
+        _audit_login_failure(
+            session,
+            username=form_data.username,
+            description=description,
+            user_agent=user_agent,
+            ip=ip,
+        )
+
     ldap_enabled, ldap_cfg, ldap_secret = _ldap_provider_creds(session)
     if not ldap_enabled:
-        _audit_failure("Incorrect email or password")
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
-
-    # Passkey-only mode: do not even send the password to the directory.
-    if _global_password_login_disabled(session):
-        raise HTTPException(status_code=400, detail=_GLOBAL_PASSWORD_LOGIN_OFF)
+        raise HTTPException(status_code=400, detail="LDAP sign-in is not enabled")
 
     outcome = authenticate_ldap_user(
         username=form_data.username,
@@ -190,7 +225,7 @@ def login_access_token(
         )
         if ldap_user is None:
             if settings.NODE_ROLE == "standby":
-                _audit_failure(
+                _fail(
                     f"LDAP user {outcome.identity.ldap_id} has no account yet; "
                     "first sign-in must happen on the primary"
                 )
@@ -198,7 +233,7 @@ def login_access_token(
                     status_code=403,
                     detail="First sign-in with this directory account must be on the primary node.",
                 )
-            _audit_failure(
+            _fail(
                 f"LDAP identity {outcome.identity.ldap_id} not linked: a local "
                 f"account already uses {outcome.identity.email} (email linking is "
                 "off or the account is a superuser)"
@@ -212,29 +247,18 @@ def login_access_token(
             )
         if not ldap_user.is_active:
             raise HTTPException(status_code=400, detail="Inactive user")
-        _check_password_login_allowed(session, ldap_user)
 
-        audit_logs_crud.create_audit_log(
-            session=session,
-            audit_log_in=AuditLogCreate(
-                action="LOGIN_SUCCESS",
-                entity_type="User",
-                entity_id=str(ldap_user.id),
-                description=f"LDAP login via {outcome.server_used}",
-                user_agent=user_agent,
-            ),
-            user_id=ldap_user.id,
-            user_email=ldap_user.email,
-            ip_address=ip,
+        _audit_login_success(
+            session,
+            user=ldap_user,
+            description=f"LDAP login via {outcome.server_used}",
+            user_agent=user_agent,
+            ip=ip,
         )
-        return Token(
-            access_token=security.create_access_token(
-                ldap_user.id, expires_delta=access_token_expires
-            )
-        )
+        return _token_for(ldap_user)
 
     # The detail stays in the audit log; the client gets as little as it needs.
-    _audit_failure(f"LDAP {outcome.reason}: {outcome.message}")
+    _fail(f"LDAP {outcome.reason}: {outcome.message}")
     if outcome.reason == "group_denied":
         raise HTTPException(
             status_code=403,
@@ -244,7 +268,7 @@ def login_access_token(
         raise HTTPException(status_code=403, detail=outcome.message)
     if outcome.reason == "unavailable":
         raise HTTPException(status_code=503, detail=outcome.message)
-    raise HTTPException(status_code=400, detail="Incorrect email or password")
+    raise HTTPException(status_code=400, detail="Incorrect username or password")
 
 
 @router.post("/login/test-token", response_model=UserPublic)

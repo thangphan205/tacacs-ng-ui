@@ -1059,6 +1059,36 @@ export type BodyLoginLoginAccessToken = {
 };
 
 /**
+ * Body_login-login_ldap_access_token
+ */
+export type BodyLoginLoginLdapAccessToken = {
+    /**
+     * Grant Type
+     */
+    grant_type?: string | null;
+    /**
+     * Username
+     */
+    username: string;
+    /**
+     * Password
+     */
+    password: string;
+    /**
+     * Scope
+     */
+    scope?: string;
+    /**
+     * Client Id
+     */
+    client_id?: string | null;
+    /**
+     * Client Secret
+     */
+    client_secret?: string | null;
+};
+
+/**
  * ConfigurationOptionCreate
  */
 export type ConfigurationOptionCreate = {
@@ -4019,6 +4049,31 @@ export type LoginLoginAccessTokenResponses = {
 };
 
 export type LoginLoginAccessTokenResponse = LoginLoginAccessTokenResponses[keyof LoginLoginAccessTokenResponses];
+
+export type LoginLoginLdapAccessTokenData = {
+    body: BodyLoginLoginLdapAccessToken;
+    path?: never;
+    query?: never;
+    url: '/api/v1/login/ldap/access-token';
+};
+
+export type LoginLoginLdapAccessTokenErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type LoginLoginLdapAccessTokenError = LoginLoginLdapAccessTokenErrors[keyof LoginLoginLdapAccessTokenErrors];
+
+export type LoginLoginLdapAccessTokenResponses = {
+    /**
+     * Successful Response
+     */
+    200: Token;
+};
+
+export type LoginLoginLdapAccessTokenResponse = LoginLoginLdapAccessTokenResponses[keyof LoginLoginLdapAccessTokenResponses];
 
 export type LoginTestTokenData = {
     body?: never;

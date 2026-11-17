@@ -72,6 +72,23 @@ const useAuth = () => {
     },
   })
 
+  const ldapLogin = async (data: AccessToken) => {
+    const response = await LoginService.loginLdapAccessToken({
+      bodyLoginLoginLdapAccessToken: data,
+    })
+    localStorage.setItem("access_token", response.access_token)
+  }
+
+  const ldapLoginMutation = useMutation({
+    mutationFn: ldapLogin,
+    onSuccess: () => {
+      navigate({ to: "/" })
+    },
+    onError: (err: ApiError) => {
+      handleError(err)
+    },
+  })
+
   const logout = () => {
     localStorage.removeItem("access_token")
     navigate({ to: "/login" })
@@ -80,6 +97,7 @@ const useAuth = () => {
   return {
     signUpMutation,
     loginMutation,
+    ldapLoginMutation,
     logout,
     user,
     error,

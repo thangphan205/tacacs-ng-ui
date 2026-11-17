@@ -241,6 +241,9 @@ def auth_providers_status(session: SessionDep) -> dict[str, bool]:
         "ldap": _enabled("ldap", settings.LDAP_HOSTS),
         "microsoft": _enabled("microsoft", settings.MICROSOFT_CLIENT_ID),
         "passkey": db_map.get("passkey", True),
+        # Local email + password sign-in; the login page hides that form when
+        # off. Presentation only — /login/access-token enforces it.
+        "password_login": auth_providers_crud.password_login_allowed(session=session),
         # Lets the login page hide its "Sign up" link, and the signup route
         # turn people away, instead of offering a form that can only fail.
         # This is presentation only — POST /users/signup enforces the setting.
