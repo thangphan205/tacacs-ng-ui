@@ -59,10 +59,17 @@ interface CredentialsFormProps {
   method: LoginMethod
   onSubmit: (data: AccessToken) => Promise<unknown>
   error: string | null
+  /** One line above the fields; tabs give both forms one so they match height. */
+  hint?: string
 }
 
 /** One sign-in form: local (email) or LDAP (directory username). */
-function CredentialsForm({ method, onSubmit, error }: CredentialsFormProps) {
+function CredentialsForm({
+  method,
+  onSubmit,
+  error,
+  hint,
+}: CredentialsFormProps) {
   const isLocal = method === "local"
   const {
     register,
@@ -91,9 +98,10 @@ function CredentialsForm({ method, onSubmit, error }: CredentialsFormProps) {
       flexDirection="column"
       gap={5}
     >
-      {!isLocal && (
-        <Text fontSize="sm" color="fg.muted">
-          Use your directory (LDAP / Active Directory) account.
+      {hint && (
+        // One line at any width, so both tabs keep the same height.
+        <Text fontSize="sm" color="fg.muted" lineClamp={1} title={hint}>
+          {hint}
         </Text>
       )}
 
@@ -303,6 +311,9 @@ function Login() {
   const localForm = (
     <CredentialsForm
       method="local"
+      // The page is centred vertically: matching the LDAP hint keeps both tabs
+      // the same height, so the form does not jump when switching.
+      hint={showLdap ? "Sign in with your local account." : undefined}
       error={error}
       onSubmit={(data) => {
         resetError()
@@ -313,6 +324,7 @@ function Login() {
   const ldapForm = (
     <CredentialsForm
       method="ldap"
+      hint="Sign in with your directory account."
       error={error}
       onSubmit={(data) => {
         resetError()
