@@ -16,6 +16,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump dnspython from 2.9.0 to 2.9.2 in /backend. PR [#416](https://github.com/thangphan205/tacacs-ng-ui/pull/416) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @chakra-ui/react from 3.36.1 to 3.38.0 in /frontend. PR [#411](https://github.com/thangphan205/tacacs-ng-ui/pull/411) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @simplewebauthn/browser from 13.3.0 to 14.0.0 in /frontend. PR [#414](https://github.com/thangphan205/tacacs-ng-ui/pull/414) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @tanstack/react-router from 1.170.32 to 1.170.46 in /frontend. PR [#415](https://github.com/thangphan205/tacacs-ng-ui/pull/415) by [@dependabot[bot]](https://github.com/apps/dependabot).
