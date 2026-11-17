@@ -375,6 +375,10 @@ function Login() {
               onValueChange={(e) => changeTab(e.value as LoginMethod)}
               variant="line"
               fitted
+              // Only the active form is in the DOM, so password managers and
+              // autofill see one username/password pair, not two.
+              lazyMount
+              unmountOnExit
             >
               <Tabs.List>
                 <Tabs.Trigger value="ldap">LDAP</Tabs.Trigger>
