@@ -164,6 +164,10 @@ def resolve_api_key(raw: str, ip: str | None = None) -> ApiKeyPrincipal | None:
         user = session.get(User, api_key.user_id)
         if user is None or not user.is_active:
             return None
+        if user.ldap_id:
+            # A directory account's key would outlive its removal from the
+            # directory or the Required LDAP Group (#404), like a passkey.
+            return None
 
         principal = ApiKeyPrincipal(
             user_id=user.id,

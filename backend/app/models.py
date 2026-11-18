@@ -26,6 +26,11 @@ def _utc_now() -> datetime:
 TZ_DATETIME = sa.DateTime(timezone=True)
 
 
+# ``User.ldap_id`` of an account an administrator reset with "Reset LDAP link"
+# (crud.users.mark_ldap_relink).
+LDAP_RELINK_PREFIX = "relink:"
+
+
 class TimestampModel(SQLModel):
     created_at: datetime = Field(
         sa_type=TZ_DATETIME, default_factory=_utc_now, nullable=False
@@ -108,6 +113,11 @@ class User(UserBase, TimestampModel, table=True):
             methods.append("Passkeys")
         return methods
 
+    @property
+    def ldap_relink_pending(self) -> bool:
+        """An admin reset the LDAP link; the next LDAP sign-in re-links it."""
+        return bool(self.ldap_id and self.ldap_id.startswith(LDAP_RELINK_PREFIX))
+
 
 # Properties to return via API, id is always required
 class UserPublic(UserBase):
@@ -116,6 +126,7 @@ class UserPublic(UserBase):
     updated_at: datetime
     password_login_disabled: bool
     login_methods: list[str] = Field(default_factory=list)
+    ldap_relink_pending: bool = False
 
 
 class UsersPublic(SQLModel):

@@ -19,6 +19,7 @@ from urllib.parse import urlparse
 
 from ldap3 import NONE, SUBTREE, Connection, Server, Tls
 from ldap3.core.exceptions import (
+    LDAPBindError,
     LDAPBusyResult,
     LDAPCommunicationError,
     LDAPException,
@@ -154,6 +155,9 @@ class LdapIdentity:
     user_dn: str
     email: str
     full_name: str | None
+    # The directory username (``username_attr``): lets an account keyed on it
+    # (no readable unique ID) be re-keyed once the ID becomes readable.
+    username: str = ""
 
 
 @dataclass
@@ -413,10 +417,38 @@ def _build_tls(cfg: LdapEffectiveConfig) -> Tls:
     return Tls(**kwargs)
 
 
+_PLACEHOLDER_RE: dict[str, re.Pattern[str]] = {
+    name: re.compile(r"\{" + name + r"\}|%s") for name in ("username", "group")
+}
+
+
+def _fill_placeholder(template: str, name: str, value: str) -> str:
+    """Substitute `{name}` and MAVIS-style `%s` in one pass.
+
+    Two chained ``replace`` calls would substitute a ``%s`` inside the
+    already-inserted value a second time (``ab%scd`` -> ``abab%scdcd``).
+    """
+    escaped = escape_filter_chars(value)
+    return _PLACEHOLDER_RE[name].sub(lambda _m: escaped, template)
+
+
 def _format_user_filter(template: str, username: str) -> str:
-    escaped = escape_filter_chars(username)
-    rendered = template.replace("{username}", escaped).replace("%s", escaped)
-    return rendered
+    return _fill_placeholder(template, "username", username)
+
+
+def ca_cert_error(pem: str) -> str | None:
+    """Why `pem` cannot be used as the CA bundle, or None when it can.
+
+    Checked up front: a malformed PEM raises ``ssl.SSLError``, an ``OSError``,
+    which would otherwise read as every server being unreachable.
+    """
+    if not pem.strip():
+        return None
+    try:
+        ssl.create_default_context(cadata=pem)
+    except (ssl.SSLError, ValueError) as exc:
+        return f"CA certificate is not a valid PEM bundle: {exc}"
+    return None
 
 
 def _extract_first_str(entry_attrs: dict[str, Any], attr_name: str) -> str | None:
@@ -522,6 +554,21 @@ def _dn_is_under(dn: list[tuple[str, str]], base: list[tuple[str, str]]) -> bool
     return len(dn) > len(base) and dn[-len(base) :] == base
 
 
+def _rebind_as_user(conn: Connection, user_dn: str, password: str) -> None:
+    """Simple-bind `conn` as the user to verify the password.
+
+    ldap3's ``rebind`` turns a connection the server dropped into
+    ``LDAPBindError``; re-raise the socket error so it fails over instead of
+    reading as a wrong password.
+    """
+    try:
+        conn.rebind(user=user_dn, password=password)
+    except LDAPBindError as exc:
+        if isinstance(exc.__context__, _UNAVAILABLE_ERRORS):
+            raise exc.__context__ from exc
+        raise
+
+
 class LdapGroupSearchError(Exception):
     """The required-group search itself failed (bad base DN, filter or rights)."""
 
@@ -610,7 +657,6 @@ def _check_required_group(
     # POSIX memberUid, uniqueMember, and Active Directory nested groups)
     escaped_dn = escape_filter_chars(user_dn)
     escaped_uid = escape_filter_chars(username)
-    escaped_group_cn = escape_filter_chars(required_cn)
 
     member_attrs = [
         a.strip() for a in cfg.group_member_attr.split(",") if a.strip()
@@ -641,9 +687,7 @@ def _check_required_group(
         search_filter = membership_or
     else:
         search_base = cfg.group_base_dn or cfg.base_dn
-        group_clause = cfg.group_search_filter.replace(
-            "{group}", escaped_group_cn
-        ).replace("%s", escaped_group_cn)
+        group_clause = _fill_placeholder(cfg.group_search_filter, "group", required_cn)
         search_filter = f"(&{group_clause}{membership_or})"
 
     try:
@@ -706,6 +750,9 @@ def authenticate_ldap_user(
             reason="misconfigured",
             message="A Bind DN is set but no Bind Password is configured.",
         )
+    ca_error = ca_cert_error(cfg.ca_cert_pem)
+    if ca_error:
+        return LdapAuthOutcome(ok=False, reason="misconfigured", message=ca_error)
 
     failed_servers: list[tuple[str, str]] = []
 
@@ -875,7 +922,7 @@ def authenticate_ldap_user(
             # Verify the user's password: simple bind as user_dn on the same
             # connection (no second TCP/TLS handshake).
             try:
-                conn.rebind(user=user_dn, password=password)
+                _rebind_as_user(conn, user_dn, password)
             except LDAPInvalidCredentialsResult:
                 return _fail(
                     "invalid_credentials", "Invalid LDAP username or password."
@@ -912,6 +959,7 @@ def authenticate_ldap_user(
                         user_dn=user_dn,
                         email=_extract_first_str(entry_attrs, cfg.email_attr) or "",
                         full_name=resolved_name,
+                        username=resolved_uid,
                     ),
                 )
 
@@ -939,6 +987,7 @@ def authenticate_ldap_user(
                     user_dn=user_dn,
                     email=resolved_email,
                     full_name=resolved_name,
+                    username=resolved_uid,
                 ),
                 server_used=target.url,
                 failover_occurred=len(failed_servers) > 0,
@@ -983,6 +1032,9 @@ def check_ldap_servers_connection(
             ok=False,
             message="A Bind DN is set but no Bind Password is configured.",
         )
+    ca_error = ca_cert_error(cfg.ca_cert_pem)
+    if ca_error:
+        return LdapTestConnectionResponse(ok=False, message=ca_error)
 
     results: list[LdapServerDiagResult] = []
     # The server sign-in would stop at: (index, url, error or None when bound)

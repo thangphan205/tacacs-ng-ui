@@ -7,7 +7,14 @@ from sqlmodel import Session, func, select
 
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
-from app.models import Item, ItemCreate, User, UserCreate, UserUpdate
+from app.models import (
+    LDAP_RELINK_PREFIX,
+    Item,
+    ItemCreate,
+    User,
+    UserCreate,
+    UserUpdate,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +237,51 @@ def get_user_by_ldap_id(*, session: Session, ldap_id: str) -> User | None:
     return session.exec(select(User).where(User.ldap_id == ldap_id)).first()
 
 
+# An account an administrator reset with "Reset LDAP link" keeps an
+# ``ldap_id`` of LDAP_RELINK_PREFIX + its id: still a directory account (truthy,
+# so local passwords, passkeys, SSO and API keys stay refused), and the next
+# LDAP sign-in with its email re-links it even when email linking is off.
+# Unique per user, as the column is.
+
+
+def is_ldap_relink_pending(user: User) -> bool:
+    return user.ldap_relink_pending
+
+
+def mark_ldap_relink(*, session: Session, user: User) -> User:
+    """Let the next LDAP sign-in with this account's email link it again.
+
+    For after the directory's identifier changed (a new Unique ID Attribute
+    or provider type), which would otherwise lock every account out: the email
+    step never re-points an account already linked to another entry.
+    """
+    user.ldap_id = f"{LDAP_RELINK_PREFIX}{user.id}"
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
+# Why `get_or_create_ldap_user` gave no account.
+LDAP_NEW_ON_STANDBY = "new_on_standby"
+LDAP_EMAIL_LINK_OFF = "email_link_off"
+LDAP_SUPERUSER = "superuser"
+LDAP_LINKED_ELSEWHERE = "linked_elsewhere"
+LDAP_OPEN_REGISTRATION = "open_registration"
+
+
+def _link_ldap(
+    *, session: Session, user: User, ldap_id: str, full_name: str | None
+) -> User:
+    user.ldap_id = ldap_id
+    if full_name and not user.full_name:
+        user.full_name = full_name
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
 def get_or_create_ldap_user(
     *,
     session: Session,
@@ -237,64 +289,89 @@ def get_or_create_ldap_user(
     email: str,
     full_name: str | None,
     allow_email_link: bool,
-) -> User | None:
+    username: str = "",
+) -> tuple[User | None, str | None]:
     """Find, link or create the user for an authenticated LDAP identity.
 
-    Returns ``None`` when the identity cannot be given an account:
+    Returns ``(user, None)``, or ``(None, reason)`` when the identity cannot be
+    given an account — one of the ``LDAP_*`` reasons above:
 
-    - an account with this email is already linked to a *different* directory
-      entry (``ldap_id``) — never re-pointed, whatever ``allow_email_link`` says;
-
-    - an account with this email exists, is not linked yet, and either email
-      linking is off (the default) or that account is a superuser. LDAP
-      ``mail`` is directory data that help desks and self-service portals can
-      often edit, so linking on it would let whoever controls an entry's
-      ``mail`` sign in as the local account holding that address — including
-      the emergency administrator;
-    - the identity is new and this node is a standby (read-only replica).
+    - ``linked_elsewhere``: an account with this email is already linked to a
+      *different* directory entry; never re-pointed, whatever
+      ``allow_email_link`` says. Two exceptions, both the same person: an
+      administrator reset the link (`mark_ldap_relink`), or the account was
+      keyed on this very username because the entry had no readable unique ID
+      then;
+    - ``email_link_off`` / ``superuser``: an unlinked account with this email
+      exists and email linking is off, or it is a superuser. LDAP ``mail`` is
+      directory data that help desks and self-service portals can often edit,
+      so linking on it would let whoever controls an entry's ``mail`` sign in
+      as the local account holding that address — including the emergency
+      administrator;
+    - ``open_registration``: linking would be allowed, but anyone can sign up
+      (``USERS_OPEN_REGISTRATION``), so the "existing" account may be one an
+      attacker registered with the victim's address — and its tokens would
+      survive the link;
+    - ``new_on_standby``: the identity is new and this node is a standby
+      (read-only replica).
 
     Authentication only: an existing account keeps its ``is_superuser`` and
     ``is_active`` flags, and new accounts are created read-only.
     """
     normalized_id = ldap_id.strip().lower()
     normalized_email = email.strip().lower()
+    standby = settings.NODE_ROLE == "standby"
 
     # 1. Already linked via ldap_id
     user = get_user_by_ldap_id(session=session, ldap_id=normalized_id)
     if user:
-        return user
+        return user, None
 
-    # 2. Existing account with same email — link it only when the admin opted
-    # in. Case-insensitive: a miss here would create a near-duplicate account
-    # next to `Admin@corp.com` and skip the superuser protection below.
+    # 2. Existing account with same email. Case-insensitive: a miss here would
+    # create a near-duplicate account next to `Admin@corp.com` and skip the
+    # superuser protection below.
     user = get_user_by_email_ci(session=session, email=normalized_email)
     if user:
-        if not allow_email_link or user.is_superuser:
-            return None
         if user.ldap_id is not None:
-            # Already another directory entry's account: re-pointing it would
-            # hand it to whoever can set their `mail` to this address.
-            logger.warning(
-                "LDAP identity %s refused: %s is already linked to another "
-                "directory entry",
-                normalized_id,
-                user.email,
-            )
-            return None
-        if settings.NODE_ROLE == "standby":
-            return user
-        user.ldap_id = normalized_id
-        if full_name and not user.full_name:
-            user.full_name = full_name
-        session.add(user)
-        session.commit()
-        session.refresh(user)
-        return user
+            # Keyed on this username while the entry had no readable unique
+            # ID: same username and same email, so the same directory entry.
+            same_entry = bool(username) and user.ldap_id == username.strip().lower()
+            admin_reset = is_ldap_relink_pending(user)
+            if not (same_entry or admin_reset):
+                # Already another directory entry's account: re-pointing it
+                # would hand it to whoever can set their `mail` to this address.
+                logger.warning(
+                    "LDAP identity %s refused: %s is already linked to another "
+                    "directory entry",
+                    normalized_id,
+                    user.email,
+                )
+                return None, LDAP_LINKED_ELSEWHERE
+            if admin_reset and user.is_superuser:
+                # Until its owner signs in, whoever's `mail` matches would claim
+                # it: demote, reset, let them sign in, then promote again.
+                return None, LDAP_SUPERUSER
+            if standby:
+                return None, LDAP_NEW_ON_STANDBY
+            return _link_ldap(
+                session=session, user=user, ldap_id=normalized_id, full_name=full_name
+            ), None
+        if user.is_superuser:
+            return None, LDAP_SUPERUSER
+        if not allow_email_link:
+            return None, LDAP_EMAIL_LINK_OFF
+        if settings.USERS_OPEN_REGISTRATION:
+            return None, LDAP_OPEN_REGISTRATION
+        if standby:
+            return user, None
+        return _link_ldap(
+            session=session, user=user, ldap_id=normalized_id, full_name=full_name
+        ), None
 
     # 3. New user — created on the primary only, with a random unguessable
     # password and the read-only role
-    if settings.NODE_ROLE == "standby":
-        return None
+    if standby:
+        return None, LDAP_NEW_ON_STANDBY
     user = User(
         email=normalized_email,
         full_name=full_name,
@@ -306,7 +383,7 @@ def get_or_create_ldap_user(
     session.add(user)
     session.commit()
     session.refresh(user)
-    return user
+    return user, None
 
 
 def create_item(*, session: Session, item_in: ItemCreate, owner_id: uuid.UUID) -> Item:

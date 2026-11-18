@@ -821,3 +821,64 @@ def test_service_bind_answer_ends_sign_in_but_busy_fails_over(
     )
     assert outcome.ok is True
     assert outcome.failover_occurred is True
+
+
+def test_placeholders_are_filled_once() -> None:
+    """A `%s` inside the username must not be substituted a second time."""
+    assert _format_user_filter("(|(uid={username})(cn=%s))", "ab%scd") == (
+        "(|(uid=ab%scd)(cn=ab%scd))"
+    )
+
+
+def test_connection_dropped_during_user_bind_fails_over(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ldap3's rebind wraps the socket error in LDAPBindError: still a failover."""
+    from ldap3.core.exceptions import LDAPBindError, LDAPSocketReceiveError
+
+    def dropped_rebind(**_kwargs: Any) -> None:
+        try:
+            raise LDAPSocketReceiveError("connection reset")
+        except LDAPSocketReceiveError:
+            raise LDAPBindError("server abruptly closed the connection")  # noqa: B904
+
+    def fake_open(
+        target: LdapServerTarget,
+        cfg: LdapEffectiveConfig,
+        bind_dn: str | None,
+        bind_password: str | None = None,
+    ) -> Any:
+        _ = (cfg, bind_dn, bind_password)
+        conn = MagicMock()
+        conn.entries = [_alice()]
+        if target.host == "ldap01.example.com":
+            conn.rebind.side_effect = dropped_rebind
+        return conn
+
+    monkeypatch.setattr("app.core.ldap_auth._open_server_connection", fake_open)
+    outcome = authenticate_ldap_user(
+        username="alice", password="pw", raw_config=_BASE_CFG, secret="s"
+    )
+    assert outcome.ok is True
+    assert outcome.server_used == "ldap://ldap02.example.com:389"
+
+
+def test_malformed_ca_certificate_is_misconfigured_not_unreachable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_open(**_kwargs: Any) -> Any:
+        raise AssertionError("no connection with an unusable CA bundle")
+
+    monkeypatch.setattr("app.core.ldap_auth._open_server_connection", fake_open)
+    cfg = {
+        **_BASE_CFG,
+        "ca_cert_pem": "-----BEGIN CERTIFICATE-----\nMIIBtrunc\n-----END CERTIFICATE-----",
+    }
+    outcome = authenticate_ldap_user(
+        username="alice", password="pw", raw_config=cfg, secret="s"
+    )
+    assert outcome.reason == "misconfigured"
+    assert "CA certificate" in outcome.message
+    res = check_ldap_servers_connection(raw_config=cfg, secret="s")
+    assert res.ok is False
+    assert "CA certificate" in res.message

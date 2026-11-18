@@ -293,6 +293,7 @@ def test_ldap_links_existing_account_only_when_enabled(
     assert existing.ldap_id is None
 
     _enable_ldap(db, allow_email_link="true")
+    monkeypatch.setattr(settings, "USERS_OPEN_REGISTRATION", False)
     assert _login(client, "existing").status_code == 200
     db.refresh(existing)
     assert existing.ldap_id == "existing"
@@ -555,6 +556,7 @@ def test_ldap_email_match_is_case_insensitive(
     )
 
     _enable_ldap(db, allow_email_link="true")
+    monkeypatch.setattr(settings, "USERS_OPEN_REGISTRATION", False)
     assert _login(client, "casey").status_code == 200
     linked = db.exec(select(User).where(User.ldap_id == "casey")).one()
     assert linked.email == "Ldap-Case@example.com"
@@ -709,3 +711,242 @@ def test_failover_is_audited_once_per_window(
     for _ in range(3):
         assert _login(client, "netadmin1").status_code == 200
     assert count() == before + 1
+
+
+def test_email_linking_is_refused_while_anyone_can_sign_up(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A self-registered account with the victim's email must not be linked."""
+    db.add(
+        User(
+            email="ldap-existing@example.com",
+            hashed_password=get_password_hash("local-password-1"),
+        )
+    )
+    db.commit()
+    monkeypatch.setattr(settings, "USERS_OPEN_REGISTRATION", True)
+    _enable_ldap(db, allow_email_link="true")
+    _fake_ldap_success(monkeypatch, ldap_id="victim", email="ldap-existing@example.com")
+
+    assert _login(client, "victim").status_code == 403
+    audit = db.exec(
+        select(AuditLog)
+        .where(AuditLog.action == "LOGIN_FAILED", AuditLog.entity_id == "victim")
+        .order_by(AuditLog.created_at.desc())  # type: ignore[attr-defined]
+    ).first()
+    assert audit is not None
+    assert "USERS_OPEN_REGISTRATION" in (audit.description or "")
+
+
+def test_standby_names_the_real_refusal(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A superuser email conflict is not "sign in on the primary first"."""
+    _enable_ldap(db)
+    _fake_ldap_success(monkeypatch, ldap_id="mallory", email=settings.FIRST_SUPERUSER)
+    monkeypatch.setattr(settings, "NODE_ROLE", "standby")
+    r = _login(client, "mallory")
+    monkeypatch.setattr(settings, "NODE_ROLE", "primary")
+    assert r.status_code == 403
+    assert "primary" not in r.json()["detail"]
+
+
+def test_username_keyed_account_is_rekeyed_to_the_unique_id(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Keyed on its username while no ID was readable: same entry, re-keyed."""
+    user = User(
+        email="ldap-existing@example.com",
+        hashed_password=get_password_hash("local-password-1"),
+        ldap_id="alice",
+    )
+    db.add(user)
+    db.commit()
+    _enable_ldap(db)  # email linking off: not needed for the same entry
+
+    def fake_auth(**_kwargs: Any) -> LdapAuthOutcome:
+        return LdapAuthOutcome(
+            ok=True,
+            reason="ok",
+            message="ok",
+            identity=LdapIdentity(
+                ldap_id="0f8c-guid",
+                user_dn="uid=alice,dc=example,dc=com",
+                email=user.email,
+                full_name=None,
+                username="Alice",
+            ),
+        )
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", fake_auth)
+    assert _login(client, "alice").status_code == 200
+    db.refresh(user)
+    assert user.ldap_id == "0f8c-guid"
+
+
+def test_admin_reset_lets_the_next_ldap_sign_in_relink(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    alice = _ldap_account(db)  # ldap_id="dirbound"
+    _enable_ldap(db)  # email linking off
+    _fake_ldap_success(monkeypatch, ldap_id="new-guid", email=alice.email)
+    assert _login(client, "alice").status_code == 403  # linked elsewhere
+
+    r = client.post(
+        f"{settings.API_V1_STR}/users/{alice.id}/reset-ldap-link",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["ldap_relink_pending"] is True
+    # Still a directory account meanwhile.
+    assert _local_login(client, alice.email, "local-password-1").status_code == 400
+
+    assert _login(client, "alice").status_code == 200
+    db.refresh(alice)
+    assert alice.ldap_id == "new-guid"
+    assert db.exec(
+        select(AuditLog).where(
+            AuditLog.entity_id == str(alice.id),
+            AuditLog.description.contains("LDAP link reset"),  # type: ignore[union-attr]
+        )
+    ).first()
+
+
+def test_reset_ldap_link_refuses_superusers_and_local_accounts(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
+    superuser = db.exec(
+        select(User).where(User.email == settings.FIRST_SUPERUSER)
+    ).one()
+    r = client.post(
+        f"{settings.API_V1_STR}/users/{superuser.id}/reset-ldap-link",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 400  # not an LDAP account
+
+    alice = _ldap_account(db)
+    alice.is_superuser = True
+    db.add(alice)
+    db.commit()
+    r = client.post(
+        f"{settings.API_V1_STR}/users/{alice.id}/reset-ldap-link",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 400
+    assert "superuser" in r.json()["detail"]
+
+
+def test_api_keys_refused_for_ldap_accounts(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
+    from app.crud import api_keys as api_keys_crud
+    from app.models import ApiKey, ApiKeyCreate
+
+    alice = _ldap_account(db)
+    r = client.post(
+        f"{settings.API_V1_STR}/api_keys/",
+        headers=superuser_token_headers,
+        json={"name": "ldap-key", "scopes": "mcp:read", "user_id": str(alice.id)},
+    )
+    assert r.status_code == 400, r.text
+
+    # A key made before the account was linked stops working.
+    _key, plaintext = api_keys_crud.create_api_key(
+        session=db,
+        api_key_create=ApiKeyCreate(name="pre-link", scopes="mcp:read"),
+        owner_id=alice.id,
+        created_by_id=alice.id,
+    )
+    try:
+        assert api_keys_crud.resolve_api_key(plaintext) is None
+    finally:
+        db.execute(delete(ApiKey).where(ApiKey.user_id == alice.id))  # type: ignore[arg-type]
+        db.commit()
+
+
+def test_enable_switch_before_save_still_shows_env_settings(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    """Toggling creates a row with no settings: the card must keep the env's."""
+    monkeypatch.setattr(settings, "LDAP_HOSTS", "ldaps://dc1.example.com")
+    monkeypatch.setattr(settings, "LDAP_BASE_DN", "dc=example,dc=com")
+    r = client.put(
+        ADMIN_LDAP_URL, headers=superuser_token_headers, json={"enabled": False}
+    )
+    assert r.status_code == 200, r.text
+    body = client.get(ADMIN_LDAP_URL, headers=superuser_token_headers).json()
+    assert body["enabled"] is False
+    assert body["config"]["hosts"] == "ldaps://dc1.example.com"
+    assert body["config"]["base_dn"] == "dc=example,dc=com"
+
+
+def test_provider_changes_and_test_sign_ins_are_audited(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    marker = f"grp-{uuid.uuid4().hex[:8]}"
+    r = client.put(
+        ADMIN_LDAP_URL,
+        headers=superuser_token_headers,
+        json={
+            "config": {**LDAP_CONFIG, "required_group": marker},
+            "secret": "s3cret-x",
+        },
+    )
+    assert r.status_code == 200, r.text
+    entry = db.exec(
+        select(AuditLog).where(
+            AuditLog.entity_type == "AuthProviderConfig",
+            AuditLog.new_values.contains(marker),  # type: ignore[union-attr]
+        )
+    ).first()
+    assert entry is not None
+    assert "s3cret-x" not in (entry.new_values or "")
+    assert entry.description == "Secret changed"
+
+    from app.models import LdapTestAuthResponse
+
+    monkeypatch.setattr(
+        "app.api.routes.admin_auth.check_ldap_user_auth",
+        lambda **_kw: LdapTestAuthResponse(ok=False, message="Invalid password"),
+    )
+    probe = f"probe-{uuid.uuid4().hex[:8]}"
+    r = client.post(
+        f"{ADMIN_LDAP_URL}/test-auth",
+        headers=superuser_token_headers,
+        json={"username": probe, "password": "guess", "config": LDAP_CONFIG},
+    )
+    assert r.status_code == 200, r.text
+    entry = db.exec(
+        select(AuditLog).where(
+            AuditLog.action == "LDAP_TEST_AUTH",
+            AuditLog.description.contains(probe),  # type: ignore[union-attr]
+        )
+    ).first()
+    assert entry is not None
+    assert "guess" not in (entry.description or "")
+
+
+def test_invalid_ca_certificate_is_refused_on_save(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.put(
+        ADMIN_LDAP_URL,
+        headers=superuser_token_headers,
+        json={
+            "config": {
+                **LDAP_CONFIG,
+                "ca_cert_pem": "-----BEGIN CERTIFICATE-----\nMIIBtrunc\n-----END CERTIFICATE-----",
+            },
+            "secret": "x",
+        },
+    )
+    assert r.status_code == 422
+    assert "CA certificate" in r.json()["detail"]

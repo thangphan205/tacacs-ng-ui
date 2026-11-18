@@ -38,6 +38,16 @@ router = APIRouter(tags=["login"])
 
 _FAILOVER_AUDIT_WINDOW = timedelta(minutes=15)
 
+# Audit-log wording for each `get_or_create_ldap_user` refusal.
+_LINK_REFUSALS: dict[str, str] = {
+    users.LDAP_EMAIL_LINK_OFF: "a local account uses that email and email linking is off",
+    users.LDAP_SUPERUSER: "the account with that email is a superuser",
+    users.LDAP_LINKED_ELSEWHERE: "that account is linked to another directory entry",
+    users.LDAP_OPEN_REGISTRATION: (
+        "email linking is refused while USERS_OPEN_REGISTRATION is on"
+    ),
+}
+
 _LDAP_ACCOUNT_DETAIL = (
     "This account signs in with LDAP. Use the LDAP tab; its password is "
     "managed in the directory."
@@ -246,28 +256,28 @@ def login_ldap_access_token(
         )
 
     if outcome.ok and outcome.identity is not None:
-        ldap_user = users.get_or_create_ldap_user(
+        ldap_user, refusal = users.get_or_create_ldap_user(
             session=session,
             ldap_id=outcome.identity.ldap_id,
             email=outcome.identity.email,
             full_name=outcome.identity.full_name,
             allow_email_link=effective.allow_email_link,
+            username=outcome.identity.username,
         )
         if ldap_user is None:
-            if settings.NODE_ROLE == "standby":
+            ident = outcome.identity
+            if refusal == users.LDAP_NEW_ON_STANDBY:
                 _fail(
-                    f"LDAP user {outcome.identity.ldap_id} has no account yet; "
-                    "first sign-in must happen on the primary"
+                    f"LDAP user {ident.ldap_id} has no account yet; first "
+                    "sign-in must happen on the primary"
                 )
                 raise HTTPException(
                     status_code=403,
                     detail="First sign-in with this directory account must be on the primary node.",
                 )
             _fail(
-                f"LDAP identity {outcome.identity.ldap_id} not linked: a local "
-                f"account already uses {outcome.identity.email} (email linking is "
-                "off, the account is a superuser, or it is linked to another "
-                "directory entry)"
+                f"LDAP identity {ident.ldap_id} not linked to {ident.email}: "
+                f"{_LINK_REFUSALS.get(refusal or '', refusal)}"
             )
             raise HTTPException(
                 status_code=403,

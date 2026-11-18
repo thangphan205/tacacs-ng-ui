@@ -151,6 +151,28 @@ def ldap_env_public() -> AuthProviderConfigPublic:
     )
 
 
+def ldap_public(*, session: Session) -> AuthProviderConfigPublic:
+    """The LDAP card's view: the saved settings, or the env ones in effect.
+
+    The Enable switch saves no settings, so a row whose config is still empty
+    shows the ``LDAP_*`` values sign-in uses — otherwise the card would show
+    placeholders and Save would write them over a working env setup.
+    """
+    row = get_provider_config(session=session, provider="ldap")
+    if row is None:
+        return ldap_env_public()
+    public = to_public(row)
+    if public.config:
+        return public
+    env = ldap_env_public()
+    return env.model_copy(
+        update={
+            "enabled": row.enabled,
+            "secret_is_set": public.secret_is_set or env.secret_is_set,
+        }
+    )
+
+
 def _secret_destination(cfg: LdapEffectiveConfig) -> tuple[object, ...]:
     """Everything that decides where, and how safely, the bind password is sent."""
     return (
