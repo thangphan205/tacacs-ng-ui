@@ -20,6 +20,7 @@ from app.core.ldap_auth import (
     build_effective_ldap_config,
     check_ldap_servers_connection,
     check_ldap_user_auth,
+    invalid_ldap_server_entries,
     parse_ldap_servers,
 )
 
@@ -523,3 +524,157 @@ def test_no_usable_email_is_refused(
     )
     assert outcome.ok is False
     assert outcome.reason == "no_email"
+
+
+def test_bare_group_name_in_member_of_must_sit_under_group_base_dn(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A same-named group outside the Group Base DN must not satisfy the gate."""
+    cfg = {
+        **_BASE_CFG,
+        "required_group": "netops",
+        "group_base_dn": "ou=groups,dc=example,dc=com",
+    }
+
+    monkeypatch.setattr(
+        "app.core.ldap_auth._open_server_connection",
+        _single_entry_open(
+            _alice({"memberOf": ["cn=netops,ou=contractors,dc=example,dc=com"]})
+        ),
+    )
+    denied = authenticate_ldap_user(
+        username="alice", password="pw", raw_config=cfg, secret="s"
+    )
+    assert denied.reason == "group_denied"
+
+    # Under the base, in the directory's own spelling of the DN.
+    monkeypatch.setattr(
+        "app.core.ldap_auth._open_server_connection",
+        _single_entry_open(
+            _alice({"memberOf": ["CN=NetOps, OU=Groups,DC=example,DC=com"]})
+        ),
+    )
+    allowed = authenticate_ldap_user(
+        username="alice", password="pw", raw_config=cfg, secret="s"
+    )
+    assert allowed.ok is True
+
+
+def test_group_search_error_is_misconfigured_not_group_denied(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    visited: list[str] = []
+
+    def fake_open(
+        target: LdapServerTarget,
+        cfg: LdapEffectiveConfig,
+        bind_dn: str | None,
+        bind_password: str | None = None,
+    ) -> Any:
+        _ = (cfg, bind_dn, bind_password)
+        visited.append(target.host)
+        conn = MagicMock()
+
+        def fake_search(**kwargs: Any) -> bool:
+            if kwargs.get("attributes") == ["cn"]:
+                raise LDAPNoSuchObjectResult("noSuchObject")
+            conn.entries = [_alice()]
+            return True
+
+        conn.search.side_effect = fake_search
+        return conn
+
+    monkeypatch.setattr("app.core.ldap_auth._open_server_connection", fake_open)
+    outcome = authenticate_ldap_user(
+        username="alice",
+        password="pw",
+        raw_config={**_BASE_CFG, "required_group": "cn=gone,dc=example,dc=com"},
+        secret="s",
+    )
+    assert outcome.reason == "misconfigured"
+    # Wrong on every replica: no failover.
+    assert "ldap02.example.com" not in visited
+
+
+def test_bad_server_port_is_dropped_not_a_crash() -> None:
+    servers = parse_ldap_servers(
+        {
+            "servers_json": (
+                '[{"url": "ldap://dc2.example.com:99999", "priority": 1},'
+                ' {"url": "ldaps://dc1.example.com:636", "priority": 2}]'
+            )
+        }
+    )
+    # The bad entry no longer drops every entry after it.
+    assert [s.host for s in servers] == ["dc1.example.com"]
+
+    assert parse_ldap_servers({"hosts": "ldap://dc2.example.com:99999"}) == []
+    assert parse_ldap_servers({"hosts": "ldap://dc2.example.com:abc"}) == []
+
+    outcome = authenticate_ldap_user(
+        username="alice",
+        password="pw",
+        raw_config={"hosts": "ldap://dc2.example.com:99999", "base_dn": "dc=x"},
+        secret=None,
+    )
+    assert outcome.reason == "misconfigured"
+
+
+def test_invalid_ldap_server_entries_names_each_bad_entry() -> None:
+    assert invalid_ldap_server_entries(
+        {
+            "hosts": "ldaps://dc1.example.com:636, ldap://dc2.example.com:99999",
+            "servers_json": '[{"url": "ldap://dc2.example.com:99999"}]',
+        }
+    ) == ["ldap://dc2.example.com:99999"]
+    assert invalid_ldap_server_entries({"hosts": "http://dc1.example.com"}) == [
+        "http://dc1.example.com"
+    ]
+    assert invalid_ldap_server_entries({"servers_json": "not json"}) == [
+        "servers_json (not valid JSON)"
+    ]
+    assert invalid_ldap_server_entries({"hosts": "dc1.example.com, [::1]:389"}) == []
+
+
+def test_bind_dn_without_password_is_misconfigured_not_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_open(**_kwargs: Any) -> Any:
+        raise AssertionError("no connection without a bind password")
+
+    monkeypatch.setattr("app.core.ldap_auth._open_server_connection", fake_open)
+    monkeypatch.setattr("app.core.ldap_auth.settings.LDAP_BIND_PASSWORD", "")
+
+    outcome = authenticate_ldap_user(
+        username="alice", password="pw", raw_config=_BASE_CFG, secret=None
+    )
+    assert outcome.reason == "misconfigured"
+    conn_res = check_ldap_servers_connection(raw_config=_BASE_CFG, secret=None)
+    assert conn_res.ok is False
+    assert "Bind Password" in conn_res.message
+
+
+def test_connection_test_fails_when_first_answering_server_rejects_bind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Sign-in stops at a rejected service bind, so the test must not pass."""
+
+    def fake_open(
+        target: LdapServerTarget,
+        cfg: LdapEffectiveConfig,
+        bind_dn: str | None,
+        bind_password: str | None = None,
+    ) -> Any:
+        _ = (cfg, bind_dn, bind_password)
+        if target.host == "ldap01.example.com":
+            raise LDAPInvalidCredentialsResult("invalidCredentials")
+        return MagicMock()
+
+    monkeypatch.setattr("app.core.ldap_auth._open_server_connection", fake_open)
+    res = check_ldap_servers_connection(raw_config=_BASE_CFG, secret="s")
+    assert res.ok is False
+    assert res.failover_occurred is False
+    assert res.active_server is None
+    assert "rejected the service bind" in res.message
+    # Every server is still probed and reported.
+    assert [s.ok for s in res.servers] == [False, True]

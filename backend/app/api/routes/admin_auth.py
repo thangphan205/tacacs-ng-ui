@@ -1,17 +1,14 @@
-import json
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import select
 
 from app.api.deps import SessionDep, get_current_active_superuser
 from app.core.config import settings
 from app.core.ldap_auth import (
     LDAP_PROVIDER_PRESETS,
-    LdapEffectiveConfig,
-    build_effective_ldap_config,
     check_ldap_servers_connection,
     check_ldap_user_auth,
+    invalid_ldap_server_entries,
 )
 from app.crud import auth_providers as auth_providers_crud
 from app.models import (
@@ -21,7 +18,6 @@ from app.models import (
     LdapTestAuthResponse,
     LdapTestConnectionRequest,
     LdapTestConnectionResponse,
-    Mavis,
 )
 
 router = APIRouter(prefix="/admin/auth-providers", tags=["admin"])
@@ -29,60 +25,36 @@ router = APIRouter(prefix="/admin/auth-providers", tags=["admin"])
 _VALID_PROVIDERS = {"google", "keycloak", "ldap", "microsoft", "passkey"}
 
 
-def _secret_destination(cfg: LdapEffectiveConfig) -> tuple[object, ...]:
-    """Everything that decides where, and how safely, the bind password is sent."""
-    return (
-        tuple((s.host, s.port, s.use_ssl, s.start_tls) for s in cfg.servers),
-        cfg.bind_dn,
-        cfg.verify_tls,
-        cfg.ca_cert_pem,
-    )
-
-
-def _resolve_ldap_config_and_secret(
+def _ldap_test_settings(
     session: SessionDep,
     override_config: dict[str, Any] | None,
     override_secret: str | None,
 ) -> tuple[dict[str, Any], str | None]:
-    """Merge unsaved form values over the stored LDAP config for a test run.
-
-    The stored bind password is reused only while the test would send it to
-    the same servers, as the same Bind DN, with the same TLS checks. Otherwise
-    the caller must type it again: the password is write-only everywhere else
-    (``secret_is_set``), and a test pointed at ``ldap://attacker:389`` would
-    hand it over in clear text.
-    """
-    row = auth_providers_crud.get_provider_config(session=session, provider="ldap")
-    stored_cfg: dict[str, Any] = {}
-    stored_secret: str | None = None
-    if row is not None:
-        try:
-            stored_cfg = json.loads(row.config_json or "{}")
-        except ValueError:
-            stored_cfg = {}
-        try:
-            stored_secret = auth_providers_crud.resolve_provider_secret(row)
-        except Exception:
-            stored_secret = None
-    merged_cfg = {**stored_cfg, **(override_config or {})}
-    if override_secret:
-        return merged_cfg, override_secret
-    if not (stored_secret or settings.LDAP_BIND_PASSWORD):
-        # Nothing stored to leak (e.g. testing an anonymous bind).
-        return merged_cfg, None
-
-    # No secret typed: the stored one, or LDAP_BIND_PASSWORD when none is stored.
-    if _secret_destination(
-        build_effective_ldap_config(merged_cfg, stored_secret)
-    ) != _secret_destination(build_effective_ldap_config(stored_cfg, stored_secret)):
+    _refuse_invalid_ldap_servers(override_config)
+    try:
+        return auth_providers_crud.ldap_test_settings(
+            session=session,
+            override_config=override_config,
+            override_secret=override_secret,
+        )
+    except auth_providers_crud.LdapSecretRequired:
         raise HTTPException(
             status_code=400,
             detail=(
                 "The servers, Bind DN or TLS settings differ from the saved "
                 "configuration. Enter the Bind Password to test them."
             ),
+        ) from None
+
+
+def _refuse_invalid_ldap_servers(config: dict[str, Any] | None) -> None:
+    """422 for a server entry that would otherwise be silently left out."""
+    bad = invalid_ldap_server_entries(config or {})
+    if bad:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid LDAP server address: {', '.join(bad)}",
         )
-    return merged_cfg, stored_secret
 
 
 @router.get(
@@ -99,35 +71,7 @@ def get_ldap_presets() -> dict[str, dict[str, str]]:
 )
 def import_ldap_from_mavis(session: SessionDep) -> dict[str, str]:
     """Read non-secret connection settings from existing MAVIS LDAP rows."""
-    rows = list(session.exec(select(Mavis)).all())
-    mavis_map = {r.mavis_key.upper(): r.mavis_value for r in rows}
-
-    raw_type = (mavis_map.get("LDAP_SERVER_TYPE") or "").strip().lower()
-    if raw_type in ("ad", "active_directory", "microsoft"):
-        provider_type = "active_directory"
-    elif "ipa" in raw_type:
-        provider_type = "freeipa"
-    elif "openldap" in raw_type:
-        provider_type = "openldap"
-    else:
-        provider_type = "freeipa"
-
-    preset = LDAP_PROVIDER_PRESETS[provider_type]
-    raw_filter = (mavis_map.get("LDAP_FILTER") or "").strip()
-    if raw_filter:
-        user_filter = raw_filter.replace("%s", "{username}")
-    else:
-        user_filter = preset["user_search_filter"]
-
-    return {
-        "provider_type": provider_type,
-        "hosts": mavis_map.get("LDAP_HOSTS", ""),
-        "base_dn": mavis_map.get("LDAP_BASE", ""),
-        "bind_dn": mavis_map.get("LDAP_BINDDN") or mavis_map.get("LDAP_USER", ""),
-        "username_attr": mavis_map.get("LDAP_USER_NAME_ATTR")
-        or preset["username_attr"],
-        "user_search_filter": user_filter,
-    }
+    return auth_providers_crud.ldap_settings_from_mavis(session=session)
 
 
 @router.post(
@@ -138,7 +82,7 @@ def import_ldap_from_mavis(session: SessionDep) -> dict[str, str]:
 def test_ldap_connection_route(
     session: SessionDep, body: LdapTestConnectionRequest
 ) -> LdapTestConnectionResponse:
-    cfg, secret = _resolve_ldap_config_and_secret(session, body.config, body.secret)
+    cfg, secret = _ldap_test_settings(session, body.config, body.secret)
     return check_ldap_servers_connection(raw_config=cfg, secret=secret)
 
 
@@ -150,7 +94,7 @@ def test_ldap_connection_route(
 def test_ldap_auth_route(
     session: SessionDep, body: LdapTestAuthRequest
 ) -> LdapTestAuthResponse:
-    cfg, secret = _resolve_ldap_config_and_secret(session, body.config, body.secret)
+    cfg, secret = _ldap_test_settings(session, body.config, body.secret)
     return check_ldap_user_auth(
         username=body.username,
         password=body.password,
@@ -170,6 +114,9 @@ def list_auth_providers(session: SessionDep) -> Any:
     existing = {r.provider for r in rows}
     result = [auth_providers_crud.to_public(r) for r in rows]
     for provider in _VALID_PROVIDERS - existing:
+        if provider == "ldap":
+            result.append(auth_providers_crud.ldap_env_public())
+            continue
         result.append(
             AuthProviderConfigPublic(
                 provider=provider,
@@ -190,6 +137,8 @@ def get_auth_provider(session: SessionDep, provider: str) -> Any:
     if provider not in _VALID_PROVIDERS:
         raise HTTPException(status_code=404, detail="Unknown provider")
     row = auth_providers_crud.get_provider_config(session=session, provider=provider)
+    if not row and provider == "ldap":
+        return auth_providers_crud.ldap_env_public()
     if not row:
         return AuthProviderConfigPublic(
             provider=provider,
@@ -210,6 +159,8 @@ def update_auth_provider(
 ) -> Any:
     if provider not in _VALID_PROVIDERS:
         raise HTTPException(status_code=404, detail="Unknown provider")
+    if provider == "ldap":
+        _refuse_invalid_ldap_servers(body.config)
     row = auth_providers_crud.upsert_provider_config(
         session=session,
         provider=provider,

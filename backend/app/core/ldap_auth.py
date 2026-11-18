@@ -26,6 +26,7 @@ from ldap3.core.exceptions import (
     LDAPStartTLSError,
 )
 from ldap3.utils.conv import escape_filter_chars
+from ldap3.utils.dn import parse_dn
 from pydantic import EmailStr, TypeAdapter, ValidationError
 
 from app.core.config import settings
@@ -186,14 +187,22 @@ def _parse_single_server_url(
         return None
     if "://" not in raw:
         raw = f"ldap://{raw}"
-    parsed = urlparse(raw)
+    try:
+        parsed = urlparse(raw)
+        explicit_port = parsed.port  # ValueError when out of range or not a number
+        host = parsed.hostname or ""
+    except ValueError:
+        logger.warning("Ignoring LDAP server %r: invalid address or port", raw_url)
+        return None
     scheme = (parsed.scheme or "ldap").lower()
+    if scheme not in ("ldap", "ldaps"):
+        logger.warning("Ignoring LDAP server %r: scheme must be ldap or ldaps", raw_url)
+        return None
     use_ssl = scheme == "ldaps"
-    host = parsed.hostname or ""
     if not host:
         return None
     default_port = 636 if use_ssl else 389
-    port = parsed.port or default_port
+    port = explicit_port or default_port
     canonical_url = f"{'ldaps' if use_ssl else 'ldap'}://{host}:{port}"
     return LdapServerTarget(
         url=canonical_url,
@@ -256,6 +265,34 @@ def parse_ldap_servers(
 
     targets.sort(key=lambda t: (t[0], t[1]))
     return [t[2] for t in targets]
+
+
+def invalid_ldap_server_entries(raw_config: dict[str, Any]) -> list[str]:
+    """Server entries in a config being saved that `parse_ldap_servers` would drop.
+
+    Checked on save so a typo (``ldap://dc2:99999``) is refused instead of
+    silently leaving that server out of the failover list.
+    """
+    entries: list[str] = []
+    servers_json_raw = raw_config.get("servers_json")
+    if servers_json_raw:
+        try:
+            items = (
+                json.loads(servers_json_raw)
+                if isinstance(servers_json_raw, str)
+                else servers_json_raw
+            )
+        except ValueError:
+            return ["servers_json (not valid JSON)"]
+        if not isinstance(items, list):
+            return ["servers_json (not a list)"]
+        for item in items:
+            if isinstance(item, dict):
+                entries.append(str(item.get("url") or item.get("host") or "").strip())
+    hosts_raw = str(raw_config.get("hosts") or raw_config.get("server_urls") or "")
+    entries.extend(p.strip() for p in re.split(r"[\s,;]+", hosts_raw))
+    bad = [e for e in entries if e and _parse_single_server_url(e) is None]
+    return list(dict.fromkeys(bad))
 
 
 def build_effective_ldap_config(
@@ -443,6 +480,30 @@ def _extract_rdn_value(dn: str) -> str:
     return first_part
 
 
+def _normalize_dn(dn: str) -> list[tuple[str, str]] | None:
+    """Parse a DN into lower-cased (attribute, value) RDNs, or None when malformed.
+
+    Lets `CN=Admins, OU=Groups,DC=corp` and `cn=admins,ou=groups,dc=corp`
+    compare equal, as the directory treats them.
+    """
+    try:
+        parts = parse_dn(dn, escape=False, strip=True)
+    except LDAPException:
+        return None
+    if not parts:
+        return None
+    return [(attr.strip().lower(), value.strip().lower()) for attr, value, _ in parts]
+
+
+def _dn_is_under(dn: list[tuple[str, str]], base: list[tuple[str, str]]) -> bool:
+    """True when `dn` is strictly below `base` in the tree."""
+    return len(dn) > len(base) and dn[-len(base) :] == base
+
+
+class LdapGroupSearchError(Exception):
+    """The required-group search itself failed (bad base DN, filter or rights)."""
+
+
 def _open_server_connection(
     target: LdapServerTarget,
     cfg: LdapEffectiveConfig,
@@ -483,25 +544,41 @@ def _check_required_group(
     username: str,
     entry_attrs: dict[str, Any],
 ) -> bool:
-    """Return True if the user is a member of `cfg.required_group`."""
+    """Return True if the user is a member of `cfg.required_group`.
+
+    Raises `LdapGroupSearchError` when the directory search fails for a reason
+    other than the server being unavailable, so a configuration error is not
+    reported as "not a member".
+    """
     required = cfg.required_group.strip()
     if not required:
         return True
 
-    required_lower = required.lower()
     required_is_dn = "=" in required
     required_cn = _extract_rdn_value(required) if required_is_dn else required
     required_cn_lower = required_cn.lower()
+    required_parts = _normalize_dn(required) if required_is_dn else None
+    group_base_parts = _normalize_dn(cfg.group_base_dn or cfg.base_dn)
 
-    # 1. Fast path: check `memberOf` attribute on the user entry. A full DN
-    # must match exactly — comparing only its first RDN would let a same-named
-    # group in any other OU satisfy the gate.
+    # 1. Fast path: check `memberOf` attribute on the user entry. Both forms
+    # stay inside the same scope as the directory search below — comparing
+    # only a group's first RDN would let a same-named group in any other OU
+    # satisfy the gate:
+    # - a full DN must match exactly;
+    # - a bare name must name a group below the Group Base DN.
     member_of_list = _extract_str_list(entry_attrs, "memberOf")
     for group_dn in member_of_list:
+        group_parts = _normalize_dn(group_dn)
+        if group_parts is None:
+            continue
         if required_is_dn:
-            if group_dn.lower() == required_lower:
+            if required_parts is not None and group_parts == required_parts:
                 return True
-        elif _extract_rdn_value(group_dn).lower() == required_cn_lower:
+        elif (
+            group_parts[0][1] == required_cn_lower
+            and group_base_parts is not None
+            and _dn_is_under(group_parts, group_base_parts)
+        ):
             return True
 
     # 2. Directory group search (handles OpenLDAP without memberOf overlay,
@@ -556,8 +633,7 @@ def _check_required_group(
     except _UNAVAILABLE_ERRORS:
         raise
     except LDAPException as exc:
-        logger.warning("LDAP group membership search failed: %s", exc)
-        return False
+        raise LdapGroupSearchError(str(exc) or exc.__class__.__name__) from exc
 
 
 def authenticate_ldap_user(
@@ -588,6 +664,14 @@ def authenticate_ldap_user(
             ok=False,
             reason="misconfigured",
             message="LDAP servers or Base DN are not configured.",
+        )
+    if cfg.bind_dn and not cfg.bind_password:
+        # ldap3 refuses an empty simple-bind password before sending anything;
+        # caught as a connection error it would read as "server unreachable".
+        return LdapAuthOutcome(
+            ok=False,
+            reason="misconfigured",
+            message="A Bind DN is set but no Bind Password is configured.",
         )
 
     failed_servers: list[tuple[str, str]] = []
@@ -762,6 +846,20 @@ def authenticate_ldap_user(
                     err_msg = str(exc) or exc.__class__.__name__
                     failed_servers.append((target.url, err_msg))
                     continue
+                except LdapGroupSearchError as exc:
+                    # noSuchObject, insufficientAccessRights, a malformed group
+                    # filter: the same on every replica, so no failover.
+                    logger.error(
+                        "LDAP group membership search failed on %s: %s",
+                        target.url,
+                        exc,
+                    )
+                    return _fail(
+                        "misconfigured",
+                        "LDAP group membership search failed; check the "
+                        "Required Group, the Group Base DN, the group search "
+                        "filter and the service account's read rights.",
+                    )
                 if not in_group:
                     return _fail(
                         "group_denied",
@@ -830,17 +928,28 @@ def check_ldap_servers_connection(
     raw_config: dict[str, Any] | None,
     secret: str | None,
 ) -> LdapTestConnectionResponse:
-    """Test TCP/TLS connectivity, Bind DN, and failover across all configured LDAP servers."""
+    """Test TCP/TLS connectivity, Bind DN, and failover across all configured LDAP servers.
+
+    Every server is probed, but the verdict follows `authenticate_ldap_user`:
+    sign-in moves past a server only when it is unavailable, and stops at the
+    first one that answers. A rejected service bind there fails sign-in even
+    when a later server would accept it, so it fails this test too.
+    """
     cfg = build_effective_ldap_config(raw_config, secret)
     if not cfg.servers:
         return LdapTestConnectionResponse(
             ok=False,
             message="No LDAP servers configured.",
         )
+    if cfg.bind_dn and not cfg.bind_password:
+        return LdapTestConnectionResponse(
+            ok=False,
+            message="A Bind DN is set but no Bind Password is configured.",
+        )
 
     results: list[LdapServerDiagResult] = []
-    active_server: str | None = None
-    first_failed = False
+    # The server sign-in would stop at: (index, url, service bind accepted)
+    deciding: tuple[int, str, bool] | None = None
 
     for idx, target in enumerate(cfg.servers):
         t0 = time.monotonic()
@@ -853,8 +962,8 @@ def check_ldap_servers_connection(
                 bind_password=cfg.bind_password,
             )
             elapsed_ms = round((time.monotonic() - t0) * 1000.0, 1)
-            if active_server is None:
-                active_server = target.url
+            if deciding is None:
+                deciding = (idx, target.url, True)
             results.append(
                 LdapServerDiagResult(
                     server=target.url,
@@ -867,8 +976,8 @@ def check_ldap_servers_connection(
             )
         except LDAPInvalidCredentialsResult:
             elapsed_ms = round((time.monotonic() - t0) * 1000.0, 1)
-            if idx == 0:
-                first_failed = True
+            if deciding is None:
+                deciding = (idx, target.url, False)
             results.append(
                 LdapServerDiagResult(
                     server=target.url,
@@ -881,9 +990,9 @@ def check_ldap_servers_connection(
                 )
             )
         except Exception as exc:
+            # Unavailable, or another LDAP error at connect/bind: sign-in
+            # moves on to the next server for both.
             elapsed_ms = round((time.monotonic() - t0) * 1000.0, 1)
-            if idx == 0:
-                first_failed = True
             results.append(
                 LdapServerDiagResult(
                     server=target.url,
@@ -902,14 +1011,29 @@ def check_ldap_servers_connection(
                 except Exception:
                     pass
 
-    ok = active_server is not None
-    failover_occurred = ok and first_failed
-    if ok and failover_occurred:
-        msg = f"Primary server unreachable; failover succeeded using {active_server}."
-    elif ok:
-        msg = f"Connected and bound successfully to {active_server}."
+    active_server: str | None = None
+    failover_occurred = False
+    if deciding is None:
+        ok = False
+        msg = "All configured LDAP servers are unreachable."
     else:
-        msg = "All configured LDAP servers failed connection or bind checks."
+        idx, url, bound = deciding
+        ok = bound
+        if not bound:
+            msg = (
+                f"{url} rejected the service bind (invalid Bind DN or password). "
+                "Sign-in stops at the first server that answers, so it will fail."
+            )
+        else:
+            active_server = url
+            failover_occurred = idx > 0
+            if failover_occurred:
+                msg = (
+                    "Higher-priority server(s) unreachable; failover succeeded "
+                    f"using {url}."
+                )
+            else:
+                msg = f"Connected and bound successfully to {url}."
 
     return LdapTestConnectionResponse(
         ok=ok,

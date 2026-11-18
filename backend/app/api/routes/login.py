@@ -1,4 +1,3 @@
-import json
 from datetime import timedelta
 from typing import Annotated, Any
 
@@ -37,25 +36,10 @@ from app.utils import (
 router = APIRouter(tags=["login"])
 
 
-def _ldap_provider_creds(
-    session: SessionDep,
-) -> tuple[bool, dict[str, Any], str | None]:
-    row = auth_providers_crud.get_provider_config(session=session, provider="ldap")
-    if row is not None:
-        if not row.enabled:
-            return False, {}, None
-        try:
-            cfg = json.loads(row.config_json or "{}")
-        except ValueError:
-            cfg = {}
-        try:
-            secret = auth_providers_crud.resolve_provider_secret(row)
-        except Exception:
-            secret = None
-        return True, cfg, secret
-    if settings.LDAP_HOSTS:
-        return True, {}, settings.LDAP_BIND_PASSWORD or None
-    return False, {}, None
+_LDAP_ACCOUNT_DETAIL = (
+    "This account signs in with LDAP. Use the LDAP tab; its password is "
+    "managed in the directory."
+)
 
 
 def _audit_login_failure(
@@ -151,6 +135,17 @@ def login_access_token(
             status_code=400,
             detail="Password login is disabled for this account. Use a passkey to sign in.",
         )
+    if user.ldap_id:
+        # A directory account must keep going through the directory, so
+        # removing it there (or from the Required Group) removes access here.
+        _audit_login_failure(
+            session,
+            username=form_data.username,
+            description="Local password login refused for an LDAP account",
+            user_agent=user_agent,
+            ip=ip,
+        )
+        raise HTTPException(status_code=400, detail=_LDAP_ACCOUNT_DETAIL)
 
     _audit_login_success(
         session, user=user, description="Password login", user_agent=user_agent, ip=ip
@@ -182,7 +177,9 @@ def login_ldap_access_token(
             ip=ip,
         )
 
-    ldap_enabled, ldap_cfg, ldap_secret = _ldap_provider_creds(session)
+    ldap_enabled, ldap_cfg, ldap_secret = auth_providers_crud.ldap_login_settings(
+        session=session
+    )
     if not ldap_enabled:
         raise HTTPException(status_code=400, detail="LDAP sign-in is not enabled")
 
@@ -268,6 +265,13 @@ def login_ldap_access_token(
         raise HTTPException(status_code=403, detail=outcome.message)
     if outcome.reason == "unavailable":
         raise HTTPException(status_code=503, detail=outcome.message)
+    if outcome.reason == "misconfigured":
+        # Not "wrong password": users would keep retrying and could lock out
+        # their directory accounts while the fault is the server's.
+        raise HTTPException(
+            status_code=503,
+            detail="LDAP sign-in is misconfigured. Contact an administrator.",
+        )
     raise HTTPException(status_code=400, detail="Incorrect username or password")
 
 
@@ -291,6 +295,8 @@ def recover_password(email: str, session: SessionDep) -> Message:
             status_code=404,
             detail="The user with this email does not exist in the system.",
         )
+    if user.ldap_id:
+        raise HTTPException(status_code=400, detail=_LDAP_ACCOUNT_DETAIL)
     password_reset_token = generate_password_reset_token(email=email)
     email_data = generate_reset_password_email(
         email_to=user.email, email=email, token=password_reset_token
@@ -319,6 +325,9 @@ def reset_password(session: SessionDep, body: NewPassword) -> Message:
         )
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+    if user.ldap_id:
+        # A token issued before the account was linked to LDAP.
+        raise HTTPException(status_code=400, detail=_LDAP_ACCOUNT_DETAIL)
     hashed_password = get_password_hash(password=body.new_password)
     user.hashed_password = hashed_password
     session.add(user)
@@ -342,6 +351,8 @@ def recover_password_html_content(email: str, session: SessionDep) -> Any:
             status_code=404,
             detail="The user with this username does not exist in the system.",
         )
+    if user.ldap_id:
+        raise HTTPException(status_code=400, detail=_LDAP_ACCOUNT_DETAIL)
     password_reset_token = generate_password_reset_token(email=email)
     email_data = generate_reset_password_email(
         email_to=user.email, email=email, token=password_reset_token

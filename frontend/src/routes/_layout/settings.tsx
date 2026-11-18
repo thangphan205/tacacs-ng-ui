@@ -31,9 +31,17 @@ function UserSettings() {
     return null
   }
 
-  const tabs = currentUser.is_superuser
-    ? [...tabsConfig, ...superuserTabsConfig]
+  // A directory account signs in through LDAP only: the backend refuses a
+  // local password and passkeys for it, so those tabs could only fail.
+  const isLdapAccount = currentUser.login_methods?.includes("LDAP") ?? false
+  const baseTabs = isLdapAccount
+    ? tabsConfig.filter(
+        (tab) => tab.value !== "password" && tab.value !== "security-keys",
+      )
     : tabsConfig
+  const tabs = currentUser.is_superuser
+    ? [...baseTabs, ...superuserTabsConfig]
+    : baseTabs
 
   return (
     <Container maxW="full">

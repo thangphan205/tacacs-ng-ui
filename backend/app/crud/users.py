@@ -3,7 +3,7 @@ import secrets
 import uuid
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
@@ -40,6 +40,19 @@ def get_user_by_email(*, session: Session, email: str) -> User | None:
     statement = select(User).where(User.email == email)
     session_user = session.exec(statement).first()
     return session_user
+
+
+def get_user_by_email_ci(*, session: Session, email: str) -> User | None:
+    """Case-insensitive email lookup, preferring an exact match.
+
+    Stored emails keep the case of their local part (``Admin@corp.com``), so
+    an exact lookup of a directory's ``admin@corp.com`` would miss it.
+    """
+    exact = get_user_by_email(session=session, email=email)
+    if exact is not None:
+        return exact
+    statement = select(User).where(func.lower(User.email) == email.strip().lower())
+    return session.exec(statement).first()
 
 
 def authenticate(*, session: Session, email: str, password: str) -> User | None:
@@ -240,8 +253,10 @@ def get_or_create_ldap_user(
     if user:
         return user
 
-    # 2. Existing account with same email — link it only when the admin opted in
-    user = get_user_by_email(session=session, email=normalized_email)
+    # 2. Existing account with same email — link it only when the admin opted
+    # in. Case-insensitive: a miss here would create a near-duplicate account
+    # next to `Admin@corp.com` and skip the superuser protection below.
+    user = get_user_by_email_ci(session=session, email=normalized_email)
     if user:
         if not allow_email_link or user.is_superuser:
             return None

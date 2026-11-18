@@ -93,7 +93,8 @@ class User(UserBase, TimestampModel, table=True):
     @property
     def login_methods(self) -> list[str]:
         methods = []
-        if not self.password_login_disabled:
+        # A directory account has no usable local password (#404).
+        if not self.password_login_disabled and not self.ldap_id:
             methods.append("Password")
         if self.google_id:
             methods.append("Google")

@@ -35,6 +35,8 @@ _TEST_EMAILS = (
     "ldap-existing@example.com",
     "ldap-passkey-only@example.com",
     "ldap-standby@example.com",
+    "Ldap-Case@example.com",
+    "ldap-case@example.com",
 )
 
 
@@ -139,6 +141,7 @@ def test_admin_ldap_presets_and_mavis_import(
     wanted = {
         "LDAP_HOSTS": "ldaps://ipa.example.com:636",
         "LDAP_PASSWD": "do-not-expose",
+        "LDAP_SERVER_TYPE": "generic",
     }
     for key, value in wanted.items():
         row = db.exec(select(Mavis).where(Mavis.mavis_key == key)).first()
@@ -155,6 +158,8 @@ def test_admin_ldap_presets_and_mavis_import(
         assert r.status_code == 200
         data = r.json()
         assert data["hosts"] == "ldaps://ipa.example.com:636"
+        # MAVIS's own "generic" type is not FreeIPA.
+        assert data["provider_type"] == "generic"
         assert "do-not-expose" not in str(data)
     finally:
         for key, old in saved.items():
@@ -435,3 +440,164 @@ def test_connection_test_needs_bind_password_for_new_destination(
     )
     assert r.status_code == 200
     assert secrets_used[-1] == "typed-again"
+
+
+# --- directory accounts stay governed by the directory --------------------------
+
+
+def _ldap_account(db: Session, email: str = "ldap-existing@example.com") -> User:
+    user = User(
+        email=email,
+        hashed_password=get_password_hash("local-password-1"),
+        ldap_id="dirbound",
+    )
+    db.add(user)
+    db.commit()
+    return user
+
+
+def test_local_password_login_refused_for_ldap_account(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Removing a user in the directory must remove their Web UI access."""
+    _never_call_ldap(monkeypatch)
+    _ldap_account(db)
+    r = _local_login(client, "ldap-existing@example.com", "local-password-1")
+    assert r.status_code == 400
+    assert "LDAP" in r.json()["detail"]
+
+
+def test_password_recovery_refused_for_ldap_account(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sent: list[str] = []
+    monkeypatch.setattr(
+        "app.api.routes.login.send_email", lambda **kw: sent.append(kw["email_to"])
+    )
+    _ldap_account(db)
+
+    r = client.post(
+        f"{settings.API_V1_STR}/password-recovery/ldap-existing@example.com"
+    )
+    assert r.status_code == 400
+    assert sent == []
+
+    # A reset token issued before the account was linked is refused too.
+    from app.utils import generate_password_reset_token
+
+    token = generate_password_reset_token(email="ldap-existing@example.com")
+    r = client.post(
+        f"{settings.API_V1_STR}/reset-password/",
+        json={"token": token, "new_password": "Brand-new-password-1!"},
+    )
+    assert r.status_code == 400
+    assert (
+        _local_login(
+            client, "ldap-existing@example.com", "Brand-new-password-1!"
+        ).status_code
+        == 400
+    )
+
+
+def test_passkeys_refused_for_ldap_account(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+    _fake_ldap_success(monkeypatch, ldap_id="netadmin1", email="netadmin1@example.com")
+    token = _login(client, "netadmin1").json()["access_token"]
+
+    r = client.post(
+        f"{settings.API_V1_STR}/passkeys/register/begin",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 400
+    assert "LDAP" in r.json()["detail"]
+
+
+def test_ldap_misconfiguration_is_not_reported_as_a_wrong_password(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+
+    def fake_auth(**_kwargs: Any) -> LdapAuthOutcome:
+        return LdapAuthOutcome(
+            ok=False, reason="misconfigured", message="LDAP user search failed"
+        )
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", fake_auth)
+    r = _login(client, "netadmin1")
+    assert r.status_code == 503
+    assert "misconfigured" in r.json()["detail"]
+
+
+def test_ldap_email_match_is_case_insensitive(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`Ldap-Case@…` and the directory's `ldap-case@…` are the same account."""
+    db.add(
+        User(
+            email="Ldap-Case@example.com",
+            hashed_password=get_password_hash("local-password-1"),
+        )
+    )
+    db.commit()
+    _enable_ldap(db)  # linking off
+    _fake_ldap_success(monkeypatch, ldap_id="casey", email="ldap-case@example.com")
+
+    assert _login(client, "casey").status_code == 403
+    assert db.exec(select(User).where(User.ldap_id == "casey")).first() is None
+    assert (
+        db.exec(select(User).where(User.email == "ldap-case@example.com")).first()
+        is None
+    )
+
+    _enable_ldap(db, allow_email_link="true")
+    assert _login(client, "casey").status_code == 200
+    linked = db.exec(select(User).where(User.ldap_id == "casey")).one()
+    assert linked.email == "Ldap-Case@example.com"
+
+
+# --- admin card ----------------------------------------------------------------
+
+
+def test_admin_card_shows_env_ldap_settings_before_any_row(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    """Saving what the card shows must not switch off env-configured LDAP."""
+    monkeypatch.setattr(settings, "LDAP_HOSTS", "ldaps://dc1.example.com")
+    monkeypatch.setattr(settings, "LDAP_BASE_DN", "dc=example,dc=com")
+    monkeypatch.setattr(settings, "LDAP_BIND_PASSWORD", "env-secret")
+
+    r = client.get(ADMIN_LDAP_URL, headers=superuser_token_headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["enabled"] is True
+    assert body["config"]["hosts"] == "ldaps://dc1.example.com"
+    assert body["config"]["base_dn"] == "dc=example,dc=com"
+    assert body["secret_is_set"] is True
+    assert "env-secret" not in r.text
+
+    listed = client.get(
+        f"{settings.API_V1_STR}/admin/auth-providers/", headers=superuser_token_headers
+    ).json()
+    assert next(p for p in listed if p["provider"] == "ldap")["enabled"] is True
+
+
+def test_saving_an_invalid_ldap_server_is_refused(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.put(
+        ADMIN_LDAP_URL,
+        headers=superuser_token_headers,
+        json={
+            "enabled": True,
+            "config": {
+                **LDAP_CONFIG,
+                "hosts": "ldaps://dc1.example.com, ldap://dc2.example.com:99999",
+            },
+        },
+    )
+    assert r.status_code == 422
+    assert "dc2.example.com:99999" in r.json()["detail"]
