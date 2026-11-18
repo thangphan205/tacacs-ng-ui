@@ -110,7 +110,7 @@ const AuthProviderCard = ({
   onEnabled,
 }: AuthProviderCardProps) => {
   const queryClient = useQueryClient()
-  const { showSuccessToast } = useCustomToast()
+  const { showSuccessToast, showErrorToast } = useCustomToast()
 
   const { data, isLoading } = useQuery({
     queryKey: ["auth-provider", provider],
@@ -174,9 +174,22 @@ const AuthProviderCard = ({
     onError: (err: Error) => handleError(err as never),
   })
 
-  const handleCopy = (key: string, value: string) => {
+  const handleCopy = async (key: string, value: string) => {
     if (!value) return
-    navigator.clipboard.writeText(value)
+    // navigator.clipboard exists only in a secure context (HTTPS or
+    // localhost); the UI is often reached over plain HTTP on a LAN address.
+    if (!navigator.clipboard) {
+      showErrorToast(
+        "Copying needs HTTPS. Select the text and copy it instead.",
+      )
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(value)
+    } catch {
+      showErrorToast("Could not copy. Select the text and copy it instead.")
+      return
+    }
     setCopiedKey(key)
     setTimeout(() => {
       setCopiedKey((prev) => (prev === key ? null : prev))

@@ -28,7 +28,13 @@ import {
   LuWifi,
 } from "react-icons/lu"
 
-import { apiBaseUrl } from "@/api"
+import type { ApiError } from "@/api"
+import {
+  AdminService,
+  type AuthProviderConfigPublic,
+  type LdapTestAuthResponse,
+  type LdapTestConnectionResponse,
+} from "@/client"
 import { Checkbox } from "@/components/ui/checkbox"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -45,37 +51,6 @@ interface LdapServerRow {
   priority: number
 }
 
-interface LdapServerDiagResult {
-  server: string
-  priority: number
-  ok: boolean
-  latency_ms?: number | null
-  tls_active: boolean
-  bind_ok: boolean
-  error?: string | null
-}
-
-interface LdapTestConnectionResponse {
-  ok: boolean
-  active_server?: string | null
-  failover_occurred: boolean
-  servers: LdapServerDiagResult[]
-  message: string
-}
-
-interface LdapTestAuthResponse {
-  ok: boolean
-  server_used?: string | null
-  failover_occurred: boolean
-  user_dn?: string | null
-  ldap_id?: string | null
-  email?: string | null
-  full_name?: string | null
-  group_check_passed?: boolean | null
-  required_group?: string | null
-  message: string
-}
-
 interface LdapPreset {
   label: string
   username_attr: string
@@ -89,30 +64,34 @@ interface LdapPreset {
 
 const DEFAULT_PROVIDER = "freeipa"
 
-function adminHeader() {
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-  }
+// Through the generated client, so errors arrive as ApiError: handleError
+// shows the backend's detail, and a 401 logs out like everywhere else.
+function toStringConfig(
+  cfg: Record<string, unknown> | undefined,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(cfg ?? {}).map(([k, v]) => [k, v == null ? "" : String(v)]),
+  )
+}
+
+function toProviderConfig(data: AuthProviderConfigPublic): ProviderConfig {
+  return { ...data, config: toStringConfig(data.config) }
 }
 
 async function fetchLdapProvider(): Promise<ProviderConfig> {
-  const res = await fetch(`${apiBaseUrl()}/api/v1/admin/auth-providers/ldap`, {
-    headers: adminHeader(),
-  })
-  if (!res.ok) throw new Error("Failed to fetch LDAP provider config")
-  return res.json()
+  return toProviderConfig(
+    await AdminService.getAuthProvider({ provider: "ldap" }),
+  )
 }
 
 // Presets come from the backend, which also falls back to them for any field
 // left empty — one definition, not two that can drift apart.
 async function fetchLdapPresets(): Promise<Record<string, LdapPreset>> {
-  const res = await fetch(
-    `${apiBaseUrl()}/api/v1/admin/auth-providers/ldap/presets`,
-    { headers: adminHeader() },
-  )
-  if (!res.ok) throw new Error("Failed to fetch LDAP presets")
-  return res.json()
+  const presets: Record<
+    string,
+    Record<string, string>
+  > = await AdminService.getLdapPresets()
+  return presets as unknown as Record<string, LdapPreset>
 }
 
 async function saveLdapProvider(payload: {
@@ -120,16 +99,12 @@ async function saveLdapProvider(payload: {
   config?: Record<string, string>
   secret?: string
 }): Promise<ProviderConfig> {
-  const res = await fetch(`${apiBaseUrl()}/api/v1/admin/auth-providers/ldap`, {
-    method: "PUT",
-    headers: adminHeader(),
-    body: JSON.stringify(payload),
-  })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail ?? "Save failed")
-  }
-  return res.json()
+  return toProviderConfig(
+    await AdminService.updateAuthProvider({
+      provider: "ldap",
+      authProviderConfigUpdate: payload,
+    }),
+  )
 }
 
 function parseServersFromConfig(cfg: Record<string, string>): LdapServerRow[] {
@@ -291,14 +266,8 @@ const LdapAuthProviderCard = () => {
   }
 
   const importMavisMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(
-        `${apiBaseUrl()}/api/v1/admin/auth-providers/ldap/mavis-import`,
-        { headers: adminHeader() },
-      )
-      if (!res.ok) throw new Error("Could not import MAVIS settings")
-      return res.json() as Promise<Record<string, string>>
-    },
+    mutationFn: (): Promise<Record<string, string>> =>
+      AdminService.importLdapFromMavis(),
     onSuccess: (imported) => {
       const pType = imported.provider_type || "freeipa"
       handleProviderChange(pType)
@@ -314,7 +283,7 @@ const LdapAuthProviderCard = () => {
         "Imported connection settings from MAVIS. Enter the Bind Password and save.",
       )
     },
-    onError: (err: Error) => handleError(err as never),
+    onError: (err: ApiError) => handleError(err),
   })
 
   const saveMutation = useMutation({
@@ -330,7 +299,7 @@ const LdapAuthProviderCard = () => {
       queryClient.invalidateQueries({ queryKey: ["auth-provider", "ldap"] })
       queryClient.invalidateQueries({ queryKey: ["auth-providers-status"] })
     },
-    onError: (err: Error) => handleError(err as never),
+    onError: (err: ApiError) => handleError(err),
   })
 
   const toggleMutation = useMutation({
@@ -343,55 +312,33 @@ const LdapAuthProviderCard = () => {
       queryClient.invalidateQueries({ queryKey: ["auth-provider", "ldap"] })
       queryClient.invalidateQueries({ queryKey: ["auth-providers-status"] })
     },
-    onError: (err: Error) => handleError(err as never),
+    onError: (err: ApiError) => handleError(err),
   })
 
   const testConnectionMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(
-        `${apiBaseUrl()}/api/v1/admin/auth-providers/ldap/test-connection`,
-        {
-          method: "POST",
-          headers: adminHeader(),
-          body: JSON.stringify({
-            config: buildConfigPayload(),
-            secret: bindPassword || undefined,
-          }),
+    mutationFn: () =>
+      AdminService.testLdapConnectionRoute({
+        ldapTestConnectionRequest: {
+          config: buildConfigPayload(),
+          secret: bindPassword || undefined,
         },
-      )
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail ?? "Connection test failed")
-      }
-      return res.json() as Promise<LdapTestConnectionResponse>
-    },
+      }),
     onSuccess: (result) => setConnTestResult(result),
-    onError: (err: Error) => handleError(err as never),
+    onError: (err: ApiError) => handleError(err),
   })
 
   const testAuthMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(
-        `${apiBaseUrl()}/api/v1/admin/auth-providers/ldap/test-auth`,
-        {
-          method: "POST",
-          headers: adminHeader(),
-          body: JSON.stringify({
-            username: testUsername.trim(),
-            password: testPassword,
-            config: buildConfigPayload(),
-            secret: bindPassword || undefined,
-          }),
+    mutationFn: () =>
+      AdminService.testLdapAuthRoute({
+        ldapTestAuthRequest: {
+          username: testUsername.trim(),
+          password: testPassword,
+          config: buildConfigPayload(),
+          secret: bindPassword || undefined,
         },
-      )
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail ?? "User authentication test failed")
-      }
-      return res.json() as Promise<LdapTestAuthResponse>
-    },
+      }),
     onSuccess: (result) => setAuthTestResult(result),
-    onError: (err: Error) => handleError(err as never),
+    onError: (err: ApiError) => handleError(err),
   })
 
   const addServerRow = () => {
@@ -894,7 +841,7 @@ const LdapAuthProviderCard = () => {
                   <Alert.Title>{connTestResult.message}</Alert.Title>
                   <Alert.Description>
                     <VStack align="stretch" gap={1} mt={2}>
-                      {connTestResult.servers.map((s, idx) => (
+                      {(connTestResult.servers ?? []).map((s, idx) => (
                         <HStack key={idx} gap={2} fontSize="xs" wrap="wrap">
                           <Badge colorPalette={s.ok ? "green" : "red"}>
                             {s.ok ? "OK" : "FAIL"}
