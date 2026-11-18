@@ -151,6 +151,22 @@ const EditUser = ({ user }: EditUserProps) => {
     },
   })
 
+  const isLdapAccount = user.login_methods?.includes("LDAP") ?? false
+  const resetLdapMutation = useMutation({
+    mutationFn: () => UsersService.resetUserLdapLink({ user_id: user.id }),
+    onSuccess: () => {
+      showSuccessToast(
+        "LDAP link reset. The next LDAP sign-in with this email links the account again.",
+      )
+    },
+    onError: (err: ApiError) => {
+      handleError(err)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] })
+    },
+  })
+
   const onSubmit: SubmitHandler<UserUpdateForm> = async (data) => {
     if (data.password === "") {
       data.password = undefined
@@ -323,6 +339,42 @@ const EditUser = ({ user }: EditUserProps) => {
                     )}
                   />
                 </Flex>
+                {isLdapAccount && (
+                  <VStack
+                    mt={5}
+                    align="start"
+                    gap={2}
+                    p={3}
+                    borderWidth="1px"
+                    borderRadius="md"
+                  >
+                    <Text fontSize="sm" fontWeight="medium">
+                      LDAP account
+                    </Text>
+                    <Text fontSize="xs" color="fg.muted">
+                      Signs in through the directory only; a password set here
+                      is not accepted. If the directory's unique ID changed (new
+                      Unique ID Attribute or provider type), reset the link so
+                      the next LDAP sign-in with this email links it again.
+                      {user.is_superuser &&
+                        " Remove superuser first: until its owner signs in, anyone whose directory email matches could claim it."}
+                    </Text>
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="outline"
+                      loading={resetLdapMutation.isPending}
+                      disabled={
+                        !!user.is_superuser || !!user.ldap_relink_pending
+                      }
+                      onClick={() => resetLdapMutation.mutate()}
+                    >
+                      {user.ldap_relink_pending
+                        ? "Re-link pending"
+                        : "Reset LDAP link"}
+                    </Button>
+                  </VStack>
+                )}
               </GridItem>
               <GridItem>
                 <FieldGuide

@@ -3879,6 +3879,10 @@ export type UserPublic = {
      * Login Methods
      */
     login_methods?: Array<string>;
+    /**
+     * Ldap Relink Pending
+     */
+    ldap_relink_pending?: boolean;
 };
 
 /**
@@ -4897,6 +4901,36 @@ export type UsersUpdateUserResponses = {
 };
 
 export type UsersUpdateUserResponse = UsersUpdateUserResponses[keyof UsersUpdateUserResponses];
+
+export type UsersResetUserLdapLinkData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/users/{user_id}/reset-ldap-link';
+};
+
+export type UsersResetUserLdapLinkErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UsersResetUserLdapLinkError = UsersResetUserLdapLinkErrors[keyof UsersResetUserLdapLinkErrors];
+
+export type UsersResetUserLdapLinkResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserPublic;
+};
+
+export type UsersResetUserLdapLinkResponse = UsersResetUserLdapLinkResponses[keyof UsersResetUserLdapLinkResponses];
 
 export type UtilsTestEmailData = {
     body?: never;

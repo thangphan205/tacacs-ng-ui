@@ -6834,6 +6834,11 @@ export const UserPublicSchema = {
             },
             type: 'array',
             title: 'Login Methods'
+        },
+        ldap_relink_pending: {
+            type: 'boolean',
+            title: 'Ldap Relink Pending',
+            default: false
         }
     },
     type: 'object',
