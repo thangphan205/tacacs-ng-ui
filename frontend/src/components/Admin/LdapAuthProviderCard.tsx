@@ -4,11 +4,14 @@ import {
   Box,
   Button,
   Card,
+  Flex,
   Heading,
   HStack,
   Input,
   NativeSelect,
+  Separator,
   SimpleGrid,
+  Switch,
   Text,
   Textarea,
   VStack,
@@ -18,6 +21,8 @@ import { useEffect, useState } from "react"
 import {
   LuDownload,
   LuPlus,
+  LuSave,
+  LuServer,
   LuShieldCheck,
   LuTrash2,
   LuWifi,
@@ -404,20 +409,55 @@ const LdapAuthProviderCard = () => {
   }
 
   return (
-    <Card.Root variant="outline" p={4}>
-      <Card.Header pb={2}>
-        <HStack justify="space-between" wrap="wrap" gap={2}>
-          <Box>
-            <Heading size="sm">
-              LDAP / Active Directory (Authentication Only)
-            </Heading>
-            <Text fontSize="xs" color="fg.muted" mt={1}>
-              Authenticate Web UI users against FreeIPA, Active Directory, or
-              OpenLDAP. Web UI permissions (Superuser vs Read-Only) are managed
-              locally in Admin → Users Management.
-            </Text>
-          </Box>
-          <HStack gap={2}>
+    <Card.Root variant="outline">
+      <Card.Header pb={4}>
+        <Flex
+          justify="space-between"
+          align={{ base: "flex-start", sm: "center" }}
+          direction={{ base: "column", sm: "row" }}
+          gap={4}
+        >
+          <HStack gap={3.5} align="flex-start">
+            <Flex
+              w={10}
+              h={10}
+              borderRadius="lg"
+              bg="bg.muted"
+              borderWidth="1px"
+              align="center"
+              justify="center"
+              fontSize="xl"
+              color="teal.600"
+              flexShrink={0}
+              mt={0.5}
+            >
+              <LuServer />
+            </Flex>
+            <Box>
+              <HStack gap={2.5} wrap="wrap">
+                <Heading size="md">LDAP / Active Directory</Heading>
+                <Badge
+                  size="sm"
+                  variant="subtle"
+                  colorPalette={data?.enabled ? "green" : "gray"}
+                >
+                  {data?.enabled ? "Enabled" : "Disabled"}
+                </Badge>
+              </HStack>
+              <Text fontSize="sm" color="fg.muted" mt={1}>
+                Authenticate Web UI users against FreeIPA, Active Directory, or
+                OpenLDAP. Web UI permissions (Superuser vs Read-Only) are
+                managed locally in Admin → Users Management.
+              </Text>
+            </Box>
+          </HStack>
+
+          <HStack
+            gap={2.5}
+            alignSelf={{ base: "flex-start", sm: "center" }}
+            flexShrink={0}
+            wrap="wrap"
+          >
             <Button
               size="xs"
               variant="outline"
@@ -427,14 +467,36 @@ const LdapAuthProviderCard = () => {
               <LuDownload />
               Prefill from MAVIS
             </Button>
-            <Badge colorPalette={data?.enabled ? "green" : "gray"}>
-              {data?.enabled ? "Enabled" : "Disabled"}
-            </Badge>
+            {!isLoading && (
+              <HStack
+                gap={3}
+                px={3}
+                py={2}
+                borderRadius="lg"
+                bg="bg.subtle"
+                borderWidth="1px"
+              >
+                <Text fontSize="xs" fontWeight="medium" color="fg.muted">
+                  {data?.enabled ? "Active on login" : "Inactive"}
+                </Text>
+                <Switch.Root
+                  colorPalette="teal"
+                  checked={!!data?.enabled}
+                  disabled={toggleMutation.isPending}
+                  onCheckedChange={(e) => toggleMutation.mutate(e.checked)}
+                >
+                  <Switch.HiddenInput aria-label="Toggle LDAP authentication" />
+                  <Switch.Control />
+                </Switch.Root>
+              </HStack>
+            )}
           </HStack>
-        </HStack>
+        </Flex>
       </Card.Header>
 
-      <Card.Body>
+      <Separator />
+
+      <Card.Body pt={5}>
         <VStack align="stretch" gap={5}>
           {/* 1. Provider Type */}
           <Box>
@@ -931,27 +993,26 @@ const LdapAuthProviderCard = () => {
             )}
           </Box>
 
-          {/* 8. Enable / Save Actions */}
+          {/* 8. Save Action */}
           {!isLoading && (
-            <HStack justify="space-between" pt={2}>
-              <Button
-                size="sm"
-                colorPalette={data?.enabled ? "red" : "green"}
-                variant="outline"
-                loading={toggleMutation.isPending}
-                onClick={() => toggleMutation.mutate(!data?.enabled)}
-              >
-                {data?.enabled ? "Disable" : "Enable"}
-              </Button>
-              <Button
-                size="sm"
-                variant="solid"
-                loading={saveMutation.isPending}
-                onClick={() => saveMutation.mutate()}
-              >
-                Save
-              </Button>
-            </HStack>
+            <>
+              <Separator />
+              <Flex justify="space-between" align="center" wrap="wrap" gap={3}>
+                <Text fontSize="xs" color="fg.muted">
+                  Save directory connection settings and attribute mapping.
+                </Text>
+                <Button
+                  size="sm"
+                  colorPalette="teal"
+                  variant="solid"
+                  loading={saveMutation.isPending}
+                  onClick={() => saveMutation.mutate()}
+                >
+                  <LuSave />
+                  Save Changes
+                </Button>
+              </Flex>
+            </>
           )}
         </VStack>
       </Card.Body>
