@@ -990,7 +990,7 @@ API clients use `POST /api/v1/login/access-token` for local accounts and `POST /
 | Active Directory | `DC=example,DC=com` | `(&(objectClass=user)(\|(sAMAccountName={username})(userPrincipalName={username})))` | `objectGUID` |
 | OpenLDAP | `ou=people,dc=example,dc=com` | `(&(objectClass=inetOrgPerson)(uid={username}))` | `entryUUID` |
 
-**Failover.** Servers are tried in priority order on every sign-in. The next one is used only when a server cannot be reached (connection refused, timeout, TLS failure). A wrong password, an unknown user, a missing group or a wrong Base DN gives the same answer on every replica, so it ends the sign-in. Each failover is written to the audit log as `LDAP_FAILOVER`. While the primary is down, each sign-in waits up to the **Connect Timeout** for it first.
+**Failover.** Servers are tried in priority order on every sign-in. The next one is used only when a server cannot be reached (connection refused, timeout, TLS failure) or answers *busy* / *unavailable*. Any other answer — including a refused service bind or a malformed Bind DN — ends the sign-in. A wrong password, an unknown user, a missing group or a wrong Base DN gives the same answer on every replica, so it ends the sign-in. A failover is written to the audit log as `LDAP_FAILOVER` once per 15 minutes for the same set of down servers, not once per sign-in. Referrals are never followed, so credentials only go to the configured servers. While the primary is down, each sign-in waits up to the **Connect Timeout** for it first.
 
 **Group gate.** A **Required LDAP Group** can be a name (`tacacs-ui-users`) or a full DN. A full DN must match exactly; a name matches any group with that `cn` under the **Group Base DN**. Membership is read from the user's `memberOf` first, then by searching the groups' membership attributes (`member`, `uniqueMember` with the user's DN, `memberUid` with the username), so OpenLDAP without the `memberOf` overlay works. Nested AD groups are matched with `LDAP_MATCHING_RULE_IN_CHAIN`; FreeIPA's `memberOf` already includes indirect groups.
 
@@ -998,19 +998,19 @@ API clients use `POST /api/v1/login/access-token` for local accounts and `POST /
 
 **Accounts are linked to the directory entry's unique ID**, not its username, so a renamed or re-created username never inherits someone else's account. Clear **Unique ID Attribute** to link on the username instead.
 
-**Directory accounts sign in through the directory only.** An account created or linked by LDAP cannot use a local password (the Local Account tab, *Forgot password?* and password reset all refuse it) or a passkey, so removing a user from the directory, or from the Required LDAP Group, stops their next sign-in. A session already open keeps its token until it expires (`ACCESS_TOKEN_EXPIRE_MINUTES`).
+**Directory accounts sign in through the directory only.** An account created or linked by LDAP cannot use a local password (the Local Account tab, *Forgot password?* and password reset all refuse it), a passkey, or Google / Keycloak / Microsoft sign-in with the same email, so removing a user from the directory, or from the Required LDAP Group, stops their next sign-in. A session already open keeps its token until it expires (`ACCESS_TOKEN_EXPIRE_MINUTES`).
 
-> **Existing local accounts.** By default, a directory user whose email already belongs to a local account is refused (HTTP 403) rather than linked: LDAP `mail` is often editable by help desks or self-service, and linking on it would let whoever sets it sign in as that account. Turn on **Link existing local accounts by email** only if your users cannot change their own `mail`. A **superuser** account is never linked this way.
+> **Existing local accounts.** By default, a directory user whose email already belongs to a local account is refused (HTTP 403) rather than linked: LDAP `mail` is often editable by help desks or self-service, and linking on it would let whoever sets it sign in as that account. Turn on **Link existing local accounts by email** only if your users cannot change their own `mail`. A **superuser** account is never linked this way, and neither is an account already linked to another directory entry.
 
 Directory users without a valid email are refused unless a **Fallback Email Domain** is set (the account then gets `username@domain`).
 
 On a standby node, users who have signed in before can sign in again; a first sign-in must happen on the primary.
 
-Changing the servers, Bind DN or TLS settings and pressing **Test** asks for the Bind Password again, so the saved password is only ever sent to the servers it was saved for.
+Changing the servers, Bind DN or TLS settings and pressing **Test** or **Save Changes** asks for the Bind Password again, so the saved password is only ever sent to the servers it was saved for.
 
 **Test Connection** probes every server but judges the result the way sign-in works: it passes only when the first server that answers accepts the service bind. A server that rejects the Bind DN or password fails the test even if a later one accepts it, because sign-in stops there. A sign-in that fails on configuration (service bind, Base DN, search filter, group search, missing Bind Password) answers *LDAP sign-in is misconfigured* (HTTP 503) rather than *Incorrect username or password*; the detail is in the audit log.
 
-Before any LDAP settings are saved, the card shows the `LDAP_*` values from `.env` (`LDAP_HOSTS`, `LDAP_BASE_DN`, `LDAP_BIND_DN`, `LDAP_REQUIRED_GROUP`, `LDAP_PROVIDER_TYPE`), so saving it keeps an env-configured setup working. A saved Bind Password is optional there: without one, `LDAP_BIND_PASSWORD` is still used. Server addresses with a bad port or a scheme other than `ldap://` / `ldaps://` are refused on save.
+Before any LDAP settings are saved, the card shows the `LDAP_*` values from `.env` (`LDAP_HOSTS`, `LDAP_BASE_DN`, `LDAP_BIND_DN`, `LDAP_REQUIRED_GROUP`, `LDAP_PROVIDER_TYPE`), so saving it keeps an env-configured setup working. A saved Bind Password is optional there: without one, `LDAP_BIND_PASSWORD` is still used. Once saved, a field left empty stays empty — it no longer falls back to its `LDAP_*` value — so a Required Group or Bind DN set in `.env` can be cleared from the card. Server addresses with a bad port or a scheme other than `ldap://` / `ldaps://` are refused on save.
 
 ### Password Recovery
 
