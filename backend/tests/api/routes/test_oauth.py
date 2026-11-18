@@ -293,3 +293,35 @@ def test_google_keycloak_redirect_uri_defaults_from_frontend_host(
     assert params["redirect_uri"] == [
         f"https://tacacs.example.com/api/v1/oauth/{provider}/callback"
     ]
+
+
+def test_microsoft_callback_refuses_an_ldap_account(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Directory accounts sign in through LDAP only, not by email match."""
+    from sqlmodel import select
+
+    from app.core.security import get_password_hash
+    from app.models import User
+
+    db.add(
+        User(
+            email="sso-ldap@contoso.com",
+            hashed_password=get_password_hash("x-password-1"),
+            ldap_id="dir-sso",
+        )
+    )
+    db.commit()
+    try:
+        _configure_microsoft(db, "contoso.onmicrosoft.com")
+        r = _microsoft_callback(
+            client,
+            monkeypatch,
+            {"aud": "ms-client", "sub": "sub-ldap", "email": "sso-ldap@contoso.com"},
+        )
+        assert r.status_code == 403, r.text
+        user = db.exec(select(User).where(User.email == "sso-ldap@contoso.com")).one()
+        assert user.microsoft_id is None
+    finally:
+        db.execute(delete(User).where(User.email == "sso-ldap@contoso.com"))  # type: ignore[arg-type]
+        db.commit()

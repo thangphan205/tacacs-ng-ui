@@ -1,5 +1,6 @@
 """LDAP Web UI sign-in (#404): login route, account linking, admin test routes."""
 
+import uuid
 from collections.abc import Generator
 from typing import Any
 
@@ -179,11 +180,13 @@ def test_ldap_login_creates_read_only_user_and_preserves_local_rbac(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _enable_ldap(db)
+    # Unique per run: identical failovers are audited once per window.
+    down_host = f"ipa-{uuid.uuid4().hex[:8]}.example.com"
     _fake_ldap_success(
         monkeypatch,
         ldap_id="netadmin1",
         email="netadmin1@example.com",
-        failed_servers=[("ldaps://ipa01.example.com:636", "Connection refused")],
+        failed_servers=[(f"ldaps://{down_host}:636", "Connection refused")],
     )
 
     r = _login(client, "netadmin1")
@@ -200,7 +203,7 @@ def test_ldap_login_creates_read_only_user_and_preserves_local_rbac(
         .order_by(AuditLog.created_at.desc())  # type: ignore[attr-defined]
     ).first()
     assert failover is not None
-    assert "ipa01.example.com" in (failover.description or "")
+    assert down_host in (failover.description or "")
 
     # A local promotion survives the next LDAP sign-in.
     user.is_superuser = True
@@ -601,3 +604,108 @@ def test_saving_an_invalid_ldap_server_is_refused(
     )
     assert r.status_code == 422
     assert "dc2.example.com:99999" in r.json()["detail"]
+
+
+def test_email_step_never_repoints_another_directory_account(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Whoever sets their `mail` to Alice's must not get Alice's account."""
+    alice = _ldap_account(db)  # ldap_id="dirbound"
+    _enable_ldap(db, allow_email_link="true")
+    _fake_ldap_success(monkeypatch, ldap_id="intruder", email=alice.email)
+
+    assert _login(client, "intruder").status_code == 403
+    db.refresh(alice)
+    assert alice.ldap_id == "dirbound"
+
+
+def test_single_sign_on_never_links_or_admits_an_ldap_account(db: Session) -> None:
+    from fastapi import HTTPException
+
+    from app.api.routes.oauth import _refuse_ldap_account
+    from app.crud import users as users_crud
+
+    alice = _ldap_account(db)
+    google = users_crud.get_or_create_google_user(
+        session=db, email=alice.email, full_name=None, google_id="g-1"
+    )
+    keycloak = users_crud.get_or_create_keycloak_user(
+        session=db, email=alice.email, full_name=None, keycloak_id="k-1"
+    )
+    microsoft = users_crud.get_or_create_microsoft_user(
+        session=db,
+        email=alice.email,
+        full_name=None,
+        microsoft_id="m-1",
+        allow_email_link=True,
+    )
+    for user in (google, keycloak, microsoft):
+        assert user is not None
+        with pytest.raises(HTTPException) as exc:
+            _refuse_ldap_account(user)
+        assert exc.value.status_code == 403
+    db.refresh(alice)
+    assert (alice.google_id, alice.keycloak_id, alice.microsoft_id) == (
+        None,
+        None,
+        None,
+    )
+
+
+def test_saving_new_servers_needs_the_bind_password_again(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
+    """Save, not only Test, must not repoint the stored password."""
+    _enable_ldap(db)
+    moved = {**LDAP_CONFIG, "hosts": "ldap://attacker.example.net:389"}
+
+    r = client.put(
+        ADMIN_LDAP_URL, headers=superuser_token_headers, json={"config": moved}
+    )
+    assert r.status_code == 400, r.text
+    row = auth_providers_crud.get_provider_config(session=db, provider="ldap")
+    assert row is not None
+    db.refresh(row)
+    assert "attacker" not in row.config_json
+
+    # Same destination: no password needed; new destination with one: fine.
+    r = client.put(
+        ADMIN_LDAP_URL,
+        headers=superuser_token_headers,
+        json={"config": {**LDAP_CONFIG, "required_group": "netops"}},
+    )
+    assert r.status_code == 200, r.text
+    r = client.put(
+        ADMIN_LDAP_URL,
+        headers=superuser_token_headers,
+        json={"config": moved, "secret": "typed-again"},
+    )
+    assert r.status_code == 200, r.text
+
+
+def test_failover_is_audited_once_per_window(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+    down_host = f"ipa-dedupe-{uuid.uuid4().hex[:8]}.example.com"
+    _fake_ldap_success(
+        monkeypatch,
+        ldap_id="netadmin1",
+        email="netadmin1@example.com",
+        failed_servers=[(f"ldaps://{down_host}:636", "down")],
+    )
+
+    def count() -> int:
+        return len(
+            db.exec(
+                select(AuditLog).where(
+                    AuditLog.action == "LDAP_FAILOVER",
+                    AuditLog.description.contains(down_host),  # type: ignore[union-attr]
+                )
+            ).all()
+        )
+
+    before = count()
+    for _ in range(3):
+        assert _login(client, "netadmin1").status_code == 200
+    assert count() == before + 1

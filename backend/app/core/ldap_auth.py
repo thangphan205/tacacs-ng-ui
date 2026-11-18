@@ -19,11 +19,15 @@ from urllib.parse import urlparse
 
 from ldap3 import NONE, SUBTREE, Connection, Server, Tls
 from ldap3.core.exceptions import (
+    LDAPBusyResult,
     LDAPCommunicationError,
     LDAPException,
     LDAPInvalidCredentialsResult,
+    LDAPMaximumRetriesError,
+    LDAPResponseTimeoutError,
     LDAPSocketOpenError,
     LDAPStartTLSError,
+    LDAPUnavailableResult,
 )
 from ldap3.utils.conv import escape_filter_chars
 from ldap3.utils.dn import parse_dn
@@ -41,10 +45,16 @@ logger = logging.getLogger(__name__)
 # Errors that mean "this server is not usable right now" — the only ones that
 # move on to the next server (#404: never fail over on a credential or
 # authorization answer).
+# Every other LDAP error is an answer from the server — a malformed Bind DN,
+# a wrong base DN, missing rights — that every replica gives alike.
 _UNAVAILABLE_ERRORS: tuple[type[BaseException], ...] = (
     LDAPSocketOpenError,
     LDAPCommunicationError,
     LDAPStartTLSError,
+    LDAPResponseTimeoutError,
+    LDAPMaximumRetriesError,
+    LDAPBusyResult,
+    LDAPUnavailableResult,
     OSError,
 )
 
@@ -247,11 +257,14 @@ def parse_ldap_servers(
         except (ValueError, TypeError):
             logger.warning("Ignoring malformed servers_json in LDAP config")
 
+    has_saved_servers = any(
+        k in raw_config for k in ("servers_json", "hosts", "server_urls")
+    )
     if not targets:
         hosts_raw = str(
             raw_config.get("hosts")
             or raw_config.get("server_urls")
-            or settings.LDAP_HOSTS
+            or ("" if has_saved_servers else settings.LDAP_HOSTS)
             or ""
         )
         parts = [p.strip() for p in re.split(r"[\s,;]+", hosts_raw) if p.strip()]
@@ -295,13 +308,24 @@ def invalid_ldap_server_entries(raw_config: dict[str, Any]) -> list[str]:
     return list(dict.fromkeys(bad))
 
 
+def _saved_or_env(cfg: dict[str, Any], key: str, env_value: str) -> str:
+    """A saved value wins, even an empty one; env fills only an absent key.
+
+    Otherwise an admin could never clear a field the env sets — an empty
+    Required Group or Bind DN would silently keep the env's.
+    """
+    if key in cfg and cfg[key] is not None:
+        return str(cfg[key]).strip()
+    return (env_value or "").strip()
+
+
 def build_effective_ldap_config(
     raw_config: dict[str, Any] | None,
     secret: str | None,
 ) -> LdapEffectiveConfig:
     cfg = raw_config or {}
-    provider_type = str(
-        cfg.get("provider_type") or settings.LDAP_PROVIDER_TYPE or "freeipa"
+    provider_type = (
+        _saved_or_env(cfg, "provider_type", settings.LDAP_PROVIDER_TYPE) or "freeipa"
     ).lower()
     if provider_type not in LDAP_PROVIDER_PRESETS:
         provider_type = "generic"
@@ -311,10 +335,10 @@ def build_effective_ldap_config(
     verify_tls = _parse_bool(cfg.get("verify_tls"), True)
     servers = parse_ldap_servers(cfg, default_start_tls=start_tls)
 
-    base_dn = str(cfg.get("base_dn") or settings.LDAP_BASE_DN or "").strip()
+    base_dn = _saved_or_env(cfg, "base_dn", settings.LDAP_BASE_DN)
     user_base_dn = str(cfg.get("user_base_dn") or "").strip() or base_dn
     group_base_dn = str(cfg.get("group_base_dn") or "").strip() or base_dn
-    bind_dn = str(cfg.get("bind_dn") or settings.LDAP_BIND_DN or "").strip()
+    bind_dn = _saved_or_env(cfg, "bind_dn", settings.LDAP_BIND_DN)
     bind_password = (
         secret if secret is not None else (settings.LDAP_BIND_PASSWORD or "")
     )
@@ -336,9 +360,7 @@ def build_effective_ldap_config(
         str(cfg.get("user_search_filter") or "").strip() or preset["user_search_filter"]
     )
 
-    required_group = str(
-        cfg.get("required_group") or settings.LDAP_REQUIRED_GROUP or ""
-    ).strip()
+    required_group = _saved_or_env(cfg, "required_group", settings.LDAP_REQUIRED_GROUP)
     group_search_filter = (
         str(cfg.get("group_search_filter") or "").strip()
         or preset["group_search_filter"]
@@ -528,6 +550,9 @@ def _open_server_connection(
         auto_bind=False,
         receive_timeout=cfg.receive_timeout,
         raise_exceptions=True,
+        # ldap3 would follow a referral to any host it names, without TLS when
+        # the referral offers none, and bind there with the same password.
+        auto_referrals=False,
     )
     conn.open()
     if target.start_tls and not target.use_ssl:
@@ -642,6 +667,7 @@ def authenticate_ldap_user(
     password: str,
     raw_config: dict[str, Any] | None,
     secret: str | None,
+    effective: LdapEffectiveConfig | None = None,
 ) -> LdapAuthOutcome:
     """Authenticate `username` + `password` against priority-ordered LDAP servers.
 
@@ -649,6 +675,13 @@ def authenticate_ldap_user(
     - Only socket/TLS/connection unavailability triggers failover to the next server.
     - Invalid credentials, user-not-found, or missing required group membership
       terminate immediately without failing over.
+
+    One connection per server: the service account searches for the user
+    and checks the group, then the same connection rebinds as the user to
+    verify the password. The group verdict is only reported after the
+    password is accepted, so a wrong password never learns group membership.
+
+    `effective` lets a caller that already built the config skip a rebuild.
     """
     clean_username = username.strip()
     if not clean_username or not password:
@@ -658,7 +691,7 @@ def authenticate_ldap_user(
             message="Username and password are required.",
         )
 
-    cfg = build_effective_ldap_config(raw_config, secret)
+    cfg = effective or build_effective_ldap_config(raw_config, secret)
     if not cfg.servers or not cfg.base_dn:
         return LdapAuthOutcome(
             ok=False,
@@ -678,7 +711,6 @@ def authenticate_ldap_user(
 
     for target in cfg.servers:
         conn: Connection | None = None
-        user_conn: Connection | None = None
         try:
             conn = _open_server_connection(
                 target=target,
@@ -710,10 +742,18 @@ def authenticate_ldap_user(
                 failed_servers=failed_servers,
             )
         except LDAPException as exc:
+            # The server answered (e.g. invalidDNSyntax for a malformed Bind
+            # DN): every replica would say the same, so no failover.
             err_msg = str(exc) or exc.__class__.__name__
-            logger.warning("LDAP error connecting to %s: %s", target.url, err_msg)
-            failed_servers.append((target.url, err_msg))
-            continue
+            logger.error("LDAP service bind failed on %s: %s", target.url, err_msg)
+            return LdapAuthOutcome(
+                ok=False,
+                reason="misconfigured",
+                message=f"LDAP service account bind failed: {err_msg}",
+                server_used=target.url,
+                failover_occurred=len(failed_servers) > 0,
+                failed_servers=failed_servers,
+            )
 
         def _fail(
             reason: str,
@@ -797,26 +837,6 @@ def authenticate_ldap_user(
                 else {}
             )
 
-            # Verify the user's password via simple bind as user_dn
-            try:
-                user_conn = _open_server_connection(
-                    target=target,
-                    cfg=cfg,
-                    bind_dn=user_dn,
-                    bind_password=password,
-                )
-            except LDAPInvalidCredentialsResult:
-                return _fail(
-                    "invalid_credentials", "Invalid LDAP username or password."
-                )
-            except _UNAVAILABLE_ERRORS as exc:
-                # Server dropped between search and user bind -> failover
-                err_msg = str(exc) or exc.__class__.__name__
-                failed_servers.append((target.url, err_msg))
-                continue
-            except LDAPException:
-                return _fail("invalid_credentials", "LDAP user bind failed.")
-
             resolved_uid = (
                 _extract_first_str(entry_attrs, cfg.username_attr) or clean_username
             )
@@ -832,7 +852,10 @@ def authenticate_ldap_user(
                     )
                 ldap_id = resolved_uid.lower()
 
-            # Optional custom Required LDAP Group check
+            # Optional custom Required LDAP Group check — run as the service
+            # account before the rebind below, reported only after it.
+            in_group = True
+            group_error: LdapGroupSearchError | None = None
             if cfg.required_group:
                 try:
                     in_group = _check_required_group(
@@ -847,31 +870,50 @@ def authenticate_ldap_user(
                     failed_servers.append((target.url, err_msg))
                     continue
                 except LdapGroupSearchError as exc:
-                    # noSuchObject, insufficientAccessRights, a malformed group
-                    # filter: the same on every replica, so no failover.
-                    logger.error(
-                        "LDAP group membership search failed on %s: %s",
-                        target.url,
-                        exc,
-                    )
-                    return _fail(
-                        "misconfigured",
-                        "LDAP group membership search failed; check the "
-                        "Required Group, the Group Base DN, the group search "
-                        "filter and the service account's read rights.",
-                    )
-                if not in_group:
-                    return _fail(
-                        "group_denied",
-                        f"User '{resolved_uid}' is not a member of required LDAP "
-                        f"group '{cfg.required_group}'.",
-                        identity=LdapIdentity(
-                            ldap_id=ldap_id,
-                            user_dn=user_dn,
-                            email=_extract_first_str(entry_attrs, cfg.email_attr) or "",
-                            full_name=resolved_name,
-                        ),
-                    )
+                    group_error = exc
+
+            # Verify the user's password: simple bind as user_dn on the same
+            # connection (no second TCP/TLS handshake).
+            try:
+                conn.rebind(user=user_dn, password=password)
+            except LDAPInvalidCredentialsResult:
+                return _fail(
+                    "invalid_credentials", "Invalid LDAP username or password."
+                )
+            except _UNAVAILABLE_ERRORS as exc:
+                # Server dropped between search and user bind -> failover
+                err_msg = str(exc) or exc.__class__.__name__
+                failed_servers.append((target.url, err_msg))
+                continue
+            except LDAPException:
+                return _fail("invalid_credentials", "LDAP user bind failed.")
+
+            if group_error is not None:
+                # noSuchObject, insufficientAccessRights, a malformed group
+                # filter: the same on every replica, so no failover.
+                logger.error(
+                    "LDAP group membership search failed on %s: %s",
+                    target.url,
+                    group_error,
+                )
+                return _fail(
+                    "misconfigured",
+                    "LDAP group membership search failed; check the "
+                    "Required Group, the Group Base DN, the group search "
+                    "filter and the service account's read rights.",
+                )
+            if not in_group:
+                return _fail(
+                    "group_denied",
+                    f"User '{resolved_uid}' is not a member of required LDAP "
+                    f"group '{cfg.required_group}'.",
+                    identity=LdapIdentity(
+                        ldap_id=ldap_id,
+                        user_dn=user_dn,
+                        email=_extract_first_str(entry_attrs, cfg.email_attr) or "",
+                        full_name=resolved_name,
+                    ),
+                )
 
             resolved_email = _valid_email(
                 _extract_first_str(entry_attrs, cfg.email_attr)
@@ -903,11 +945,6 @@ def authenticate_ldap_user(
                 failed_servers=failed_servers,
             )
         finally:
-            if user_conn is not None:
-                try:
-                    user_conn.unbind()
-                except Exception:
-                    pass
             if conn is not None:
                 try:
                     conn.unbind()
@@ -948,8 +985,8 @@ def check_ldap_servers_connection(
         )
 
     results: list[LdapServerDiagResult] = []
-    # The server sign-in would stop at: (index, url, service bind accepted)
-    deciding: tuple[int, str, bool] | None = None
+    # The server sign-in would stop at: (index, url, error or None when bound)
+    deciding: tuple[int, str, str | None] | None = None
 
     for idx, target in enumerate(cfg.servers):
         t0 = time.monotonic()
@@ -963,7 +1000,7 @@ def check_ldap_servers_connection(
             )
             elapsed_ms = round((time.monotonic() - t0) * 1000.0, 1)
             if deciding is None:
-                deciding = (idx, target.url, True)
+                deciding = (idx, target.url, None)
             results.append(
                 LdapServerDiagResult(
                     server=target.url,
@@ -974,24 +1011,8 @@ def check_ldap_servers_connection(
                     bind_ok=True,
                 )
             )
-        except LDAPInvalidCredentialsResult:
-            elapsed_ms = round((time.monotonic() - t0) * 1000.0, 1)
-            if deciding is None:
-                deciding = (idx, target.url, False)
-            results.append(
-                LdapServerDiagResult(
-                    server=target.url,
-                    priority=target.priority,
-                    ok=False,
-                    latency_ms=elapsed_ms,
-                    tls_active=bool(target.use_ssl or target.start_tls),
-                    bind_ok=False,
-                    error="Service Bind failed: invalid Bind DN or password.",
-                )
-            )
-        except Exception as exc:
-            # Unavailable, or another LDAP error at connect/bind: sign-in
-            # moves on to the next server for both.
+        except _UNAVAILABLE_ERRORS as exc:
+            # Sign-in moves on to the next server.
             elapsed_ms = round((time.monotonic() - t0) * 1000.0, 1)
             results.append(
                 LdapServerDiagResult(
@@ -1002,6 +1023,27 @@ def check_ldap_servers_connection(
                     tls_active=bool(target.use_ssl or target.start_tls),
                     bind_ok=False,
                     error=str(exc) or exc.__class__.__name__,
+                )
+            )
+        except Exception as exc:
+            # The server answered and refused (invalid credentials, a
+            # malformed Bind DN, ...): sign-in stops here.
+            if isinstance(exc, LDAPInvalidCredentialsResult):
+                error = "Service Bind failed: invalid Bind DN or password."
+            else:
+                error = f"Service Bind failed: {str(exc) or exc.__class__.__name__}"
+            if deciding is None:
+                deciding = (idx, target.url, error)
+            elapsed_ms = round((time.monotonic() - t0) * 1000.0, 1)
+            results.append(
+                LdapServerDiagResult(
+                    server=target.url,
+                    priority=target.priority,
+                    ok=False,
+                    latency_ms=elapsed_ms,
+                    tls_active=bool(target.use_ssl or target.start_tls),
+                    bind_ok=False,
+                    error=error,
                 )
             )
         finally:
@@ -1017,12 +1059,12 @@ def check_ldap_servers_connection(
         ok = False
         msg = "All configured LDAP servers are unreachable."
     else:
-        idx, url, bound = deciding
-        ok = bound
-        if not bound:
+        idx, url, refusal = deciding
+        ok = refusal is None
+        if refusal is not None:
             msg = (
-                f"{url} rejected the service bind (invalid Bind DN or password). "
-                "Sign-in stops at the first server that answers, so it will fail."
+                f"{url} rejected the service bind ({refusal}). Sign-in stops at "
+                "the first server that answers, so it will fail."
             )
         else:
             active_server = url
@@ -1058,6 +1100,7 @@ def check_ldap_user_auth(
         password=password,
         raw_config=raw_config,
         secret=secret,
+        effective=cfg,
     )
     group_check_passed: bool | None = None
     if cfg.required_group:

@@ -24,6 +24,11 @@ router = APIRouter(prefix="/admin/auth-providers", tags=["admin"])
 
 _VALID_PROVIDERS = {"google", "keycloak", "ldap", "microsoft", "passkey"}
 
+_LDAP_SECRET_REQUIRED = (
+    "The servers, Bind DN or TLS settings differ from the saved configuration. "
+    "Enter the Bind Password again to use them."
+)
+
 
 def _ldap_test_settings(
     session: SessionDep,
@@ -38,13 +43,7 @@ def _ldap_test_settings(
             override_secret=override_secret,
         )
     except auth_providers_crud.LdapSecretRequired:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "The servers, Bind DN or TLS settings differ from the saved "
-                "configuration. Enter the Bind Password to test them."
-            ),
-        ) from None
+        raise HTTPException(status_code=400, detail=_LDAP_SECRET_REQUIRED) from None
 
 
 def _refuse_invalid_ldap_servers(config: dict[str, Any] | None) -> None:
@@ -161,6 +160,14 @@ def update_auth_provider(
         raise HTTPException(status_code=404, detail="Unknown provider")
     if provider == "ldap":
         _refuse_invalid_ldap_servers(body.config)
+        if (
+            body.config is not None
+            and not body.secret
+            and auth_providers_crud.ldap_save_needs_secret(
+                session=session, new_config=body.config
+            )
+        ):
+            raise HTTPException(status_code=400, detail=_LDAP_SECRET_REQUIRED)
     row = auth_providers_crud.upsert_provider_config(
         session=session,
         provider=provider,

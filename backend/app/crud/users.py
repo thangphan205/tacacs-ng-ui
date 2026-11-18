@@ -108,8 +108,11 @@ def get_or_create_google_user(
     if user:
         return user
 
-    # 2. Existing account with same email — link it
+    # 2. Existing account with same email — link it, unless it belongs to
+    # the directory (the route refuses LDAP accounts)
     user = get_user_by_email(session=session, email=email)
+    if user and user.ldap_id:
+        return user
     if user:
         user.google_id = google_id
         session.add(user)
@@ -144,8 +147,11 @@ def get_or_create_keycloak_user(
     if user:
         return user
 
-    # 2. Existing account with same email — link it
+    # 2. Existing account with same email — link it, unless it belongs to
+    # the directory (the route refuses LDAP accounts)
     user = get_user_by_email(session=session, email=email)
+    if user and user.ldap_id:
+        return user
     if user:
         user.keycloak_id = keycloak_id
         session.add(user)
@@ -194,6 +200,8 @@ def get_or_create_microsoft_user(
 
     # 2. Existing account with same email — link it, only when the email is trusted
     user = get_user_by_email(session=session, email=email)
+    if user and user.ldap_id:
+        return user  # the route refuses LDAP accounts; never link onto one
     if user:
         if not allow_email_link:
             return None
@@ -234,6 +242,9 @@ def get_or_create_ldap_user(
 
     Returns ``None`` when the identity cannot be given an account:
 
+    - an account with this email is already linked to a *different* directory
+      entry (``ldap_id``) — never re-pointed, whatever ``allow_email_link`` says;
+
     - an account with this email exists, is not linked yet, and either email
       linking is off (the default) or that account is a superuser. LDAP
       ``mail`` is directory data that help desks and self-service portals can
@@ -259,6 +270,16 @@ def get_or_create_ldap_user(
     user = get_user_by_email_ci(session=session, email=normalized_email)
     if user:
         if not allow_email_link or user.is_superuser:
+            return None
+        if user.ldap_id is not None:
+            # Already another directory entry's account: re-pointing it would
+            # hand it to whoever can set their `mail` to this address.
+            logger.warning(
+                "LDAP identity %s refused: %s is already linked to another "
+                "directory entry",
+                normalized_id,
+                user.email,
+            )
             return None
         if settings.NODE_ROLE == "standby":
             return user

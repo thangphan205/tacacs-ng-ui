@@ -146,16 +146,16 @@ def test_authenticate_ldap_user_does_not_failover_on_invalid_password(
     ) -> Any:
         _ = bind_password
         visited_servers.append(target.host)
-        if bind_dn == cfg.bind_dn:
-            conn = MagicMock()
-            conn.entries = [
-                _FakeEntry(
-                    "uid=jdoe,cn=users,dc=example,dc=com",
-                    {"uid": ["jdoe"], "mail": ["jdoe@example.com"]},
-                )
-            ]
-            return conn
-        raise LDAPInvalidCredentialsResult("invalidCredentials")
+        assert bind_dn == cfg.bind_dn, "the user binds on the same connection"
+        conn = MagicMock()
+        conn.entries = [
+            _FakeEntry(
+                "uid=jdoe,cn=users,dc=example,dc=com",
+                {"uid": ["jdoe"], "mail": ["jdoe@example.com"]},
+            )
+        ]
+        conn.rebind.side_effect = LDAPInvalidCredentialsResult("invalidCredentials")
+        return conn
 
     monkeypatch.setattr("app.core.ldap_auth._open_server_connection", fake_open)
 
@@ -678,3 +678,146 @@ def test_connection_test_fails_when_first_answering_server_rejects_bind(
     assert "rejected the service bind" in res.message
     # Every server is still probed and reported.
     assert [s.ok for s in res.servers] == [False, True]
+
+
+def test_one_connection_per_server_and_password_checked_by_rebind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    opened: list[str | None] = []
+    conns: list[Any] = []
+
+    def fake_open(
+        target: LdapServerTarget,
+        cfg: LdapEffectiveConfig,
+        bind_dn: str | None,
+        bind_password: str | None = None,
+    ) -> Any:
+        _ = (target, cfg, bind_password)
+        opened.append(bind_dn)
+        conn = MagicMock()
+        conn.entries = [_alice()]
+        conns.append(conn)
+        return conn
+
+    monkeypatch.setattr("app.core.ldap_auth._open_server_connection", fake_open)
+    outcome = authenticate_ldap_user(
+        username="alice", password="pw", raw_config=_BASE_CFG, secret="s"
+    )
+    assert outcome.ok is True
+    assert opened == [_BASE_CFG["bind_dn"]]
+    conns[0].rebind.assert_called_once_with(
+        user="uid=alice,ou=people,dc=example,dc=com", password="pw"
+    )
+
+
+def test_wrong_password_never_learns_group_membership(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The group is checked before the rebind, but reported only after it."""
+
+    def fake_open(**_kwargs: Any) -> Any:
+        conn = MagicMock()
+
+        def fake_search(**kwargs: Any) -> bool:
+            conn.entries = [] if kwargs.get("attributes") == ["cn"] else [_alice()]
+            return True
+
+        conn.search.side_effect = fake_search
+        conn.rebind.side_effect = LDAPInvalidCredentialsResult("invalidCredentials")
+        return conn
+
+    monkeypatch.setattr("app.core.ldap_auth._open_server_connection", fake_open)
+    outcome = authenticate_ldap_user(
+        username="alice",
+        password="wrong",
+        raw_config={**_BASE_CFG, "required_group": "admins"},
+        secret="s",
+    )
+    assert outcome.reason == "invalid_credentials"
+
+
+def test_connections_never_follow_referrals(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A referral would re-bind with the same password on a host nobody set."""
+    from app.core import ldap_auth
+
+    captured: dict[str, Any] = {}
+
+    def fake_connection(server: Any, **kwargs: Any) -> Any:
+        _ = server
+        captured.update(kwargs)
+        return MagicMock()
+
+    monkeypatch.setattr(ldap_auth, "Connection", fake_connection)
+    cfg = build_effective_ldap_config(_BASE_CFG, "s")
+    ldap_auth._open_server_connection(
+        target=cfg.servers[0], cfg=cfg, bind_dn=cfg.bind_dn, bind_password="s"
+    )
+    assert captured["auto_referrals"] is False
+
+
+def test_saved_empty_field_wins_over_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "LDAP_REQUIRED_GROUP", "netops")
+    monkeypatch.setattr(settings, "LDAP_BIND_DN", "cn=env,dc=x")
+    monkeypatch.setattr(settings, "LDAP_HOSTS", "ldap://env.example.com")
+
+    cleared = build_effective_ldap_config(
+        {"required_group": "", "bind_dn": "", "hosts": ""}, None
+    )
+    assert cleared.required_group == ""
+    assert cleared.bind_dn == ""
+    assert cleared.servers == []
+
+    from_env = build_effective_ldap_config({}, None)
+    assert from_env.required_group == "netops"
+    assert from_env.bind_dn == "cn=env,dc=x"
+    assert [s.host for s in from_env.servers] == ["env.example.com"]
+
+
+def test_service_bind_answer_ends_sign_in_but_busy_fails_over(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ldap3.core.exceptions import LDAPBusyResult, LDAPInvalidDNSyntaxResult
+
+    def opener(first_error: Exception, visited: list[str]) -> Any:
+        def fake_open(
+            target: LdapServerTarget,
+            cfg: LdapEffectiveConfig,
+            bind_dn: str | None,
+            bind_password: str | None = None,
+        ) -> Any:
+            _ = (cfg, bind_dn, bind_password)
+            visited.append(target.host)
+            if target.host == "ldap01.example.com":
+                raise first_error
+            conn = MagicMock()
+            conn.entries = [_alice()]
+            return conn
+
+        return fake_open
+
+    visited: list[str] = []
+    monkeypatch.setattr(
+        "app.core.ldap_auth._open_server_connection",
+        opener(LDAPInvalidDNSyntaxResult("invalidDNSyntax"), visited),
+    )
+    outcome = authenticate_ldap_user(
+        username="alice", password="pw", raw_config=_BASE_CFG, secret="s"
+    )
+    assert outcome.reason == "misconfigured"
+    assert visited == ["ldap01.example.com"]
+    conn_res = check_ldap_servers_connection(raw_config=_BASE_CFG, secret="s")
+    assert conn_res.ok is False
+    assert "invalidDNSyntax" in conn_res.message
+
+    visited = []
+    monkeypatch.setattr(
+        "app.core.ldap_auth._open_server_connection",
+        opener(LDAPBusyResult("busy"), visited),
+    )
+    outcome = authenticate_ldap_user(
+        username="alice", password="pw", raw_config=_BASE_CFG, secret="s"
+    )
+    assert outcome.ok is True
+    assert outcome.failover_occurred is True

@@ -36,6 +36,8 @@ from app.utils import (
 router = APIRouter(tags=["login"])
 
 
+_FAILOVER_AUDIT_WINDOW = timedelta(minutes=15)
+
 _LDAP_ACCOUNT_DETAIL = (
     "This account signs in with LDAP. Use the LDAP tab; its password is "
     "managed in the directory."
@@ -84,6 +86,48 @@ def _audit_login_success(
         ),
         user_id=user.id,
         user_email=user.email,
+        ip_address=ip,
+    )
+
+
+def _audit_ldap_failover(
+    session: SessionDep,
+    *,
+    outcome_server: str | None,
+    failed_servers: list[tuple[str, str]],
+    username: str,
+    user_agent: str | None,
+    ip: str | None,
+) -> None:
+    """Record a failover once per state per window, not once per sign-in.
+
+    A server down for a day would otherwise write (and ship to the SIEM) one
+    identical row for every login.
+    """
+    failed_summary = ", ".join(srv for srv, _ in failed_servers)
+    description = (
+        f"LDAP server failover from [{failed_summary}] to {outcome_server}"
+        if outcome_server
+        else f"All LDAP servers unreachable: [{failed_summary}]"
+    )[:1024]
+    if audit_logs_crud.recent_audit_log_exists(
+        session=session,
+        action="LDAP_FAILOVER",
+        description=description,
+        within=_FAILOVER_AUDIT_WINDOW,
+    ):
+        return
+    audit_logs_crud.create_audit_log(
+        session=session,
+        audit_log_in=AuditLogCreate(
+            action="LDAP_FAILOVER",
+            entity_type="AuthProviderConfig",
+            entity_id="ldap",
+            description=description,
+            user_agent=user_agent,
+        ),
+        user_id=None,
+        user_email=username,
         ip_address=ip,
     )
 
@@ -183,31 +227,22 @@ def login_ldap_access_token(
     if not ldap_enabled:
         raise HTTPException(status_code=400, detail="LDAP sign-in is not enabled")
 
+    effective = build_effective_ldap_config(ldap_cfg, ldap_secret)
     outcome = authenticate_ldap_user(
         username=form_data.username,
         password=form_data.password,
         raw_config=ldap_cfg,
         secret=ldap_secret,
+        effective=effective,
     )
     if outcome.failed_servers:
-        failed_summary = ", ".join(f"{srv}" for srv, _ in outcome.failed_servers)
-        failover_desc = (
-            f"LDAP server failover from [{failed_summary}] to {outcome.server_used}"
-            if outcome.server_used
-            else f"All LDAP servers unreachable: [{failed_summary}]"
-        )
-        audit_logs_crud.create_audit_log(
-            session=session,
-            audit_log_in=AuditLogCreate(
-                action="LDAP_FAILOVER",
-                entity_type="AuthProviderConfig",
-                entity_id="ldap",
-                description=failover_desc[:1024],
-                user_agent=user_agent,
-            ),
-            user_id=None,
-            user_email=form_data.username,
-            ip_address=ip,
+        _audit_ldap_failover(
+            session,
+            outcome_server=outcome.server_used,
+            failed_servers=outcome.failed_servers,
+            username=form_data.username,
+            user_agent=user_agent,
+            ip=ip,
         )
 
     if outcome.ok and outcome.identity is not None:
@@ -216,9 +251,7 @@ def login_ldap_access_token(
             ldap_id=outcome.identity.ldap_id,
             email=outcome.identity.email,
             full_name=outcome.identity.full_name,
-            allow_email_link=build_effective_ldap_config(
-                ldap_cfg, ldap_secret
-            ).allow_email_link,
+            allow_email_link=effective.allow_email_link,
         )
         if ldap_user is None:
             if settings.NODE_ROLE == "standby":
@@ -233,7 +266,8 @@ def login_ldap_access_token(
             _fail(
                 f"LDAP identity {outcome.identity.ldap_id} not linked: a local "
                 f"account already uses {outcome.identity.email} (email linking is "
-                "off or the account is a superuser)"
+                "off, the account is a superuser, or it is linked to another "
+                "directory entry)"
             )
             raise HTTPException(
                 status_code=403,

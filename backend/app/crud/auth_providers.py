@@ -165,6 +165,23 @@ class LdapSecretRequired(Exception):
     """A test would send the stored bind password somewhere it was not saved for."""
 
 
+def _moves_stored_secret(
+    *,
+    stored_cfg: dict[str, Any],
+    stored_secret: str | None,
+    new_cfg: dict[str, Any],
+) -> bool:
+    """True when `new_cfg` would send the stored bind password somewhere new.
+
+    "Stored" includes ``LDAP_BIND_PASSWORD``, which sign-in falls back to.
+    """
+    if not (stored_secret or settings.LDAP_BIND_PASSWORD):
+        return False  # nothing stored to leak (e.g. an anonymous bind)
+    return _secret_destination(
+        build_effective_ldap_config(new_cfg, stored_secret)
+    ) != _secret_destination(build_effective_ldap_config(stored_cfg, stored_secret))
+
+
 def ldap_test_settings(
     *,
     session: Session,
@@ -183,16 +200,24 @@ def ldap_test_settings(
     merged_cfg = {**stored_cfg, **(override_config or {})}
     if override_secret:
         return merged_cfg, override_secret
-    if not (stored_secret or settings.LDAP_BIND_PASSWORD):
-        # Nothing stored to leak (e.g. testing an anonymous bind).
-        return merged_cfg, None
-
-    # No secret typed: the stored one, or LDAP_BIND_PASSWORD when none is stored.
-    if _secret_destination(
-        build_effective_ldap_config(merged_cfg, stored_secret)
-    ) != _secret_destination(build_effective_ldap_config(stored_cfg, stored_secret)):
+    if _moves_stored_secret(
+        stored_cfg=stored_cfg, stored_secret=stored_secret, new_cfg=merged_cfg
+    ):
         raise LdapSecretRequired
     return merged_cfg, stored_secret
+
+
+def ldap_save_needs_secret(*, session: Session, new_config: dict[str, Any]) -> bool:
+    """True when saving `new_config` without a new Bind Password is refused.
+
+    The same rule as `ldap_test_settings`, for Save: a saved config is what
+    every later sign-in uses, so repointing it would send the stored password
+    to the new servers on the next login.
+    """
+    _row, stored_cfg, stored_secret = _stored_ldap(session=session)
+    return _moves_stored_secret(
+        stored_cfg=stored_cfg, stored_secret=stored_secret, new_cfg=new_config
+    )
 
 
 # MAVIS LDAP_SERVER_TYPE -> preset. tac_plus-ng's mavis_tacplus_ldap.pl knows

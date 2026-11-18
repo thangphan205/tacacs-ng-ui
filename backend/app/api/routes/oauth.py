@@ -23,7 +23,7 @@ from app.crud.users import (
     get_or_create_keycloak_user,
     get_or_create_microsoft_user,
 )
-from app.models import AuditLogCreate
+from app.models import AuditLogCreate, User
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +92,19 @@ def _stored(session: Session, provider: str) -> tuple[dict[str, str], str | None
                 ),
             ) from None
     return config, secret
+
+
+def _refuse_ldap_account(user: User) -> None:
+    """A directory account signs in through LDAP only (#404).
+
+    Single sign-on with the same email would outlive the account's removal
+    from the directory or from the Required LDAP Group.
+    """
+    if user.ldap_id:
+        raise HTTPException(
+            status_code=403,
+            detail="This account signs in with LDAP. Use the LDAP tab.",
+        )
 
 
 def _default_redirect_uri(provider: str) -> str:
@@ -284,6 +297,7 @@ def google_callback(
 
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+    _refuse_ldap_account(user)
 
     audit_logs_crud.create_audit_log(
         session=session,
@@ -376,6 +390,7 @@ def keycloak_callback(
 
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+    _refuse_ldap_account(user)
 
     audit_logs_crud.create_audit_log(
         session=session,
@@ -498,6 +513,7 @@ def microsoft_callback(
 
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+    _refuse_ldap_account(user)
 
     audit_logs_crud.create_audit_log(
         session=session,

@@ -41,6 +41,27 @@ def create_audit_log(
     return db_obj
 
 
+def recent_audit_log_exists(
+    *, session: Session, action: str, description: str, within: timedelta
+) -> bool:
+    """True when an entry with this action and description was written lately.
+
+    Lets a caller record a lasting condition (an LDAP server down) once per
+    window instead of once per request.
+    """
+    since = datetime.now(timezone.utc) - within
+    statement = (
+        select(AuditLog.id)
+        .where(
+            AuditLog.action == action,
+            AuditLog.description == description,
+            AuditLog.created_at >= since,
+        )
+        .limit(1)
+    )
+    return session.exec(statement).first() is not None
+
+
 def get_audit_logs(
     *,
     session: Session,
