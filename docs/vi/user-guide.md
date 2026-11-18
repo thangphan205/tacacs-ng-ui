@@ -719,6 +719,8 @@ API client dùng `POST /api/v1/login/access-token` cho tài khoản local và `P
 
 **Tài khoản được liên kết với unique ID của entry trong thư mục**, không phải username, nên username bị đổi tên hoặc tạo lại sẽ không bao giờ thừa hưởng tài khoản của người khác. Xóa trống **Unique ID Attribute** nếu muốn liên kết theo username.
 
+**Tài khoản thư mục chỉ đăng nhập qua thư mục.** Tài khoản được LDAP tạo hoặc liên kết không dùng được mật khẩu cục bộ (tab Local Account, *Forgot password?* và đặt lại mật khẩu đều từ chối) hay passkey, nên khi xóa người dùng khỏi thư mục, hoặc khỏi Required LDAP Group, lần đăng nhập kế tiếp của họ sẽ bị chặn. Phiên đang mở vẫn giữ token tới khi hết hạn (`ACCESS_TOKEN_EXPIRE_MINUTES`).
+
 > **Tài khoản local đã có.** Mặc định, người dùng thư mục có email trùng với một tài khoản local sẽ bị từ chối (HTTP 403) thay vì được liên kết: thuộc tính `mail` của LDAP thường do help desk hoặc người dùng tự sửa được, nên liên kết theo email sẽ cho phép ai đặt được `mail` đăng nhập vào tài khoản đó. Chỉ bật **Link existing local accounts by email** khi người dùng không thể tự đổi `mail` của mình. Tài khoản **superuser** không bao giờ được liên kết theo cách này.
 
 Người dùng thư mục không có email hợp lệ sẽ bị từ chối, trừ khi đặt **Fallback Email Domain** (tài khoản khi đó nhận email `username@domain`).
@@ -726,6 +728,10 @@ Người dùng thư mục không có email hợp lệ sẽ bị từ chối, tr�
 Trên node standby, người đã từng đăng nhập có thể đăng nhập lại; lần đăng nhập đầu tiên phải thực hiện trên node primary.
 
 Khi đổi server, Bind DN hoặc thiết lập TLS rồi bấm **Test**, hệ thống yêu cầu nhập lại Bind Password, để mật khẩu đã lưu chỉ được gửi tới đúng các server mà nó được lưu cho.
+
+**Test Connection** kiểm tra mọi server nhưng đánh giá kết quả đúng như khi đăng nhập: chỉ đạt khi server đầu tiên trả lời chấp nhận service bind. Server từ chối Bind DN hoặc mật khẩu làm bài test thất bại kể cả khi server sau chấp nhận, vì đăng nhập dừng ở đó. Đăng nhập thất bại do cấu hình (service bind, Base DN, bộ lọc tìm kiếm, tìm nhóm, thiếu Bind Password) trả về *LDAP sign-in is misconfigured* (HTTP 503) thay vì *Incorrect username or password*; chi tiết nằm trong audit log.
+
+Trước khi lưu thiết lập LDAP nào, thẻ cấu hình hiển thị các giá trị `LDAP_*` từ `.env` (`LDAP_HOSTS`, `LDAP_BASE_DN`, `LDAP_BIND_DN`, `LDAP_REQUIRED_GROUP`, `LDAP_PROVIDER_TYPE`), nên bấm lưu vẫn giữ cấu hình qua env hoạt động. Không bắt buộc lưu Bind Password ở đó: khi không có, `LDAP_BIND_PASSWORD` vẫn được dùng. Địa chỉ server có cổng sai hoặc scheme khác `ldap://` / `ldaps://` bị từ chối khi lưu.
 
 ---
 
