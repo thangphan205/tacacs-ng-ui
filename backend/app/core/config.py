@@ -233,21 +233,26 @@ class Settings(BaseSettings):
     # expires (minutes; capped by ACCESS_TOKEN_EXPIRE_MINUTES).
     LDAP_ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
 
+    # Addresses (comma-separated IPs or CIDRs) of the reverse proxies in front of
+    # the app. get_client_ip() walks X-Forwarded-For from the right past these;
+    # the first address that is not one is the client, so a forged leftmost
+    # entry is ignored. The default covers loopback and private ranges (Docker
+    # networks, nginx, Traefik). Add a CDN's public ranges when one sits in
+    # front, and keep the backend port itself unexposed: a direct caller is its
+    # own last proxy and can write any address.
+    TRUSTED_PROXIES: str = (
+        "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16,"
+        "::1/128,fc00::/7"
+    )
+
     # Sign-in throttling, from LOGIN_FAILED audit rows (shared by all workers;
     # needs the primary, standbys write no audit rows). 0 turns a limit off.
     # Per user: LDAP sign-in only, counted per (username, client address), so a
     # stranger cannot lock the local emergency administrator, or a known
     # directory user, out by guessing at the name from elsewhere.
-    # PROXY_HOPS: proxies that append to X-Forwarded-For in front of the app
-    # (nginx + Traefik = 2). The client address is the entry that many from the
-    # right; the leftmost entries are caller-supplied and ignored. A shorter chain
-    # (nginx only, Vite dev, CI) falls back to the first entry like every other
-    # audit row, which a caller can forge: match this to the real chain (3 behind
-    # a CDN) and keep the backend port unexposed. 0 always uses that fallback.
     LOGIN_THROTTLE_WINDOW_MINUTES: int = 15
     LOGIN_THROTTLE_MAX_FAILURES_PER_USER: int = 10
     LOGIN_THROTTLE_MAX_FAILURES_PER_IP: int = 50
-    LOGIN_THROTTLE_PROXY_HOPS: int = 2
 
     # High Availability
     NODE_ROLE: Literal["primary", "standby"] = "primary"

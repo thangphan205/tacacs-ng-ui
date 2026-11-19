@@ -1,4 +1,3 @@
-import ipaddress
 from datetime import timedelta
 from typing import Annotated, Any
 
@@ -75,29 +74,7 @@ def _ua(user_agent: str | None) -> str | None:
 
 
 def _login_client_ip(request: Request) -> str | None:
-    """Client address for sign-in throttling and its audit rows.
-
-    ``get_client_ip`` trusts the *first* X-Forwarded-For entry, which the
-    caller writes, so rotating it would dodge every limit. Proxies append on
-    the right: when the chain is as long as ``LOGIN_THROTTLE_PROXY_HOPS``,
-    take the entry the last proxy that many hops out added -- the real client.
-
-    A shorter chain (nginx only, the Vite dev proxy, CI, a direct call) falls
-    back to ``get_client_ip`` so sign-in keeps working and the audit rows agree
-    with every other one. There the leftmost entry is caller-written, so the
-    throttle is only as strong as the proxy chain: set the hop count to match
-    it, and do not expose the backend port to clients. ``0`` always uses
-    ``get_client_ip``.
-    """
-    hops = settings.LOGIN_THROTTLE_PROXY_HOPS
-    forwarded = request.headers.get("X-Forwarded-For")
-    if hops > 0 and forwarded:
-        parts = [p.strip() for p in forwarded.split(",")]
-        if len(parts) >= hops:
-            try:
-                return str(ipaddress.ip_address(parts[-hops]))[:_IP_MAX]
-            except ValueError:
-                pass
+    """Client address for throttling and audit rows, bounded to the column."""
     ip = get_client_ip(request)
     return ip[:_IP_MAX] if ip else None
 
