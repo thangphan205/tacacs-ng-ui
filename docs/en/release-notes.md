@@ -16,6 +16,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Features
 
+* ✨ Add require admin approval option for external IdP users. PR [#421](https://github.com/thangphan205/tacacs-ng-ui/pull/421) by [@thangphan205](https://github.com/thangphan205).
 * ✨ Track and display last login time for Web UI users. PR [#420](https://github.com/thangphan205/tacacs-ng-ui/pull/420) by [@thangphan205](https://github.com/thangphan205).
 * ✨ Track and display last successful authentication time for TACACS users. PR [#419](https://github.com/thangphan205/tacacs-ng-ui/pull/419) by [@thangphan205](https://github.com/thangphan205).
 * ✨ Add LDAP / Active Directory sign-in for the Web UI (#404). PR [#418](https://github.com/thangphan205/tacacs-ng-ui/pull/418) by [@thangphan205](https://github.com/thangphan205).
