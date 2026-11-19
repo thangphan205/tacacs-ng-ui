@@ -94,6 +94,7 @@ class User(UserBase, TimestampModel, table=True):
     microsoft_id: str | None = Field(default=None, index=True, unique=True)
     ldap_id: str | None = Field(default=None, index=True, unique=True)
     password_login_disabled: bool = Field(default=False)
+    last_login_at: datetime | None = Field(sa_type=TZ_DATETIME, default=None)
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
     webauthn_credentials: list["WebAuthnCredential"] = Relationship(
         back_populates="user",
@@ -131,6 +132,7 @@ class UserPublic(UserBase):
     created_at: datetime
     updated_at: datetime
     password_login_disabled: bool
+    last_login_at: datetime | None = None
     login_methods: list[str] = Field(default_factory=list)
     ldap_relink_pending: bool = False
 
