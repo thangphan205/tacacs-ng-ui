@@ -3,10 +3,16 @@ import re
 import uuid
 from datetime import date, datetime, timezone
 from ipaddress import ip_network
-from typing import Literal
+from typing import Any, Literal
 
 import sqlalchemy as sa
-from pydantic import EmailStr, TypeAdapter, field_validator, model_validator
+from pydantic import (
+    EmailStr,
+    TypeAdapter,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
 
@@ -1509,7 +1515,19 @@ class AuditLogBase(SQLModel):
 
 
 class AuditLogCreate(AuditLogBase):
-    pass
+    # Request-derived text is cut to the column, not rejected: every route
+    # builds this *after* its change is committed, so a ValidationError here
+    # (a browser extension's 600-character User-Agent) would answer 500 and
+    # leave the change live with no audit row. ``action`` / ``entity_type``
+    # are code constants and stay strict.
+    @field_validator("entity_id", "description", "user_agent", mode="before")
+    @classmethod
+    def _truncate_to_column(cls, value: Any, info: ValidationInfo) -> Any:
+        limit = _AUDIT_TEXT_LIMITS[info.field_name or ""]
+        return value[:limit] if isinstance(value, str) else value
+
+
+_AUDIT_TEXT_LIMITS = {"entity_id": 255, "description": 1024, "user_agent": 512}
 
 
 class AuditLog(AuditLogBase, TimestampModel, table=True):

@@ -47,6 +47,7 @@ _LINK_REFUSALS: dict[str, str] = {
     users.LDAP_OPEN_REGISTRATION: (
         "email linking is refused while USERS_OPEN_REGISTRATION is on"
     ),
+    users.LDAP_RESERVED_ID: "the directory identifier uses the reserved relink: prefix",
 }
 
 _LDAP_ACCOUNT_DETAIL = (
@@ -401,6 +402,11 @@ def login_ldap_access_token(
                 f"LDAP identity {ident.ldap_id} not linked to {ident.email}: "
                 f"{_LINK_REFUSALS.get(refusal or '', refusal)}"
             )
+            if refusal == users.LDAP_RESERVED_ID:
+                raise HTTPException(
+                    status_code=403,
+                    detail="This directory account cannot sign in here. Ask an administrator.",
+                )
             raise HTTPException(
                 status_code=403,
                 detail=(

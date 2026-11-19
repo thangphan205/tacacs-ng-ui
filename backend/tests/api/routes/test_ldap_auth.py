@@ -1505,3 +1505,83 @@ def test_concurrent_failover_audits_are_serialised(
         ip=None,
     )
     assert order == ["lock", "check"]
+
+
+def test_a_directory_id_spelled_like_a_relink_marker_is_refused(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    """`relink:<uuid>` is what a reset stores; an entry whose identifier is
+    spelled that way must not sign in as the reset account."""
+    alice = _ldap_account(db)
+    r = client.post(
+        f"{settings.API_V1_STR}/users/{alice.id}/reset-ldap-link",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 200, r.text
+    _enable_ldap(db)
+    _fake_ldap_success(
+        monkeypatch, ldap_id=f"RELINK:{alice.id}", email="ldap-standby@example.com"
+    )
+    r = _login(client, f"relink:{alice.id}")
+    assert r.status_code == 403
+    db.refresh(alice)
+    assert alice.ldap_relink_pending
+    assert db.exec(
+        select(AuditLog).where(
+            AuditLog.action == "LOGIN_FAILED",
+            AuditLog.description.contains("reserved relink: prefix"),  # type: ignore[union-attr]
+        )
+    ).first()
+
+
+def test_failed_ldap_sign_ins_are_throttled_on_a_standby(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Any,
+) -> None:
+    """A standby writes no audit rows; its failures are still counted."""
+    import tempfile
+
+    _enable_ldap(db)
+
+    def refuse(**_kwargs: Any) -> LdapAuthOutcome:
+        return LdapAuthOutcome(
+            ok=False, reason="invalid_credentials", message="Invalid password"
+        )
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", refuse)
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    monkeypatch.setattr(settings, "LOGIN_THROTTLE_MAX_FAILURES_PER_USER", 3)
+    monkeypatch.setattr(settings, "NODE_ROLE", "standby")
+    name = f"victim-{uuid.uuid4().hex[:8]}"
+    for _ in range(3):
+        assert _login(client, name).status_code == 400
+    assert _login(client, name).status_code == 429
+    monkeypatch.setattr(settings, "NODE_ROLE", "primary")
+    # Nothing reached the (replicated) audit table.
+    assert not db.exec(select(AuditLog).where(AuditLog.user_email == name)).first()
+    # The primary counts its own rows, not the standby's file.
+    assert _login(client, name).status_code == 400
+
+
+def test_an_over_long_user_agent_never_fails_an_audited_change(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
+    """The change is committed before its audit row is built: a header past
+    the column must be cut, not answer 500 with the change live and unlogged."""
+    r = client.put(
+        ADMIN_LDAP_URL,
+        headers={**superuser_token_headers, "User-Agent": "U" * 2000},
+        json={"enabled": False, "config": LDAP_CONFIG, "secret": "bind-secret"},
+    )
+    assert r.status_code == 200, r.text
+    row = db.exec(
+        select(AuditLog)
+        .where(AuditLog.entity_type == "AuthProviderConfig")
+        .order_by(AuditLog.created_at.desc())  # type: ignore[attr-defined]
+    ).first()
+    assert row is not None and row.user_agent == "U" * 512

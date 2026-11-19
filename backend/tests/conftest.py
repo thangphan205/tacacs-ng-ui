@@ -42,6 +42,17 @@ def _no_login_throttle() -> Generator[None, None, None]:
         setattr(settings, n, v)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _explicit_trusted_proxies() -> Generator[None, None, None]:
+    """The default ``auto`` reads this machine's routing table, so a test run
+    would depend on the host it runs on. Pin the ranges the tests are written
+    for (Docker's 172.16/12 bridges); tests/core/test_client_ip.py covers auto."""
+    saved = settings.TRUSTED_PROXIES
+    settings.TRUSTED_PROXIES = "127.0.0.0/8,172.16.0.0/12,::1/128"
+    yield
+    settings.TRUSTED_PROXIES = saved
+
+
 @pytest.fixture(scope="session")
 def client() -> Generator[TestClient, None, None]:
     # Session-scoped, not module-scoped: entering the app lifespan once per test

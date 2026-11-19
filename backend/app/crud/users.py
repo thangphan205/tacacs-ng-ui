@@ -270,6 +270,7 @@ LDAP_EMAIL_LINK_OFF = "email_link_off"
 LDAP_SUPERUSER = "superuser"
 LDAP_LINKED_ELSEWHERE = "linked_elsewhere"
 LDAP_OPEN_REGISTRATION = "open_registration"
+LDAP_RESERVED_ID = "reserved_id"
 
 
 def _link_ldap(
@@ -336,7 +337,9 @@ def get_or_create_ldap_user(
       attacker registered with the victim's address — and its tokens would
       survive the link;
     - ``new_on_standby``: the identity is new, or would be linked to an
-      existing account, and this node is a standby (read-only replica).
+      existing account, and this node is a standby (read-only replica);
+    - ``reserved_id``: the directory identifier starts with
+      ``LDAP_RELINK_PREFIX``, the marker `mark_ldap_relink` stores.
 
     Authentication only: an existing account keeps its ``is_superuser`` and
     ``is_active`` flags, and new accounts are created read-only.
@@ -344,6 +347,18 @@ def get_or_create_ldap_user(
     normalized_id = ldap_id.strip().lower()
     normalized_email = email.strip().lower()
     standby = settings.NODE_ROLE == "standby"
+
+    if normalized_id.startswith(LDAP_RELINK_PREFIX):
+        # `mark_ldap_relink` stores this prefix plus the account's id. An
+        # entry whose identifier is spelled that way (a username, or an
+        # editable unique-ID attribute) would match the reset account in step
+        # 1 and sign in as it, skipping every email check.
+        logger.warning(
+            "LDAP identity %r refused: it uses the reserved %r prefix",
+            normalized_id[:255],
+            LDAP_RELINK_PREFIX,
+        )
+        return None, LDAP_RESERVED_ID
 
     # 1. Already linked via ldap_id
     user = get_user_by_ldap_id(session=session, ldap_id=normalized_id)

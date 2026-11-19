@@ -237,21 +237,23 @@ class Settings(BaseSettings):
     # an unreachable directory cannot starve the threadpool.
     LDAP_MAX_CONCURRENT_SIGNINS: int = 8
 
-    # Addresses (comma-separated IPs or CIDRs) of the reverse proxies directly in
-    # front of the app. get_client_ip() believes X-Forwarded-For only when the
-    # socket peer is one of these, then walks it from the right past them; the
-    # first address that is not one is the client. Keep this to the proxies
-    # themselves: a client inside a listed range is treated as a proxy hop, and a
-    # chain of only listed addresses resolves to its rightmost entry (a shared
-    # address, never a forgeable one), so the default does not include 10/8 or
-    # 192.168/16 (office LANs). Docker's default bridges are in 172.16/12; add
-    # your own compose network if it uses another range (get_client_ip logs the
-    # proxy's address when X-Forwarded-For arrives from an unlisted peer), and a
-    # CDN's public ranges when one sits in front.
-    TRUSTED_PROXIES: str = "127.0.0.0/8,172.16.0.0/12,::1/128"
+    # Addresses (comma-separated IPs or CIDRs) of the reverse proxies in front
+    # of the app. get_client_ip() believes X-Forwarded-For only when the socket
+    # peer is one of these, then walks it from the right past them; the first
+    # address that is not one is the client. Keep this to the proxies
+    # themselves: a client inside a listed range is treated as a proxy hop and
+    # can name any address it likes. "auto" (the default) means loopback plus
+    # the networks this container is attached to (its compose networks, where
+    # nginx and Traefik live; never their gateway, which is the host), read
+    # from /proc/net/route -- so a 10.x or 192.168.x compose network works
+    # unconfigured and an office 172.x LAN is not trusted. It can be combined:
+    # "auto,104.16.0.0/13" adds a CDN. Under host networking auto trusts only
+    # loopback; list the proxy explicitly there and on Kubernetes.
+    TRUSTED_PROXIES: str = "auto"
 
     # Sign-in throttling, from LOGIN_FAILED audit rows (shared by all workers;
-    # needs the primary, standbys write no audit rows). 0 turns a limit off.
+    # a standby, which writes no audit rows, counts in a node-local file
+    # instead, see crud/standby_login_failures.py). 0 turns a limit off.
     # Per user: LDAP sign-in only, counted per (username, client address), so a
     # stranger cannot lock the local emergency administrator, or a known
     # directory user, out by guessing at the name from elsewhere.

@@ -25,6 +25,7 @@ from ldap3.core.exceptions import (
     LDAPException,
     LDAPInvalidCredentialsResult,
     LDAPMaximumRetriesError,
+    LDAPNoSuchObjectResult,
     LDAPResponseTimeoutError,
     LDAPSocketOpenError,
     LDAPStartTLSError,
@@ -677,6 +678,30 @@ def _open_server_connection(
     return conn
 
 
+# memberOf entries with the required name below the Group Base DN that are
+# checked against the Group Search Filter (one BASE read each).
+_MAX_MEMBER_OF_CANDIDATES = 5
+
+
+def _entry_matches(conn: Connection, dn: str, search_filter: str) -> bool:
+    """Whether the entry at `dn` exists and matches `search_filter`."""
+    try:
+        conn.search(
+            search_base=dn,
+            search_filter=search_filter,
+            search_scope=BASE,
+            attributes=["cn"],
+            size_limit=1,
+        )
+    except _UNAVAILABLE_ERRORS:
+        raise
+    except LDAPNoSuchObjectResult:
+        return False
+    except LDAPException as exc:
+        raise LdapGroupSearchError(str(exc) or exc.__class__.__name__) from exc
+    return bool(conn.entries)
+
+
 def _check_required_group(
     conn: Connection,
     cfg: LdapEffectiveConfig,
@@ -700,13 +725,23 @@ def _check_required_group(
     required_parts = _normalize_dn(required) if required_is_dn else None
     group_base_parts = _normalize_dn(cfg.group_base_dn or cfg.base_dn)
 
+    group_clause = (
+        None
+        if required_is_dn
+        else _fill_placeholder(cfg.group_search_filter, "group", required_cn)
+    )
+
     # 1. Fast path: check `memberOf` attribute on the user entry. Both forms
     # stay inside the same scope as the directory search below — comparing
     # only a group's first RDN would let a same-named group in any other OU
     # satisfy the gate:
-    # - a full DN must match exactly;
-    # - a bare name must name a group below the Group Base DN.
+    # - a full DN must match exactly (the administrator named that entry);
+    # - a bare name must name a group below the Group Base DN, and that entry
+    #   must match the Group Search Filter, as the search below requires.
+    #   memberOf is not only groups: FreeIPA lists roles, privileges and
+    #   HBAC/sudo rules there too (cn=netops,cn=roles,cn=accounts,...).
     member_of_list = _extract_str_list(entry_attrs, "memberOf")
+    candidates: list[str] = []
     for group_dn in member_of_list:
         group_parts = _normalize_dn(group_dn)
         if group_parts is None:
@@ -719,7 +754,11 @@ def _check_required_group(
             and group_base_parts is not None
             and _dn_is_under(group_parts, group_base_parts)
         ):
-            return True
+            candidates.append(group_dn)
+    if group_clause is not None:
+        for group_dn in candidates[:_MAX_MEMBER_OF_CANDIDATES]:
+            if _entry_matches(conn, group_dn, group_clause):
+                return True
 
     # 2. Directory group search (handles OpenLDAP without memberOf overlay,
     # POSIX memberUid, uniqueMember, and Active Directory nested groups)
@@ -760,7 +799,6 @@ def _check_required_group(
         search_scope = BASE
     else:
         search_base = cfg.group_base_dn or cfg.base_dn
-        group_clause = _fill_placeholder(cfg.group_search_filter, "group", required_cn)
         search_filter = f"(&{group_clause}{membership_or})"
         search_scope = SUBTREE
 

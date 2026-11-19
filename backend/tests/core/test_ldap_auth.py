@@ -602,11 +602,13 @@ def test_bare_group_name_in_member_of_must_sit_under_group_base_dn(
     )
     assert denied.reason == "group_denied"
 
-    # Under the base, in the directory's own spelling of the DN.
+    # Under the base, in the directory's own spelling of the DN (and a group
+    # entry there, see the test below).
     monkeypatch.setattr(
         "app.core.ldap_auth._open_server_connection",
         _single_entry_open(
-            _alice({"memberOf": ["CN=NetOps, OU=Groups,DC=example,DC=com"]})
+            _alice({"memberOf": ["CN=NetOps, OU=Groups,DC=example,DC=com"]}),
+            group_found=True,
         ),
     )
     allowed = authenticate_ldap_user(
@@ -1003,3 +1005,78 @@ def test_undecryptable_bind_password_is_named_and_never_replaced_by_env(
 
     # A password typed again wins.
     assert build_effective_ldap_config(cfg, "typed").bind_password == "typed"
+
+
+def _member_of_open(
+    entry: _FakeEntry, groups: set[str], searches: list[dict[str, Any]]
+) -> Any:
+    """Service conn finds `entry`; a BASE read finds only DNs in `groups` and
+    only with the group filter; the subtree group search finds nothing."""
+
+    def fake_open(
+        target: LdapServerTarget,
+        cfg: LdapEffectiveConfig,
+        bind_dn: str | None,
+        bind_password: str | None = None,
+    ) -> Any:
+        _ = (target, bind_password)
+        conn = MagicMock()
+        if bind_dn != cfg.bind_dn:
+            return conn
+
+        def fake_search(**kwargs: Any) -> bool:
+            searches.append(kwargs)
+            base = kwargs["search_base"]
+            if base == cfg.user_base_dn and "inetOrgPerson" in kwargs["search_filter"]:
+                conn.entries = [entry]
+            elif (
+                kwargs["search_scope"] == "BASE"
+                and base in groups
+                and "objectClass=groupOfNames" in kwargs["search_filter"]
+            ):
+                conn.entries = [_FakeEntry(base, {})]
+            else:
+                conn.entries = []
+            return True
+
+        conn.search.side_effect = fake_search
+        return conn
+
+    return fake_open
+
+
+def test_member_of_a_non_group_entry_does_not_satisfy_a_bare_group_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """FreeIPA's memberOf also lists roles, privileges and HBAC/sudo rules. A
+    role named like the Required Group is not the group."""
+    cfg = {
+        **_BASE_CFG,
+        "required_group": "netops",
+        "group_search_filter": "(&(objectClass=groupOfNames)(cn={group}))",
+    }
+    role = "cn=netops,cn=roles,cn=accounts,dc=example,dc=com"
+    group = "cn=netops,cn=groups,cn=accounts,dc=example,dc=com"
+
+    searches: list[dict[str, Any]] = []
+    monkeypatch.setattr(
+        "app.core.ldap_auth._open_server_connection",
+        _member_of_open(_alice({"memberOf": [role]}), {group}, searches),
+    )
+    denied = authenticate_ldap_user(
+        username="alice", password="pw", raw_config=cfg, secret="s"
+    )
+    assert denied.reason == "group_denied"
+    # The candidate was read at BASE scope with the Group Search Filter.
+    assert any(
+        s["search_base"] == role and s["search_scope"] == "BASE" for s in searches
+    )
+
+    monkeypatch.setattr(
+        "app.core.ldap_auth._open_server_connection",
+        _member_of_open(_alice({"memberOf": [role, group]}), {group}, []),
+    )
+    allowed = authenticate_ldap_user(
+        username="alice", password="pw", raw_config=cfg, secret="s"
+    )
+    assert allowed.ok is True

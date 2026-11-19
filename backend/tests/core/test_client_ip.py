@@ -147,3 +147,115 @@ def test_a_scope_without_a_recorded_peer_never_trusts_the_rewritten_client() -> 
         }
     )
     assert get_client_ip(request) is None
+
+
+# --- TRUSTED_PROXIES=auto ----------------------------------------------------
+
+# /proc/net/route of a backend on two compose networks: `default`
+# (172.18.0.0/16, default route via 172.18.0.1) and `traefik-public`
+# (10.0.5.0/24, a Swarm-style range).
+_ROUTE_TABLE = (
+    "Iface\tDestination\tGateway \tFlags\tRefCnt\tUse\tMetric\tMask\t\tMTU\tWindow\tIRTT\n"
+    "eth0\t00000000\t010012AC\t0003\t0\t0\t0\t00000000\t0\t0\t0\n"
+    "eth0\t000012AC\t00000000\t0001\t0\t0\t0\t0000FFFF\t0\t0\t0\n"
+    "eth1\t0005000A\t00000000\t0001\t0\t0\t0\t00FFFFFF\t0\t0\t0\n"
+    "eth2\t0000A8C0\t00000000\t0000\t0\t0\t0\t00FFFFFF\t0\t0\t0\n"  # down
+)
+
+
+def test_attached_networks_reads_the_compose_networks() -> None:
+    from app.api.deps import attached_networks
+
+    networks, excluded = attached_networks(_ROUTE_TABLE, ["lo", "eth0", "eth1"])
+    assert [str(n) for n in networks] == ["172.18.0.0/16", "10.0.5.0/24"]
+    # Each network's gateway (the host) is not a proxy.
+    assert {str(a) for a in excluded} == {"172.18.0.1", "10.0.5.1"}
+
+
+def test_attached_networks_trusts_nothing_under_host_networking() -> None:
+    from app.api.deps import attached_networks
+
+    networks, excluded = attached_networks(
+        _ROUTE_TABLE, ["lo", "eth0", "docker0", "br-1a2b3c"]
+    )
+    assert networks == () and excluded == frozenset()
+
+
+@pytest.fixture
+def _auto(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.api import deps
+
+    monkeypatch.setattr(settings, "TRUSTED_PROXIES", "auto")
+    monkeypatch.setattr(deps, "_auto_cache", None)
+    monkeypatch.setattr(
+        deps,
+        "_read_attached_networks",
+        lambda: deps.attached_networks(_ROUTE_TABLE, ["lo", "eth0", "eth1"]),
+    )
+
+
+@pytest.mark.usefixtures("_auto")
+@pytest.mark.parametrize(
+    ("header", "expected"),
+    [
+        # Traefik on traefik-public, nginx on default: the client is found.
+        ("6.6.6.6, 203.0.113.5, 10.0.5.7", "203.0.113.5"),
+        # An office client in another 172.x range is a client, not a proxy
+        # hop, so the address it wrote to its left is never believed.
+        ("6.6.6.6, 172.20.5.5", "172.20.5.5"),
+        ("6.6.6.6, 172.20.5.5, 10.0.5.7", "172.20.5.5"),
+        # Nor is the host behind a network's gateway.
+        ("6.6.6.6, 172.18.0.1", "172.18.0.1"),
+        ("6.6.6.6, 10.0.5.1, 10.0.5.7", "10.0.5.1"),
+        ("203.0.113.5, 127.0.0.1", "203.0.113.5"),
+    ],
+)
+def test_auto_trusts_only_the_attached_networks(header: str, expected: str) -> None:
+    assert _forwarded_client_ip(header) == expected
+
+
+@pytest.mark.usefixtures("_auto")
+def test_auto_believes_a_proxy_on_any_attached_network() -> None:
+    """A 10.x or 192.168.x compose network works without configuration, so
+    users do not all share the proxy's throttle bucket."""
+    forged = {"X-Forwarded-For": "203.0.113.5"}
+    assert get_client_ip(_request(forged, peer="10.0.5.7")) == "203.0.113.5"
+    assert get_client_ip(_request(forged, peer="172.18.0.3")) == "203.0.113.5"
+    # A caller outside them is itself, whatever it sends.
+    assert get_client_ip(_request(forged, peer="172.20.5.5")) == "172.20.5.5"
+    assert get_client_ip(_request(forged, peer="172.18.0.1")) == "172.18.0.1"
+
+
+@pytest.mark.usefixtures("_auto")
+def test_auto_can_be_combined_with_explicit_entries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    header = "6.6.6.6, 198.51.100.20, 104.16.0.1, 10.0.5.7"
+    assert _forwarded_client_ip(header) == "104.16.0.1"
+    monkeypatch.setattr(settings, "TRUSTED_PROXIES", "auto, 104.16.0.0/13")
+    assert _forwarded_client_ip(header) == "198.51.100.20"
+    # An explicit entry wins over auto's gateway exclusion.
+    monkeypatch.setattr(settings, "TRUSTED_PROXIES", "auto,172.18.0.1")
+    assert (
+        get_client_ip(_request({"X-Forwarded-For": "203.0.113.5"}, peer="172.18.0.1"))
+        == "203.0.113.5"
+    )
+
+
+def test_auto_is_loopback_only_without_a_routing_table(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.api import deps
+
+    monkeypatch.setattr(settings, "TRUSTED_PROXIES", "auto")
+    monkeypatch.setattr(deps, "_auto_cache", None)
+    monkeypatch.setattr(deps, "_ROUTE_FILE", "/nonexistent/route")
+    forged = {"X-Forwarded-For": "203.0.113.5"}
+    assert get_client_ip(_request(forged, peer="127.0.0.1")) == "203.0.113.5"
+    assert get_client_ip(_request(forged, peer="172.18.0.3")) == "172.18.0.3"
+
+
+def test_the_default_is_auto() -> None:
+    from app.core.config import Settings
+
+    assert Settings.model_fields["TRUSTED_PROXIES"].default == "auto"
