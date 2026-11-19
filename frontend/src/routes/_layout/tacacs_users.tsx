@@ -125,14 +125,17 @@ function TacacsUsersTable() {
         >
           <Table.Header bg="bg.muted">
             <Table.Row>
-              <Table.ColumnHeader w="18%">Username</Table.ColumnHeader>
-              <Table.ColumnHeader w="12%">Password Type</Table.ColumnHeader>
-              <Table.ColumnHeader w="20%">Group Membership</Table.ColumnHeader>
-              <Table.ColumnHeader w="12%">Generate</Table.ColumnHeader>
-              <Table.ColumnHeader w="14%">Expires</Table.ColumnHeader>
-              <Table.ColumnHeader w="16%">Description</Table.ColumnHeader>
+              <Table.ColumnHeader w="14%">Username</Table.ColumnHeader>
+              <Table.ColumnHeader w="10%">Password Type</Table.ColumnHeader>
+              <Table.ColumnHeader w="16%">Group Membership</Table.ColumnHeader>
+              <Table.ColumnHeader w="8%">Generate</Table.ColumnHeader>
+              <Table.ColumnHeader w="10%">Expires</Table.ColumnHeader>
+              <Table.ColumnHeader w="12%">Description</Table.ColumnHeader>
+              <Table.ColumnHeader w="12%">
+                Last Authenticated
+              </Table.ColumnHeader>
               <Table.ColumnHeader w="12%">Last Updated</Table.ColumnHeader>
-              <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
+              <Table.ColumnHeader w="6%">Actions</Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -200,6 +203,13 @@ function TacacsUsersTable() {
                   truncate
                 >
                   {tacacs_user.description || "N/A"}
+                </Table.Cell>
+                <Table.Cell fontSize="sm" color="fg.muted">
+                  {tacacs_user.last_authenticated_at
+                    ? formatDateTime(tacacs_user.last_authenticated_at, {
+                        hour12: false,
+                      })
+                    : "Never"}
                 </Table.Cell>
                 <Table.Cell fontSize="sm" color="fg.muted">
                   {formatDateTime(tacacs_user.updated_at, {

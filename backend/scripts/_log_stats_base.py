@@ -2,7 +2,7 @@ import os
 import sys
 import time as _time
 from collections import Counter
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from app.core.tacacs_log_parse import (
@@ -102,14 +102,30 @@ def build_log_file_path(target_date: date, log_type: str, log_directory: str) ->
 # ---------------------------------------------------------------------------
 
 
+def parse_log_timestamp(timestamp: str) -> datetime | None:
+    """Parse a tac_plus-ng timestamp (``YYYY-MM-DD HH:MM:SS +ZZZZ``) into UTC."""
+    try:
+        return datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S %z").astimezone(
+            timezone.utc
+        )
+    except ValueError:
+        return None
+
+
 def parse_authentication_logs(
-    target_date: date, log_directory: str, hourly: Counter | None = None
+    target_date: date,
+    log_directory: str,
+    hourly: Counter | None = None,
+    last_auth: dict[str, datetime] | None = None,
 ) -> tuple[Counter, Counter]:
     """Return (successful_logins, failed_logins) Counters keyed by (username, nas_ip, client_ip).
 
     When `hourly` is given it is filled in the same pass with
     `(username, hour, "success" | "fail")` counts, the hour being the one
     tac_plus-ng stamped on the line (the log timezone).
+
+    When `last_auth` is given it is filled in the same pass with the latest
+    successful login UTC timestamp per username.
     """
     target_date_str = target_date.strftime("%Y-%m-%d")
     log_file_path = build_log_file_path(target_date, "authentication", log_directory)
@@ -136,6 +152,12 @@ def parse_authentication_logs(
                 key = (username, fields.nas_ip, fields.source_ip)
                 if outcome == "success":
                     successful_logins[key] += 1
+                    if last_auth is not None:
+                        ts = parse_log_timestamp(fields.timestamp)
+                        if ts is not None and (
+                            username not in last_auth or ts > last_auth[username]
+                        ):
+                            last_auth[username] = ts
                 else:
                     failed_logins[key] += 1
                 if hourly is not None:

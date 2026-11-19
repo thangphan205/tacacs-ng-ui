@@ -471,6 +471,7 @@ class TacacsUserUpdate(SQLModel):
 class TacacsUser(TacacsUserBase, TimestampModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     password: str | None = Field(default=None, max_length=255)
+    last_authenticated_at: datetime | None = Field(sa_type=TZ_DATETIME, default=None)
 
 
 # Properties to return via API — password is explicitly excluded
@@ -483,6 +484,7 @@ class TacacsUserPublic(SQLModel):
     description: str | None = None
     email: str | None = None
     account_expires_at: date | None = None
+    last_authenticated_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

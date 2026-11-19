@@ -51,8 +51,15 @@ def read_tacacs_users(
         statement = statement.where(f)
     count = session.exec(count_statement).one()
     users = session.exec(statement.offset(skip).limit(limit)).all()
+    live_last_auth = tacacs_users.get_live_last_authenticated()
 
-    return TacacsUsersPublic(data=users, count=count)
+    return TacacsUsersPublic(
+        data=[
+            tacacs_users.to_public_with_live_auth(user, live_last_auth)
+            for user in users
+        ],
+        count=count,
+    )
 
 
 @router.post(
@@ -111,7 +118,8 @@ def read_tacacs_user_by_id(
             detail="The user with this id does not exist in the system",
         )
 
-    return user
+    live_last_auth = tacacs_users.get_live_last_authenticated()
+    return tacacs_users.to_public_with_live_auth(user, live_last_auth)
 
 
 @router.put(

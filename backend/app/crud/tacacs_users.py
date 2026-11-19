@@ -1,13 +1,128 @@
+import time as _time
+from datetime import datetime, timezone
 from typing import Any
 
 from passlib.context import CryptContext
 from passlib.hash import sha512_crypt
+from sqlalchemy import update as sa_update
 from sqlmodel import Session, select
 
-from app.models import TacacsUser, TacacsUserCreate, TacacsUserUpdate
+from app.core.config import settings
+from app.models import (
+    TacacsUser,
+    TacacsUserCreate,
+    TacacsUserPublic,
+    TacacsUserUpdate,
+)
 
 # SHA-512 crypt hashing - compatible with tac_plus-ng "crypt" password type
 tacacs_pwd_context = CryptContext(schemes=["sha512_crypt"], deprecated="auto")
+
+_LIVE_LAST_AUTH_TTL = 60.0
+_live_last_auth_cache: dict[str, Any] = {}
+
+
+def _as_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def update_last_authenticated(
+    *, session: Session, last_auth: dict[str, datetime]
+) -> int:
+    """Advance ``TacacsUser.last_authenticated_at`` for users in ``last_auth``.
+
+    Only updates rows where the new timestamp is strictly newer than the stored
+    value (or the stored value is ``None``). Preserves ``updated_at`` so login
+    activity does not look like a configuration edit. Caller commits.
+    """
+    if not last_auth:
+        return 0
+
+    rows = session.exec(
+        select(
+            TacacsUser.id, TacacsUser.username, TacacsUser.last_authenticated_at
+        ).where(TacacsUser.username.in_(list(last_auth.keys())))  # type: ignore[attr-defined]
+    ).all()
+
+    updated = 0
+    for user_id, username, current in rows:
+        candidate = _as_utc(last_auth[username])
+        if current is None or candidate > _as_utc(current):
+            session.exec(
+                sa_update(TacacsUser)
+                .where(TacacsUser.id == user_id)  # type: ignore[arg-type]
+                .values(
+                    last_authenticated_at=candidate,
+                    updated_at=TacacsUser.updated_at,
+                )
+            )
+            updated += 1
+    return updated
+
+
+def get_live_last_authenticated() -> dict[str, datetime]:
+    """Today's latest successful login per username from local (and peer) logs.
+
+    Cached for 60 s so the TACACS Users page reflects recent logins without
+    waiting for the periodic stats collector or writing on GET requests.
+    """
+    from app.crud.aaa_statistics import _peer_payloads
+    from scripts._log_stats_base import local_today, parse_authentication_logs
+
+    today = local_today()
+    today_str = today.isoformat()
+    now_ts = _time.monotonic()
+
+    if (
+        _live_last_auth_cache.get("date") == today_str
+        and now_ts - _live_last_auth_cache.get("ts", 0.0) < _LIVE_LAST_AUTH_TTL
+    ):
+        return _live_last_auth_cache["data"]
+
+    last_auth: dict[str, datetime] = {}
+    parse_authentication_logs(
+        today, settings.TACACS_LOG_DIRECTORY, last_auth=last_auth
+    )
+
+    for payload in _peer_payloads(today_str):
+        raw_peer = payload.get("last_authenticated")
+        if not isinstance(raw_peer, dict):
+            continue
+        for username, ts_str in raw_peer.items():
+            if not isinstance(ts_str, str):
+                continue
+            try:
+                ts = _as_utc(datetime.fromisoformat(ts_str))
+            except ValueError:
+                continue
+            if username not in last_auth or ts > last_auth[username]:
+                last_auth[username] = ts
+
+    _live_last_auth_cache["date"] = today_str
+    _live_last_auth_cache["ts"] = now_ts
+    _live_last_auth_cache["data"] = last_auth
+    return last_auth
+
+
+def to_public_with_live_auth(
+    user: TacacsUser, live_map: dict[str, datetime]
+) -> TacacsUserPublic:
+    """Build ``TacacsUserPublic`` with ``last_authenticated_at`` overlaid from today's logs."""
+    stored = user.last_authenticated_at
+    live = live_map.get(user.username)
+    effective: datetime | None
+    if stored is None:
+        effective = live
+    elif live is None:
+        effective = stored
+    else:
+        effective = live if _as_utc(live) > _as_utc(stored) else stored
+
+    public = TacacsUserPublic.model_validate(user)
+    public.last_authenticated_at = effective
+    return public
 
 
 def hash_tacacs_password(password: str) -> str:

@@ -6541,6 +6541,18 @@ export const TacacsUserPublicSchema = {
             ],
             title: 'Account Expires At'
         },
+        last_authenticated_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Last Authenticated At'
+        },
         created_at: {
             type: 'string',
             format: 'date-time',

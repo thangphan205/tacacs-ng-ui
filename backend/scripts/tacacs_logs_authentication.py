@@ -1,6 +1,7 @@
 import os
 import sys
 from collections import Counter
+from datetime import datetime
 
 # Add the project root to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -10,6 +11,7 @@ from sqlmodel import Session, select
 from app.core.config import settings
 from app.core.db import engine
 from app.crud.auth_hourly import counter_to_rows, upsert_hourly
+from app.crud.tacacs_users import update_last_authenticated
 from app.models import AuthenticationStatistics
 from scripts._log_stats_base import (
     get_target_date,
@@ -33,8 +35,9 @@ def process_authentication_logs(node_name: str | None = None) -> None:
     )
 
     hourly: Counter = Counter()
+    last_auth: dict[str, datetime] = {}
     successful_logins, failed_logins = parse_authentication_logs(
-        summary_date, settings.TACACS_LOG_DIRECTORY, hourly
+        summary_date, settings.TACACS_LOG_DIRECTORY, hourly, last_auth
     )
 
     total_events = sum(successful_logins.values()) + sum(failed_logins.values())
@@ -59,7 +62,13 @@ def process_authentication_logs(node_name: str | None = None) -> None:
         )
 
     save_statistics_to_db(
-        summary_date, all_keys, successful_logins, failed_logins, node_name, hourly
+        summary_date,
+        all_keys,
+        successful_logins,
+        failed_logins,
+        node_name,
+        hourly,
+        last_auth,
     )
 
 
@@ -70,6 +79,7 @@ def save_statistics_to_db(
     failed_logins: Counter,
     node_name: str,
     hourly: Counter | None = None,
+    last_auth: dict[str, datetime] | None = None,
 ) -> None:
     """
     Inserts or updates authentication statistics in the database for a given date and node.
@@ -118,6 +128,9 @@ def save_statistics_to_db(
                 log_date=summary_date,
                 rows=counter_to_rows(hourly),
             )
+
+        if last_auth:
+            update_last_authenticated(session=session, last_auth=last_auth)
 
         session.commit()
         print("\nStatistics saved successfully.")
