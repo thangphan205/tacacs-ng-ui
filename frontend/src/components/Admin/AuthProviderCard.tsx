@@ -40,6 +40,8 @@ export interface ProviderConfig {
 export interface FieldDef {
   key: string
   label: string
+  /** Input type: "text" (default) or "switch" (stored as "true" / "false"). */
+  type?: "text" | "switch"
   placeholder?: string
   hint?: string
   /** Prefilled when nothing is stored yet; saved with the form. */
@@ -341,46 +343,82 @@ const AuthProviderCard = ({
             const isCopied = copiedKey === field.key
             return (
               <Fragment key={field.key}>
-                <Box>
-                  <Text fontSize="sm" mb={1.5} fontWeight="medium">
-                    {field.label}
-                  </Text>
-                  <HStack gap={2}>
-                    <Input
-                      size="md"
-                      fontFamily={field.mono ? "mono" : undefined}
-                      fontSize={field.mono ? "xs" : undefined}
-                      placeholder={field.placeholder ?? field.label}
-                      value={val}
-                      onChange={(e) =>
-                        setFormConfig((prev) => ({
-                          ...prev,
-                          [field.key]: e.target.value,
-                        }))
-                      }
-                    />
-                    {field.copyable && (
-                      <Tooltip
-                        content={isCopied ? "Copied!" : "Copy to clipboard"}
+                {field.type === "switch" ? (
+                  <Box
+                    p={3.5}
+                    borderRadius="md"
+                    bg="bg.subtle"
+                    borderWidth="1px"
+                  >
+                    <Flex justify="space-between" align="center" gap={4}>
+                      <Box>
+                        <Text fontSize="sm" fontWeight="medium">
+                          {field.label}
+                        </Text>
+                        {field.hint && (
+                          <Text fontSize="xs" mt={1} color="fg.muted">
+                            {field.hint}
+                          </Text>
+                        )}
+                      </Box>
+                      <Switch.Root
+                        colorPalette="teal"
+                        checked={val === "true"}
+                        onCheckedChange={(e) =>
+                          setFormConfig((prev) => ({
+                            ...prev,
+                            [field.key]: e.checked ? "true" : "false",
+                          }))
+                        }
+                        flexShrink={0}
                       >
-                        <IconButton
-                          aria-label={`Copy ${field.label}`}
-                          variant="outline"
-                          size="md"
-                          colorPalette={isCopied ? "green" : "gray"}
-                          onClick={() => handleCopy(field.key, val)}
-                        >
-                          {isCopied ? <LuCheck /> : <LuCopy />}
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </HStack>
-                  {field.hint && (
-                    <Text fontSize="xs" mt={1.5} color="fg.muted">
-                      {field.hint}
+                        <Switch.HiddenInput aria-label={field.label} />
+                        <Switch.Control />
+                      </Switch.Root>
+                    </Flex>
+                  </Box>
+                ) : (
+                  <Box>
+                    <Text fontSize="sm" mb={1.5} fontWeight="medium">
+                      {field.label}
                     </Text>
-                  )}
-                </Box>
+                    <HStack gap={2}>
+                      <Input
+                        size="md"
+                        fontFamily={field.mono ? "mono" : undefined}
+                        fontSize={field.mono ? "xs" : undefined}
+                        placeholder={field.placeholder ?? field.label}
+                        value={val}
+                        onChange={(e) =>
+                          setFormConfig((prev) => ({
+                            ...prev,
+                            [field.key]: e.target.value,
+                          }))
+                        }
+                      />
+                      {field.copyable && (
+                        <Tooltip
+                          content={isCopied ? "Copied!" : "Copy to clipboard"}
+                        >
+                          <IconButton
+                            aria-label={`Copy ${field.label}`}
+                            variant="outline"
+                            size="md"
+                            colorPalette={isCopied ? "green" : "gray"}
+                            onClick={() => handleCopy(field.key, val)}
+                          >
+                            {isCopied ? <LuCheck /> : <LuCopy />}
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </HStack>
+                    {field.hint && (
+                      <Text fontSize="xs" mt={1.5} color="fg.muted">
+                        {field.hint}
+                      </Text>
+                    )}
+                  </Box>
+                )}
                 {field.key === secretKey && secretField}
               </Fragment>
             )

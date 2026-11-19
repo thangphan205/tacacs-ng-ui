@@ -148,6 +148,7 @@ class LdapEffectiveConfig:
     receive_timeout: int
     fallback_email_domain: str
     allow_email_link: bool
+    require_approval: bool = False
     allow_insecure: bool = False
     # The saved bind password exists but cannot be decrypted (SECRET_KEY changed).
     bind_password_undecryptable: bool = False
@@ -418,6 +419,7 @@ def build_effective_ldap_config(
         receive_timeout=receive_timeout,
         fallback_email_domain=fallback_email_domain,
         allow_email_link=_parse_bool(cfg.get("allow_email_link"), False),
+        require_approval=_parse_bool(cfg.get("require_approval"), False),
         allow_insecure=_parse_bool(
             cfg.get("allow_insecure"), settings.LDAP_ALLOW_INSECURE
         ),

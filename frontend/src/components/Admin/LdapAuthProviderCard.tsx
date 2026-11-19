@@ -163,6 +163,7 @@ const LdapAuthProviderCard = () => {
   const [userSearchFilter, setUserSearchFilter] = useState("")
   const [fallbackEmailDomain, setFallbackEmailDomain] = useState("")
   const [allowEmailLink, setAllowEmailLink] = useState(false)
+  const [requireApproval, setRequireApproval] = useState(false)
   const [requiredGroup, setRequiredGroup] = useState("")
   const [groupSearchFilter, setGroupSearchFilter] = useState("")
   const [groupMemberAttr, setGroupMemberAttr] = useState("")
@@ -200,6 +201,7 @@ const LdapAuthProviderCard = () => {
       setUniqueIdAttr(cfg.unique_id_attr ?? preset.unique_id_attr)
       setFallbackEmailDomain(cfg.fallback_email_domain ?? "")
       setAllowEmailLink(cfg.allow_email_link === "true")
+      setRequireApproval(cfg.require_approval === "true")
       setEmailAttr(cfg.email_attr ?? preset.email_attr)
       setFullNameAttr(cfg.full_name_attr ?? preset.full_name_attr)
       setUserSearchFilter(cfg.user_search_filter ?? preset.user_search_filter)
@@ -247,6 +249,7 @@ const LdapAuthProviderCard = () => {
       unique_id_attr: uniqueIdAttr.trim(),
       fallback_email_domain: fallbackEmailDomain.trim(),
       allow_email_link: allowEmailLink ? "true" : "false",
+      require_approval: requireApproval ? "true" : "false",
       email_attr: emailAttr.trim(),
       full_name_attr: fullNameAttr.trim(),
       user_search_filter: userSearchFilter.trim(),
@@ -654,6 +657,30 @@ const LdapAuthProviderCard = () => {
                 />
               </Box>
             </SimpleGrid>
+            <Box mt={3} pt={3} borderTopWidth="1px">
+              <Flex justify="space-between" align="center" gap={4}>
+                <Box>
+                  <Text fontSize="xs" fontWeight="medium">
+                    Require admin approval for new users
+                  </Text>
+                  <Text fontSize="xs" mt={0.5} color="fg.muted">
+                    Off: new directory users are activated immediately on first
+                    sign-in. On: new accounts are created as Inactive and must
+                    be activated by an administrator in Admin → Users Management
+                    before they can sign in.
+                  </Text>
+                </Box>
+                <Switch.Root
+                  colorPalette="teal"
+                  checked={requireApproval}
+                  onCheckedChange={(e) => setRequireApproval(e.checked)}
+                  flexShrink={0}
+                >
+                  <Switch.HiddenInput aria-label="Require admin approval for new users" />
+                  <Switch.Control />
+                </Switch.Root>
+              </Flex>
+            </Box>
           </Box>
 
           {/* 5. Schema & User Attributes */}
