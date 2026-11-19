@@ -14,6 +14,10 @@ of cutting a release; do not delete the heading itself. -->
 
 * ⬆ Bump coverage from 7.17.1 to 7.17.3 in /backend. PR [#417](https://github.com/thangphan205/tacacs-ng-ui/pull/417) by [@dependabot[bot]](https://github.com/apps/dependabot).
 
+### Features
+
+* ✨ Add LDAP / Active Directory sign-in for the Web UI (#404). PR [#418](https://github.com/thangphan205/tacacs-ng-ui/pull/418) by [@thangphan205](https://github.com/thangphan205).
+
 ### Internal
 
 * ⬆ Bump dnspython from 2.9.0 to 2.9.2 in /backend. PR [#416](https://github.com/thangphan205/tacacs-ng-ui/pull/416) by [@dependabot[bot]](https://github.com/apps/dependabot).
