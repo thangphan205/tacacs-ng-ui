@@ -55,6 +55,7 @@ class _Creds:
     auth_url: str
     token_url: str
     userinfo_url: str
+    require_approval: bool = False
 
 
 def _stored(session: Session, provider: str) -> tuple[dict[str, str], str | None]:
@@ -108,6 +109,35 @@ def _refuse_ldap_account(user: User) -> None:
         )
 
 
+def _handle_inactive_oauth_user(
+    *,
+    request: Request,
+    session: Session,
+    user: User,
+    provider_label: str,
+    require_approval: bool,
+) -> RedirectResponse:
+    reason = "inactive (pending approval)" if require_approval else "inactive"
+    audit_logs_crud.create_audit_log(
+        session=session,
+        audit_log_in=AuditLogCreate(
+            action="LOGIN_FAILED",
+            entity_type="User",
+            entity_id=str(user.id),
+            description=f"{provider_label} login refused: {user.email} is {reason}",
+            user_agent=request.headers.get("user-agent"),
+        ),
+        user_id=user.id,
+        user_email=user.email,
+        ip_address=get_client_ip(request),
+    )
+    if require_approval:
+        return RedirectResponse(
+            url=f"{settings.FRONTEND_HOST}/oauth-callback?error=pending_approval"
+        )
+    raise HTTPException(status_code=400, detail="Inactive user")
+
+
 def _default_redirect_uri(provider: str) -> str:
     """Callback URL derived from the app's own URL (FRONTEND_HOST, i.e. DOMAIN).
 
@@ -130,6 +160,7 @@ def _google_creds(session: Session) -> _Creds:
         auth_url=GOOGLE_AUTH_URL,
         token_url=GOOGLE_TOKEN_URL,
         userinfo_url=GOOGLE_USERINFO_URL,
+        require_approval=auth_providers_crud.provider_requires_approval(config),
     )
 
 
@@ -151,6 +182,7 @@ def _keycloak_creds(session: Session) -> _Creds:
         auth_url=f"{base}/auth",
         token_url=f"{base}/token",
         userinfo_url=f"{base}/userinfo",
+        require_approval=auth_providers_crud.provider_requires_approval(config),
     )
 
 
@@ -178,6 +210,7 @@ def _microsoft_creds(session: Session) -> tuple[_Creds, str]:
         auth_url=f"{base}/authorize",
         token_url=f"{base}/token",
         userinfo_url="",  # identity comes from the id_token, not a userinfo call
+        require_approval=auth_providers_crud.provider_requires_approval(config),
     )
     return creds, tenant
 
@@ -294,11 +327,18 @@ def google_callback(
         email=email,
         full_name=full_name,
         google_id=google_id,
+        require_approval=creds.require_approval,
     )
 
-    if not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
     _refuse_ldap_account(user)
+    if not user.is_active:
+        return _handle_inactive_oauth_user(
+            request=request,
+            session=session,
+            user=user,
+            provider_label="Google OAuth",
+            require_approval=creds.require_approval,
+        )
 
     audit_logs_crud.create_audit_log(
         session=session,
@@ -388,11 +428,18 @@ def keycloak_callback(
         email=email,
         full_name=full_name,
         keycloak_id=keycloak_id,
+        require_approval=creds.require_approval,
     )
 
-    if not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
     _refuse_ldap_account(user)
+    if not user.is_active:
+        return _handle_inactive_oauth_user(
+            request=request,
+            session=session,
+            user=user,
+            provider_label="Keycloak OIDC",
+            require_approval=creds.require_approval,
+        )
 
     audit_logs_crud.create_audit_log(
         session=session,
@@ -503,6 +550,7 @@ def microsoft_callback(
         full_name=full_name,
         microsoft_id=microsoft_id,
         allow_email_link=allow_email_link,
+        require_approval=creds.require_approval,
     )
     if user is None:
         raise HTTPException(
@@ -514,9 +562,15 @@ def microsoft_callback(
             ),
         )
 
-    if not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
     _refuse_ldap_account(user)
+    if not user.is_active:
+        return _handle_inactive_oauth_user(
+            request=request,
+            session=session,
+            user=user,
+            provider_label="Microsoft Entra ID",
+            require_approval=creds.require_approval,
+        )
 
     audit_logs_crud.create_audit_log(
         session=session,

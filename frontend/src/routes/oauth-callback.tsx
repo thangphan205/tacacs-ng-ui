@@ -5,6 +5,7 @@ import { z } from "zod"
 
 const searchSchema = z.object({
   token: z.string().optional(),
+  error: z.string().optional(),
 })
 
 export const Route = createFileRoute("/oauth-callback")({
@@ -13,17 +14,19 @@ export const Route = createFileRoute("/oauth-callback")({
 })
 
 function OAuthCallback() {
-  const { token } = Route.useSearch()
+  const { token, error } = Route.useSearch()
   const navigate = useNavigate()
 
   useEffect(() => {
     if (token) {
       localStorage.setItem("access_token", token)
       navigate({ to: "/" })
+    } else if (error) {
+      navigate({ to: "/login", search: { error } })
     } else {
       navigate({ to: "/login" })
     }
-  }, [token, navigate])
+  }, [token, error, navigate])
 
   return <Spinner size="xl" mt="20vh" display="block" mx="auto" />
 }

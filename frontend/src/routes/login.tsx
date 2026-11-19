@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Flex,
   Icon,
@@ -21,6 +22,7 @@ import { type SubmitHandler, useForm } from "react-hook-form"
 import { FaMicrosoft } from "react-icons/fa"
 import { FcGoogle } from "react-icons/fc"
 import { FiGithub } from "react-icons/fi"
+import { z } from "zod"
 import { apiBaseUrl } from "@/api"
 import type { BodyLoginLoginAccessToken as AccessToken } from "@/client"
 import { Button } from "@/components/ui/button"
@@ -173,7 +175,12 @@ function CredentialsForm({
   )
 }
 
+const loginSearchSchema = z.object({
+  error: z.string().optional(),
+})
+
 export const Route = createFileRoute("/login")({
+  validateSearch: loginSearchSchema,
   component: Login,
   beforeLoad: async () => {
     if (isLoggedIn()) {
@@ -183,6 +190,7 @@ export const Route = createFileRoute("/login")({
 })
 
 function Login() {
+  const { error: searchError } = Route.useSearch()
   const { loginMutation, ldapLoginMutation, error, resetError } = useAuth()
   const navigate = useNavigate()
   const [providers, setProviders] = useState<ProvidersStatus>({
@@ -380,6 +388,19 @@ function Login() {
           >
             Login to your account
           </Text>
+
+          {searchError === "pending_approval" && (
+            <Alert.Root status="warning" size="sm">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>Pending Administrator Approval</Alert.Title>
+                <Alert.Description>
+                  Your account has been created and is waiting for an
+                  administrator to activate it before you can sign in.
+                </Alert.Description>
+              </Alert.Content>
+            </Alert.Root>
+          )}
 
           {showLocal && showLdap ? (
             <Tabs.Root

@@ -75,6 +75,14 @@ const redirectUriField = (provider: string, where: string): FieldDef => {
   }
 }
 
+const requireApprovalField: FieldDef = {
+  key: "require_approval",
+  label: "Require admin approval for new users",
+  type: "switch",
+  defaultValue: "false",
+  hint: "When enabled, new users signing in via this provider are created as Inactive and must be activated by an administrator in Admin → Users Management before they can access the Web UI.",
+}
+
 const googleFields: FieldDef[] = [
   {
     key: "client_id",
@@ -83,6 +91,7 @@ const googleFields: FieldDef[] = [
     mono: true,
   },
   redirectUriField("google", "your Google Cloud OAuth 2.0 Client"),
+  requireApprovalField,
 ]
 
 const keycloakFields: FieldDef[] = [
@@ -104,6 +113,7 @@ const keycloakFields: FieldDef[] = [
     mono: true,
   },
   redirectUriField("keycloak", "your Keycloak client (Valid redirect URIs)"),
+  requireApprovalField,
 ]
 
 const microsoftFields: FieldDef[] = [
@@ -125,6 +135,7 @@ const microsoftFields: FieldDef[] = [
     "microsoft",
     "your Microsoft Entra App Registration (Authentication → Web)",
   ),
+  requireApprovalField,
 ]
 
 function adminHeader() {

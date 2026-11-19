@@ -325,3 +325,123 @@ def test_microsoft_callback_refuses_an_ldap_account(
     finally:
         db.execute(delete(User).where(User.email == "sso-ldap@contoso.com"))  # type: ignore[arg-type]
         db.commit()
+
+
+def test_microsoft_require_approval_creates_inactive_user_until_approved(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from sqlmodel import select
+
+    from app.models import User
+
+    email = "pending-ms@contoso.com"
+    auth_providers_crud.upsert_provider_config(
+        session=db,
+        provider="microsoft",
+        enabled=True,
+        config={
+            "client_id": "ms-client",
+            "tenant": "contoso.onmicrosoft.com",
+            "redirect_uri": "https://tacacs.example.com/api/v1/oauth/microsoft/callback",
+            "require_approval": "true",
+        },
+        secret="ms-secret",
+    )
+    try:
+        r = _microsoft_callback(
+            client,
+            monkeypatch,
+            {"aud": "ms-client", "sub": "sub-pending-ms", "email": email, "name": "Pending MS"},
+        )
+        assert r.status_code == 307, r.text
+        assert r.headers["location"].endswith("/oauth-callback?error=pending_approval")
+
+        user = db.exec(select(User).where(User.email == email)).one()
+        assert user.is_active is False
+
+        # Admin approves the user
+        user.is_active = True
+        db.add(user)
+        db.commit()
+
+        r2 = _microsoft_callback(
+            client,
+            monkeypatch,
+            {"aud": "ms-client", "sub": "sub-pending-ms", "email": email, "name": "Pending MS"},
+        )
+        assert r2.status_code == 307, r2.text
+        assert "/oauth-callback?token=" in r2.headers["location"]
+    finally:
+        db.execute(delete(User).where(User.email == email))  # type: ignore[arg-type]
+        db.commit()
+
+
+@pytest.mark.parametrize("provider", ["google", "keycloak"])
+def test_google_keycloak_require_approval_creates_inactive_user_until_approved(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    provider: str,
+) -> None:
+    import httpx
+    from sqlmodel import select
+
+    from app.api.routes import oauth
+    from app.models import User
+
+    email = f"pending-{provider}@example.com"
+    auth_providers_crud.upsert_provider_config(
+        session=db,
+        provider=provider,
+        enabled=True,
+        config={
+            "client_id": "cid",
+            "server_url": "https://kc.example.com",
+            "realm": "r",
+            "redirect_uri": f"https://tacacs.example.com/api/v1/oauth/{provider}/callback",
+            "require_approval": "true",
+        },
+        secret="sec",
+    )
+
+    def fake_post(_self: httpx.Client, url: str, **_kwargs: Any) -> httpx.Response:
+        return httpx.Response(
+            200, json={"access_token": "tok"}, request=httpx.Request("POST", url)
+        )
+
+    def fake_get(_self: httpx.Client, url: str, **_kwargs: Any) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"sub": f"sub-pending-{provider}", "email": email, "name": "Pending User"},
+            request=httpx.Request("GET", url),
+        )
+
+    monkeypatch.setattr(httpx.Client, "post", fake_post)
+    monkeypatch.setattr(httpx.Client, "get", fake_get)
+
+    try:
+        r = client.get(
+            f"{settings.API_V1_STR}/oauth/{provider}/callback",
+            params={"code": "abc", "state": oauth._make_state()},
+            follow_redirects=False,
+        )
+        assert r.status_code == 307, r.text
+        assert r.headers["location"].endswith("/oauth-callback?error=pending_approval")
+
+        user = db.exec(select(User).where(User.email == email)).one()
+        assert user.is_active is False
+
+        user.is_active = True
+        db.add(user)
+        db.commit()
+
+        r2 = client.get(
+            f"{settings.API_V1_STR}/oauth/{provider}/callback",
+            params={"code": "abc", "state": oauth._make_state()},
+            follow_redirects=False,
+        )
+        assert r2.status_code == 307, r2.text
+        assert "/oauth-callback?token=" in r2.headers["location"]
+    finally:
+        db.execute(delete(User).where(User.email == email))  # type: ignore[arg-type]
+        db.commit()

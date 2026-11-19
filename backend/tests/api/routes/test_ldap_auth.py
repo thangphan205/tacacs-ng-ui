@@ -1585,3 +1585,31 @@ def test_an_over_long_user_agent_never_fails_an_audited_change(
         .order_by(AuditLog.created_at.desc())  # type: ignore[attr-defined]
     ).first()
     assert row is not None and row.user_agent == "U" * 512
+
+
+def test_ldap_require_approval_creates_inactive_user_until_approved(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    email = f"pending-ldap-{uuid.uuid4().hex[:8]}@example.com"
+    ldap_id = f"uid-pending-{uuid.uuid4().hex[:8]}"
+    _enable_ldap(db, require_approval="true")
+    _fake_ldap_success(monkeypatch, ldap_id=ldap_id, email=email)
+    try:
+        r = _login(client, "pendinguser")
+        assert r.status_code == 403, r.text
+        assert "pending administrator approval" in r.json()["detail"].lower()
+
+        user = db.exec(select(User).where(User.email == email)).one()
+        assert user.is_active is False
+
+        # Admin approves the user
+        user.is_active = True
+        db.add(user)
+        db.commit()
+
+        r2 = _login(client, "pendinguser")
+        assert r2.status_code == 200, r2.text
+        assert "access_token" in r2.json()
+    finally:
+        db.execute(delete(User).where(User.email == email))  # type: ignore[arg-type]
+        db.commit()

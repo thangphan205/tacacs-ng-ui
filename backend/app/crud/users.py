@@ -134,7 +134,12 @@ def get_user_by_google_id(*, session: Session, google_id: str) -> User | None:
 
 
 def get_or_create_google_user(
-    *, session: Session, email: str, full_name: str | None, google_id: str
+    *,
+    session: Session,
+    email: str,
+    full_name: str | None,
+    google_id: str,
+    require_approval: bool = False,
 ) -> User:
     # 1. Already linked via google_id
     user = get_user_by_google_id(session=session, google_id=google_id)
@@ -157,7 +162,7 @@ def get_or_create_google_user(
     user = User(
         email=email,
         full_name=full_name,
-        is_active=True,
+        is_active=not require_approval,
         is_superuser=False,
         hashed_password=get_password_hash(secrets.token_hex(32)),
         google_id=google_id,
@@ -173,7 +178,12 @@ def get_user_by_keycloak_id(*, session: Session, keycloak_id: str) -> User | Non
 
 
 def get_or_create_keycloak_user(
-    *, session: Session, email: str, full_name: str | None, keycloak_id: str
+    *,
+    session: Session,
+    email: str,
+    full_name: str | None,
+    keycloak_id: str,
+    require_approval: bool = False,
 ) -> User:
     # 1. Already linked via keycloak_id
     user = get_user_by_keycloak_id(session=session, keycloak_id=keycloak_id)
@@ -196,7 +206,7 @@ def get_or_create_keycloak_user(
     user = User(
         email=email,
         full_name=full_name,
-        is_active=True,
+        is_active=not require_approval,
         is_superuser=False,
         hashed_password=get_password_hash(secrets.token_hex(32)),
         keycloak_id=keycloak_id,
@@ -218,6 +228,7 @@ def get_or_create_microsoft_user(
     full_name: str | None,
     microsoft_id: str,
     allow_email_link: bool,
+    require_approval: bool = False,
 ) -> User | None:
     """Find, link or create the user for a Microsoft identity.
 
@@ -248,7 +259,7 @@ def get_or_create_microsoft_user(
     user = User(
         email=email,
         full_name=full_name,
-        is_active=True,
+        is_active=not require_approval,
         is_superuser=False,
         hashed_password=get_password_hash(secrets.token_hex(32)),
         microsoft_id=microsoft_id,
@@ -338,6 +349,7 @@ def get_or_create_ldap_user(
     full_name: str | None,
     allow_email_link: bool,
     username: str = "",
+    require_approval: bool = False,
 ) -> tuple[User | None, str | None]:
     """Find, link or create the user for an authenticated LDAP identity.
 
@@ -441,7 +453,7 @@ def get_or_create_ldap_user(
     user = User(
         email=normalized_email,
         full_name=full_name,
-        is_active=True,
+        is_active=not require_approval,
         is_superuser=False,
         hashed_password=get_password_hash(secrets.token_hex(32)),
         ldap_id=normalized_id,

@@ -75,6 +75,19 @@ def resolve_provider_secret(db: AuthProviderConfig) -> str | None:
     return None
 
 
+def provider_requires_approval(config: dict[str, Any] | None) -> bool:
+    """True when newly provisioned users from this external IdP start inactive
+    and require administrator approval before they can sign in."""
+    if not config:
+        return False
+    val = config.get("require_approval")
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, str):
+        return val.strip().lower() in ("true", "1", "yes", "on")
+    return False
+
+
 def password_login_allowed(*, session: Session) -> bool:
     """False when an admin turned local password sign-in off (passkey-only).
 

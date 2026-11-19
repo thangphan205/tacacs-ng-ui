@@ -387,6 +387,7 @@ def login_ldap_access_token(
             full_name=outcome.identity.full_name,
             allow_email_link=effective.allow_email_link,
             username=outcome.identity.username,
+            require_approval=effective.require_approval,
         )
         if ldap_user is None:
             ident = outcome.identity
@@ -416,6 +417,14 @@ def login_ldap_access_token(
                 ),
             )
         if not ldap_user.is_active:
+            if effective.require_approval:
+                _fail(
+                    f"LDAP sign-in refused: {ldap_user.email} is inactive (pending approval)"
+                )
+                raise HTTPException(
+                    status_code=403,
+                    detail="Your account is pending administrator approval.",
+                )
             _fail(f"LDAP sign-in refused: {ldap_user.email} is inactive")
             raise HTTPException(status_code=400, detail="Inactive user")
 
