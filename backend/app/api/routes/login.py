@@ -1,3 +1,4 @@
+import ipaddress
 from datetime import timedelta
 from typing import Annotated, Any
 
@@ -8,7 +9,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.api.deps import (
     CurrentUser,
     SessionDep,
-    get_client_ip,
     get_current_active_superuser,
 )
 from app.core import security
@@ -54,6 +54,40 @@ _LDAP_ACCOUNT_DETAIL = (
 )
 
 
+_USERNAME_MAX = 255  # AuditLog.user_email / entity_id column width
+_IP_MAX = 45  # AuditLog.ip_address column width
+
+
+def _norm_username(username: str) -> str:
+    """One spelling per account: directory names are case-insensitive, and the
+    audit columns are bounded (an over-long value would 500 the failure write
+    and so never be counted)."""
+    return username.strip().lower()[:_USERNAME_MAX]
+
+
+def _login_client_ip(request: Request) -> str | None:
+    """Client address for sign-in throttling and its audit rows.
+
+    ``get_client_ip`` trusts the *first* X-Forwarded-For entry, which the
+    caller writes, so rotating it would dodge every limit. Proxies append on
+    the right: take the entry the ``LOGIN_THROTTLE_PROXY_HOPS``-th proxy from
+    the end added. Fewer entries than hops means the request did not come
+    through the full proxy chain, so use the socket peer.
+    """
+    peer = request.client.host if request.client else None
+    hops = settings.LOGIN_THROTTLE_PROXY_HOPS
+    forwarded = request.headers.get("X-Forwarded-For")
+    if hops > 0 and forwarded:
+        parts = [p.strip() for p in forwarded.split(",")]
+        if len(parts) >= hops:
+            candidate = parts[-hops]
+            try:
+                return str(ipaddress.ip_address(candidate))[:_IP_MAX]
+            except ValueError:
+                pass
+    return peer[:_IP_MAX] if peer else None
+
+
 def _audit_login_failure(
     session: SessionDep,
     *,
@@ -61,11 +95,13 @@ def _audit_login_failure(
     description: str,
     user_agent: str | None,
     ip: str | None,
+    action: str = "LOGIN_FAILED",
 ) -> None:
+    username = _norm_username(username)
     audit_logs_crud.create_audit_log(
         session=session,
         audit_log_in=AuditLogCreate(
-            action="LOGIN_FAILED",
+            action=action,
             entity_type="User",
             entity_id=username,
             description=description[:1024],
@@ -163,10 +199,11 @@ def _throttle_login(
 ) -> None:
     """429 once too many LOGIN_FAILED rows exist for this client or username.
 
-    Per client address on both endpoints; per username on the LDAP endpoint
-    only, since every LDAP attempt reaches the directory and may trip its
-    lockout policy. (Locking a *local* username would let a stranger lock the
-    emergency administrator out.)
+    Per client address on both endpoints; per (username, client address) on
+    the LDAP endpoint only, since every LDAP attempt reaches the directory and
+    may trip its lockout policy. Keyed on the pair so a stranger elsewhere
+    cannot lock a known user out, and never on a *local* username (that would
+    lock the emergency administrator out).
     """
     window = timedelta(minutes=settings.LOGIN_THROTTLE_WINDOW_MINUTES)
     limits: list[tuple[int, dict[str, str | None]]] = [
@@ -174,7 +211,10 @@ def _throttle_login(
     ]
     if by_user:
         limits.append(
-            (settings.LOGIN_THROTTLE_MAX_FAILURES_PER_USER, {"user_email": username})
+            (
+                settings.LOGIN_THROTTLE_MAX_FAILURES_PER_USER,
+                {"user_email": _norm_username(username), "ip_address": ip},
+            )
         )
     for limit, key in limits:
         if limit <= 0 or all(v is None for v in key.values()):
@@ -203,7 +243,7 @@ def login_access_token(
     LDAP has its own endpoint, so a local password — or a typo of one — is
     never sent to the directory.
     """
-    ip = get_client_ip(request)
+    ip = _login_client_ip(request)
     user_agent = request.headers.get("user-agent")
 
     _throttle_login(session, username=form_data.username, ip=ip, by_user=False)
@@ -268,16 +308,17 @@ def login_ldap_access_token(
     switches ("allow password login", per-user ``password_login_disabled``)
     restrict local passwords, not directory accounts.
     """
-    ip = get_client_ip(request)
+    ip = _login_client_ip(request)
     user_agent = request.headers.get("user-agent")
 
-    def _fail(description: str) -> None:
+    def _fail(description: str, action: str = "LOGIN_FAILED") -> None:
         _audit_login_failure(
             session,
             username=form_data.username,
             description=description,
             user_agent=user_agent,
             ip=ip,
+            action=action,
         )
 
     ldap_enabled, ldap_cfg, ldap_secret = auth_providers_crud.ldap_login_settings(
@@ -350,7 +391,17 @@ def login_ldap_access_token(
         return _token_for(ldap_user)
 
     # The detail stays in the audit log; the client gets as little as it needs.
-    _fail(f"LDAP {outcome.reason}: {outcome.message}")
+    # A server-side fault is not a failed login: LOGIN_FAILED rows feed the
+    # throttle, which would lock users (and the local admin, per client
+    # address) out for as long as the directory is down.
+    _fail(
+        f"LDAP {outcome.reason}: {outcome.message}",
+        action=(
+            "LOGIN_ERROR"
+            if outcome.reason in ("unavailable", "misconfigured")
+            else "LOGIN_FAILED"
+        ),
+    )
     if outcome.reason == "group_denied":
         raise HTTPException(
             status_code=403,

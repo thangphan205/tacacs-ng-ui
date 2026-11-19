@@ -235,11 +235,16 @@ class Settings(BaseSettings):
 
     # Sign-in throttling, from LOGIN_FAILED audit rows (shared by all workers;
     # needs the primary, standbys write no audit rows). 0 turns a limit off.
-    # Per user: LDAP sign-in only, so a stranger cannot lock the local
-    # emergency administrator out by guessing at its name.
+    # Per user: LDAP sign-in only, counted per (username, client address), so a
+    # stranger cannot lock the local emergency administrator, or a known
+    # directory user, out by guessing at the name from elsewhere.
+    # PROXY_HOPS: proxies that append to X-Forwarded-For in front of the app
+    # (nginx + Traefik = 2). The client address is the entry that many from the
+    # right; the leftmost entries are caller-supplied and ignored.
     LOGIN_THROTTLE_WINDOW_MINUTES: int = 15
     LOGIN_THROTTLE_MAX_FAILURES_PER_USER: int = 10
     LOGIN_THROTTLE_MAX_FAILURES_PER_IP: int = 50
+    LOGIN_THROTTLE_PROXY_HOPS: int = 2
 
     # High Availability
     NODE_ROLE: Literal["primary", "standby"] = "primary"

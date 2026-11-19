@@ -1056,19 +1056,129 @@ def test_failed_sign_ins_from_one_address_are_throttled_on_both_endpoints(
 ) -> None:
     _enable_ldap(db)
     ip = f"203.0.113.{uuid.uuid4().int % 250 + 1}"
-    headers = {"X-Forwarded-For": ip}
     monkeypatch.setattr(settings, "LOGIN_THROTTLE_MAX_FAILURES_PER_IP", 3)
+    # Behind nginx + Traefik: "<caller-written>, <client>, <proxy>". The caller
+    # rotates the leftmost entry on every request; the client is the one the
+    # proxies saw.
     for i in range(3):
         r = client.post(
             LOGIN_URL,
             data={"username": f"nobody{i}@example.com", "password": "x" * 12},
-            headers=headers,
+            headers={"X-Forwarded-For": f"198.51.100.{i + 1}, {ip}, 172.18.0.2"},
         )
         assert r.status_code == 400
     r = client.post(
-        LDAP_LOGIN_URL, data={"username": "u", "password": "p"}, headers=headers
+        LDAP_LOGIN_URL,
+        data={"username": "u", "password": "p"},
+        headers={"X-Forwarded-For": f"192.0.2.99, {ip}, 172.18.0.2"},
     )
     assert r.status_code == 429
+
+
+def test_ldap_throttle_is_per_username_and_address_and_ignores_case(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+
+    def refuse(**_kwargs: Any) -> LdapAuthOutcome:
+        return LdapAuthOutcome(
+            ok=False, reason="invalid_credentials", message="Invalid password"
+        )
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", refuse)
+    monkeypatch.setattr(settings, "LOGIN_THROTTLE_MAX_FAILURES_PER_USER", 3)
+    base = uuid.uuid4().hex[:8]
+    ip = f"203.0.113.{uuid.uuid4().int % 250 + 1}"
+    mine = {"X-Forwarded-For": f"{ip}, 172.18.0.2"}
+
+    def attempt(name: str, headers: dict[str, str]) -> int:
+        return client.post(
+            LDAP_LOGIN_URL,
+            data={"username": name, "password": "p"},
+            headers=headers,
+        ).status_code
+
+    # Case and padding variants are one account.
+    assert attempt(f"Alice-{base}", mine) == 400
+    assert attempt(f"aLICE-{base}", mine) == 400
+    assert attempt(f" alice-{base} ", mine) == 400
+    assert attempt(f"alice-{base}", mine) == 429
+    # A stranger at another address cannot lock the user out.
+    other = {"X-Forwarded-For": "198.51.100.7, 172.18.0.2"}
+    assert attempt(f"alice-{base}", other) == 400
+
+
+def test_directory_outage_is_not_counted_as_failed_logins(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+
+    def down(**_kwargs: Any) -> LdapAuthOutcome:
+        return LdapAuthOutcome(
+            ok=False, reason="unavailable", message="No LDAP server reachable"
+        )
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", down)
+    monkeypatch.setattr(settings, "LOGIN_THROTTLE_MAX_FAILURES_PER_IP", 3)
+    monkeypatch.setattr(settings, "LOGIN_THROTTLE_MAX_FAILURES_PER_USER", 3)
+    name = f"outage-{uuid.uuid4().hex[:8]}"
+    headers = {"X-Forwarded-For": f"203.0.113.{uuid.uuid4().int % 250 + 1}, 172.18.0.2"}
+
+    def ldap() -> int:
+        return client.post(
+            LDAP_LOGIN_URL,
+            data={"username": name, "password": "p"},
+            headers=headers,
+        ).status_code
+
+    for _ in range(7):
+        assert ldap() == 503  # never 429
+    # The local administrator behind the same address is not locked out.
+    r = client.post(
+        LOGIN_URL,
+        data={"username": f"{name}@example.com", "password": "wrong-password-1"},
+        headers=headers,
+    )
+    assert r.status_code == 400
+    failed = db.exec(
+        select(AuditLog).where(
+            AuditLog.action == "LOGIN_FAILED", AuditLog.entity_id == name
+        )
+    ).all()
+    assert [a for a in failed if "unavailable" in (a.description or "")] == []
+    errors = db.exec(
+        select(AuditLog).where(
+            AuditLog.action == "LOGIN_ERROR", AuditLog.entity_id == name
+        )
+    ).all()
+    assert len(errors) == 7
+
+
+def test_overlong_username_is_audited_not_a_server_error(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+
+    def refuse(**_kwargs: Any) -> LdapAuthOutcome:
+        return LdapAuthOutcome(
+            ok=False, reason="invalid_credentials", message="Invalid password"
+        )
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", refuse)
+    long_name = "u" * 400
+    r = client.post(
+        LDAP_LOGIN_URL,
+        data={"username": long_name, "password": "p"},
+        headers={"X-Forwarded-For": "203.0.113.9, " + "1" * 80 + ", 172.18.0.2"},
+    )
+    assert r.status_code == 400
+    row = db.exec(
+        select(AuditLog).where(
+            AuditLog.action == "LOGIN_FAILED", AuditLog.entity_id == "u" * 255
+        )
+    ).first()
+    assert row is not None
+    assert row.ip_address is None or len(row.ip_address) <= 45
 
 
 def test_inactive_ldap_account_attempt_is_audited(
