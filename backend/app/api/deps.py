@@ -11,6 +11,8 @@ from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
 from sqlmodel import Session
+from starlette.datastructures import Headers
+from starlette.types import Scope
 
 from app.core import security
 from app.core.config import settings
@@ -189,34 +191,39 @@ def _warn_untrusted_forwarder(peer: str, forwarded_for: str) -> None:
     )
 
 
-def get_client_ip(request: Request) -> str | None:
+def resolve_client_ip(scope: Scope) -> str | None:
     """The caller's address, believing proxy headers only from our own proxies.
 
-    The socket peer comes from ``RawPeerMiddleware`` (uvicorn overwrites
-    ``request.client`` from X-Forwarded-For). A peer that is not in
-    ``TRUSTED_PROXIES`` -- a LAN host or anyone reaching the backend port
-    directly -- is the client, whatever headers it sends. Behind a trusted peer,
-    X-Forwarded-For is walked from the right (see ``_forwarded_client_ip``).
+    Takes the ASGI scope so non-route code (the MCP mount's API-key allow-list)
+    resolves it exactly as the routes do. The socket peer comes from
+    ``RawPeerMiddleware`` (uvicorn overwrites ``scope["client"]`` from
+    X-Forwarded-For). A peer that is not in ``TRUSTED_PROXIES`` -- a LAN host or
+    anyone reaching the backend port directly -- is the client, whatever headers
+    it sends. Behind a trusted peer, X-Forwarded-For is walked from the right
+    (see ``_forwarded_client_ip``).
     """
-    client = request.scope.get("raw_client") or request.scope.get("client")
+    headers = Headers(scope=scope)
+    client = scope.get("raw_client") or scope.get("client")
     peer = client[0] if client else None
     try:
         peer_addr = _unmap(ipaddress.ip_address(peer)) if peer else None
     except ValueError:
         peer_addr = None
+    forwarded_for = headers.get("X-Forwarded-For")
     if peer_addr is None or not _is_trusted(peer_addr):
-        if peer_addr is not None and request.headers.get("X-Forwarded-For"):
-            _warn_untrusted_forwarder(
-                str(peer_addr), request.headers["X-Forwarded-For"]
-            )
+        if peer_addr is not None and forwarded_for:
+            _warn_untrusted_forwarder(str(peer_addr), forwarded_for)
         return str(peer_addr) if peer_addr else peer
-    forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:
         # Present but unusable: do not fall through to X-Real-IP.
         return _forwarded_client_ip(forwarded_for) or str(peer_addr)
-    real_ip = request.headers.get("X-Real-IP")
+    real_ip = headers.get("X-Real-IP")
     if real_ip:
         parsed = _parse_forwarded_entry(real_ip)
         if parsed is not None:
             return str(parsed)
     return str(peer_addr)
+
+
+def get_client_ip(request: Request) -> str | None:
+    return resolve_client_ip(request.scope)
