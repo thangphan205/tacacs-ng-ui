@@ -1206,10 +1206,10 @@ def test_directory_outage_is_not_counted_as_failed_logins(
 ) -> None:
     _enable_ldap(db)
 
+    message = f"No LDAP server reachable ({uuid.uuid4().hex[:8]})"
+
     def down(**_kwargs: Any) -> LdapAuthOutcome:
-        return LdapAuthOutcome(
-            ok=False, reason="unavailable", message="No LDAP server reachable"
-        )
+        return LdapAuthOutcome(ok=False, reason="unavailable", message=message)
 
     monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", down)
     monkeypatch.setattr(settings, "LOGIN_THROTTLE_MAX_FAILURES_PER_IP", 3)
@@ -1239,12 +1239,15 @@ def test_directory_outage_is_not_counted_as_failed_logins(
         )
     ).all()
     assert [a for a in failed if "unavailable" in (a.description or "")] == []
+    # Seven requests, one row: nothing else bounds LOGIN_ERROR, so a loop
+    # against a down directory must not write a row (and SIEM event) each.
     errors = db.exec(
         select(AuditLog).where(
-            AuditLog.action == "LOGIN_ERROR", AuditLog.entity_id == name
+            AuditLog.action == "LOGIN_ERROR",
+            AuditLog.description.contains(message),  # type: ignore[union-attr]
         )
     ).all()
-    assert len(errors) == 7
+    assert len(errors) == 1
 
 
 def test_failover_audit_row_normalises_and_bounds_the_username(

@@ -413,15 +413,24 @@ def login_ldap_access_token(
     # The detail stays in the audit log; the client gets as little as it needs.
     # A server-side fault is not a failed login: LOGIN_FAILED rows feed the
     # throttle, which would lock users (and the local admin, per client
-    # address) out for as long as the directory is down.
-    _fail(
-        f"LDAP {outcome.reason}: {outcome.message}",
-        action=(
-            "LOGIN_ERROR"
-            if outcome.reason in ("unavailable", "misconfigured")
-            else "LOGIN_FAILED"
-        ),
-    )
+    # address) out for as long as the directory is down. It is recorded as
+    # LOGIN_ERROR, once per distinct message per window: unlike a failed login
+    # nothing else bounds it, so a loop against a down directory would write
+    # (and ship to the SIEM) a row per request and push real history out of the
+    # table. No advisory lock here -- a race writes at most a few extra rows
+    # (bounded by LDAP_MAX_CONCURRENT_SIGNINS), and a lock held to the end of
+    # the request would serialise every sign-in during an outage.
+    description = f"LDAP {outcome.reason}: {outcome.message}"
+    if outcome.reason in ("unavailable", "misconfigured"):
+        if not audit_logs_crud.recent_audit_log_exists(
+            session=session,
+            action="LOGIN_ERROR",
+            description=description[:1024],
+            within=_FAILOVER_AUDIT_WINDOW,
+        ):
+            _fail(description, action="LOGIN_ERROR")
+    else:
+        _fail(description)
     if outcome.reason == "group_denied":
         raise HTTPException(
             status_code=403,

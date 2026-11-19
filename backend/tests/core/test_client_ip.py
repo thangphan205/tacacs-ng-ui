@@ -117,3 +117,16 @@ def test_untrusted_proxy_forwarding_is_logged_once_per_peer(
     with caplog.at_level("WARNING", logger=deps.logger.name):
         get_client_ip(_request({"X-Forwarded-For": "203.0.113.5"}))
     assert not [r for r in caplog.records if "TRUSTED_PROXIES" in r.getMessage()]
+
+
+def test_a_scope_without_a_recorded_peer_never_trusts_the_rewritten_client() -> None:
+    """Without RawPeerMiddleware, scope["client"] may hold the address a proxy
+    middleware took from a caller-written X-Forwarded-For."""
+    request = Request(
+        {
+            "type": "http",
+            "headers": [(b"x-forwarded-for", b"8.8.8.8")],
+            "client": ("172.18.0.3", 1234),  # would look like a trusted proxy
+        }
+    )
+    assert get_client_ip(request) is None

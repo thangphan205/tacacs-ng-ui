@@ -196,14 +196,18 @@ def resolve_client_ip(scope: Scope) -> str | None:
 
     Takes the ASGI scope so non-route code (the MCP mount's API-key allow-list)
     resolves it exactly as the routes do. The socket peer comes from
-    ``RawPeerMiddleware`` (uvicorn overwrites ``scope["client"]`` from
-    X-Forwarded-For). A peer that is not in ``TRUSTED_PROXIES`` -- a LAN host or
+    ``RawPeerMiddleware`` (``scope["raw_client"]``; ProxyHeadersMiddleware
+    overwrites ``scope["client"]`` from X-Forwarded-For). A peer that is not in ``TRUSTED_PROXIES`` -- a LAN host or
     anyone reaching the backend port directly -- is the client, whatever headers
     it sends. Behind a trusted peer, X-Forwarded-For is walked from the right
     (see ``_forwarded_client_ip``).
     """
     headers = Headers(scope=scope)
-    client = scope.get("raw_client") or scope.get("client")
+    # Only ``raw_client``: ``scope["client"]`` is what ProxyHeadersMiddleware
+    # rewrites from the caller's X-Forwarded-For, so falling back to it (a
+    # missing key, a unix-socket listener) would read a forged address as the
+    # peer. No recorded peer means an unknown one.
+    client = scope.get("raw_client")
     peer = client[0] if client else None
     try:
         peer_addr = _unmap(ipaddress.ip_address(peer)) if peer else None
