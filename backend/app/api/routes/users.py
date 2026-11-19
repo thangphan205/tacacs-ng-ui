@@ -314,6 +314,59 @@ def update_user(
     return db_user
 
 
+@router.post(
+    "/{user_id}/reset-ldap-link",
+    dependencies=[Depends(require_primary_node)],
+    response_model=UserPublic,
+)
+def reset_user_ldap_link(
+    *,
+    session: SessionDep,
+    current_user: SuperUser,
+    request: Request,
+    user_id: uuid.UUID,
+) -> Any:
+    """
+    Let the next LDAP sign-in with this account's email link it again.
+
+    Use after the directory identifier changed (Unique ID Attribute or
+    provider type): every account then looks linked to another entry and is
+    refused. The account stays an LDAP account meanwhile.
+    """
+    db_user = session.get(User, user_id)
+    if not db_user:
+        raise HTTPException(
+            status_code=404,
+            detail="The user with this id does not exist in the system",
+        )
+    if not db_user.ldap_id:
+        raise HTTPException(status_code=400, detail="This is not an LDAP account.")
+    if db_user.is_superuser:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Remove superuser first: until its owner signs in, whoever's "
+                "directory email matches would claim the account."
+            ),
+        )
+    old_values = db_user.model_dump_json(exclude=_SENSITIVE)
+    db_user = users.mark_ldap_relink(session=session, user=db_user)
+    audit_logs_crud.log_entity_action(
+        session=session,
+        action="UPDATE",
+        entity_type="User",
+        entity_id=str(db_user.id),
+        user_id=current_user.id,
+        user_email=current_user.email,
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+        old_values=old_values,
+        new_values=db_user.model_dump_json(exclude=_SENSITIVE),
+        description="LDAP link reset; the next LDAP sign-in re-links it",
+    )
+    return db_user
+
+
 @router.delete(
     "/{user_id}",
     dependencies=[Depends(get_current_active_superuser), Depends(require_primary_node)],

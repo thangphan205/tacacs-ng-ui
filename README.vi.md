@@ -124,7 +124,7 @@ Giao diện web chủ ý chỉ phục vụ trường hợp cơ bản; các trư�
 - **High Availability**: Chạy một node primary cùng N node standby. Thay đổi cấu hình được fan-out đến mọi peer đang bật, standby đồng bộ qua PostgreSQL streaming replication, và peer được thêm, tắt hoặc xóa ngay trên giao diện HA mà không cần khởi động lại dịch vụ. Thăng cấp standby lên primary chỉ bằng một cú nhấp.
 - **MCP Server cho LLM Client**: Endpoint [Model Context Protocol](https://modelcontextprotocol.io) cho phép Claude Desktop, Claude Code, Antigravity, Gemini, Cursor hoặc Windsurf xem các thực thể TACACS+, xem trước cấu hình và diff, kiểm tra cú pháp cấu hình bằng chính bộ phân tích `tac_plus-ng -P` — và với key read-write, tạo, sửa, xóa các thực thể. **Không bao giờ deploy được**: không có tool nào lưu file cấu hình, kích hoạt cấu hình hay reload daemon, nên thay đổi chỉ đến được daemon sau khi con người bấm Generate rồi Activate trên giao diện. Mặc định bật (có thể tắt), xác thực bằng API key có scope và có thể thu hồi, và mọi secret đều được che trong phản hồi.
 - **API Key Có Scope**: Thông tin đăng nhập cho máy, quản lý trong User Settings. Hai mức truy cập (chỉ đọc hoặc đọc-ghi), một tùy chọn riêng để lấy secret không che, thời hạn, hiển thị plaintext đúng một lần, thu hồi mềm và ghi audit log đầy đủ. Mỗi key còn có thể giới hạn theo danh sách IP/CIDR nguồn được phép, chỉnh sửa được bất cứ lúc nào mà không cần cấp lại key.
-- **Xác Thực Đa Yếu Tố**: Google OAuth, Keycloak OIDC, Microsoft (tài khoản cá nhân và Entra ID) và Passkeys (WebAuthn) ngoài email/mật khẩu.
+- **Xác Thực Đa Yếu Tố & Thư Mục**: Google OAuth, Keycloak OIDC, Microsoft (tài khoản cá nhân và Entra ID), LDAP / Active Directory / FreeIPA / OpenLDAP gốc (có failover nhiều server) và Passkeys (WebAuthn) ngoài email/mật khẩu.
 - **Bảo Mật Theo Thiết Kế**: Chính sách mật khẩu tuân thủ PCI DSS, xác thực JWT và khôi phục mật khẩu qua email.
 - **Công Cụ Tích Hợp**: Traefik reverse proxy, tài liệu API tự động qua Swagger UI và kiểm thử end-to-end với Playwright.
 
@@ -430,6 +430,23 @@ GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
 GOOGLE_REDIRECT_URI=http://<your-host>:8000/api/v1/oauth/google/callback
 ```
+
+### LDAP / Active Directory cho Web UI (tùy chọn)
+
+Dành cho môi trường air-gapped hoặc chỉ có mạng nội bộ: cấu hình xác thực LDAP / LDAPS gốc tại **Admin → Auth Providers → LDAP / AD** (hoặc qua các biến `.env` dự phòng):
+
+- **Provider hỗ trợ**: **FreeIPA**, **Microsoft Active Directory**, **OpenLDAP** và **Generic LDAP** (chọn provider sẽ điền sẵn thuộc tính user/group và bộ lọc tìm kiếm; cũng có thể bấm **Prefill from MAVIS**).
+- **Nhiều server & failover**: cấu hình nhiều server LDAP/LDAPS theo thứ tự ưu tiên (`1 = Primary`, `2 = Secondary`, …). Failover chỉ xảy ra khi không kết nối được (socket/TLS/kết nối), không bao giờ vì sai thông tin đăng nhập.
+- **Trang đăng nhập hai tab**: **LDAP** (username thư mục) và **Local Account** (email). Mật khẩu local không bao giờ bị gửi tới thư mục. Tắt **Allow password login** sẽ ẩn tab Local Account; LDAP có công tắc **Enable** riêng.
+- **Giới hạn theo group (tùy chọn)**: đặt **Required LDAP Group** là tên group (vd. `tacacs-ui-users`) hoặc DN đầy đủ (`cn=network-admins,cn=groups,dc=example,dc=com`) để giới hạn ai được đăng nhập, hoặc để trống để cho phép mọi user hợp lệ dưới `Base DN`.
+- **Phân quyền local trên TACACS-NG-UI**: LDAP chỉ dùng để xác thực. User LDAP đăng nhập lần đầu được tạo với quyền **Read-Only** (`is_superuser = False`); nâng quyền Superuser hoặc vô hiệu hóa tài khoản được quản lý local trong **Admin → Users Management**.
+- **Liên kết tài khoản an toàn**: tài khoản được gắn với ID bất biến của entry (`objectGUID` / `ipaUniqueID` / `entryUUID`). Tài khoản local có cùng email chỉ được liên kết khi bạn bật tùy chọn này, và tài khoản superuser thì không bao giờ. Xem [hướng dẫn sử dụng](docs/vi/user-guide.md#cấu-hình-ldap--active-directory).
+
+| Provider | Ví dụ Base DN | Bộ lọc tìm user mặc định |
+|---|---|---|
+| **FreeIPA** | `cn=accounts,dc=example,dc=com` | `(&(objectClass=posixAccount)(\|(uid={username})(krbPrincipalName={username})))` |
+| **Active Directory** | `DC=example,DC=com` | `(&(objectClass=user)(\|(sAMAccountName={username})(userPrincipalName={username})))` |
+| **OpenLDAP** | `ou=people,dc=example,dc=com` | `(&(objectClass=inetOrgPerson)(uid={username}))` |
 
 ### Tạo Secret Keys
 

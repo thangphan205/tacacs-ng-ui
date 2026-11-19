@@ -218,6 +218,49 @@ class Settings(BaseSettings):
     MICROSOFT_TENANT: str = "common"
     MICROSOFT_REDIRECT_URI: str = ""
 
+    # LDAP / Active Directory (Web UI Authentication)
+    LDAP_PROVIDER_TYPE: str = "freeipa"
+    LDAP_HOSTS: str = ""
+    LDAP_BASE_DN: str = ""
+    LDAP_BIND_DN: str = ""
+    LDAP_BIND_PASSWORD: str = ""
+    LDAP_REQUIRED_GROUP: str = ""
+    # Plain ldap:// without StartTLS sends passwords unencrypted and is refused
+    # unless this (or the card's "Allow unencrypted connections") is on.
+    LDAP_ALLOW_INSECURE: bool = False
+    # Web UI sessions of directory accounts are never re-checked against the
+    # directory, so keep them short: removal there takes effect when the token
+    # expires (minutes; capped by ACCESS_TOKEN_EXPIRE_MINUTES).
+    LDAP_ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
+    # Directory sign-ins in flight per uvicorn worker (each blocks a thread for
+    # up to the connect timeout per server). Extra requests get 503 at once, so
+    # an unreachable directory cannot starve the threadpool.
+    LDAP_MAX_CONCURRENT_SIGNINS: int = 8
+
+    # Addresses (comma-separated IPs or CIDRs) of the reverse proxies in front
+    # of the app. get_client_ip() believes X-Forwarded-For only when the socket
+    # peer is one of these, then walks it from the right past them; the first
+    # address that is not one is the client. Keep this to the proxies
+    # themselves: a client inside a listed range is treated as a proxy hop and
+    # can name any address it likes. "auto" (the default) means loopback plus
+    # the networks this container is attached to (its compose networks, where
+    # nginx and Traefik live; never their gateway, which is the host), read
+    # from /proc/net/route -- so a 10.x or 192.168.x compose network works
+    # unconfigured and an office 172.x LAN is not trusted. It can be combined:
+    # "auto,104.16.0.0/13" adds a CDN. Under host networking auto trusts only
+    # loopback; list the proxy explicitly there and on Kubernetes.
+    TRUSTED_PROXIES: str = "auto"
+
+    # Sign-in throttling, from LOGIN_FAILED audit rows (shared by all workers;
+    # a standby, which writes no audit rows, counts in a node-local file
+    # instead, see crud/standby_login_failures.py). 0 turns a limit off.
+    # Per user: LDAP sign-in only, counted per (username, client address), so a
+    # stranger cannot lock the local emergency administrator, or a known
+    # directory user, out by guessing at the name from elsewhere.
+    LOGIN_THROTTLE_WINDOW_MINUTES: int = 15
+    LOGIN_THROTTLE_MAX_FAILURES_PER_USER: int = 10
+    LOGIN_THROTTLE_MAX_FAILURES_PER_IP: int = 50
+
     # High Availability
     NODE_ROLE: Literal["primary", "standby"] = "primary"
     NODE_NAME: str = "primary"

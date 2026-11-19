@@ -930,7 +930,7 @@ These are users who log into the **dashboard** (not TACACS device users).
 | `full_name` | Display name |
 | `is_active` | Activate or deactivate the account |
 | `is_superuser` | Grant full admin access |
-| `password_login_disabled` | Force OAuth/Passkey login only (disable password) |
+| `password_login_disabled` | Force OAuth/Passkey/LDAP login only (disable the local password) |
 
 ### Auth Providers
 
@@ -945,6 +945,7 @@ Configure which authentication methods are enabled for the dashboard:
 | `google` | Requires client ID and client secret (UI or `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `.env`). The redirect URI is prefilled from the site URL |
 | `keycloak` | Requires Keycloak server URL, client ID, and client secret |
 | `microsoft` | Requires tenant, application (client) ID, and client secret. See [Microsoft Entra ID setup](#microsoft-entra-id-setup) |
+| `ldap` | LDAP / LDAPS against FreeIPA, Active Directory or OpenLDAP. See [LDAP / Active Directory setup](#ldap--active-directory-setup) |
 | `passkeys` | WebAuthn — no extra config required; users register passkeys from their profile settings |
 
 #### Microsoft Entra ID setup
@@ -965,6 +966,53 @@ One provider covers personal Microsoft accounts and Entra ID (work/school) accou
 > **Existing accounts.** A person whose email already has a local account is linked to it on first Microsoft sign-in **only** with a single-tenant setup or a personal account. With `common` or `organizations` the sign-in is refused (HTTP 403) instead, because Entra's email claim is not verified and linking on it would let another tenant take over the account. New users are still created normally. To let existing users sign in with Microsoft, restrict the tenant to your own organization.
 
 New users are created without admin rights.
+
+#### LDAP / Active Directory setup
+
+Lets people sign in to the dashboard with their directory account — no identity provider or internet access needed. It is for the **Web UI only**; device logins over TACACS+ still go through MAVIS, and the two are configured separately (**Prefill from MAVIS** copies the non-secret connection settings as a starting point).
+
+1. In **Admin → Auth Providers → LDAP / AD**, pick the **provider type**. It fills in the attributes and filters below; every field stays editable.
+2. Add the **servers** in priority order. All of them must be replicas of the same directory.
+3. Set the **Base DN**, and the **Bind DN** / **Bind Password** of a read-only service account (leave both blank for an anonymous search).
+4. Click **Test Connection**, then **Test User Login** with a real account, then **Save** and **Enable**.
+
+The login page then shows two tabs: **LDAP** (directory username and password) and **Local Account** (email and password, unchanged). LDAP is selected first, and the browser remembers the last tab used. The two are separate: the Local Account tab never contacts the directory (so a local password is never sent to it), and the LDAP tab never checks local passwords. A local administrator can therefore always sign in on the Local Account tab, even with every LDAP server down.
+
+An LDAP sign-in searches for the user with the service account, checks the password by binding as that user, then checks the **Required LDAP Group** if one is set.
+
+When **Allow password login** is turned off under **Passkeys**, the Local Account tab disappears and only the LDAP tab remains. That switch, and the per-account *disable password login* flag in **Users Management**, apply to local passwords only; LDAP sign-in is controlled by the LDAP provider's own **Enable** switch. With both local passwords and LDAP off, the page offers only the passkey and single sign-on buttons.
+
+API clients use `POST /api/v1/login/access-token` for local accounts and `POST /api/v1/login/ldap/access-token` for LDAP; both take the same `username` / `password` form.
+
+| Provider | Base DN example | User filter default | Unique ID |
+|----------|-----------------|---------------------|-----------|
+| FreeIPA | `cn=accounts,dc=example,dc=com` | `(&(objectClass=posixAccount)(\|(uid={username})(krbPrincipalName={username})))` | `ipaUniqueID` |
+| Active Directory | `DC=example,DC=com` | `(&(objectClass=user)(\|(sAMAccountName={username})(userPrincipalName={username})))` | `objectGUID` |
+| OpenLDAP | `ou=people,dc=example,dc=com` | `(&(objectClass=inetOrgPerson)(uid={username}))` | `entryUUID` |
+
+**Failover.** Servers are tried in priority order on every sign-in. The next one is used only when a server cannot be reached (connection refused, timeout, TLS failure) or answers *busy* / *unavailable*. Any other answer — including a refused service bind or a malformed Bind DN — ends the sign-in. A wrong password, an unknown user, a missing group or a wrong Base DN gives the same answer on every replica, so it ends the sign-in. A failover is written to the audit log as `LDAP_FAILOVER` once per 15 minutes for the same set of down servers, not once per sign-in. Referrals are never followed, so credentials only go to the configured servers. While the primary is down, each sign-in waits up to the **Connect Timeout** for it first.
+
+**Group gate.** A **Required LDAP Group** can be a name (`tacacs-ui-users`) or a full DN. A full DN must match exactly; a name matches any group with that `cn` under the **Group Base DN**. Membership is read from the user's `memberOf` first, then by searching the groups' membership attributes (`member`, `uniqueMember` with the user's DN, `memberUid` with the username), so OpenLDAP without the `memberOf` overlay works. Nested AD groups are matched with `LDAP_MATCHING_RULE_IN_CHAIN`; FreeIPA's `memberOf` already includes indirect groups.
+
+**Roles stay local.** LDAP decides *who* can sign in, not what they can do. A first LDAP sign-in creates a regular (non-admin) account; promote it in **Users Management**. Group-to-role mapping is not supported.
+
+**Accounts are linked to the directory entry's unique ID**, not its username, so a renamed or re-created username never inherits someone else's account. Clear **Unique ID Attribute** to link on the username instead.
+
+**Changing the identifier.** An account keyed on its username because the entry had no readable unique ID is re-keyed automatically once the ID becomes readable (same username, same email). Any other change of **Unique ID Attribute** or provider type gives every user a new identifier, and the existing accounts look linked to another entry, so sign-in is refused. In **Users Management → Edit User**, press **Reset LDAP link** on each affected account: the next LDAP sign-in with that email links it again, even with email linking off. The account stays an LDAP account meanwhile. A superuser cannot be reset — remove superuser first, let the owner sign in, then promote again.
+
+**Directory accounts sign in through the directory only.** An account created or linked by LDAP cannot use a local password (the Local Account tab, *Forgot password?* and password reset all refuse it), a passkey, an API key, or Google / Keycloak / Microsoft sign-in with the same email, so removing a user from the directory, or from the Required LDAP Group, stops their next sign-in. A session already open keeps its token until it expires — 8 hours for a directory account by default (`LDAP_ACCESS_TOKEN_EXPIRE_MINUTES`) — because tokens are not re-checked against the directory.
+
+> **Existing local accounts.** By default, a directory user whose email already belongs to a local account is refused (HTTP 403) rather than linked: LDAP `mail` is often editable by help desks or self-service, and linking on it would let whoever sets it sign in as that account. Turn on **Link existing local accounts by email** only if your users cannot change their own `mail`. It is refused while `USERS_OPEN_REGISTRATION` is on: anyone could have signed up with a colleague's address first, and their session would survive the link. A **superuser** account is never linked this way, and neither is an account already linked to another directory entry.
+
+Directory users without a valid email are refused unless a **Fallback Email Domain** is set (the account then gets `username@domain`).
+
+On a standby node, users who have signed in before can sign in again; a first sign-in must happen on the primary.
+
+Changing the servers, Bind DN or TLS settings and pressing **Test** or **Save Changes** asks for the Bind Password again, so the saved password is only ever sent to the servers it was saved for.
+
+**Test Connection** probes every server but judges the result the way sign-in works: it passes only when the first server that answers accepts the service bind. A server that rejects the Bind DN or password fails the test even if a later one accepts it, because sign-in stops there. A sign-in that fails on configuration (service bind, Base DN, search filter, group search, missing Bind Password) answers *LDAP sign-in is misconfigured* (HTTP 503) rather than *Incorrect username or password*; the detail is in the audit log.
+
+Before any LDAP settings are saved, the card shows the `LDAP_*` values from `.env` (`LDAP_HOSTS`, `LDAP_BASE_DN`, `LDAP_BIND_DN`, `LDAP_REQUIRED_GROUP`, `LDAP_PROVIDER_TYPE`), so saving it keeps an env-configured setup working. A saved Bind Password is optional there: without one, `LDAP_BIND_PASSWORD` is still used. Once saved, a field left empty stays empty — it no longer falls back to its `LDAP_*` value — so a Required Group or Bind DN set in `.env` can be cleared from the card. Plain `ldap://` without StartTLS sends passwords unencrypted and is refused on save, on Test and at sign-in unless **Allow unencrypted connections** (or `LDAP_ALLOW_INSECURE`) is on; the card warns when a server needs it. A search filter without `{username}` (or `%s`) is refused, since it would make every sign-in an attempt on one account. If the saved Bind Password cannot be decrypted (the `SECRET_KEY` changed), the card shows it as not set and sign-in says so; enter it again. After `LOGIN_THROTTLE_MAX_FAILURES_PER_USER` failed LDAP sign-ins for one username, or `_PER_IP` from one address (either sign-in form), further attempts get HTTP 429 for the rest of the window, so guessing cannot trip the directory's lockout policy. Standbys write no audit rows and do not throttle. Server addresses with a bad port or a scheme other than `ldap://` / `ldaps://`, and a CA certificate that is not a valid PEM bundle, are refused on save. Every change to an auth provider is written to the audit log (the secret only as *Secret changed*), and so is every **Test User Login**, with the username and result but never the password.
 
 ### Password Recovery
 

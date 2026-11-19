@@ -11,12 +11,14 @@ from fastapi.routing import APIRoute
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 from starlette.middleware.cors import CORSMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app.api.main import api_router
 from app.core.config import settings
 from app.core.db import engine
 from app.core.leader import run_as_leader
 from app.core.node_timezone import node_timezone, same_zone
+from app.core.proxy import RawPeerMiddleware
 from app.crud.alert_evaluator import evaluate_all_rules
 from app.crud.audit_logs import purge_old_audit_logs
 from app.crud.ml_anomaly_scorer import run_daily_anomaly_scoring
@@ -252,6 +254,13 @@ if settings.all_cors_origins:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+# Proxy headers (X-Forwarded-Proto for the request scheme) are handled here, not
+# by uvicorn (--no-proxy-headers in supervisord.conf), so that RawPeerMiddleware,
+# added last and therefore outermost, can record the socket peer first.
+# get_client_ip() uses that peer to decide whether X-Forwarded-For is believable.
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+app.add_middleware(RawPeerMiddleware)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 

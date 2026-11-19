@@ -3,10 +3,16 @@ import re
 import uuid
 from datetime import date, datetime, timezone
 from ipaddress import ip_network
-from typing import Literal
+from typing import Any, Literal
 
 import sqlalchemy as sa
-from pydantic import EmailStr, TypeAdapter, field_validator, model_validator
+from pydantic import (
+    EmailStr,
+    TypeAdapter,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
 
@@ -24,6 +30,11 @@ def _utc_now() -> datetime:
 # database server's UTC offset (alert cooldowns, API output). See also
 # core/db.py, which pins each connection's TimeZone to UTC.
 TZ_DATETIME = sa.DateTime(timezone=True)
+
+
+# ``User.ldap_id`` of an account an administrator reset with "Reset LDAP link"
+# (crud.users.mark_ldap_relink).
+LDAP_RELINK_PREFIX = "relink:"
 
 
 class TimestampModel(SQLModel):
@@ -81,6 +92,7 @@ class User(UserBase, TimestampModel, table=True):
     google_id: str | None = Field(default=None, index=True, unique=True)
     keycloak_id: str | None = Field(default=None, index=True, unique=True)
     microsoft_id: str | None = Field(default=None, index=True, unique=True)
+    ldap_id: str | None = Field(default=None, index=True, unique=True)
     password_login_disabled: bool = Field(default=False)
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
     webauthn_credentials: list["WebAuthnCredential"] = Relationship(
@@ -92,7 +104,8 @@ class User(UserBase, TimestampModel, table=True):
     @property
     def login_methods(self) -> list[str]:
         methods = []
-        if not self.password_login_disabled:
+        # A directory account has no usable local password (#404).
+        if not self.password_login_disabled and not self.ldap_id:
             methods.append("Password")
         if self.google_id:
             methods.append("Google")
@@ -100,9 +113,16 @@ class User(UserBase, TimestampModel, table=True):
             methods.append("Keycloak")
         if self.microsoft_id:
             methods.append("Microsoft")
+        if self.ldap_id:
+            methods.append("LDAP")
         if self.webauthn_credentials:
             methods.append("Passkeys")
         return methods
+
+    @property
+    def ldap_relink_pending(self) -> bool:
+        """An admin reset the LDAP link; the next LDAP sign-in re-links it."""
+        return bool(self.ldap_id and self.ldap_id.startswith(LDAP_RELINK_PREFIX))
 
 
 # Properties to return via API, id is always required
@@ -112,6 +132,7 @@ class UserPublic(UserBase):
     updated_at: datetime
     password_login_disabled: bool
     login_methods: list[str] = Field(default_factory=list)
+    ldap_relink_pending: bool = False
 
 
 class UsersPublic(SQLModel):
@@ -1423,6 +1444,58 @@ class AuthProviderConfigUpdate(SQLModel):
     config: dict | None = None  # type: ignore[type-arg]
     secret: str | None = None
 
+    @field_validator("secret")
+    @classmethod
+    def _empty_secret_means_unchanged(cls, value: str | None) -> str | None:
+        # The UI omits the secret to keep the stored one; an empty string is
+        # the same intent. Storing it would silently replace a working bind
+        # password / client secret with "" (the "secret required" guard and
+        # the audit's "Secret changed" both read "" as not provided).
+        return value or None
+
+
+class LdapServerDiagResult(SQLModel):
+    server: str
+    priority: int = 1
+    ok: bool
+    latency_ms: float | None = None
+    tls_active: bool = False
+    bind_ok: bool = False
+    error: str | None = None
+
+
+class LdapTestConnectionRequest(SQLModel):
+    config: dict | None = None  # type: ignore[type-arg]
+    secret: str | None = None
+
+
+class LdapTestConnectionResponse(SQLModel):
+    ok: bool
+    active_server: str | None = None
+    failover_occurred: bool = False
+    servers: list[LdapServerDiagResult] = Field(default_factory=list)
+    message: str
+
+
+class LdapTestAuthRequest(SQLModel):
+    username: str = Field(min_length=1, max_length=255)
+    password: str = Field(min_length=1, max_length=255)
+    config: dict | None = None  # type: ignore[type-arg]
+    secret: str | None = None
+
+
+class LdapTestAuthResponse(SQLModel):
+    ok: bool
+    server_used: str | None = None
+    failover_occurred: bool = False
+    user_dn: str | None = None
+    ldap_id: str | None = None
+    email: str | None = None
+    full_name: str | None = None
+    group_check_passed: bool | None = None
+    required_group: str | None = None
+    message: str
+
 
 # Audit Logging
 
@@ -1442,7 +1515,19 @@ class AuditLogBase(SQLModel):
 
 
 class AuditLogCreate(AuditLogBase):
-    pass
+    # Request-derived text is cut to the column, not rejected: every route
+    # builds this *after* its change is committed, so a ValidationError here
+    # (a browser extension's 600-character User-Agent) would answer 500 and
+    # leave the change live with no audit row. ``action`` / ``entity_type``
+    # are code constants and stay strict.
+    @field_validator("entity_id", "description", "user_agent", mode="before")
+    @classmethod
+    def _truncate_to_column(cls, value: Any, info: ValidationInfo) -> Any:
+        limit = _AUDIT_TEXT_LIMITS[info.field_name or ""]
+        return value[:limit] if isinstance(value, str) else value
+
+
+_AUDIT_TEXT_LIMITS = {"entity_id": 255, "description": 1024, "user_agent": 512}
 
 
 class AuditLog(AuditLogBase, TimestampModel, table=True):

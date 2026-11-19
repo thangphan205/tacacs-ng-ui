@@ -39,6 +39,12 @@ from app.models import (
 
 logger = logging.getLogger(__name__)
 
+# A directory account signs in through the directory only: a passkey would
+# outlive its removal there, or from the Required Group.
+_LDAP_ACCOUNT_DETAIL = (
+    "This account signs in with LDAP. Passkeys are not available for it."
+)
+
 router = APIRouter(prefix="/passkeys", tags=["passkeys"])
 
 
@@ -87,6 +93,8 @@ def _parse_authentication_credential(data: dict) -> AuthenticationCredential:  #
 
 @router.post("/register/begin")
 def register_begin(session: SessionDep, current_user: CurrentUser) -> JSONResponse:
+    if current_user.ldap_id:
+        raise HTTPException(status_code=400, detail=_LDAP_ACCOUNT_DETAIL)
     existing = passkeys_crud.get_credentials_for_user(
         session=session, user_id=current_user.id
     )
@@ -120,6 +128,8 @@ def register_complete(
     current_user: CurrentUser,
     body: PasskeyRegisterCompleteRequest,
 ) -> Any:
+    if current_user.ldap_id:
+        raise HTTPException(status_code=400, detail=_LDAP_ACCOUNT_DETAIL)
     challenge_record = passkeys_crud.consume_challenge_for_user(
         session=session, user_id=current_user.id
     )
@@ -243,6 +253,9 @@ def authenticate_complete(
     user = session.get(User, db_cred.user_id)
     if not user or not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive or deleted user")
+    if user.ldap_id:
+        # A passkey registered before the account was linked to LDAP.
+        raise HTTPException(status_code=400, detail=_LDAP_ACCOUNT_DETAIL)
 
     audit_logs_crud.create_audit_log(
         session=session,

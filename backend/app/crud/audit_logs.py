@@ -2,11 +2,12 @@ import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import text
 from sqlmodel import Session, delete, func, select
 
 from app.core.audit_redact import redact_audit_values
 from app.core.config import settings
-from app.crud import tacacs_siem
+from app.crud import standby_login_failures, tacacs_siem
 from app.models import AuditLog, AuditLogCreate
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,11 @@ def create_audit_log(
     ip_address: str | None,
 ) -> AuditLog | None:
     if settings.NODE_ROLE == "standby":
+        if audit_log_in.action == "LOGIN_FAILED":
+            # The replica is read-only; keep the throttle's count here instead.
+            standby_login_failures.record_failure(
+                user_email=user_email[:255], ip_address=ip_address
+            )
         return None
     data = audit_log_in.model_dump()
     # The one place every audit write passes (REST routes, MCP, anything new):
@@ -31,14 +37,78 @@ def create_audit_log(
     db_obj = AuditLog(
         **data,
         user_id=user_id,
-        user_email=user_email,
-        ip_address=ip_address,
+        # Table models are not validated: an over-long value would fail the
+        # INSERT after the caller's change was committed.
+        user_email=user_email[:255],
+        ip_address=ip_address[:45] if ip_address else ip_address,
     )
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
     _forward_to_siem(session, db_obj, db_obj.created_at)
     return db_obj
+
+
+def count_recent_failed_logins(
+    *,
+    session: Session,
+    within: timedelta,
+    user_email: str | None = None,
+    ip_address: str | None = None,
+) -> int:
+    """LOGIN_FAILED rows in the window for a username or a client address.
+
+    Shared by every uvicorn worker (the rows are in the database). Standbys
+    write no audit rows, so there the count comes from
+    ``standby_login_failures``, which `create_audit_log` fills instead.
+    """
+    if settings.NODE_ROLE == "standby":
+        return standby_login_failures.count_recent_failures(
+            within=within, user_email=user_email, ip_address=ip_address
+        )
+    since = datetime.now(timezone.utc) - within
+    statement = (
+        select(func.count())
+        .select_from(AuditLog)
+        .where(AuditLog.action == "LOGIN_FAILED", AuditLog.created_at >= since)
+    )
+    if user_email is not None:
+        statement = statement.where(AuditLog.user_email == user_email)
+    if ip_address is not None:
+        statement = statement.where(AuditLog.ip_address == ip_address)
+    return int(session.exec(statement).one())
+
+
+def lock_audit_dedupe(session: Session) -> None:
+    """Serialise check-then-insert dedupe across workers until the next commit.
+
+    A transaction-level advisory lock, so ``recent_audit_log_exists`` followed
+    by ``create_audit_log`` cannot both pass in two workers at once.
+    """
+    if settings.NODE_ROLE == "standby":
+        return
+    session.execute(text("SELECT pg_advisory_xact_lock(7461636, 3)"))
+
+
+def recent_audit_log_exists(
+    *, session: Session, action: str, description: str, within: timedelta
+) -> bool:
+    """True when an entry with this action and description was written lately.
+
+    Lets a caller record a lasting condition (an LDAP server down) once per
+    window instead of once per request.
+    """
+    since = datetime.now(timezone.utc) - within
+    statement = (
+        select(AuditLog.id)
+        .where(
+            AuditLog.action == action,
+            AuditLog.description == description,
+            AuditLog.created_at >= since,
+        )
+        .limit(1)
+    )
+    return session.exec(statement).first() is not None
 
 
 def get_audit_logs(

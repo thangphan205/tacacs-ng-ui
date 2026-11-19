@@ -653,7 +653,7 @@ Mọi thay đổi cấu hình qua UI đều được ghi lại:
 | `email` | Email đăng nhập |
 | `is_active` | Kích hoạt/vô hiệu hóa tài khoản |
 | `is_superuser` | Cấp quyền quản trị đầy đủ |
-| `password_login_disabled` | Bắt buộc dùng OAuth/Passkey (vô hiệu hóa mật khẩu) |
+| `password_login_disabled` | Bắt buộc dùng OAuth/Passkey/LDAP (vô hiệu hóa mật khẩu local) |
 
 ### Auth Providers
 
@@ -666,6 +666,7 @@ Mọi thay đổi cấu hình qua UI đều được ghi lại:
 | `google` | Cần client ID và client secret (trên UI hoặc `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` trong `.env`). Redirect URI được điền sẵn từ URL của site |
 | `keycloak` | Cần URL Keycloak server, client ID và client secret |
 | `microsoft` | Cần tenant, application (client) ID và client secret. Xem [Cấu hình Microsoft Entra ID](#cấu-hình-microsoft-entra-id) |
+| `ldap` | LDAP / LDAPS với FreeIPA, Active Directory hoặc OpenLDAP. Xem [Cấu hình LDAP / Active Directory](#cấu-hình-ldap--active-directory) |
 | `passkeys` | WebAuthn — không cần cấu hình thêm; người dùng đăng ký từ trang Settings |
 
 #### Cấu hình Microsoft Entra ID
@@ -686,6 +687,53 @@ Một provider dùng cho cả tài khoản Microsoft cá nhân và tài khoản 
 > **Tài khoản đã có.** Người dùng có email trùng tài khoản local chỉ được tự liên kết ở lần đăng nhập Microsoft đầu tiên khi dùng **single tenant** hoặc tài khoản cá nhân. Với `common` hoặc `organizations`, đăng nhập bị từ chối (HTTP 403), vì claim email của Entra không được xác minh — liên kết theo email sẽ cho phép tenant khác chiếm tài khoản. Người dùng mới vẫn được tạo bình thường. Để người dùng hiện có đăng nhập bằng Microsoft, hãy giới hạn tenant về tổ chức của bạn.
 
 Người dùng mới được tạo không có quyền admin.
+
+#### Cấu hình LDAP / Active Directory
+
+Cho phép đăng nhập dashboard bằng tài khoản thư mục (directory) — không cần identity provider hay kết nối Internet. Chỉ dành cho **Web UI**; đăng nhập thiết bị qua TACACS+ vẫn đi qua MAVIS, và hai phần này được cấu hình riêng (**Prefill from MAVIS** sao chép các thiết lập kết nối không bí mật làm điểm khởi đầu).
+
+1. Trong **Admin → Auth Providers → LDAP / AD**, chọn **provider type**. Các thuộc tính và bộ lọc bên dưới được điền sẵn; mọi trường đều sửa được.
+2. Thêm các **server** theo thứ tự ưu tiên. Tất cả phải là bản sao (replica) của cùng một thư mục.
+3. Nhập **Base DN**, cùng **Bind DN** / **Bind Password** của một service account chỉ đọc (để trống cả hai nếu dùng tìm kiếm ẩn danh).
+4. Bấm **Test Connection**, rồi **Test User Login** với một tài khoản thật, sau đó **Save** và **Enable**.
+
+Trang đăng nhập khi đó có hai tab: **LDAP** (username và mật khẩu thư mục) và **Local Account** (email và mật khẩu, như cũ). Tab LDAP được chọn trước, và trình duyệt nhớ tab dùng lần cuối. Hai tab hoàn toàn tách biệt: tab Local Account không bao giờ liên hệ thư mục (mật khẩu local không bao giờ bị gửi tới đó), và tab LDAP không bao giờ kiểm tra mật khẩu local. Vì vậy admin local luôn đăng nhập được ở tab Local Account, kể cả khi mọi server LDAP đều ngừng hoạt động.
+
+Khi đăng nhập LDAP, hệ thống tìm người dùng bằng service account, kiểm tra mật khẩu bằng cách bind với chính người dùng đó, rồi kiểm tra **Required LDAP Group** nếu có đặt.
+
+Khi tắt **Allow password login** trong **Passkeys**, tab Local Account biến mất và chỉ còn tab LDAP. Công tắc đó, cùng cờ *vô hiệu hóa đăng nhập mật khẩu* của từng tài khoản trong **Users Management**, chỉ áp dụng cho mật khẩu local; đăng nhập LDAP do công tắc **Enable** riêng của provider LDAP quyết định. Khi cả mật khẩu local và LDAP đều tắt, trang chỉ còn nút passkey và đăng nhập một lần (SSO).
+
+API client dùng `POST /api/v1/login/access-token` cho tài khoản local và `POST /api/v1/login/ldap/access-token` cho LDAP; cả hai nhận cùng form `username` / `password`.
+
+| Provider | Ví dụ Base DN | Bộ lọc user mặc định | Unique ID |
+|----------|---------------|----------------------|-----------|
+| FreeIPA | `cn=accounts,dc=example,dc=com` | `(&(objectClass=posixAccount)(\|(uid={username})(krbPrincipalName={username})))` | `ipaUniqueID` |
+| Active Directory | `DC=example,DC=com` | `(&(objectClass=user)(\|(sAMAccountName={username})(userPrincipalName={username})))` | `objectGUID` |
+| OpenLDAP | `ou=people,dc=example,dc=com` | `(&(objectClass=inetOrgPerson)(uid={username}))` | `entryUUID` |
+
+**Failover.** Mỗi lần đăng nhập, các server được thử theo thứ tự ưu tiên. Chỉ chuyển sang server kế tiếp khi server hiện tại không kết nối được (bị từ chối kết nối, hết thời gian chờ, lỗi TLS) hoặc trả lời *busy* / *unavailable*. Mọi câu trả lời khác — kể cả service bind bị từ chối hay Bind DN sai cú pháp — kết thúc lần đăng nhập. Sai mật khẩu, không tìm thấy user, thiếu group hoặc sai Base DN cho cùng một kết quả trên mọi replica, nên lần đăng nhập kết thúc ngay. Failover được ghi vào audit log với action `LDAP_FAILOVER` một lần mỗi 15 phút cho cùng một nhóm server đang ngừng, không phải mỗi lần đăng nhập. Referral không bao giờ được theo, nên thông tin đăng nhập chỉ gửi tới các server đã cấu hình. Khi server chính đang ngừng, mỗi lần đăng nhập sẽ chờ server đó tối đa bằng **Connect Timeout** trước.
+
+**Giới hạn theo group.** **Required LDAP Group** có thể là tên (`tacacs-ui-users`) hoặc DN đầy đủ. DN đầy đủ phải khớp chính xác; tên thì khớp mọi group có `cn` đó dưới **Group Base DN**. Thành viên được đọc trước từ `memberOf` của user, sau đó bằng cách tìm theo thuộc tính thành viên của group (`member`, `uniqueMember` với DN của user, `memberUid` với username), nên OpenLDAP không có overlay `memberOf` vẫn hoạt động. Group AD lồng nhau được khớp bằng `LDAP_MATCHING_RULE_IN_CHAIN`; `memberOf` của FreeIPA đã bao gồm các group gián tiếp.
+
+**Phân quyền vẫn ở local.** LDAP quyết định *ai* được đăng nhập, không quyết định họ được làm gì. Lần đăng nhập LDAP đầu tiên tạo một tài khoản thường (không phải admin); nâng quyền trong **Users Management**. Không hỗ trợ ánh xạ group sang vai trò.
+
+**Tài khoản được liên kết với unique ID của entry trong thư mục**, không phải username, nên username bị đổi tên hoặc tạo lại sẽ không bao giờ thừa hưởng tài khoản của người khác. Xóa trống **Unique ID Attribute** nếu muốn liên kết theo username.
+
+**Đổi định danh.** Tài khoản được liên kết theo username vì entry khi đó không đọc được unique ID sẽ tự động được liên kết lại khi ID đọc được (cùng username, cùng email). Mọi thay đổi khác của **Unique ID Attribute** hoặc provider type cho mỗi người dùng một định danh mới, và tài khoản cũ trông như đã liên kết với entry khác nên bị từ chối đăng nhập. Trong **Users Management → Edit User**, bấm **Reset LDAP link** cho từng tài khoản bị ảnh hưởng: lần đăng nhập LDAP kế tiếp với email đó sẽ liên kết lại, kể cả khi tắt liên kết theo email. Trong thời gian chờ, tài khoản vẫn là tài khoản LDAP. Không reset được tài khoản superuser — hãy bỏ quyền superuser trước, để chủ tài khoản đăng nhập, rồi cấp lại.
+
+**Tài khoản thư mục chỉ đăng nhập qua thư mục.** Tài khoản được LDAP tạo hoặc liên kết không dùng được mật khẩu cục bộ (tab Local Account, *Forgot password?* và đặt lại mật khẩu đều từ chối), passkey, API key, hay đăng nhập Google / Keycloak / Microsoft cùng email, nên khi xóa người dùng khỏi thư mục, hoặc khỏi Required LDAP Group, lần đăng nhập kế tiếp của họ sẽ bị chặn. Phiên đang mở vẫn giữ token tới khi hết hạn — mặc định 8 giờ với tài khoản thư mục (`LDAP_ACCESS_TOKEN_EXPIRE_MINUTES`) — vì token không được kiểm tra lại với thư mục.
+
+> **Tài khoản local đã có.** Mặc định, người dùng thư mục có email trùng với một tài khoản local sẽ bị từ chối (HTTP 403) thay vì được liên kết: thuộc tính `mail` của LDAP thường do help desk hoặc người dùng tự sửa được, nên liên kết theo email sẽ cho phép ai đặt được `mail` đăng nhập vào tài khoản đó. Chỉ bật **Link existing local accounts by email** khi người dùng không thể tự đổi `mail` của mình. Tùy chọn này bị từ chối khi `USERS_OPEN_REGISTRATION` bật: bất kỳ ai cũng có thể đã đăng ký trước bằng email của đồng nghiệp, và phiên của họ sẽ còn hiệu lực sau khi liên kết. Tài khoản **superuser** không bao giờ được liên kết theo cách này, tài khoản đã liên kết với một entry thư mục khác cũng vậy.
+
+Người dùng thư mục không có email hợp lệ sẽ bị từ chối, trừ khi đặt **Fallback Email Domain** (tài khoản khi đó nhận email `username@domain`).
+
+Trên node standby, người đã từng đăng nhập có thể đăng nhập lại; lần đăng nhập đầu tiên phải thực hiện trên node primary.
+
+Khi đổi server, Bind DN hoặc thiết lập TLS rồi bấm **Test** hoặc **Save Changes**, hệ thống yêu cầu nhập lại Bind Password, để mật khẩu đã lưu chỉ được gửi tới đúng các server mà nó được lưu cho.
+
+**Test Connection** kiểm tra mọi server nhưng đánh giá kết quả đúng như khi đăng nhập: chỉ đạt khi server đầu tiên trả lời chấp nhận service bind. Server từ chối Bind DN hoặc mật khẩu làm bài test thất bại kể cả khi server sau chấp nhận, vì đăng nhập dừng ở đó. Đăng nhập thất bại do cấu hình (service bind, Base DN, bộ lọc tìm kiếm, tìm nhóm, thiếu Bind Password) trả về *LDAP sign-in is misconfigured* (HTTP 503) thay vì *Incorrect username or password*; chi tiết nằm trong audit log.
+
+Trước khi lưu thiết lập LDAP nào, thẻ cấu hình hiển thị các giá trị `LDAP_*` từ `.env` (`LDAP_HOSTS`, `LDAP_BASE_DN`, `LDAP_BIND_DN`, `LDAP_REQUIRED_GROUP`, `LDAP_PROVIDER_TYPE`), nên bấm lưu vẫn giữ cấu hình qua env hoạt động. Không bắt buộc lưu Bind Password ở đó: khi không có, `LDAP_BIND_PASSWORD` vẫn được dùng. Sau khi lưu, trường để trống sẽ giữ trống — không còn lấy giá trị `LDAP_*` — nên có thể xóa Required Group hoặc Bind DN đặt trong `.env` ngay trên thẻ cấu hình. `ldap://` thuần không StartTLS gửi mật khẩu không mã hóa và bị từ chối khi lưu, khi Test và khi đăng nhập, trừ khi bật **Allow unencrypted connections** (hoặc `LDAP_ALLOW_INSECURE`); thẻ cấu hình cảnh báo khi server cần tùy chọn này. Bộ lọc tìm kiếm không có `{username}` (hoặc `%s`) bị từ chối, vì mọi lần đăng nhập sẽ thành thử mật khẩu một tài khoản. Nếu Bind Password đã lưu không giải mã được (`SECRET_KEY` đã đổi), thẻ hiển thị là chưa đặt và đăng nhập báo rõ; hãy nhập lại. Sau `LOGIN_THROTTLE_MAX_FAILURES_PER_USER` lần đăng nhập LDAP thất bại cho một username, hoặc `_PER_IP` từ một địa chỉ (cả hai form đăng nhập), các lần thử tiếp theo nhận HTTP 429 trong phần còn lại của khoảng thời gian, nên việc đoán mật khẩu không kích hoạt chính sách khóa của thư mục. Standby không ghi audit nên không throttle. Địa chỉ server có cổng sai hoặc scheme khác `ldap://` / `ldaps://`, và CA certificate không phải PEM hợp lệ, bị từ chối khi lưu. Mọi thay đổi auth provider đều được ghi audit log (secret chỉ ghi là *Secret changed*), mỗi lần **Test User Login** cũng vậy, kèm username và kết quả nhưng không bao giờ ghi mật khẩu.
 
 ---
 

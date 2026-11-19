@@ -1829,6 +1829,66 @@ export const Body_login_login_access_tokenSchema = {
     title: 'Body_login-login_access_token'
 } as const;
 
+export const Body_login_login_ldap_access_tokenSchema = {
+    properties: {
+        grant_type: {
+            anyOf: [
+                {
+                    type: 'string',
+                    pattern: '^password$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Grant Type'
+        },
+        username: {
+            type: 'string',
+            title: 'Username'
+        },
+        password: {
+            type: 'string',
+            format: 'password',
+            title: 'Password'
+        },
+        scope: {
+            type: 'string',
+            title: 'Scope',
+            default: ''
+        },
+        client_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Client Id'
+        },
+        client_secret: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            format: 'password',
+            title: 'Client Secret'
+        }
+    },
+    type: 'object',
+    required: [
+        'username',
+        'password'
+    ],
+    title: 'Body_login-login_ldap_access_token'
+} as const;
+
 export const ConfigurationOptionCreateSchema = {
     properties: {
         name: {
@@ -2789,6 +2849,281 @@ export const ItemsPublicSchema = {
         'count'
     ],
     title: 'ItemsPublic'
+} as const;
+
+export const LdapServerDiagResultSchema = {
+    properties: {
+        server: {
+            type: 'string',
+            title: 'Server'
+        },
+        priority: {
+            type: 'integer',
+            title: 'Priority',
+            default: 1
+        },
+        ok: {
+            type: 'boolean',
+            title: 'Ok'
+        },
+        latency_ms: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Latency Ms'
+        },
+        tls_active: {
+            type: 'boolean',
+            title: 'Tls Active',
+            default: false
+        },
+        bind_ok: {
+            type: 'boolean',
+            title: 'Bind Ok',
+            default: false
+        },
+        error: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Error'
+        }
+    },
+    type: 'object',
+    required: [
+        'server',
+        'ok'
+    ],
+    title: 'LdapServerDiagResult'
+} as const;
+
+export const LdapTestAuthRequestSchema = {
+    properties: {
+        username: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Username'
+        },
+        password: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Password'
+        },
+        config: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Config'
+        },
+        secret: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Secret'
+        }
+    },
+    type: 'object',
+    required: [
+        'username',
+        'password'
+    ],
+    title: 'LdapTestAuthRequest'
+} as const;
+
+export const LdapTestAuthResponseSchema = {
+    properties: {
+        ok: {
+            type: 'boolean',
+            title: 'Ok'
+        },
+        server_used: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Server Used'
+        },
+        failover_occurred: {
+            type: 'boolean',
+            title: 'Failover Occurred',
+            default: false
+        },
+        user_dn: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'User Dn'
+        },
+        ldap_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ldap Id'
+        },
+        email: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Email'
+        },
+        full_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Full Name'
+        },
+        group_check_passed: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Group Check Passed'
+        },
+        required_group: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Required Group'
+        },
+        message: {
+            type: 'string',
+            title: 'Message'
+        }
+    },
+    type: 'object',
+    required: [
+        'ok',
+        'message'
+    ],
+    title: 'LdapTestAuthResponse'
+} as const;
+
+export const LdapTestConnectionRequestSchema = {
+    properties: {
+        config: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Config'
+        },
+        secret: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Secret'
+        }
+    },
+    type: 'object',
+    title: 'LdapTestConnectionRequest'
+} as const;
+
+export const LdapTestConnectionResponseSchema = {
+    properties: {
+        ok: {
+            type: 'boolean',
+            title: 'Ok'
+        },
+        active_server: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Active Server'
+        },
+        failover_occurred: {
+            type: 'boolean',
+            title: 'Failover Occurred',
+            default: false
+        },
+        servers: {
+            items: {
+                $ref: '#/components/schemas/LdapServerDiagResult'
+            },
+            type: 'array',
+            title: 'Servers'
+        },
+        message: {
+            type: 'string',
+            title: 'Message'
+        }
+    },
+    type: 'object',
+    required: [
+        'ok',
+        'message'
+    ],
+    title: 'LdapTestConnectionResponse'
 } as const;
 
 export const MavisCreateSchema = {
@@ -6499,6 +6834,11 @@ export const UserPublicSchema = {
             },
             type: 'array',
             title: 'Login Methods'
+        },
+        ldap_relink_pending: {
+            type: 'boolean',
+            title: 'Ldap Relink Pending',
+            default: false
         }
     },
     type: 'object',

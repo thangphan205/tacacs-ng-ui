@@ -86,6 +86,41 @@ def _headers_for(db: Session, user: User, scopes: str) -> dict[str, str]:
 # --- authentication ---
 
 
+def test_allowed_ip_ignores_a_forged_leftmost_forwarded_for(
+    client: TestClient, db: Session
+) -> None:
+    """The allow-list is checked against the address a trusted proxy saw, not
+    the caller-written leftmost X-Forwarded-For entry."""
+    user = create_random_user(db)
+    _, plaintext = api_keys.create_api_key(
+        session=db,
+        api_key_create=ApiKeyCreate(
+            name="pytest-allowlist", scopes="mcp:read", allowed_ips="10.0.0.5"
+        ),
+        owner_id=user.id,
+        created_by_id=user.id,
+    )
+    base = {
+        "Authorization": f"Bearer {plaintext}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    body = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
+
+    def call(forwarded_for: str) -> int:
+        return client.post(
+            MCP_URL, headers={**base, "X-Forwarded-For": forwarded_for}, json=body
+        ).status_code
+
+    # Real client 203.0.113.9 claims to be 10.0.0.5 on the left: refused.
+    assert call("10.0.0.5, 203.0.113.9, 172.18.0.2") == 401
+    # A caller-written X-Real-IP does not help either.
+    spoof = {**base, "X-Forwarded-For": "203.0.113.9", "X-Real-IP": "10.0.0.5"}
+    assert client.post(MCP_URL, headers=spoof, json=body).status_code == 401
+    # The key's real source address is accepted.
+    assert call("10.0.0.5, 172.18.0.2") == 200
+
+
 def test_missing_authorization_is_rejected(client: TestClient) -> None:
     r = client.post(MCP_URL, headers={"Content-Type": "application/json"}, json={})
     assert r.status_code == 401
@@ -315,9 +350,9 @@ def test_no_tool_can_deploy_a_config(
     """MCP may edit entities but must never save, activate or reload a config."""
     result = _rpc(client, mcp_headers, "tools/list", {})
     for tool in result["tools"]:
-        assert not any(bad in tool["name"] for bad in FORBIDDEN_TOOL_SUBSTRINGS), (
-            tool["name"]
-        )
+        assert not any(bad in tool["name"] for bad in FORBIDDEN_TOOL_SUBSTRINGS), tool[
+            "name"
+        ]
 
 
 def test_write_scope_implies_read_scope(

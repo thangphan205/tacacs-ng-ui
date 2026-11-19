@@ -49,10 +49,18 @@ def create_api_key(
     afterwards — a lost key must be revoked and replaced.
     """
     owner_id = api_key_in.user_id or current_user.id
-    if session.get(User, owner_id) is None:
+    owner = session.get(User, owner_id)
+    if owner is None:
         raise HTTPException(
             status_code=404,
             detail="The user this API key would belong to does not exist.",
+        )
+    if owner.ldap_id:
+        # The key would outlive the account's removal from the directory, and
+        # authentication refuses it anyway (crud.api_keys.resolve_api_key).
+        raise HTTPException(
+            status_code=400,
+            detail="API keys are not available for LDAP accounts.",
         )
 
     db_api_key, plaintext = api_keys.create_api_key(

@@ -24,6 +24,7 @@ _NAME_FIELD: dict[str, str] = {
     "Mavis": "mavis_key",
     "StatsExcludedUser": "pattern",
     "TacacsConfig": "filename",
+    "AuthProviderConfig": "provider",
 }
 # Script rows have no name, only a key and a value (e.g. service=shell).
 _KEY_VALUE_TYPES = frozenset(

@@ -19,6 +19,7 @@ from starlette.datastructures import Headers
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from app.api.deps import resolve_client_ip
 from app.crud.api_keys import ApiKeyPrincipal, resolve_api_key
 
 log = logging.getLogger(__name__)
@@ -33,15 +34,11 @@ class McpAuthError(Exception):
 
 
 def _client_ip(scope: Scope) -> str | None:
-    headers = Headers(scope=scope)
-    forwarded_for = headers.get("x-forwarded-for")
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip()
-    real_ip = headers.get("x-real-ip")
-    if real_ip:
-        return real_ip
-    client = scope.get("client")
-    return client[0] if client else None
+    """Same resolution as the REST routes: ``X-Forwarded-For`` is believed only
+    from a trusted proxy. The leftmost entry is caller-written, and this address
+    feeds a key's allowed-source-IP list, so taking it would let a stolen key
+    name its own origin."""
+    return resolve_client_ip(scope)
 
 
 async def _unauthorized(
