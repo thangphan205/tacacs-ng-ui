@@ -484,8 +484,9 @@ def internal_collect_stats(
 
     log_dir = settings.TACACS_LOG_DIRECTORY
     auth_hourly: Counter[tuple[str, int, str]] = Counter()
+    last_auth: dict[str, datetime] = {}
     auth_success, auth_fail = parse_authentication_logs(
-        target_date, log_dir, auth_hourly
+        target_date, log_dir, auth_hourly, last_auth
     )
     authz_permit, authz_deny = parse_authorization_logs(target_date, log_dir)
     acct_start, acct_stop = parse_accounting_logs(target_date, log_dir)
@@ -513,6 +514,10 @@ def internal_collect_stats(
         # Hourly counts for the unusual-login-hour baseline. A primary on an
         # older version ignores the key; a peer on an older version omits it.
         "authentication_hourly": counter_to_rows(auth_hourly),
+        # Latest successful login timestamp (UTC ISO-8601) per username.
+        "last_authenticated": {
+            username: ts.isoformat() for username, ts in last_auth.items()
+        },
         "authorization": _counters_to_list(
             authz_permit, authz_deny, "permit_count", "deny_count"
         ),

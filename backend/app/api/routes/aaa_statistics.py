@@ -19,6 +19,7 @@ from app.core.config import settings
 from app.core.db import engine
 from app.crud import aaa_statistics, stats_exclusions
 from app.crud.auth_hourly import upsert_hourly
+from app.crud.tacacs_users import update_last_authenticated
 from app.models import (
     AaaStatisticsDateRangePublic,
     AaaStatisticsTodayPublic,
@@ -203,6 +204,19 @@ def _upsert_peer_stats(session: Session, data: dict[str, Any]) -> None:
             log_date=parse_log_date(data["date"]),
             rows=hourly_rows,
         )
+
+    raw_last_auth = data.get("last_authenticated")
+    if isinstance(raw_last_auth, dict):
+        parsed_last_auth: dict[str, datetime] = {}
+        for username, ts_str in raw_last_auth.items():
+            if not isinstance(ts_str, str):
+                continue
+            try:
+                parsed_last_auth[username] = datetime.fromisoformat(ts_str)
+            except ValueError:
+                continue
+        if parsed_last_auth:
+            update_last_authenticated(session=session, last_auth=parsed_last_auth)
 
     for row in data.get("authorization", []):
         log_day = parse_log_date(row["log_date"])

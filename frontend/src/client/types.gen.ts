@@ -3720,6 +3720,10 @@ export type TacacsUserPublic = {
      */
     account_expires_at?: string | null;
     /**
+     * Last Authenticated At
+     */
+    last_authenticated_at?: string | null;
+    /**
      * Created At
      */
     created_at: string;
