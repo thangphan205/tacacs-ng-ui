@@ -1,5 +1,6 @@
 import ipaddress
 import logging
+import time
 from collections.abc import Generator
 from functools import lru_cache
 from typing import Annotated
@@ -135,9 +136,15 @@ def _forwarded_client_ip(forwarded_for: str) -> str | None:
     Proxies append on the right, so the caller controls only what sits to the
     left of the first entry a proxy of ours added. Walk from the right, skip
     addresses in ``TRUSTED_PROXIES``; the first one that is not a trusted proxy
-    is the client. Works for any chain length. A chain made only of trusted
-    addresses yields its leftmost entry. An entry that is not an address is
-    skipped. Only call this for a request whose socket peer is trusted.
+    is the client. Works for any chain length. An entry that is not an address
+    is skipped. Only call this for a request whose socket peer is trusted.
+
+    A chain made only of trusted addresses (a client inside a listed range, or
+    a list that is too wide) yields its *rightmost* entry, the one our own
+    proxy appended. The leftmost would be caller-written. This fails toward a
+    shared address, never toward a forgeable one; the fix for that is a
+    narrower ``TRUSTED_PROXIES``, which ``_warn_untrusted_forwarder`` and the
+    deployment docs point at.
     """
     addrs = [
         a
@@ -147,7 +154,39 @@ def _forwarded_client_ip(forwarded_for: str) -> str | None:
     for addr in reversed(addrs):
         if not _is_trusted(addr):
             return str(addr)
-    return str(addrs[0]) if addrs else None
+    return str(addrs[-1]) if addrs else None
+
+
+_warned_peers: dict[str, float] = {}
+_WARN_EVERY_SECONDS = 3600.0
+
+
+def _warn_untrusted_forwarder(peer: str, forwarded_for: str) -> None:
+    """Say why every user may look like one address, once an hour per peer.
+
+    A proxy outside ``TRUSTED_PROXIES`` (a compose network in 10.x or
+    192.168.x, say) has its X-Forwarded-For ignored, so each client resolves to
+    the proxy and shares one throttle bucket and one audit address. The same
+    symptom is a direct caller forging the header; the message covers both.
+    """
+    now = time.monotonic()
+    last = _warned_peers.get(peer)
+    if last is not None and now - last < _WARN_EVERY_SECONDS:
+        return
+    if len(_warned_peers) > 256:
+        _warned_peers.clear()
+    _warned_peers[peer] = now
+    logger.warning(
+        "X-Forwarded-For %r arrived from %s, which is not in TRUSTED_PROXIES, so "
+        "it is ignored and %s is recorded as the client. If %s is your reverse "
+        "proxy, add it (or its network) to TRUSTED_PROXIES, otherwise every user "
+        "shares one sign-in throttle bucket; if not, someone is sending the "
+        "header directly.",
+        forwarded_for[:200],
+        peer,
+        peer,
+        peer,
+    )
 
 
 def get_client_ip(request: Request) -> str | None:
@@ -166,6 +205,10 @@ def get_client_ip(request: Request) -> str | None:
     except ValueError:
         peer_addr = None
     if peer_addr is None or not _is_trusted(peer_addr):
+        if peer_addr is not None and request.headers.get("X-Forwarded-For"):
+            _warn_untrusted_forwarder(
+                str(peer_addr), request.headers["X-Forwarded-For"]
+            )
         return str(peer_addr) if peer_addr else peer
     forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:

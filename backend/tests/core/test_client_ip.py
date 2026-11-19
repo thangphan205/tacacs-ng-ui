@@ -33,9 +33,13 @@ def _request(headers: dict[str, str], peer: str = "172.18.0.3") -> Request:
         ("8.8.8.8, 192.168.1.9", "192.168.1.9"),
         # A dual-stack proxy hop is still a proxy.
         ("203.0.113.5, ::ffff:172.18.0.2", "203.0.113.5"),
-        # Internal client: every entry trusted, leftmost wins.
+        # LAN client: 10.x is not a proxy range by default.
         ("10.1.2.3, 172.18.0.2", "10.1.2.3"),
         ("2001:db8::7, ::1", "2001:db8::7"),
+        # Every entry trusted: the rightmost, which our proxy appended -- never
+        # the leftmost, which the caller wrote.
+        ("172.20.9.9, 172.21.0.5, 172.18.0.2", "172.18.0.2"),
+        ("172.20.9.9", "172.20.9.9"),
         # Ports and brackets some proxies add are tolerated.
         ("6.6.6.6, 203.0.113.5:51234, 172.18.0.2", "203.0.113.5"),
         ("6.6.6.6, [2001:db8::7]:443, 172.18.0.2", "2001:db8::7"),
@@ -93,3 +97,23 @@ def test_the_socket_peer_survives_uvicorn_style_rewriting() -> None:
         }
     )
     assert get_client_ip(request) == "10.1.1.5"
+
+
+def test_untrusted_proxy_forwarding_is_logged_once_per_peer(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from app.api import deps
+
+    deps._warned_peers.clear()
+    request = _request({"X-Forwarded-For": "203.0.113.5"}, peer="192.168.176.4")
+    with caplog.at_level("WARNING", logger=deps.logger.name):
+        assert get_client_ip(request) == "192.168.176.4"
+        assert get_client_ip(request) == "192.168.176.4"
+    warnings = [r for r in caplog.records if "TRUSTED_PROXIES" in r.getMessage()]
+    assert len(warnings) == 1
+    assert "192.168.176.4" in warnings[0].getMessage()
+    # A trusted peer never triggers it.
+    caplog.clear()
+    with caplog.at_level("WARNING", logger=deps.logger.name):
+        get_client_ip(_request({"X-Forwarded-For": "203.0.113.5"}))
+    assert not [r for r in caplog.records if "TRUSTED_PROXIES" in r.getMessage()]

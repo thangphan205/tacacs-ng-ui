@@ -241,11 +241,13 @@ class Settings(BaseSettings):
     # front of the app. get_client_ip() believes X-Forwarded-For only when the
     # socket peer is one of these, then walks it from the right past them; the
     # first address that is not one is the client. Keep this to the proxies
-    # themselves: a client inside a listed range is skipped as a proxy and could
-    # then forge its address, so the default does not include 10/8 or
+    # themselves: a client inside a listed range is treated as a proxy hop, and a
+    # chain of only listed addresses resolves to its rightmost entry (a shared
+    # address, never a forgeable one), so the default does not include 10/8 or
     # 192.168/16 (office LANs). Docker's default bridges are in 172.16/12; add
-    # your own compose network if it uses another range, and a CDN's public
-    # ranges when one sits in front.
+    # your own compose network if it uses another range (get_client_ip logs the
+    # proxy's address when X-Forwarded-For arrives from an unlisted peer), and a
+    # CDN's public ranges when one sits in front.
     TRUSTED_PROXIES: str = "127.0.0.0/8,172.16.0.0/12,::1/128"
 
     # Sign-in throttling, from LOGIN_FAILED audit rows (shared by all workers;
