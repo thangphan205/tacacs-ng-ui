@@ -17,6 +17,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
+import { formatDateTime } from "@/utils"
 
 const usersSearchSchema = z.object({
   page: z.number().catch(1),
@@ -87,6 +88,7 @@ function UsersTable() {
             <Table.ColumnHeader w="sm">Role</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Status</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Login Method</Table.ColumnHeader>
+            <Table.ColumnHeader w="sm">Last Login</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
           </Table.Row>
         </Table.Header>
@@ -132,6 +134,13 @@ function UsersTable() {
                       ))
                     : "None"}
                 </Flex>
+              </Table.Cell>
+              <Table.Cell fontSize="sm" color="fg.muted">
+                {user.last_login_at
+                  ? formatDateTime(user.last_login_at, {
+                      hour12: false,
+                    })
+                  : "Never"}
               </Table.Cell>
               <Table.Cell>
                 <UserActionsMenu

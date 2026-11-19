@@ -3880,6 +3880,10 @@ export type UserPublic = {
      */
     password_login_disabled: boolean;
     /**
+     * Last Login At
+     */
+    last_login_at?: string | null;
+    /**
      * Login Methods
      */
     login_methods?: Array<string>;

@@ -145,6 +145,7 @@ def _audit_login_success(
         user_email=user.email,
         ip_address=ip,
     )
+    users.record_last_login(session=session, user_id=user.id)
 
 
 def _audit_ldap_failover(

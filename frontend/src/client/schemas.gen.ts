@@ -6840,6 +6840,18 @@ export const UserPublicSchema = {
             type: 'boolean',
             title: 'Password Login Disabled'
         },
+        last_login_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Last Login At'
+        },
         login_methods: {
             items: {
                 type: 'string'

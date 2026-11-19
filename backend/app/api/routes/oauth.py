@@ -22,6 +22,7 @@ from app.crud.users import (
     get_or_create_google_user,
     get_or_create_keycloak_user,
     get_or_create_microsoft_user,
+    record_last_login,
 )
 from app.models import AuditLogCreate, User
 
@@ -312,6 +313,7 @@ def google_callback(
         user_email=user.email,
         ip_address=get_client_ip(request),
     )
+    record_last_login(session=session, user_id=user.id)
     jwt = create_access_token(
         subject=str(user.id),
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
@@ -405,6 +407,7 @@ def keycloak_callback(
         user_email=user.email,
         ip_address=get_client_ip(request),
     )
+    record_last_login(session=session, user_id=user.id)
     jwt = create_access_token(
         subject=str(user.id),
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
@@ -528,6 +531,7 @@ def microsoft_callback(
         user_email=user.email,
         ip_address=get_client_ip(request),
     )
+    record_last_login(session=session, user_id=user.id)
     jwt = create_access_token(
         subject=str(user.id),
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),

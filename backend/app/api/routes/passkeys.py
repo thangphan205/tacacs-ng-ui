@@ -26,6 +26,7 @@ from app.core.config import settings
 from app.core.security import create_access_token
 from app.crud import audit_logs as audit_logs_crud
 from app.crud import passkeys as passkeys_crud
+from app.crud import users as users_crud
 from app.models import (
     AuditLogCreate,
     Message,
@@ -270,6 +271,7 @@ def authenticate_complete(
         user_email=user.email,
         ip_address=get_client_ip(request),
     )
+    users_crud.record_last_login(session=session, user_id=user.id)
     return Token(
         access_token=create_access_token(
             subject=str(user.id),

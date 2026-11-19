@@ -1,6 +1,7 @@
 import logging
 import secrets
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import update
@@ -19,6 +20,29 @@ from app.models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def record_last_login(
+    *, session: Session, user_id: uuid.UUID, when: datetime | None = None
+) -> None:
+    """Record a Web UI user's latest successful login timestamp.
+
+    No-op on a standby node whose database replica is read-only.
+    Preserves ``updated_at`` so signing in does not look like a profile edit.
+    """
+    if settings.NODE_ROLE == "standby":
+        return
+    now = when if when is not None else datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    else:
+        now = now.astimezone(timezone.utc)
+    session.exec(
+        update(User)
+        .where(User.id == user_id)  # type: ignore[arg-type]
+        .values(last_login_at=now, updated_at=User.updated_at)
+    )
+    session.commit()
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:
