@@ -16,6 +16,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Features
 
+* ✨ Track and display last successful authentication time for TACACS users. PR [#419](https://github.com/thangphan205/tacacs-ng-ui/pull/419) by [@thangphan205](https://github.com/thangphan205).
 * ✨ Add LDAP / Active Directory sign-in for the Web UI (#404). PR [#418](https://github.com/thangphan205/tacacs-ng-ui/pull/418) by [@thangphan205](https://github.com/thangphan205).
 
 ### Internal
