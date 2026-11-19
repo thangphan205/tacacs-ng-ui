@@ -1592,7 +1592,7 @@ def test_ldap_require_approval_creates_inactive_user_until_approved(
 ) -> None:
     email = f"pending-ldap-{uuid.uuid4().hex[:8]}@example.com"
     ldap_id = f"uid-pending-{uuid.uuid4().hex[:8]}"
-    _enable_ldap(db, {**LDAP_CONFIG, "require_approval": "true"})
+    _enable_ldap(db, require_approval="true")
     _fake_ldap_success(monkeypatch, ldap_id=ldap_id, email=email)
     try:
         r = _login(client, "pendinguser")
