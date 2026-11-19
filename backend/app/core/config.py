@@ -232,6 +232,10 @@ class Settings(BaseSettings):
     # directory, so keep them short: removal there takes effect when the token
     # expires (minutes; capped by ACCESS_TOKEN_EXPIRE_MINUTES).
     LDAP_ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
+    # Directory sign-ins in flight per uvicorn worker (each blocks a thread for
+    # up to the connect timeout per server). Extra requests get 503 at once, so
+    # an unreachable directory cannot starve the threadpool.
+    LDAP_MAX_CONCURRENT_SIGNINS: int = 8
 
     # Addresses (comma-separated IPs or CIDRs) of the reverse proxies in front of
     # the app. get_client_ip() walks X-Forwarded-For from the right past these;

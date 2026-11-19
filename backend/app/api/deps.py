@@ -89,6 +89,28 @@ def _trusted_proxy_networks(
     return tuple(networks)
 
 
+def _parse_forwarded_entry(
+    entry: str,
+) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
+    """One X-Forwarded-For element as an address, tolerating what proxies add:
+    ``ip:port`` (IPv4), ``[ip]`` and ``[ip]:port`` (IPv6)."""
+    entry = entry.strip()
+    if entry.startswith("["):
+        host, _, rest = entry[1:].partition("]")
+        if rest and not (rest.startswith(":") and rest[1:].isdigit()):
+            return None
+        entry = host
+    elif entry.count(":") == 1:
+        host, _, port = entry.partition(":")
+        if not port.isdigit():
+            return None
+        entry = host
+    try:
+        return ipaddress.ip_address(entry)
+    except ValueError:
+        return None
+
+
 def _forwarded_client_ip(forwarded_for: str) -> str | None:
     """Client address from X-Forwarded-For, immune to a forged leftmost entry.
 
@@ -98,31 +120,28 @@ def _forwarded_client_ip(forwarded_for: str) -> str | None:
     is the client. Works for any chain length, unlike taking the first entry
     (forgeable) or the Nth from the right (wrong behind a different chain).
     A chain made only of trusted addresses (an internal client) yields its
-    leftmost entry. An unparseable entry ends the walk: nothing is trusted.
+    leftmost entry. An entry that is not an address is skipped.
     """
     trusted = _trusted_proxy_networks(settings.TRUSTED_PROXIES)
-    parts = [p.strip() for p in forwarded_for.split(",") if p.strip()]
-    for entry in reversed(parts):
-        try:
-            addr = ipaddress.ip_address(entry)
-        except ValueError:
-            return None
+    addrs = [
+        a
+        for a in (_parse_forwarded_entry(p) for p in forwarded_for.split(","))
+        if a is not None
+    ]
+    for addr in reversed(addrs):
         if not any(addr in net for net in trusted):
             return str(addr)
-    if parts:
-        try:
-            return str(ipaddress.ip_address(parts[0]))
-        except ValueError:
-            return None
-    return None
+    return str(addrs[0]) if addrs else None
 
 
 def get_client_ip(request: Request) -> str | None:
     forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:
-        client = _forwarded_client_ip(forwarded_for)
-        if client:
-            return client
+        # Present but unusable: do not fall through to X-Real-IP, which the
+        # caller can write. The socket peer is the proxy, a stable if coarse key.
+        return _forwarded_client_ip(forwarded_for) or (
+            request.client.host if request.client else None
+        )
     real_ip = request.headers.get("X-Real-IP")
     if real_ip:
         return real_ip[:45]

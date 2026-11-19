@@ -1098,6 +1098,41 @@ def test_short_forwarded_chain_keeps_sign_in_working_and_audit_consistent(
     assert row is not None and row.ip_address == ip
 
 
+def test_ldap_sign_ins_in_flight_are_capped(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A dead directory must not let a flood fill the threadpool: past the cap
+    a request is refused at once, without touching the directory."""
+    _enable_ldap(db)
+    monkeypatch.setattr(settings, "LDAP_MAX_CONCURRENT_SIGNINS", 2)
+    calls: list[int] = []
+
+    def never(**_kwargs: Any) -> LdapAuthOutcome:
+        calls.append(1)
+        raise AssertionError("directory must not be contacted")
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", never)
+    from app.api.routes.login import _ldap_semaphore
+
+    slots = _ldap_semaphore()
+    assert slots.acquire(blocking=False) and slots.acquire(blocking=False)
+    try:
+        r = client.post(
+            LDAP_LOGIN_URL,
+            data={"username": "u", "password": "p"},
+            headers={"X-Forwarded-For": "203.0.113.61, 172.18.0.2"},
+        )
+    finally:
+        slots.release()
+        slots.release()
+    assert r.status_code == 503
+    assert r.headers.get("Retry-After") == "5"
+    assert calls == []
+    # Slots free again: the next request reaches the directory.
+    _fake_ldap_success(monkeypatch, ldap_id="cap1", email="netadmin1@example.com")
+    assert _login(client, "netadmin1").status_code == 200
+
+
 def test_overlong_user_agent_is_audited_not_a_server_error(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

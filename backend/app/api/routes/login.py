@@ -1,3 +1,4 @@
+import threading
 from datetime import timedelta
 from typing import Annotated, Any
 
@@ -57,6 +58,24 @@ _LDAP_ACCOUNT_DETAIL = (
 _USERNAME_MAX = 255  # AuditLog.user_email / entity_id column width
 _IP_MAX = 45  # AuditLog.ip_address column width
 _UA_MAX = 512  # AuditLog.user_agent column width
+
+# Directory round trips block a threadpool thread for up to connect_timeout per
+# server. With the directory down, a flood of sign-ins would fill the pool and
+# stall every other sync route, the local emergency login included. Cap the
+# ones in flight per worker; the rest are refused at once (no thread is held,
+# no audit row is written per request). Sized lazily so tests can change it.
+_ldap_slots: threading.BoundedSemaphore | None = None
+_ldap_slots_size = 0
+_ldap_slots_lock = threading.Lock()
+
+
+def _ldap_semaphore() -> threading.BoundedSemaphore:
+    global _ldap_slots, _ldap_slots_size
+    size = max(1, settings.LDAP_MAX_CONCURRENT_SIGNINS)
+    with _ldap_slots_lock:
+        if _ldap_slots is None or _ldap_slots_size != size:
+            _ldap_slots, _ldap_slots_size = threading.BoundedSemaphore(size), size
+        return _ldap_slots
 
 
 def _norm_username(username: str) -> str:
@@ -320,13 +339,23 @@ def login_ldap_access_token(
     _throttle_login(session, username=form_data.username, ip=ip, by_user=True)
 
     effective = build_effective_ldap_config(ldap_cfg, ldap_secret)
-    outcome = authenticate_ldap_user(
-        username=form_data.username,
-        password=form_data.password,
-        raw_config=ldap_cfg,
-        secret=ldap_secret,
-        effective=effective,
-    )
+    slots = _ldap_semaphore()
+    if not slots.acquire(blocking=False):
+        raise HTTPException(
+            status_code=503,
+            detail="Too many LDAP sign-ins in progress. Try again shortly.",
+            headers={"Retry-After": "5"},
+        )
+    try:
+        outcome = authenticate_ldap_user(
+            username=form_data.username,
+            password=form_data.password,
+            raw_config=ldap_cfg,
+            secret=ldap_secret,
+            effective=effective,
+        )
+    finally:
+        slots.release()
     if outcome.failed_servers:
         _audit_ldap_failover(
             session,
