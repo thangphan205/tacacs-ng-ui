@@ -48,7 +48,9 @@ def client() -> Generator[TestClient, None, None]:
     # module would call StreamableHTTPSessionManager.run() more than once (it
     # raises on the second call), and would respawn the background asyncio loops
     # for every module.
-    with TestClient(app) as c:
+    # A peer inside TRUSTED_PROXIES, like nginx in front of the backend, so tests
+    # can drive the client address through X-Forwarded-For.
+    with TestClient(app, client=("172.18.0.9", 50000)) as c:
         yield c
 
 

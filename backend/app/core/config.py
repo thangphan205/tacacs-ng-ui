@@ -237,17 +237,16 @@ class Settings(BaseSettings):
     # an unreachable directory cannot starve the threadpool.
     LDAP_MAX_CONCURRENT_SIGNINS: int = 8
 
-    # Addresses (comma-separated IPs or CIDRs) of the reverse proxies in front of
-    # the app. get_client_ip() walks X-Forwarded-For from the right past these;
-    # the first address that is not one is the client, so a forged leftmost
-    # entry is ignored. The default covers loopback and private ranges (Docker
-    # networks, nginx, Traefik). Add a CDN's public ranges when one sits in
-    # front, and keep the backend port itself unexposed: a direct caller is its
-    # own last proxy and can write any address.
-    TRUSTED_PROXIES: str = (
-        "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16,"
-        "::1/128,fc00::/7"
-    )
+    # Addresses (comma-separated IPs or CIDRs) of the reverse proxies directly in
+    # front of the app. get_client_ip() believes X-Forwarded-For only when the
+    # socket peer is one of these, then walks it from the right past them; the
+    # first address that is not one is the client. Keep this to the proxies
+    # themselves: a client inside a listed range is skipped as a proxy and could
+    # then forge its address, so the default does not include 10/8 or
+    # 192.168/16 (office LANs). Docker's default bridges are in 172.16/12; add
+    # your own compose network if it uses another range, and a CDN's public
+    # ranges when one sits in front.
+    TRUSTED_PROXIES: str = "127.0.0.0/8,172.16.0.0/12,::1/128"
 
     # Sign-in throttling, from LOGIN_FAILED audit rows (shared by all workers;
     # needs the primary, standbys write no audit rows). 0 turns a limit off.

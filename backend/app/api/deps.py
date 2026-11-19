@@ -89,6 +89,24 @@ def _trusted_proxy_networks(
     return tuple(networks)
 
 
+def _unmap(
+    addr: ipaddress.IPv4Address | ipaddress.IPv6Address,
+) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
+    """``::ffff:172.18.0.2`` (a dual-stack socket) is the IPv4 address."""
+    if isinstance(addr, ipaddress.IPv6Address) and addr.ipv4_mapped is not None:
+        return addr.ipv4_mapped
+    return addr
+
+
+def _is_trusted(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    addr = _unmap(addr)
+    return any(
+        addr in net
+        for net in _trusted_proxy_networks(settings.TRUSTED_PROXIES)
+        if net.version == addr.version
+    )
+
+
 def _parse_forwarded_entry(
     entry: str,
 ) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
@@ -106,7 +124,7 @@ def _parse_forwarded_entry(
             return None
         entry = host
     try:
-        return ipaddress.ip_address(entry)
+        return _unmap(ipaddress.ip_address(entry))
     except ValueError:
         return None
 
@@ -117,32 +135,45 @@ def _forwarded_client_ip(forwarded_for: str) -> str | None:
     Proxies append on the right, so the caller controls only what sits to the
     left of the first entry a proxy of ours added. Walk from the right, skip
     addresses in ``TRUSTED_PROXIES``; the first one that is not a trusted proxy
-    is the client. Works for any chain length, unlike taking the first entry
-    (forgeable) or the Nth from the right (wrong behind a different chain).
-    A chain made only of trusted addresses (an internal client) yields its
-    leftmost entry. An entry that is not an address is skipped.
+    is the client. Works for any chain length. A chain made only of trusted
+    addresses yields its leftmost entry. An entry that is not an address is
+    skipped. Only call this for a request whose socket peer is trusted.
     """
-    trusted = _trusted_proxy_networks(settings.TRUSTED_PROXIES)
     addrs = [
         a
         for a in (_parse_forwarded_entry(p) for p in forwarded_for.split(","))
         if a is not None
     ]
     for addr in reversed(addrs):
-        if not any(addr in net for net in trusted):
+        if not _is_trusted(addr):
             return str(addr)
     return str(addrs[0]) if addrs else None
 
 
 def get_client_ip(request: Request) -> str | None:
+    """The caller's address, believing proxy headers only from our own proxies.
+
+    The socket peer comes from ``RawPeerMiddleware`` (uvicorn overwrites
+    ``request.client`` from X-Forwarded-For). A peer that is not in
+    ``TRUSTED_PROXIES`` -- a LAN host or anyone reaching the backend port
+    directly -- is the client, whatever headers it sends. Behind a trusted peer,
+    X-Forwarded-For is walked from the right (see ``_forwarded_client_ip``).
+    """
+    client = request.scope.get("raw_client") or request.scope.get("client")
+    peer = client[0] if client else None
+    try:
+        peer_addr = _unmap(ipaddress.ip_address(peer)) if peer else None
+    except ValueError:
+        peer_addr = None
+    if peer_addr is None or not _is_trusted(peer_addr):
+        return str(peer_addr) if peer_addr else peer
     forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:
-        # Present but unusable: do not fall through to X-Real-IP, which the
-        # caller can write. The socket peer is the proxy, a stable if coarse key.
-        return _forwarded_client_ip(forwarded_for) or (
-            request.client.host if request.client else None
-        )
+        # Present but unusable: do not fall through to X-Real-IP.
+        return _forwarded_client_ip(forwarded_for) or str(peer_addr)
     real_ip = request.headers.get("X-Real-IP")
     if real_ip:
-        return real_ip[:45]
-    return request.client.host if request.client else None
+        parsed = _parse_forwarded_entry(real_ip)
+        if parsed is not None:
+            return str(parsed)
+    return str(peer_addr)
