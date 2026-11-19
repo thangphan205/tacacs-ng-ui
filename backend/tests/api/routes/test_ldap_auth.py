@@ -1133,6 +1133,34 @@ def test_ldap_sign_ins_in_flight_are_capped(
     assert _login(client, "netadmin1").status_code == 200
 
 
+def test_database_connection_is_released_before_the_directory_call(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Blocking directory I/O must not hold a pooled connection idle in a
+    transaction: with the directory down that would pin up to
+    LDAP_MAX_CONCURRENT_SIGNINS connections per worker."""
+    from app.core.db import engine
+
+    _enable_ldap(db)
+    during: list[int] = []
+
+    def stub(**_kwargs: Any) -> LdapAuthOutcome:
+        during.append(engine.pool.checkedout())  # type: ignore[attr-defined]
+        return LdapAuthOutcome(
+            ok=False, reason="invalid_credentials", message="Invalid password"
+        )
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", stub)
+    before = engine.pool.checkedout()  # type: ignore[attr-defined]
+    r = client.post(
+        LDAP_LOGIN_URL,
+        data={"username": f"pool-{uuid.uuid4().hex[:8]}", "password": "p"},
+        headers={"X-Forwarded-For": "203.0.113.77, 172.18.0.2"},
+    )
+    assert r.status_code == 400
+    assert during and during[0] <= before, (before, during)
+
+
 def test_overlong_user_agent_is_audited_not_a_server_error(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

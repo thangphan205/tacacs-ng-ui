@@ -339,6 +339,13 @@ def login_ldap_access_token(
     _throttle_login(session, username=form_data.username, ip=ip, by_user=True)
 
     effective = build_effective_ldap_config(ldap_cfg, ldap_secret)
+    # The reads above opened a transaction and checked a connection out of the
+    # pool. The directory call below blocks for up to connect_timeout per
+    # server, so end it first: otherwise, with the directory down, every
+    # in-flight sign-in (LDAP_MAX_CONCURRENT_SIGNINS per worker) pins a pooled
+    # connection idle in transaction and starves unrelated requests, the local
+    # emergency login included. The session reconnects on its next use.
+    session.commit()
     slots = _ldap_semaphore()
     if not slots.acquire(blocking=False):
         raise HTTPException(

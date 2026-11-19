@@ -3,6 +3,7 @@ import secrets
 import uuid
 from typing import Any
 
+from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, func, select
 
@@ -274,16 +275,31 @@ LDAP_OPEN_REGISTRATION = "open_registration"
 def _link_ldap(
     *, session: Session, user: User, ldap_id: str, full_name: str | None
 ) -> User | None:
-    """Link `user` to the directory entry; None when another request won."""
-    user.ldap_id = ldap_id
+    """Link `user` to the directory entry; None when another request won.
+
+    A compare-and-set on the ``ldap_id`` this request read: the unique index
+    only stops two requests writing the *same* id, so two entries sharing a
+    ``mail`` could otherwise each pass the checks above on an unlinked account
+    and the second UPDATE would silently take the account the first one linked.
+    """
+    expected = user.ldap_id
+    values: dict[str, str] = {"ldap_id": ldap_id}
     if full_name and not user.full_name:
-        user.full_name = full_name
-    session.add(user)
+        values["full_name"] = full_name
     try:
+        result = session.execute(
+            update(User)
+            .where(User.id == user.id, User.ldap_id.is_not_distinct_from(expected))  # type: ignore[union-attr]
+            .values(**values)
+        )
         session.commit()
     except IntegrityError:
         # Two first sign-ins of the same entry raced on the unique ldap_id.
         session.rollback()
+        return get_user_by_ldap_id(session=session, ldap_id=ldap_id)
+    if result.rowcount == 0:  # type: ignore[attr-defined]
+        # The row changed since it was read: another entry linked it first. It
+        # is still ours only if that other request was this same entry.
         return get_user_by_ldap_id(session=session, ldap_id=ldap_id)
     session.refresh(user)
     return user
