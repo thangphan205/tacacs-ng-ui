@@ -403,6 +403,59 @@ def test_required_group_dn_must_match_exactly(monkeypatch: pytest.MonkeyPatch) -
     assert allowed.ok is True
 
 
+def test_required_group_dn_search_covers_only_that_entry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A DN gate searches the group entry itself, never the groups below it."""
+    from ldap3 import BASE, SUBTREE
+
+    scopes: list[tuple[str, Any]] = []
+
+    def fake_open(
+        target: LdapServerTarget,
+        cfg: LdapEffectiveConfig,
+        bind_dn: str | None,
+        bind_password: str | None = None,
+    ) -> Any:
+        _ = target, bind_password
+        conn = MagicMock()
+        if bind_dn != cfg.bind_dn:
+            return conn
+
+        def fake_search(**kwargs: Any) -> bool:
+            if "objectClass=inetOrgPerson" in kwargs["search_filter"]:
+                conn.entries = [_alice()]
+            else:
+                scopes.append((kwargs["search_base"], kwargs["search_scope"]))
+                none: list[_FakeEntry] = []
+                conn.entries = none
+            return True
+
+        conn.search.side_effect = fake_search
+        return conn
+
+    monkeypatch.setattr("app.core.ldap_auth._open_server_connection", fake_open)
+    required = "ou=netadmins,dc=example,dc=com"
+    outcome = authenticate_ldap_user(
+        username="alice",
+        password="pw",
+        raw_config={**_BASE_CFG, "required_group": required},
+        secret="s",
+    )
+    assert outcome.reason == "group_denied"
+    assert scopes == [(required, BASE)]
+
+    # A bare group name still searches below the Group Base DN.
+    scopes.clear()
+    authenticate_ldap_user(
+        username="alice",
+        password="pw",
+        raw_config={**_BASE_CFG, "required_group": "netadmins"},
+        secret="s",
+    )
+    assert scopes == [("dc=example,dc=com", SUBTREE)]
+
+
 def test_search_error_is_misconfigured_not_a_crash(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -686,6 +686,35 @@ def test_saving_new_servers_needs_the_bind_password_again(
     assert r.status_code == 200, r.text
 
 
+def test_an_empty_secret_keeps_the_stored_bind_password(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
+    """``"secret": ""`` means "unchanged", like an omitted one -- never "set it
+    to empty", which would break every sign-in and pass the move guard."""
+    _enable_ldap(db)
+    row = auth_providers_crud.get_provider_config(session=db, provider="ldap")
+    assert row is not None
+    stored = row.encrypted_secret
+
+    r = client.put(
+        ADMIN_LDAP_URL,
+        headers=superuser_token_headers,
+        json={"config": {**LDAP_CONFIG, "required_group": "netops"}, "secret": ""},
+    )
+    assert r.status_code == 200, r.text
+    db.refresh(row)
+    assert row.encrypted_secret == stored
+
+    # Nor does it count as the retyped password a new destination needs.
+    moved = {**LDAP_CONFIG, "hosts": "ldaps://attacker.example.net:636"}
+    r = client.put(
+        ADMIN_LDAP_URL,
+        headers=superuser_token_headers,
+        json={"config": moved, "secret": ""},
+    )
+    assert r.status_code == 400, r.text
+
+
 def test_failover_is_audited_once_per_window(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

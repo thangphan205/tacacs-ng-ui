@@ -1438,6 +1438,15 @@ class AuthProviderConfigUpdate(SQLModel):
     config: dict | None = None  # type: ignore[type-arg]
     secret: str | None = None
 
+    @field_validator("secret")
+    @classmethod
+    def _empty_secret_means_unchanged(cls, value: str | None) -> str | None:
+        # The UI omits the secret to keep the stored one; an empty string is
+        # the same intent. Storing it would silently replace a working bind
+        # password / client secret with "" (the "secret required" guard and
+        # the audit's "Secret changed" both read "" as not provided).
+        return value or None
+
 
 class LdapServerDiagResult(SQLModel):
     server: str

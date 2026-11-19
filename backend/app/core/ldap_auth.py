@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urlparse
 
-from ldap3 import NONE, SUBTREE, Connection, Server, Tls
+from ldap3 import BASE, NONE, SUBTREE, Connection, Server, Tls
 from ldap3.core.exceptions import (
     LDAPBindError,
     LDAPBusyResult,
@@ -750,19 +750,25 @@ def _check_required_group(
     )
 
     if required_is_dn:
-        # Search starting directly at the required group DN
+        # Only the group entry itself (BASE scope), matching the exact-DN
+        # memberOf check above. A SUBTREE search here would accept membership
+        # of any group below the DN -- an OU entered as Required Group, or a
+        # group with child entries, would let in members of every group under
+        # it. AD's in-chain matching rule still resolves nesting on the entry.
         search_base = required
         search_filter = membership_or
+        search_scope = BASE
     else:
         search_base = cfg.group_base_dn or cfg.base_dn
         group_clause = _fill_placeholder(cfg.group_search_filter, "group", required_cn)
         search_filter = f"(&{group_clause}{membership_or})"
+        search_scope = SUBTREE
 
     try:
         conn.search(
             search_base=search_base,
             search_filter=search_filter,
-            search_scope=SUBTREE,
+            search_scope=search_scope,
             attributes=["cn"],
             size_limit=1,
         )
