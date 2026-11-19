@@ -240,9 +240,10 @@ class Settings(BaseSettings):
     # directory user, out by guessing at the name from elsewhere.
     # PROXY_HOPS: proxies that append to X-Forwarded-For in front of the app
     # (nginx + Traefik = 2). The client address is the entry that many from the
-    # right; the leftmost entries are caller-supplied and ignored. A request with
-    # fewer entries (straight to the backend port) shares one throttle bucket.
-    # 0 trusts uvicorn's own client address instead.
+    # right; the leftmost entries are caller-supplied and ignored. A shorter chain
+    # (nginx only, Vite dev, CI) falls back to the first entry like every other
+    # audit row, which a caller can forge: match this to the real chain (3 behind
+    # a CDN) and keep the backend port unexposed. 0 always uses that fallback.
     LOGIN_THROTTLE_WINDOW_MINUTES: int = 15
     LOGIN_THROTTLE_MAX_FAILURES_PER_USER: int = 10
     LOGIN_THROTTLE_MAX_FAILURES_PER_IP: int = 50

@@ -2,7 +2,6 @@
 
 import uuid
 from collections.abc import Generator
-from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -1077,31 +1076,26 @@ def test_failed_sign_ins_from_one_address_are_throttled_on_both_endpoints(
     assert r.status_code == 429
 
 
-def test_rotating_a_short_forwarded_chain_does_not_dodge_the_throttle(
-    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+def test_short_forwarded_chain_keeps_sign_in_working_and_audit_consistent(
+    client: TestClient, db: Session
 ) -> None:
-    """Straight to the backend port the chain is shorter than the proxy hops,
-    so every entry is caller-written: such requests share one bucket."""
-    _enable_ldap(db)
-    from app.api.routes.login import _DIRECT
-
-    before = audit_logs_crud.count_recent_failed_logins(
-        session=db, within=timedelta(minutes=15), ip_address=_DIRECT
-    )
-    monkeypatch.setattr(settings, "LOGIN_THROTTLE_MAX_FAILURES_PER_IP", before + 3)
-    for i in range(3):
-        r = client.post(
-            LOGIN_URL,
-            data={"username": f"nobody{i}@example.com", "password": "x" * 12},
-            headers={"X-Forwarded-For": f"198.51.100.{i + 1}"},
-        )
-        assert r.status_code == 400
+    """nginx-only, Vite dev and CI send fewer entries than the hop count. They
+    must not share a bucket or lose their address: it falls back to the first
+    entry, as in every other audit row."""
+    ip = f"203.0.113.{uuid.uuid4().int % 250 + 1}"
+    name = f"short-{uuid.uuid4().hex[:8]}@example.com"
     r = client.post(
         LOGIN_URL,
-        data={"username": "nobody9@example.com", "password": "x" * 12},
-        headers={"X-Forwarded-For": "192.0.2.77"},
+        data={"username": name, "password": "x" * 12},
+        headers={"X-Forwarded-For": ip},
     )
-    assert r.status_code == 429
+    assert r.status_code == 400
+    row = db.exec(
+        select(AuditLog).where(
+            AuditLog.action == "LOGIN_FAILED", AuditLog.entity_id == name
+        )
+    ).first()
+    assert row is not None and row.ip_address == ip
 
 
 def test_overlong_user_agent_is_audited_not_a_server_error(
@@ -1216,6 +1210,37 @@ def test_directory_outage_is_not_counted_as_failed_logins(
         )
     ).all()
     assert len(errors) == 7
+
+
+def test_failover_audit_row_normalises_and_bounds_the_username(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+
+    def partial(**_kwargs: Any) -> LdapAuthOutcome:
+        return LdapAuthOutcome(
+            ok=False,
+            reason="invalid_credentials",
+            message="Invalid password",
+            server_used="ldaps://b",
+            failed_servers=[("ldaps://a", "timeout")],
+        )
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", partial)
+    monkeypatch.setattr(audit_logs_crud, "recent_audit_log_exists", lambda **_k: False)
+    r = client.post(
+        LDAP_LOGIN_URL,
+        data={"username": "  Mixed" + "X" * 400, "password": "p"},
+        headers={"X-Forwarded-For": "203.0.113.40, 172.18.0.2"},
+    )
+    assert r.status_code == 400  # not a 500 from the audit insert
+    row = db.exec(
+        select(AuditLog)
+        .where(AuditLog.action == "LDAP_FAILOVER")
+        .order_by(AuditLog.created_at.desc())  # type: ignore[attr-defined]
+    ).first()
+    assert row is not None
+    assert row.user_email == ("mixed" + "x" * 400)[:255]
 
 
 def test_overlong_username_is_audited_not_a_server_error(

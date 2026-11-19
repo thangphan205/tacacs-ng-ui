@@ -9,6 +9,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.api.deps import (
     CurrentUser,
     SessionDep,
+    get_client_ip,
     get_current_active_superuser,
 )
 from app.core import security
@@ -57,7 +58,6 @@ _LDAP_ACCOUNT_DETAIL = (
 _USERNAME_MAX = 255  # AuditLog.user_email / entity_id column width
 _IP_MAX = 45  # AuditLog.ip_address column width
 _UA_MAX = 512  # AuditLog.user_agent column width
-_DIRECT = "direct"  # throttle bucket for requests that skipped the proxy chain
 
 
 def _norm_username(username: str) -> str:
@@ -79,27 +79,27 @@ def _login_client_ip(request: Request) -> str | None:
 
     ``get_client_ip`` trusts the *first* X-Forwarded-For entry, which the
     caller writes, so rotating it would dodge every limit. Proxies append on
-    the right: take the entry the ``LOGIN_THROTTLE_PROXY_HOPS``-th proxy from
-    the end added. Fewer entries than hops means the request did not come
-    through the full proxy chain (direct to the backend port). Then no address
-    is trustworthy -- uvicorn rewrites ``request.client`` from the same
-    caller-written header -- so such requests share one bucket instead of
-    letting each pick its own. ``LOGIN_THROTTLE_PROXY_HOPS=0`` opts out and
-    uses the address uvicorn derived.
+    the right: when the chain is as long as ``LOGIN_THROTTLE_PROXY_HOPS``,
+    take the entry the last proxy that many hops out added -- the real client.
+
+    A shorter chain (nginx only, the Vite dev proxy, CI, a direct call) falls
+    back to ``get_client_ip`` so sign-in keeps working and the audit rows agree
+    with every other one. There the leftmost entry is caller-written, so the
+    throttle is only as strong as the proxy chain: set the hop count to match
+    it, and do not expose the backend port to clients. ``0`` always uses
+    ``get_client_ip``.
     """
     hops = settings.LOGIN_THROTTLE_PROXY_HOPS
-    if hops <= 0:
-        peer = request.client.host if request.client else None
-        return peer[:_IP_MAX] if peer else None
     forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
+    if hops > 0 and forwarded:
         parts = [p.strip() for p in forwarded.split(",")]
         if len(parts) >= hops:
             try:
                 return str(ipaddress.ip_address(parts[-hops]))[:_IP_MAX]
             except ValueError:
                 pass
-    return _DIRECT
+    ip = get_client_ip(request)
+    return ip[:_IP_MAX] if ip else None
 
 
 def _audit_login_failure(
@@ -190,7 +190,7 @@ def _audit_ldap_failover(
             user_agent=_ua(user_agent),
         ),
         user_id=None,
-        user_email=username,
+        user_email=_norm_username(username),
         ip_address=ip,
     )
 
