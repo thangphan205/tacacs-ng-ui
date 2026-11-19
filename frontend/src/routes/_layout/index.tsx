@@ -1,4 +1,3 @@
-import { Chart, useChart } from "@chakra-ui/charts"
 import {
   Badge,
   Box,
@@ -8,33 +7,38 @@ import {
   Grid,
   GridItem,
   Heading,
+  HStack,
   IconButton,
   Input,
   Skeleton,
   Spinner,
-  Stat,
+  Stack,
   Table,
   Text,
 } from "@chakra-ui/react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
+import type { IconType } from "react-icons"
 import {
   FiActivity,
+  FiArrowRight,
   FiClock,
   FiFileText,
   FiFolder,
   FiGlobe,
   FiInbox,
+  FiList,
   FiRefreshCw,
   FiServer,
   FiShield,
   FiShieldOff,
   FiSliders,
+  FiTerminal,
   FiTrendingUp,
+  FiUserCheck,
   FiUsers,
 } from "react-icons/fi"
-import { LabelList, Legend, Pie, PieChart, Sector, Tooltip } from "recharts"
 import type { AuditLogPublic, TacacsLogEvent } from "@/client"
 import {
   AaaStatisticsService,
@@ -57,21 +61,6 @@ export const Route = createFileRoute("/_layout/")({
 })
 
 // ─── constants ────────────────────────────────────────────────────────────────
-
-const CHART_COLORS = [
-  "blue.500",
-  "green.500",
-  "pink.500",
-  "orange.500",
-  "red.500",
-]
-const FAIL_COLORS = [
-  "red.500",
-  "orange.500",
-  "pink.500",
-  "yellow.500",
-  "purple.500",
-]
 
 const LOG_TYPE_COLOR: Record<string, string> = {
   authentication: "blue",
@@ -128,10 +117,9 @@ function getRangeDate(
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-interface PieData {
+interface RankedItem {
   name: string
   value: number
-  color: string
 }
 
 function buildRangeTrendData(stats: any) {
@@ -159,51 +147,46 @@ function buildRangeTrendData(stats: any) {
 
 // ─── sub-components ───────────────────────────────────────────────────────────
 
-interface StatCardProps {
+interface KpiCardProps {
   label: string
   value: number | undefined
-  highlight?: "danger" | "success" | "none"
+  subtitle: string
+  icon: IconType
+  colorPalette: "green" | "red" | "purple" | "blue" | "teal"
+  badgeText?: string
 }
 
-function StatCard({ label, value, highlight = "none" }: StatCardProps) {
-  let Icon = FiActivity
-  let colorPalette = "teal"
-  let borderLeftColor = "teal.500"
-
-  if (highlight === "success") {
-    Icon = FiShield
-    colorPalette = "green"
-    borderLeftColor = "green.500"
-  } else if (highlight === "danger") {
-    Icon = FiShieldOff
-    colorPalette = "red"
-    borderLeftColor = "red.500"
-  } else if (label.toLowerCase().includes("source")) {
-    Icon = FiGlobe
-    colorPalette = "purple"
-    borderLeftColor = "purple.500"
-  } else if (label.toLowerCase().includes("nas")) {
-    Icon = FiServer
-    colorPalette = "blue"
-    borderLeftColor = "blue.500"
-  }
-
+function KpiCard({
+  label,
+  value,
+  subtitle,
+  icon: Icon,
+  colorPalette,
+  badgeText,
+}: KpiCardProps) {
+  const numValue = value ?? 0
   return (
     <Box
-      p={5}
+      p={4}
       bg="bg.panel"
       borderWidth="1px"
-      borderLeftWidth="4px"
-      borderLeftColor={borderLeftColor}
+      borderColor="border.subtle"
       borderRadius="xl"
-      shadow="sm"
-      transition="all 0.2s"
-      _hover={{ shadow: "md", borderColor: borderLeftColor }}
+      shadow="xs"
+      transition="all 0.18s ease"
+      _hover={{ shadow: "sm", borderColor: `${colorPalette}.emphasized` }}
       h="100%"
     >
-      <Flex align="center" justify="space-between">
-        <Stat.Root>
-          <Stat.Label
+      <Flex align="center" justify="space-between" mb={2.5}>
+        <HStack gap={2}>
+          <Box
+            w={2}
+            h={2}
+            borderRadius="full"
+            bg={`${colorPalette}.500`}
+            flexShrink={0}
+          />
+          <Text
             fontSize="xs"
             fontWeight="semibold"
             textTransform="uppercase"
@@ -211,101 +194,192 @@ function StatCard({ label, value, highlight = "none" }: StatCardProps) {
             color="fg.muted"
           >
             {label}
-          </Stat.Label>
-          <Stat.ValueText
-            fontSize="4xl"
-            fontWeight="extrabold"
-            mt={2}
-            fontFamily="mono"
-          >
-            {value ?? 0}
-          </Stat.ValueText>
-        </Stat.Root>
+          </Text>
+        </HStack>
         <Box
-          p={3}
-          bg={`${colorPalette}.muted`}
+          p={2}
+          bg={`${colorPalette}.subtle`}
           color={`${colorPalette}.fg`}
           borderRadius="lg"
-          shadow="xs"
         >
-          <Icon fontSize="22px" />
+          <Icon fontSize="16px" />
         </Box>
       </Flex>
+
+      <Flex align="baseline" justify="space-between" gap={2}>
+        <Text
+          fontSize="3xl"
+          fontWeight="bold"
+          fontFamily="mono"
+          lineHeight="1.1"
+          letterSpacing="tight"
+        >
+          {numValue.toLocaleString()}
+        </Text>
+        {badgeText && (
+          <Badge
+            colorPalette={colorPalette}
+            variant="subtle"
+            size="sm"
+            fontWeight="semibold"
+          >
+            {badgeText}
+          </Badge>
+        )}
+      </Flex>
+
+      <Text fontSize="xs" color="fg.subtle" mt={1.5}>
+        {subtitle}
+      </Text>
     </Box>
   )
 }
 
-function StatPie({ title, data }: { title: string; data: PieData[] }) {
-  const chart = useChart({ data: data })
+interface TopRankedCardProps {
+  title: string
+  icon: IconType
+  data: RankedItem[]
+  colorPalette: "teal" | "green" | "purple" | "blue" | "red"
+  mono?: boolean
+}
+
+function TopRankedCard({
+  title,
+  icon: Icon,
+  data,
+  colorPalette,
+  mono = false,
+}: TopRankedCardProps) {
+  const total = data.reduce((sum, item) => sum + item.value, 0)
+  const maxVal = data.reduce((max, item) => Math.max(max, item.value), 0)
 
   return (
     <Box
-      p={5}
+      p={4}
       bg="bg.panel"
       borderWidth="1px"
+      borderColor="border.subtle"
       borderRadius="xl"
-      shadow="sm"
+      shadow="xs"
       h="100%"
+      display="flex"
+      flexDirection="column"
     >
-      <Heading size="sm" mb={4} fontWeight="bold">
-        {title}
-      </Heading>
+      <Flex align="center" justify="space-between" mb={3} gap={2}>
+        <HStack gap={2} minW={0}>
+          <Box
+            p={1.5}
+            bg={`${colorPalette}.subtle`}
+            color={`${colorPalette}.fg`}
+            borderRadius="md"
+            flexShrink={0}
+          >
+            <Icon fontSize="14px" />
+          </Box>
+          <Heading size="xs" fontWeight="semibold" truncate>
+            {title}
+          </Heading>
+        </HStack>
+        {total > 0 && (
+          <Badge
+            size="sm"
+            variant="subtle"
+            colorPalette={colorPalette}
+            fontFamily="mono"
+            flexShrink={0}
+          >
+            {total.toLocaleString()}
+          </Badge>
+        )}
+      </Flex>
+
       {data.length === 0 ? (
         <Flex
           direction="column"
           align="center"
           justify="center"
-          h="180px"
-          gap={2}
+          flex="1"
+          minH="132px"
+          gap={1.5}
+          bg="bg.subtle"
+          borderRadius="lg"
+          px={3}
         >
-          <Box p={3} bg="bg.muted" borderRadius="full" color="fg.subtle">
-            <FiInbox fontSize="20px" />
+          <Box color="fg.subtle">
+            <FiInbox fontSize="18px" />
           </Box>
-          <Text color="fg.muted" fontSize="sm" fontWeight="semibold">
+          <Text color="fg.muted" fontSize="xs" fontWeight="medium">
             No activity
           </Text>
-          <Text color="fg.subtle" fontSize="xs" textAlign="center">
-            No records for selected period
+          <Text color="fg.subtle" fontSize="2xs" textAlign="center">
+            No records in selected period
           </Text>
         </Flex>
       ) : (
-        <Chart.Root boxSize="200px" mx="auto" chart={chart}>
-          <PieChart responsive>
-            <Tooltip
-              cursor={false}
-              animationDuration={100}
-              content={<Chart.Tooltip hideLabel />}
-            />
-            <Legend content={<Chart.Legend />} />
-            <Pie
-              isAnimationActive={false}
-              data={chart.data}
-              dataKey={chart.key("value")}
-              shape={(props) => (
-                <Sector {...props} fill={chart.color(props.payload!.color)} />
-              )}
-            >
-              <LabelList position="inside" fill="white" stroke="none" />
-            </Pie>
-          </PieChart>
-        </Chart.Root>
+        <Stack gap={2.5} flex="1" justify="flex-start">
+          {data.slice(0, 5).map((item, idx) => {
+            const pctOfMax = maxVal > 0 ? (item.value / maxVal) * 100 : 0
+            const pctOfTotal =
+              total > 0 ? Math.round((item.value / total) * 100) : 0
+            return (
+              <Box key={`${item.name}-${idx}`}>
+                <Flex align="center" justify="space-between" gap={2} mb={1}>
+                  <HStack gap={2} minW={0}>
+                    <Text
+                      fontSize="2xs"
+                      fontFamily="mono"
+                      color="fg.subtle"
+                      w="14px"
+                      flexShrink={0}
+                    >
+                      {idx + 1}.
+                    </Text>
+                    <Text
+                      fontSize="xs"
+                      fontWeight="medium"
+                      fontFamily={mono ? "mono" : undefined}
+                      truncate
+                      title={item.name}
+                    >
+                      {item.name || "—"}
+                    </Text>
+                  </HStack>
+                  <HStack gap={1.5} flexShrink={0}>
+                    <Text fontSize="xs" fontWeight="semibold" fontFamily="mono">
+                      {item.value.toLocaleString()}
+                    </Text>
+                    <Text
+                      fontSize="2xs"
+                      color="fg.subtle"
+                      fontFamily="mono"
+                      w="28px"
+                      textAlign="right"
+                    >
+                      {pctOfTotal}%
+                    </Text>
+                  </HStack>
+                </Flex>
+                <Box
+                  h="5px"
+                  w="100%"
+                  bg="bg.muted"
+                  borderRadius="full"
+                  overflow="hidden"
+                >
+                  <Box
+                    h="100%"
+                    w={`${Math.max(pctOfMax, 4)}%`}
+                    bg={`${colorPalette}.500`}
+                    borderRadius="full"
+                    transition="width 0.3s ease"
+                  />
+                </Box>
+              </Box>
+            )
+          })}
+        </Stack>
       )}
     </Box>
-  )
-}
-
-function SectionHeading({
-  children,
-  action,
-}: {
-  children: React.ReactNode
-  action?: React.ReactNode
-}) {
-  return (
-    <Flex align="center" justify="space-between" mb={3}>
-      <Heading size="md">{children}</Heading>
-      {action}
-    </Flex>
   )
 }
 
@@ -325,43 +399,59 @@ function FilterBar({
   onCustomEnd: (s: string) => void
 }) {
   return (
-    <Flex gap={3} flexWrap="wrap" align="center">
-      {/* Mode buttons — always visible */}
-      <Flex gap={2} align="center" flexShrink={0}>
-        {(["7d", "30d", "custom"] as FilterMode[]).map((m) => (
-          <Button
-            key={m}
-            size="sm"
-            variant={mode === m ? "solid" : "outline"}
-            colorPalette={mode === m ? "blue" : "gray"}
-            onClick={() => onMode(m)}
-          >
-            {FILTER_LABELS[m]}
-          </Button>
-        ))}
+    <Flex gap={2.5} flexWrap="wrap" align="center">
+      {/* Segmented mode selector — teal consistent with brand */}
+      <Flex
+        p={0.5}
+        bg="bg.muted"
+        borderRadius="lg"
+        borderWidth="1px"
+        borderColor="border.subtle"
+        gap={0.5}
+        flexShrink={0}
+      >
+        {(["7d", "30d", "custom"] as FilterMode[]).map((m) => {
+          const active = mode === m
+          return (
+            <Button
+              key={m}
+              size="xs"
+              variant={active ? "solid" : "ghost"}
+              colorPalette={active ? "teal" : "gray"}
+              borderRadius="md"
+              px={3}
+              fontWeight={active ? "semibold" : "medium"}
+              onClick={() => onMode(m)}
+            >
+              {FILTER_LABELS[m]}
+            </Button>
+          )
+        })}
       </Flex>
 
-      {/* Date pickers — shown only in custom mode, always on one line */}
+      {/* Date pickers — shown only in custom mode */}
       {mode === "custom" && (
         <Flex gap={2} align="center" flexShrink={0}>
           <Input
-            size="sm"
+            size="xs"
             type="date"
             value={customStart}
             onChange={(e) => onCustomStart(e.target.value)}
-            maxW="160px"
-            minW="130px"
+            maxW="148px"
+            minW="124px"
+            bg="bg.panel"
           />
-          <Text fontSize="sm" color="fg.muted" whiteSpace="nowrap">
+          <Text fontSize="xs" color="fg.muted" whiteSpace="nowrap">
             to
           </Text>
           <Input
-            size="sm"
+            size="xs"
             type="date"
             value={customEnd}
             onChange={(e) => onCustomEnd(e.target.value)}
-            maxW="160px"
-            minW="130px"
+            maxW="148px"
+            minW="124px"
+            bg="bg.panel"
           />
         </Flex>
       )}
@@ -369,7 +459,7 @@ function FilterBar({
   )
 }
 
-// ─── Today's TACACS Log Summary ───────────────────────────────────────────────
+// ─── Today's AAA Summary (Bento Left) ─────────────────────────────────────────
 
 function TodayLogSummary() {
   const { data, isLoading } = useQuery({
@@ -378,109 +468,204 @@ function TodayLogSummary() {
     refetchInterval: 60_000,
   })
 
-  const cards = [
+  const categories = [
     {
       label: "Authentication",
-      badges: [
-        {
-          label: `✓ ${data?.authentication?.success ?? 0} success`,
-          color: "green",
-        },
-        {
-          label: `✗ ${data?.authentication?.failed ?? 0} failed`,
-          color: "red",
-        },
-      ],
+      primaryLabel: "Success",
+      primaryValue: data?.authentication?.success ?? 0,
+      primaryColor: "green",
+      secondaryLabel: "Failed",
+      secondaryValue: data?.authentication?.failed ?? 0,
+      secondaryColor: "red",
     },
     {
       label: "Authorization",
-      badges: [
-        {
-          label: `✓ ${data?.authorization?.permit ?? 0} permit`,
-          color: "teal",
-        },
-        { label: `✗ ${data?.authorization?.deny ?? 0} deny`, color: "orange" },
-      ],
+      primaryLabel: "Permit",
+      primaryValue: data?.authorization?.permit ?? 0,
+      primaryColor: "teal",
+      secondaryLabel: "Deny",
+      secondaryValue: data?.authorization?.deny ?? 0,
+      secondaryColor: "orange",
     },
     {
       label: "Accounting",
-      badges: [
-        { label: `▶ ${data?.accounting?.start ?? 0} start`, color: "blue" },
-        { label: `■ ${data?.accounting?.stop ?? 0} stop`, color: "gray" },
-      ],
+      primaryLabel: "Start",
+      primaryValue: data?.accounting?.start ?? 0,
+      primaryColor: "blue",
+      secondaryLabel: "Stop",
+      secondaryValue: data?.accounting?.stop ?? 0,
+      secondaryColor: "gray",
     },
   ]
 
   return (
-    <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
-      <SectionHeading
-        action={
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          <Link to={"/tacacs_logs" as any}>
-            <Text
-              fontSize="sm"
-              color="teal.500"
-              fontWeight="semibold"
-              _hover={{ color: "teal.600", textDecoration: "underline" }}
-            >
-              View logs →
-            </Text>
-          </Link>
-        }
-      >
-        Today's TACACS Log Summary
-      </SectionHeading>
-      <Grid templateColumns={{ base: "1fr", sm: "repeat(3, 1fr)" }} gap={4}>
-        {cards.map(({ label, badges }) => (
+    <Box
+      p={4}
+      bg="bg.panel"
+      borderWidth="1px"
+      borderColor="border.subtle"
+      borderRadius="xl"
+      shadow="xs"
+      h="100%"
+      display="flex"
+      flexDirection="column"
+    >
+      <Flex align="center" justify="space-between" mb={3.5}>
+        <HStack gap={2}>
           <Box
-            key={label}
-            p={5}
-            bg="bg.panel"
-            borderWidth="1px"
-            borderRadius="xl"
-            shadow="sm"
+            p={1.5}
+            bg="teal.subtle"
+            color="teal.fg"
+            borderRadius="md"
+            flexShrink={0}
           >
-            <Text
-              fontWeight="bold"
-              mb={3}
-              fontSize="xs"
-              textTransform="uppercase"
-              letterSpacing="wider"
-              color="fg.muted"
-            >
-              {label}
-            </Text>
-            {isLoading ? (
-              <Skeleton height="32px" />
-            ) : (
-              <Flex gap={2.5} flexWrap="wrap">
-                {badges.map((b) => (
-                  <Badge
-                    key={b.label}
-                    colorPalette={b.color}
-                    size="md"
-                    variant="subtle"
-                    fontWeight="bold"
-                  >
-                    {b.label}
-                  </Badge>
-                ))}
-              </Flex>
-            )}
+            <FiActivity fontSize="14px" />
           </Box>
-        ))}
+          <Box>
+            <Heading size="xs" fontWeight="semibold">
+              Today&apos;s AAA Breakdown
+            </Heading>
+            <Text fontSize="2xs" color="fg.subtle">
+              Live event distribution across AAA pipelines
+            </Text>
+          </Box>
+        </HStack>
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        <Link to={"/tacacs_logs" as any}>
+          <HStack
+            gap={1}
+            fontSize="xs"
+            color="teal.fg"
+            fontWeight="semibold"
+            _hover={{ textDecoration: "underline" }}
+          >
+            <Text>View logs</Text>
+            <FiArrowRight fontSize="12px" />
+          </HStack>
+        </Link>
+      </Flex>
+
+      <Grid
+        templateColumns={{ base: "1fr", sm: "repeat(3, 1fr)" }}
+        gap={3}
+        flex="1"
+      >
+        {categories.map((cat) => {
+          const total = cat.primaryValue + cat.secondaryValue
+          const primaryPct = total > 0 ? (cat.primaryValue / total) * 100 : 0
+          const secondaryPct =
+            total > 0 ? (cat.secondaryValue / total) * 100 : 0
+
+          return (
+            <Flex
+              key={cat.label}
+              direction="column"
+              justify="space-between"
+              p={3.5}
+              bg="bg.subtle"
+              borderRadius="lg"
+              borderWidth="1px"
+              borderColor="border.subtle"
+            >
+              <Flex align="center" justify="space-between" mb={2.5}>
+                <Text
+                  fontSize="2xs"
+                  fontWeight="bold"
+                  textTransform="uppercase"
+                  letterSpacing="wider"
+                  color="fg.muted"
+                >
+                  {cat.label}
+                </Text>
+                <Text fontSize="xs" fontFamily="mono" color="fg.subtle">
+                  {total.toLocaleString()}
+                </Text>
+              </Flex>
+
+              {isLoading ? (
+                <Skeleton height="40px" />
+              ) : (
+                <>
+                  <Stack gap={1.5} mb={3}>
+                    <Flex align="center" justify="space-between">
+                      <HStack gap={1.5}>
+                        <Box
+                          w={2}
+                          h={2}
+                          borderRadius="full"
+                          bg={`${cat.primaryColor}.500`}
+                        />
+                        <Text fontSize="xs" color="fg.muted">
+                          {cat.primaryLabel}
+                        </Text>
+                      </HStack>
+                      <Text fontSize="sm" fontWeight="bold" fontFamily="mono">
+                        {cat.primaryValue.toLocaleString()}
+                      </Text>
+                    </Flex>
+                    <Flex align="center" justify="space-between">
+                      <HStack gap={1.5}>
+                        <Box
+                          w={2}
+                          h={2}
+                          borderRadius="full"
+                          bg={`${cat.secondaryColor}.500`}
+                        />
+                        <Text fontSize="xs" color="fg.muted">
+                          {cat.secondaryLabel}
+                        </Text>
+                      </HStack>
+                      <Text fontSize="sm" fontWeight="bold" fontFamily="mono">
+                        {cat.secondaryValue.toLocaleString()}
+                      </Text>
+                    </Flex>
+                  </Stack>
+
+                  {/* Proportional split bar */}
+                  <Flex
+                    h="5px"
+                    w="100%"
+                    bg="bg.muted"
+                    borderRadius="full"
+                    overflow="hidden"
+                    gap="1px"
+                  >
+                    {total > 0 && (
+                      <>
+                        {primaryPct > 0 && (
+                          <Box
+                            h="100%"
+                            w={`${primaryPct}%`}
+                            bg={`${cat.primaryColor}.500`}
+                          />
+                        )}
+                        {secondaryPct > 0 && (
+                          <Box
+                            h="100%"
+                            w={`${secondaryPct}%`}
+                            bg={`${cat.secondaryColor}.500`}
+                          />
+                        )}
+                      </>
+                    )}
+                  </Flex>
+                </>
+              )}
+            </Flex>
+          )
+        })}
       </Grid>
-    </GridItem>
+    </Box>
   )
 }
 
-// ─── Config Overview ──────────────────────────────────────────────────────────
+// ─── Config Inventory (Bento Right) ───────────────────────────────────────────
 
 interface ConfigItem {
   label: string
   to: string
   queryKey: string
-  icon: any
+  icon: IconType
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fn: () => Promise<any>
 }
@@ -523,79 +708,121 @@ const CONFIG_ITEMS: ConfigItem[] = [
   },
 ]
 
-function ConfigCountCard({ label, to, queryKey, fn, icon: Icon }: ConfigItem) {
+function ConfigInventoryTile({
+  label,
+  to,
+  queryKey,
+  fn,
+  icon: Icon,
+}: ConfigItem) {
   const { data, isLoading } = useQuery({ queryKey: [queryKey], queryFn: fn })
   return (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     <Link to={to as any} style={{ display: "block", height: "100%" }}>
-      <Box
-        p={5}
-        bg="bg.panel"
+      <Flex
+        align="center"
+        justify="space-between"
+        px={3}
+        py={2.5}
+        bg="bg.subtle"
         borderWidth="1px"
-        borderRadius="xl"
+        borderColor="border.subtle"
+        borderRadius="lg"
         h="100%"
         cursor="pointer"
-        transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+        transition="all 0.15s ease"
         _hover={{
           borderColor: "teal.500",
-          shadow: "md",
-          transform: "translateY(-4px)",
+          bg: "teal.subtle",
         }}
       >
-        <Flex justify="space-between" align="flex-start">
-          <Stat.Root>
-            <Stat.Label fontSize="sm" color="fg.muted" fontWeight="medium">
-              {label}
-            </Stat.Label>
-            {isLoading ? (
-              <Skeleton height="36px" mt={2} />
-            ) : (
-              <Stat.ValueText
-                fontSize="3xl"
-                fontWeight="extrabold"
-                mt={1}
-                fontFamily="mono"
-              >
-                {data?.count ?? 0}
-              </Stat.ValueText>
-            )}
-          </Stat.Root>
-          <Box
-            p={2.5}
-            bg="bg.muted"
-            color="fg.muted"
-            borderRadius="lg"
-            transition="all 0.2s"
-          >
-            <Icon fontSize="18px" />
+        <HStack gap={2} minW={0}>
+          <Box color="fg.muted" flexShrink={0}>
+            <Icon fontSize="14px" />
           </Box>
-        </Flex>
-      </Box>
+          <Text fontSize="xs" fontWeight="medium" color="fg.muted" truncate>
+            {label}
+          </Text>
+        </HStack>
+        {isLoading ? (
+          <Skeleton height="18px" width="24px" />
+        ) : (
+          <Text fontSize="md" fontWeight="bold" fontFamily="mono">
+            {data?.count ?? 0}
+          </Text>
+        )}
+      </Flex>
     </Link>
   )
 }
 
 function ConfigOverview() {
   return (
-    <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
-      <SectionHeading>TACACS Config Overview</SectionHeading>
+    <Box
+      p={4}
+      bg="bg.panel"
+      borderWidth="1px"
+      borderColor="border.subtle"
+      borderRadius="xl"
+      shadow="xs"
+      h="100%"
+      display="flex"
+      flexDirection="column"
+    >
+      <Flex align="center" justify="space-between" mb={3.5}>
+        <HStack gap={2}>
+          <Box
+            p={1.5}
+            bg="teal.subtle"
+            color="teal.fg"
+            borderRadius="md"
+            flexShrink={0}
+          >
+            <FiSliders fontSize="14px" />
+          </Box>
+          <Box>
+            <Heading size="xs" fontWeight="semibold">
+              TACACS+ Inventory
+            </Heading>
+            <Text fontSize="2xs" color="fg.subtle">
+              Active configuration objects
+            </Text>
+          </Box>
+        </HStack>
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        <Link to={"/tacacs_configs" as any}>
+          <HStack
+            gap={1}
+            fontSize="xs"
+            color="teal.fg"
+            fontWeight="semibold"
+            _hover={{ textDecoration: "underline" }}
+          >
+            <Text>Configs</Text>
+            <FiArrowRight fontSize="12px" />
+          </HStack>
+        </Link>
+      </Flex>
+
       <Grid
-        templateColumns={{
-          base: "repeat(2, 1fr)",
-          sm: "repeat(3, 1fr)",
-          md: "repeat(5, 1fr)",
-        }}
-        gap={4}
+        templateColumns={{ base: "repeat(2, 1fr)", sm: "repeat(2, 1fr)" }}
+        gap={2.5}
+        flex="1"
       >
-        {CONFIG_ITEMS.map((item) => (
-          <ConfigCountCard key={item.label} {...item} />
+        {CONFIG_ITEMS.map((item, idx) => (
+          <GridItem
+            key={item.label}
+            colSpan={idx === CONFIG_ITEMS.length - 1 ? 2 : 1}
+          >
+            <ConfigInventoryTile {...item} />
+          </GridItem>
         ))}
       </Grid>
-    </GridItem>
+    </Box>
   )
 }
 
-// ─── Recent Activity ──────────────────────────────────────────────────────────
+// ─── Recent Audit Activity ────────────────────────────────────────────────────
 
 function RecentActivity() {
   const { data, isLoading } = useQuery({
@@ -606,57 +833,114 @@ function RecentActivity() {
   const logs = data?.data ?? []
 
   return (
-    <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
-      <SectionHeading
-        action={
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          <Link to={"/audit_logs" as any}>
-            <Text
-              fontSize="sm"
-              color="teal.500"
-              fontWeight="semibold"
-              _hover={{ color: "teal.600", textDecoration: "underline" }}
-            >
-              View all →
-            </Text>
-          </Link>
-        }
+    <Box
+      bg="bg.panel"
+      borderWidth="1px"
+      borderColor="border.subtle"
+      borderRadius="xl"
+      shadow="xs"
+      overflow="hidden"
+    >
+      <Flex
+        align="center"
+        justify="space-between"
+        px={4}
+        py={3}
+        borderBottomWidth="1px"
+        borderColor="border.subtle"
       >
-        Recent User Activity
-      </SectionHeading>
+        <HStack gap={2}>
+          <Box p={1.5} bg="teal.subtle" color="teal.fg" borderRadius="md">
+            <FiList fontSize="14px" />
+          </Box>
+          <Heading size="xs" fontWeight="semibold">
+            Recent User Activity
+          </Heading>
+          {!isLoading && (
+            <Badge
+              size="sm"
+              variant="subtle"
+              colorPalette="gray"
+              fontFamily="mono"
+            >
+              {logs.length}
+            </Badge>
+          )}
+        </HStack>
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        <Link to={"/audit_logs" as any}>
+          <HStack
+            gap={1}
+            fontSize="xs"
+            color="teal.fg"
+            fontWeight="semibold"
+            _hover={{ textDecoration: "underline" }}
+          >
+            <Text>View all</Text>
+            <FiArrowRight fontSize="12px" />
+          </HStack>
+        </Link>
+      </Flex>
+
       {isLoading ? (
-        <Flex justify="center" py={4}>
-          <Spinner size="sm" />
+        <Flex justify="center" py={8}>
+          <Spinner size="sm" color="teal.500" />
         </Flex>
       ) : logs.length === 0 ? (
-        <Text color="fg.muted" fontSize="sm">
-          No recent activity.
-        </Text>
+        <Flex align="center" justify="center" gap={2} py={6} color="fg.muted">
+          <FiInbox fontSize="16px" />
+          <Text fontSize="xs">No recent user activity recorded.</Text>
+        </Flex>
       ) : (
-        <Box
-          borderWidth="1px"
-          borderRadius="xl"
-          overflow="hidden"
-          bg="bg.panel"
-          shadow="sm"
-        >
+        <Box overflowX="auto">
           <Table.Root size="sm" variant="line">
-            <Table.Header bg="bg.muted">
+            <Table.Header bg="bg.subtle">
               <Table.Row>
-                <Table.ColumnHeader>Time</Table.ColumnHeader>
-                <Table.ColumnHeader>User</Table.ColumnHeader>
-                <Table.ColumnHeader>Action</Table.ColumnHeader>
-                <Table.ColumnHeader>Entity</Table.ColumnHeader>
-                <Table.ColumnHeader>Description</Table.ColumnHeader>
+                <Table.ColumnHeader
+                  fontSize="2xs"
+                  textTransform="uppercase"
+                  color="fg.muted"
+                >
+                  Time
+                </Table.ColumnHeader>
+                <Table.ColumnHeader
+                  fontSize="2xs"
+                  textTransform="uppercase"
+                  color="fg.muted"
+                >
+                  User
+                </Table.ColumnHeader>
+                <Table.ColumnHeader
+                  fontSize="2xs"
+                  textTransform="uppercase"
+                  color="fg.muted"
+                >
+                  Action
+                </Table.ColumnHeader>
+                <Table.ColumnHeader
+                  fontSize="2xs"
+                  textTransform="uppercase"
+                  color="fg.muted"
+                >
+                  Entity
+                </Table.ColumnHeader>
+                <Table.ColumnHeader
+                  fontSize="2xs"
+                  textTransform="uppercase"
+                  color="fg.muted"
+                >
+                  Description
+                </Table.ColumnHeader>
               </Table.Row>
             </Table.Header>
             <Table.Body>
               {logs.map((log: AuditLogPublic) => (
-                <Table.Row key={log.id} _hover={{ bg: "bg.muted/50" }}>
+                <Table.Row key={log.id} _hover={{ bg: "bg.subtle" }}>
                   <Table.Cell
                     whiteSpace="nowrap"
                     fontSize="xs"
                     color="fg.muted"
+                    fontFamily="mono"
                   >
                     {formatDateTime(log.created_at, {
                       hour12: false,
@@ -664,9 +948,10 @@ function RecentActivity() {
                   </Table.Cell>
                   <Table.Cell
                     fontSize="xs"
-                    maxW="32"
+                    maxW="40"
                     truncate
                     fontWeight="medium"
+                    title={log.user_email ?? undefined}
                   >
                     {log.user_email}
                   </Table.Cell>
@@ -679,11 +964,21 @@ function RecentActivity() {
                       {log.action}
                     </Badge>
                   </Table.Cell>
-                  <Table.Cell fontSize="xs" fontFamily="mono">
+                  <Table.Cell
+                    fontSize="xs"
+                    fontFamily="mono"
+                    whiteSpace="nowrap"
+                  >
                     {log.entity_type}
                     {log.entity_id ? ` #${log.entity_id.slice(0, 8)}` : ""}
                   </Table.Cell>
-                  <Table.Cell fontSize="xs" maxW="48" truncate color="fg.muted">
+                  <Table.Cell
+                    fontSize="xs"
+                    maxW="64"
+                    truncate
+                    color="fg.muted"
+                    title={log.description ?? undefined}
+                  >
                     {log.description ?? "—"}
                   </Table.Cell>
                 </Table.Row>
@@ -692,9 +987,11 @@ function RecentActivity() {
           </Table.Root>
         </Box>
       )}
-    </GridItem>
+    </Box>
   )
 }
+
+// ─── Last TACACS Logs ─────────────────────────────────────────────────────────
 
 function LastTacacsLogs() {
   const { today, daysAgo } = useLogDays()
@@ -712,59 +1009,135 @@ function LastTacacsLogs() {
   const logs = data?.data ?? []
 
   return (
-    <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
-      <SectionHeading
-        action={
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          <Link to={"/tacacs_logs" as any}>
-            <Text
-              fontSize="sm"
-              color="teal.500"
-              fontWeight="semibold"
-              _hover={{ color: "teal.600", textDecoration: "underline" }}
-            >
-              View all →
-            </Text>
-          </Link>
-        }
+    <Box
+      bg="bg.panel"
+      borderWidth="1px"
+      borderColor="border.subtle"
+      borderRadius="xl"
+      shadow="xs"
+      overflow="hidden"
+    >
+      <Flex
+        align="center"
+        justify="space-between"
+        px={4}
+        py={3}
+        borderBottomWidth="1px"
+        borderColor="border.subtle"
       >
-        Last TACACS Logs
-      </SectionHeading>
+        <HStack gap={2}>
+          <Box p={1.5} bg="teal.subtle" color="teal.fg" borderRadius="md">
+            <FiTerminal fontSize="14px" />
+          </Box>
+          <Heading size="xs" fontWeight="semibold">
+            Last TACACS Logs
+          </Heading>
+          {!isLoading && (
+            <Badge
+              size="sm"
+              variant="subtle"
+              colorPalette="gray"
+              fontFamily="mono"
+            >
+              {logs.length}
+            </Badge>
+          )}
+          <Text
+            fontSize="2xs"
+            color="fg.subtle"
+            display={{ base: "none", sm: "inline" }}
+          >
+            Last 7 days
+          </Text>
+        </HStack>
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        <Link to={"/tacacs_logs" as any}>
+          <HStack
+            gap={1}
+            fontSize="xs"
+            color="teal.fg"
+            fontWeight="semibold"
+            _hover={{ textDecoration: "underline" }}
+          >
+            <Text>View all</Text>
+            <FiArrowRight fontSize="12px" />
+          </HStack>
+        </Link>
+      </Flex>
+
       {isLoading ? (
-        <Flex justify="center" py={4}>
-          <Spinner size="sm" />
+        <Flex justify="center" py={8}>
+          <Spinner size="sm" color="teal.500" />
         </Flex>
       ) : logs.length === 0 ? (
-        <Text color="fg.muted" fontSize="sm">
-          No logs in the last 7 days.
-        </Text>
+        <Flex align="center" justify="center" gap={2} py={6} color="fg.muted">
+          <FiInbox fontSize="16px" />
+          <Text fontSize="xs">No TACACS logs recorded in the last 7 days.</Text>
+        </Flex>
       ) : (
-        <Box
-          borderWidth="1px"
-          borderRadius="xl"
-          overflow="hidden"
-          bg="bg.panel"
-          shadow="sm"
-        >
+        <Box overflowX="auto">
           <Table.Root size="sm" variant="line">
-            <Table.Header bg="bg.muted">
+            <Table.Header bg="bg.subtle">
               <Table.Row>
-                <Table.ColumnHeader>Time</Table.ColumnHeader>
-                <Table.ColumnHeader>Type</Table.ColumnHeader>
-                <Table.ColumnHeader>User</Table.ColumnHeader>
-                <Table.ColumnHeader>NAS IP</Table.ColumnHeader>
-                <Table.ColumnHeader>Client IP</Table.ColumnHeader>
-                <Table.ColumnHeader>Result</Table.ColumnHeader>
-                <Table.ColumnHeader>Command</Table.ColumnHeader>
+                <Table.ColumnHeader
+                  fontSize="2xs"
+                  textTransform="uppercase"
+                  color="fg.muted"
+                >
+                  Time
+                </Table.ColumnHeader>
+                <Table.ColumnHeader
+                  fontSize="2xs"
+                  textTransform="uppercase"
+                  color="fg.muted"
+                >
+                  Type
+                </Table.ColumnHeader>
+                <Table.ColumnHeader
+                  fontSize="2xs"
+                  textTransform="uppercase"
+                  color="fg.muted"
+                >
+                  User
+                </Table.ColumnHeader>
+                <Table.ColumnHeader
+                  fontSize="2xs"
+                  textTransform="uppercase"
+                  color="fg.muted"
+                >
+                  NAS IP
+                </Table.ColumnHeader>
+                <Table.ColumnHeader
+                  fontSize="2xs"
+                  textTransform="uppercase"
+                  color="fg.muted"
+                >
+                  Client IP
+                </Table.ColumnHeader>
+                <Table.ColumnHeader
+                  fontSize="2xs"
+                  textTransform="uppercase"
+                  color="fg.muted"
+                >
+                  Result
+                </Table.ColumnHeader>
+                <Table.ColumnHeader
+                  fontSize="2xs"
+                  textTransform="uppercase"
+                  color="fg.muted"
+                >
+                  Command
+                </Table.ColumnHeader>
               </Table.Row>
             </Table.Header>
             <Table.Body>
               {logs.map((log: TacacsLogEvent, i: number) => (
-                <Table.Row key={i} _hover={{ bg: "bg.muted/50" }}>
+                <Table.Row key={i} _hover={{ bg: "bg.subtle" }}>
                   <Table.Cell
                     whiteSpace="nowrap"
                     fontSize="xs"
                     color="fg.muted"
+                    fontFamily="mono"
                   >
                     {formatDateTime(
                       log.timestamp.replace(
@@ -823,7 +1196,7 @@ function LastTacacsLogs() {
           </Table.Root>
         </Box>
       )}
-    </GridItem>
+    </Box>
   )
 }
 
@@ -862,52 +1235,70 @@ function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ["aaa_statistics"] })
     queryClient.invalidateQueries({ queryKey: ["tacacs_log_summary_today"] })
     queryClient.invalidateQueries({ queryKey: ["recent_audit_logs"] })
+    queryClient.invalidateQueries({ queryKey: ["dashboard_last_tacacs_logs"] })
     queryClient.invalidateQueries({ queryKey: ["aaa_statistics_range"] })
   }
+
   const chartsLoading = rangeLoading
 
-  const pieSuccessByUser: PieData[] = (
+  const todaySuccess = stats?.today_successful_logins ?? 0
+  const todayFailed = stats?.today_failed_logins ?? 0
+  const todayTotalAuth = todaySuccess + todayFailed
+  const passRate =
+    todayTotalAuth > 0
+      ? `${Math.round((todaySuccess / todayTotalAuth) * 100)}% pass`
+      : undefined
+  const failRate =
+    todayTotalAuth > 0 && todayFailed > 0
+      ? `${Math.round((todayFailed / todayTotalAuth) * 100)}% fail`
+      : undefined
+
+  const topSuccessByUser: RankedItem[] = (
     rangeStats?.authentication_success_count_by_user ?? []
-  ).map((u: any, i: number) => ({
+  ).map((u: any) => ({
     name: String(u.username ?? ""),
     value: Number(u.success_count ?? 0),
-    color: CHART_COLORS[i % CHART_COLORS.length],
   }))
 
-  const pieSuccessByIp: PieData[] = (
+  const topSuccessByIp: RankedItem[] = (
     rangeStats?.authentication_success_count_by_user_source_ip ?? []
-  ).map((u: any, i: number) => ({
+  ).map((u: any) => ({
     name: String(u.user_source_ip ?? ""),
     value: Number(u.success_count ?? 0),
-    color: CHART_COLORS[i % CHART_COLORS.length],
   }))
 
-  const pieSuccessByNas: PieData[] = (
+  const topSuccessByNas: RankedItem[] = (
     rangeStats?.authentication_success_count_by_nas_ip ?? []
-  ).map((u: any, i: number) => ({
+  ).map((u: any) => ({
     name: String(u.nas_ip ?? ""),
     value: Number(u.success_count ?? 0),
-    color: CHART_COLORS[i % CHART_COLORS.length],
   }))
 
-  const pieFailedByUser: PieData[] = (
+  const topFailedByUser: RankedItem[] = (
     rangeStats?.authentication_failed_count_by_user ?? []
-  ).map((u: any, i: number) => ({
+  ).map((u: any) => ({
     name: String(u.username ?? ""),
     value: Number(u.fail_count ?? 0),
-    color: FAIL_COLORS[i % FAIL_COLORS.length],
   }))
 
   const trendData = buildRangeTrendData(rangeStats)
   const trendEmpty = trendData.length === 0
 
+  const rangeSubtitle =
+    filterMode === "custom" && customStart && customEnd
+      ? `${customStart} → ${customEnd}`
+      : filterMode === "custom"
+        ? "Select start and end date"
+        : FILTER_LABELS[filterMode]
+
   return (
-    <Container maxW="full" py={8}>
+    <Container maxW="full" py={6}>
+      {/* Header Bar */}
       <Flex
         justify="space-between"
-        align="flex-start"
-        mb={6}
-        gap={4}
+        align={{ base: "flex-start", md: "flex-end" }}
+        mb={5}
+        gap={3}
         wrap="wrap"
       >
         <PageHeader
@@ -915,13 +1306,24 @@ function Dashboard() {
           description="Real-time TACACS+ server metrics, access trends, configuration overview, and audit logs."
           icon={FiTrendingUp}
         />
-        <Flex align="center" gap={3} pt={{ base: 0, md: 6 }}>
+        <Flex align="center" gap={2.5} wrap="wrap">
           <StatsExclusionsNote />
           {dataUpdatedAt > 0 && (
-            <Flex color="fg.muted" fontSize="xs" align="center" gap={1}>
-              <FiClock />
+            <Flex
+              color="fg.muted"
+              fontSize="xs"
+              align="center"
+              gap={1.5}
+              px={2.5}
+              py={1}
+              bg="bg.subtle"
+              borderWidth="1px"
+              borderColor="border.subtle"
+              borderRadius="md"
+              fontFamily="mono"
+            >
+              <FiClock fontSize="12px" />
               <Text>
-                Updated{" "}
                 {new Date(dataUpdatedAt).toLocaleTimeString("en-US", {
                   hour12: false,
                 })}
@@ -943,172 +1345,228 @@ function Dashboard() {
 
       {isLoading ? (
         <Flex justify="center" align="center" height="50vh">
-          <Spinner size="xl" />
+          <Spinner size="xl" color="teal.500" />
         </Flex>
       ) : error ? (
-        <Box p={4} borderWidth="1px" borderRadius="lg" borderColor="red.200">
-          <Text color="red.500">
+        <Box
+          p={4}
+          borderWidth="1px"
+          borderRadius="xl"
+          borderColor="red.300"
+          bg="red.subtle"
+        >
+          <Text color="red.fg" fontSize="sm">
             Error fetching statistics: {error.message}
           </Text>
         </Box>
       ) : (
-        <Grid
-          templateColumns={{
-            base: "1fr",
-            sm: "repeat(2, 1fr)",
-            md: "repeat(4, 1fr)",
-          }}
-          gap={6}
-        >
-          {/* AAA today stat cards — always today */}
-          <GridItem>
-            <StatCard
-              label="Today Auth Success"
+        <Stack gap={5}>
+          {/* Band 1: Today's KPI Bento Row */}
+          <Grid
+            templateColumns={{
+              base: "1fr",
+              sm: "repeat(2, 1fr)",
+              lg: "repeat(4, 1fr)",
+            }}
+            gap={4}
+          >
+            <KpiCard
+              label="Auth Success"
               value={stats?.today_successful_logins}
-              highlight="success"
+              subtitle="Successful logins today"
+              icon={FiShield}
+              colorPalette="green"
+              badgeText={passRate}
             />
-          </GridItem>
-          <GridItem>
-            <StatCard
-              label="Today Auth Failed"
+            <KpiCard
+              label="Auth Failed"
               value={stats?.today_failed_logins}
-              highlight="danger"
+              subtitle="Failed login attempts today"
+              icon={FiShieldOff}
+              colorPalette="red"
+              badgeText={failRate}
             />
-          </GridItem>
-          <GridItem>
-            <StatCard
+            <KpiCard
               label="Unique Source IPs"
               value={stats?.today_unique_user_source_ip_count}
+              subtitle="Distinct client sources today"
+              icon={FiGlobe}
+              colorPalette="purple"
             />
-          </GridItem>
-          <GridItem>
-            <StatCard
+            <KpiCard
               label="Unique NAS IPs"
               value={stats?.today_unique_nas_ip_count}
+              subtitle="Active network devices today"
+              icon={FiServer}
+              colorPalette="blue"
             />
-          </GridItem>
+          </Grid>
 
-          {/* Today's log summary (auth + authz + acct) */}
-          <TodayLogSummary />
+          {/* Band 2: Bento Split — Today's AAA Breakdown + TACACS Inventory */}
+          <Grid
+            templateColumns={{ base: "1fr", lg: "repeat(12, 1fr)" }}
+            gap={4}
+            alignItems="stretch"
+          >
+            <GridItem colSpan={{ base: 1, lg: 8 }}>
+              <TodayLogSummary />
+            </GridItem>
+            <GridItem colSpan={{ base: 1, lg: 4 }}>
+              <ConfigOverview />
+            </GridItem>
+          </Grid>
 
-          {/* TACACS config entity counts */}
-          <ConfigOverview />
+          {/* Band 3: Analytics — Unified Filter + Hero Trend Chart + Top 5 Ranked Lists */}
+          <Stack gap={4}>
+            <Flex
+              align="center"
+              justify="space-between"
+              flexWrap="wrap"
+              gap={3}
+              px={4}
+              py={3}
+              bg="bg.panel"
+              borderWidth="1px"
+              borderColor="border.subtle"
+              borderRadius="xl"
+              shadow="xs"
+            >
+              <HStack gap={2.5}>
+                <Box p={1.5} bg="teal.subtle" color="teal.fg" borderRadius="md">
+                  <FiTrendingUp fontSize="14px" />
+                </Box>
+                <Box>
+                  <Heading size="xs" fontWeight="semibold">
+                    AAA Trends &amp; Top Contributors
+                  </Heading>
+                  <Text fontSize="2xs" color="fg.muted">
+                    {rangeSubtitle}
+                  </Text>
+                </Box>
+              </HStack>
+              <FilterBar
+                mode={filterMode}
+                onMode={setFilterMode}
+                customStart={customStart}
+                customEnd={customEnd}
+                onCustomStart={setCustomStart}
+                onCustomEnd={setCustomEnd}
+              />
+            </Flex>
 
-          {/* Top 5 & Trend section header with filter */}
-          <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
-            <Box p={4} borderWidth="1px" borderRadius="lg" bg="bg.subtle">
+            {/* Hero AAA Trend Chart */}
+            <Box
+              p={4}
+              bg="bg.panel"
+              borderWidth="1px"
+              borderColor="border.subtle"
+              borderRadius="xl"
+              shadow="xs"
+            >
               <Flex
                 align="center"
                 justify="space-between"
-                flexWrap="wrap"
-                gap={3}
+                mb={3}
+                wrap="wrap"
+                gap={2}
               >
-                <Box>
-                  <Heading size="sm">Top 5 & AAA Trend</Heading>
-                  <Text fontSize="xs" color="fg.muted" mt={0.5}>
-                    {filterMode === "custom" && customStart && customEnd
-                      ? `${customStart} → ${customEnd}`
-                      : filterMode === "custom"
-                        ? "Select start and end date"
-                        : FILTER_LABELS[filterMode]}
-                  </Text>
-                </Box>
-                <FilterBar
-                  mode={filterMode}
-                  onMode={setFilterMode}
-                  customStart={customStart}
-                  customEnd={customEnd}
-                  onCustomStart={setCustomStart}
-                  onCustomEnd={setCustomEnd}
-                />
-              </Flex>
-            </Box>
-          </GridItem>
-
-          {/* Top 5 pie charts */}
-          {chartsLoading ? (
-            <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
-              <Flex justify="center" py={8}>
-                <Spinner size="md" />
-              </Flex>
-            </GridItem>
-          ) : (
-            <>
-              <GridItem>
-                <StatPie
-                  title="Top 5 Users — Success"
-                  data={pieSuccessByUser}
-                />
-              </GridItem>
-              <GridItem>
-                <StatPie title="Top 5 Source IPs" data={pieSuccessByIp} />
-              </GridItem>
-              <GridItem>
-                <StatPie title="Top 5 NAS IPs" data={pieSuccessByNas} />
-              </GridItem>
-              <GridItem>
-                <StatPie title="Top 5 Users — Failed" data={pieFailedByUser} />
-              </GridItem>
-            </>
-          )}
-
-          {/* Trend chart */}
-          <GridItem colSpan={{ base: 1, sm: 2, md: 4 }}>
-            <Box
-              p={5}
-              bg="bg.panel"
-              borderWidth="1px"
-              borderRadius="xl"
-              shadow="sm"
-            >
-              <Flex align="center" justify="space-between" mb={4}>
-                <Heading size="sm" fontWeight="bold">
+                <Heading size="xs" fontWeight="semibold">
                   {TREND_LABEL[filterMode]}
                 </Heading>
+                <Text fontSize="2xs" color="fg.subtle">
+                  Click legend to isolate · Shift-click to toggle
+                </Text>
               </Flex>
               {chartsLoading ? (
-                <Flex justify="center" py={8}>
-                  <Spinner size="md" />
+                <Flex justify="center" py={10}>
+                  <Spinner size="md" color="teal.500" />
                 </Flex>
               ) : trendEmpty ? (
                 <Flex
                   direction="column"
                   align="center"
                   justify="center"
-                  h="220px"
-                  gap={3}
+                  h="200px"
+                  gap={2}
+                  bg="bg.subtle"
+                  borderRadius="lg"
                 >
-                  <Box
-                    p={3.5}
-                    bg="bg.muted"
-                    borderRadius="full"
-                    color="fg.subtle"
-                  >
-                    <FiTrendingUp fontSize="24px" />
+                  <Box color="fg.subtle">
+                    <FiTrendingUp fontSize="22px" />
                   </Box>
-                  <Text color="fg.muted" fontSize="sm" fontWeight="semibold">
+                  <Text color="fg.muted" fontSize="xs" fontWeight="semibold">
                     No trend data
                   </Text>
-                  <Text color="fg.subtle" fontSize="xs">
+                  <Text color="fg.subtle" fontSize="2xs">
                     Statistics aggregate periodically — try a wider range
                   </Text>
                 </Flex>
               ) : (
                 <AaaTrendChart
                   data={trendData}
-                  height={300}
-                  margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+                  height={265}
+                  margin={{ top: 8, right: 16, left: -8, bottom: 0 }}
                 />
               )}
             </Box>
-          </GridItem>
 
-          {/* Last TACACS logs */}
+            {/* Top 5 Ranked Horizontal Bar Lists */}
+            {chartsLoading ? (
+              <Grid
+                templateColumns={{
+                  base: "1fr",
+                  md: "repeat(2, 1fr)",
+                  xl: "repeat(4, 1fr)",
+                }}
+                gap={4}
+              >
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} height="190px" borderRadius="xl" />
+                ))}
+              </Grid>
+            ) : (
+              <Grid
+                templateColumns={{
+                  base: "1fr",
+                  md: "repeat(2, 1fr)",
+                  xl: "repeat(4, 1fr)",
+                }}
+                gap={4}
+              >
+                <TopRankedCard
+                  title="Top 5 Users — Success"
+                  icon={FiUserCheck}
+                  data={topSuccessByUser}
+                  colorPalette="green"
+                />
+                <TopRankedCard
+                  title="Top 5 Source IPs"
+                  icon={FiGlobe}
+                  data={topSuccessByIp}
+                  colorPalette="purple"
+                  mono
+                />
+                <TopRankedCard
+                  title="Top 5 NAS IPs"
+                  icon={FiServer}
+                  data={topSuccessByNas}
+                  colorPalette="blue"
+                  mono
+                />
+                <TopRankedCard
+                  title="Top 5 Users — Failed"
+                  icon={FiShieldOff}
+                  data={topFailedByUser}
+                  colorPalette="red"
+                />
+              </Grid>
+            )}
+          </Stack>
+
+          {/* Band 4: Operational Logs & Audit Tables */}
           <LastTacacsLogs />
-
-          {/* Recent user activity */}
           <RecentActivity />
-        </Grid>
+        </Stack>
       )}
     </Container>
   )
