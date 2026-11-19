@@ -219,7 +219,11 @@ def _throttle_login(
     limits: list[tuple[int, dict[str, str | None]]] = [
         (settings.LOGIN_THROTTLE_MAX_FAILURES_PER_IP, {"ip_address": ip}),
     ]
-    if by_user:
+    # Without a client address the pair key would degrade to the username
+    # alone, counting that name's failures from every address: anyone could
+    # then lock a known directory user out. Skip it; the per-address key
+    # (also skipped, as all-None) cannot help either.
+    if by_user and ip is not None:
         limits.append(
             (
                 settings.LOGIN_THROTTLE_MAX_FAILURES_PER_USER,

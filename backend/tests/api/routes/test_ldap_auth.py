@@ -1229,6 +1229,37 @@ def test_ldap_throttle_is_per_username_and_address_and_ignores_case(
     assert attempt(f"alice-{base}", other) == 400
 
 
+def test_ldap_throttle_without_a_client_address_never_keys_on_the_username(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No resolvable address must not turn the pair key into a username key."""
+    _enable_ldap(db)
+
+    def refuse(**_kwargs: Any) -> LdapAuthOutcome:
+        return LdapAuthOutcome(
+            ok=False, reason="invalid_credentials", message="Invalid password"
+        )
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", refuse)
+    monkeypatch.setattr(settings, "LOGIN_THROTTLE_MAX_FAILURES_PER_USER", 2)
+    name = f"bob-{uuid.uuid4().hex[:8]}"
+    # The user's failures from many addresses (a stranger guessing at them).
+    for n in range(3):
+        r = client.post(
+            LDAP_LOGIN_URL,
+            data={"username": name, "password": "p"},
+            headers={"X-Forwarded-For": f"198.51.100.{n + 20}, 172.18.0.2"},
+        )
+        assert r.status_code == 400
+
+    def no_address(_request: Any) -> None:
+        return None
+
+    monkeypatch.setattr("app.api.routes.login.get_client_ip", no_address)
+    r = client.post(LDAP_LOGIN_URL, data={"username": name, "password": "p"})
+    assert r.status_code == 400, r.text
+
+
 def test_directory_outage_is_not_counted_as_failed_logins(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

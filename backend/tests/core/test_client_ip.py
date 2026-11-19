@@ -86,6 +86,23 @@ def test_x_forwarded_for_is_ignored_unless_the_peer_is_a_trusted_proxy() -> None
     assert get_client_ip(_request(forged, peer="::ffff:172.18.0.3")) == "8.8.8.8"
 
 
+def test_every_x_forwarded_for_line_is_read_in_order() -> None:
+    """A proxy that adds its own line (HAProxy ``option forwardfor``) instead
+    of appending leaves the caller's forged line first; it must not win."""
+    request = Request(
+        {
+            "type": "http",
+            "headers": [
+                (b"x-forwarded-for", b"6.6.6.6"),  # caller-written
+                (b"x-forwarded-for", b"203.0.113.5"),  # added by our proxy
+            ],
+            "client": ("172.18.0.3", 1234),
+            "raw_client": ("172.18.0.3", 1234),
+        }
+    )
+    assert get_client_ip(request) == "203.0.113.5"
+
+
 def test_the_socket_peer_survives_uvicorn_style_rewriting() -> None:
     """ProxyHeadersMiddleware overwrites scope["client"]; raw_client is kept."""
     request = Request(

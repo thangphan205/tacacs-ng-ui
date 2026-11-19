@@ -213,7 +213,12 @@ def resolve_client_ip(scope: Scope) -> str | None:
         peer_addr = _unmap(ipaddress.ip_address(peer)) if peer else None
     except ValueError:
         peer_addr = None
-    forwarded_for = headers.get("X-Forwarded-For")
+    # Every X-Forwarded-For line, in order: a proxy that adds its own line
+    # (HAProxy's ``option forwardfor``) rather than appending to the caller's
+    # leaves the caller-written one first, so reading only the first line would
+    # believe the forgery. RFC 9110 makes repeated lines one comma list, which
+    # is also how uvicorn's ProxyHeadersMiddleware reads them.
+    forwarded_for = ", ".join(headers.getlist("X-Forwarded-For"))
     if peer_addr is None or not _is_trusted(peer_addr):
         if peer_addr is not None and forwarded_for:
             _warn_untrusted_forwarder(str(peer_addr), forwarded_for)
