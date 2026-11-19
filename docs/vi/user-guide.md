@@ -153,6 +153,7 @@ Nhóm được tham chiếu trong TACACS Users và Rulesets để áp dụng ch�
 **Lưu ý:**
 - `password_type: pap` là phổ biến nhất. Dùng `login` cho ASCII auth.
 - Người dùng kế thừa chính sách từ nhóm của họ qua Rulesets.
+- Cột **Last Authenticated** hiển thị lần đăng nhập TACACS+ thành công gần nhất của người dùng trên bất kỳ node nào, hoặc **Never**. Giá trị được lưu bởi lần chạy thống kê authentication và bổ sung bằng các lần đăng nhập hôm nay từ file log hiện tại (cache một phút). Cột này trống sau khi nâng cấp lên 0.6.9; để điền từ các file log cũ còn trên đĩa, chạy `python scripts/tacacs_logs_authentication.py YYYY-MM-DD` cho những ngày đó. Việc ghi nhận đăng nhập không thay đổi `updated_at` của người dùng.
 
 > **Sau khi thêm/sửa người dùng:** tạo lại và kích hoạt config.
 
@@ -415,15 +416,15 @@ Sau khi kích hoạt, daemon `tac_plus-ng` nhận cấu hình mới. Trong tri�
 
 **Đường dẫn:** Sidebar → Dashboard
 
-Dashboard cung cấp thông tin tổng hợp về môi trường TACACS+ qua bốn phần.
+Dashboard tổng hợp môi trường TACACS+ thành bốn dải. "Hôm nay" là ngày theo múi giờ của log (**TACACS NG Settings → Timezone**), không phải múi giờ của trình duyệt. Đồng hồ cạnh nút làm mới cho biết lần lấy dữ liệu gần nhất; nút làm mới tải lại mọi khung.
 
-**Tóm Tắt Log Hôm Nay**: Ba thẻ thống kê lấy trực tiếp từ file log TACACS+: Authentication (thành công/thất bại), Authorization (cho phép/từ chối), Accounting (bắt đầu/kết thúc). Nhấn vào thẻ để chuyển đến trang Log Events.
+**KPI hôm nay**: Bốn thẻ lấy từ file log hiện tại: **Auth Success** (đăng nhập thành công), **Auth Failed** (đăng nhập thất bại), **Unique Source IPs** (số địa chỉ client khác nhau), **Unique NAS IPs** (số thiết bị mạng khác nhau).
 
-**Tổng Quan Config**: Năm thẻ hiển thị số lượng thực thể hiện tại — Hosts, TACACS Users, TACACS Groups, Profiles, Rulesets. Nhấn để điều hướng đến trang tương ứng.
+**Today's AAA Breakdown** và **TACACS+ Inventory**: Khung thứ nhất chia sự kiện hôm nay theo loại, cập nhật mỗi phút: Authentication (Success/Failed), Authorization (Permit/Deny), Accounting (Start/Stop); liên kết của nó mở trang TACACS Logs. Khung thứ hai hiển thị số Hosts, TACACS Users, TACACS Groups, Profiles, Rulesets hiện tại; mỗi ô mở trang tương ứng, liên kết ở tiêu đề mở TACACS Configs.
 
-**Hoạt Động Người Dùng Gần Đây**: Bảng 10 bản ghi audit log gần nhất. Nhấn **Xem tất cả →** để mở trang Audit Logs.
+**AAA Trends & Top Contributors**: Biểu đồ xu hướng 6 series (auth success/fail, authz permit/deny, acct start/stop) và bốn danh sách Top 5: **Users — Success**, **Source IPs**, **NAS IPs**, **Users — Failed**. Bộ lọc: **7 Ngày Qua** / **30 Ngày Qua** / **Khoảng Thời Gian** (nhập ngày tùy chỉnh), mặc định 7 Ngày Qua. Dữ liệu lấy từ thống kê trong database, được thu thập mỗi `stats_interval_minutes` và một lần mỗi đêm cho ngày hôm trước. Người dùng khớp với danh sách loại trừ thống kê không được tính; ghi chú cạnh tiêu đề trang liệt kê các mẫu.
 
-**Top 5 & Xu Hướng AAA**: Bốn biểu đồ tròn (Top 5 Source IPs, NAS IPs, Auth Users, Authz Users) và biểu đồ xu hướng đường thẳng 6 series. Bộ lọc: **7 Ngày Qua** / **30 Ngày Qua** / **Khoảng Thời Gian** (nhập ngày tùy chỉnh). Mặc định là 7 Ngày Qua.
+**Last TACACS Logs** và **Recent User Activity**: Bảng thứ nhất liệt kê 20 sự kiện log TACACS+ mới nhất trong 7 ngày qua; bảng thứ hai liệt kê 10 bản ghi audit log gần nhất. **View all** mở trang TACACS Logs hoặc Audit Logs.
 
 ---
 
@@ -655,6 +656,8 @@ Mọi thay đổi cấu hình qua UI đều được ghi lại:
 | `is_superuser` | Cấp quyền quản trị đầy đủ |
 | `password_login_disabled` | Bắt buộc dùng OAuth/Passkey/LDAP (vô hiệu hóa mật khẩu local) |
 
+Cột **Last Login** hiển thị lần đăng nhập Web UI thành công gần nhất của mỗi người dùng (mật khẩu local, LDAP, Google, Keycloak, Microsoft hoặc passkey), hoặc **Never**. Đăng nhập trên node standby không được ghi nhận, vì database của nó là bản sao chỉ đọc.
+
 ### Auth Providers
 
 **Đường dẫn:** Sidebar → Admin → Auth Providers
@@ -668,6 +671,8 @@ Mọi thay đổi cấu hình qua UI đều được ghi lại:
 | `microsoft` | Cần tenant, application (client) ID và client secret. Xem [Cấu hình Microsoft Entra ID](#cấu-hình-microsoft-entra-id) |
 | `ldap` | LDAP / LDAPS với FreeIPA, Active Directory hoặc OpenLDAP. Xem [Cấu hình LDAP / Active Directory](#cấu-hình-ldap--active-directory) |
 | `passkeys` | WebAuthn — không cần cấu hình thêm; người dùng đăng ký từ trang Settings |
+
+**Require admin approval for new users.** Google, Keycloak, Microsoft và LDAP đều có công tắc này (mặc định tắt). Khi bật, tài khoản được tạo ở lần đăng nhập đầu tiên qua provider đó sẽ ở trạng thái **Inactive**: người dùng thấy thông báo *Pending Administrator Approval* trên trang đăng nhập và không đăng nhập được cho đến khi một superuser bật `is_active` trong **Users Management**. Tài khoản đã có, kể cả tài khoản được liên kết theo email, không bị ảnh hưởng. Khi công tắc đang bật, mọi tài khoản inactive đăng nhập qua provider đó đều nhận cùng thông báo, kể cả tài khoản bị admin vô hiệu hóa.
 
 #### Cấu hình Microsoft Entra ID
 

@@ -248,6 +248,7 @@ Groups are referenced in TACACS Users and Rulesets to apply policies to multiple
 **Notes:**
 - `password_type: pap` is the most common. Use `login` for ASCII auth.
 - Users inherit policies from their group via Rulesets.
+- The **Last Authenticated** column shows the user's latest successful TACACS+ login on any node, or **Never**. It is stored by the authentication statistics run and topped up with today's logins from the live log files (cached for a minute). It starts empty after upgrading to 0.6.9; to fill it from older log files still on disk, run `python scripts/tacacs_logs_authentication.py YYYY-MM-DD` for those days. Recording a login does not change the user's `updated_at`.
 
 > **After adding/editing users:** regenerate and activate config.
 
@@ -600,41 +601,38 @@ View TACACS+ log events. Use the **Events** tab for a structured, filterable vie
 
 **Path:** Sidebar → Dashboard
 
-The dashboard provides a real-time summary of your TACACS+ environment across four sections.
+The dashboard summarizes your TACACS+ environment in four bands. "Today" is the log time zone's day (**TACACS NG Settings → Timezone**), not the browser's. The clock next to the refresh button shows when the data was last fetched; the refresh button reloads every panel.
 
-### Today's Log Summary
+### Today's KPIs
 
-Three stat cards pulled directly from live TACACS+ log files:
+Four cards for today, from the live log files:
 
-| Card | Metrics |
-|------|---------|
-| **Authentication** | ✓ Successful logins / ✗ Failed logins today |
-| **Authorization** | ✓ Permit decisions / ✗ Deny decisions today |
-| **Accounting** | ▶ Session starts / ■ Session stops today |
+| Card | Shows |
+|------|-------|
+| **Auth Success** | Successful logins |
+| **Auth Failed** | Failed login attempts |
+| **Unique Source IPs** | Distinct client addresses |
+| **Unique NAS IPs** | Distinct network devices |
 
-Click any card to jump to the TACACS Log Events viewer for detailed records.
+### Today's AAA Breakdown and TACACS+ Inventory
 
-### Config Overview
+**Today's AAA Breakdown** splits today's events by type, refreshed every minute:
 
-Five clickable count cards showing current entity totals:
+| Type | Counts |
+|------|--------|
+| **Authentication** | Success / Failed |
+| **Authorization** | Permit / Deny |
+| **Accounting** | Start / Stop |
 
-| Card | Navigates to |
-|------|-------------|
-| Hosts | `/hosts` |
-| TACACS Users | `/tacacs_users` |
-| TACACS Groups | `/tacacs_groups` |
-| Profiles | `/profiles` |
-| Rulesets | `/rulesets` |
+Its link opens the TACACS Logs page.
 
-### Recent User Activity
+**TACACS+ Inventory** shows the current number of Hosts, TACACS Users, TACACS Groups, Profiles and Rulesets. Each tile opens its page; the header link opens TACACS Configs.
 
-Compact table of the last 10 audit log entries — shows Time, Dashboard User, Action (color-coded badge), Entity type, and Description. Click **View all →** to open the full Audit Logs page.
+### AAA Trends & Top Contributors
 
-### Top 5 & AAA Trend
+A trend chart with six series (auth success/fail, authz permit/deny, acct start/stop) and four Top 5 lists: **Users — Success**, **Source IPs**, **NAS IPs** and **Users — Failed**.
 
-Four pie charts (Top 5 Source IPs, Top 5 NAS IPs, Top 5 Auth Users, Top 5 Authz Users) and a six-series trend line chart (auth success/fail, authz permit/deny, acct start/stop).
-
-**Filter bar** (above the charts):
+**Filter bar** (above the chart):
 
 | Option | Period |
 |--------|--------|
@@ -642,7 +640,13 @@ Four pie charts (Top 5 Source IPs, Top 5 NAS IPs, Top 5 Auth Users, Top 5 Authz 
 | Last 30 Days | Rolling 30-day window ending today |
 | Date Range | Custom start and end date inputs |
 
-Default is **Last 7 Days**. All options query the database statistics endpoint; data is updated nightly by the statistics batch job.
+Default is **Last 7 Days**. All options query the database statistics, which the statistics job collects every `stats_interval_minutes` and once a night for the previous day. Users matched by a statistics exclusion are left out; the note next to the page title lists the patterns.
+
+### Last TACACS Logs and Recent User Activity
+
+**Last TACACS Logs** lists the 20 newest TACACS+ log events of the last 7 days. **View all** opens the TACACS Logs page.
+
+**Recent User Activity** lists the last 10 audit log entries: Time, Dashboard User, Action (color-coded badge), Entity type and Description. **View all** opens the Audit Logs page.
 
 ---
 
@@ -932,6 +936,8 @@ These are users who log into the **dashboard** (not TACACS device users).
 | `is_superuser` | Grant full admin access |
 | `password_login_disabled` | Force OAuth/Passkey/LDAP login only (disable the local password) |
 
+The **Last Login** column shows each user's latest successful Web UI sign-in (local password, LDAP, Google, Keycloak, Microsoft or passkey), or **Never**. Sign-ins served by a standby node are not recorded, because its database is a read-only replica.
+
 ### Auth Providers
 
 **Path:** Sidebar → Admin → Auth Providers
@@ -947,6 +953,8 @@ Configure which authentication methods are enabled for the dashboard:
 | `microsoft` | Requires tenant, application (client) ID, and client secret. See [Microsoft Entra ID setup](#microsoft-entra-id-setup) |
 | `ldap` | LDAP / LDAPS against FreeIPA, Active Directory or OpenLDAP. See [LDAP / Active Directory setup](#ldap--active-directory-setup) |
 | `passkeys` | WebAuthn — no extra config required; users register passkeys from their profile settings |
+
+**Require admin approval for new users.** Google, Keycloak, Microsoft and LDAP each have this switch (off by default). When it is on, an account created by a first sign-in through that provider starts **Inactive**: the person sees *Pending Administrator Approval* on the login page and cannot sign in until a superuser turns on `is_active` in **Users Management**. Accounts that already exist, including ones linked by email, are not affected. While the switch is on, any inactive account signing in through that provider gets the same message, including one an administrator deactivated.
 
 #### Microsoft Entra ID setup
 
