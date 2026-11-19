@@ -240,7 +240,9 @@ class Settings(BaseSettings):
     # directory user, out by guessing at the name from elsewhere.
     # PROXY_HOPS: proxies that append to X-Forwarded-For in front of the app
     # (nginx + Traefik = 2). The client address is the entry that many from the
-    # right; the leftmost entries are caller-supplied and ignored.
+    # right; the leftmost entries are caller-supplied and ignored. A request with
+    # fewer entries (straight to the backend port) shares one throttle bucket.
+    # 0 trusts uvicorn's own client address instead.
     LOGIN_THROTTLE_WINDOW_MINUTES: int = 15
     LOGIN_THROTTLE_MAX_FAILURES_PER_USER: int = 10
     LOGIN_THROTTLE_MAX_FAILURES_PER_IP: int = 50

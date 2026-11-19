@@ -2,6 +2,7 @@
 
 import uuid
 from collections.abc import Generator
+from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -11,6 +12,7 @@ from sqlmodel import Session, delete, select
 from app.core.config import settings
 from app.core.ldap_auth import LdapAuthOutcome, LdapIdentity
 from app.core.security import get_password_hash
+from app.crud import audit_logs as audit_logs_crud
 from app.crud import auth_providers as auth_providers_crud
 from app.models import (
     AuditLog,
@@ -1073,6 +1075,68 @@ def test_failed_sign_ins_from_one_address_are_throttled_on_both_endpoints(
         headers={"X-Forwarded-For": f"192.0.2.99, {ip}, 172.18.0.2"},
     )
     assert r.status_code == 429
+
+
+def test_rotating_a_short_forwarded_chain_does_not_dodge_the_throttle(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Straight to the backend port the chain is shorter than the proxy hops,
+    so every entry is caller-written: such requests share one bucket."""
+    _enable_ldap(db)
+    from app.api.routes.login import _DIRECT
+
+    before = audit_logs_crud.count_recent_failed_logins(
+        session=db, within=timedelta(minutes=15), ip_address=_DIRECT
+    )
+    monkeypatch.setattr(settings, "LOGIN_THROTTLE_MAX_FAILURES_PER_IP", before + 3)
+    for i in range(3):
+        r = client.post(
+            LOGIN_URL,
+            data={"username": f"nobody{i}@example.com", "password": "x" * 12},
+            headers={"X-Forwarded-For": f"198.51.100.{i + 1}"},
+        )
+        assert r.status_code == 400
+    r = client.post(
+        LOGIN_URL,
+        data={"username": "nobody9@example.com", "password": "x" * 12},
+        headers={"X-Forwarded-For": "192.0.2.77"},
+    )
+    assert r.status_code == 429
+
+
+def test_overlong_user_agent_is_audited_not_a_server_error(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+    name = f"ua-{uuid.uuid4().hex[:8]}"
+
+    def refuse(**_kwargs: Any) -> LdapAuthOutcome:
+        return LdapAuthOutcome(
+            ok=False, reason="invalid_credentials", message="Invalid password"
+        )
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", refuse)
+    r = client.post(
+        LDAP_LOGIN_URL,
+        data={"username": name, "password": "p"},
+        headers={"User-Agent": "A" * 700},
+    )
+    assert r.status_code == 400
+    row = db.exec(
+        select(AuditLog).where(
+            AuditLog.action == "LOGIN_FAILED", AuditLog.entity_id == name
+        )
+    ).first()
+    assert row is not None and len(row.user_agent or "") == 512
+
+    # A correct password with a long User-Agent signs in.
+    _fake_ldap_success(monkeypatch, ldap_id="ua1", email="netadmin1@example.com")
+    r = client.post(
+        LDAP_LOGIN_URL,
+        data={"username": "netadmin1", "password": "p"},
+        headers={"User-Agent": "B" * 700},
+    )
+    assert r.status_code == 200, r.text
 
 
 def test_ldap_throttle_is_per_username_and_address_and_ignores_case(

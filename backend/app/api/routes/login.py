@@ -56,6 +56,8 @@ _LDAP_ACCOUNT_DETAIL = (
 
 _USERNAME_MAX = 255  # AuditLog.user_email / entity_id column width
 _IP_MAX = 45  # AuditLog.ip_address column width
+_UA_MAX = 512  # AuditLog.user_agent column width
+_DIRECT = "direct"  # throttle bucket for requests that skipped the proxy chain
 
 
 def _norm_username(username: str) -> str:
@@ -65,6 +67,13 @@ def _norm_username(username: str) -> str:
     return username.strip().lower()[:_USERNAME_MAX]
 
 
+def _ua(user_agent: str | None) -> str | None:
+    """Bounded to the audit column: an over-long header would make the audit
+    write raise, so the failure is never recorded (or counted) and a correct
+    password answers 500."""
+    return user_agent[:_UA_MAX] if user_agent else None
+
+
 def _login_client_ip(request: Request) -> str | None:
     """Client address for sign-in throttling and its audit rows.
 
@@ -72,20 +81,25 @@ def _login_client_ip(request: Request) -> str | None:
     caller writes, so rotating it would dodge every limit. Proxies append on
     the right: take the entry the ``LOGIN_THROTTLE_PROXY_HOPS``-th proxy from
     the end added. Fewer entries than hops means the request did not come
-    through the full proxy chain, so use the socket peer.
+    through the full proxy chain (direct to the backend port). Then no address
+    is trustworthy -- uvicorn rewrites ``request.client`` from the same
+    caller-written header -- so such requests share one bucket instead of
+    letting each pick its own. ``LOGIN_THROTTLE_PROXY_HOPS=0`` opts out and
+    uses the address uvicorn derived.
     """
-    peer = request.client.host if request.client else None
     hops = settings.LOGIN_THROTTLE_PROXY_HOPS
+    if hops <= 0:
+        peer = request.client.host if request.client else None
+        return peer[:_IP_MAX] if peer else None
     forwarded = request.headers.get("X-Forwarded-For")
-    if hops > 0 and forwarded:
+    if forwarded:
         parts = [p.strip() for p in forwarded.split(",")]
         if len(parts) >= hops:
-            candidate = parts[-hops]
             try:
-                return str(ipaddress.ip_address(candidate))[:_IP_MAX]
+                return str(ipaddress.ip_address(parts[-hops]))[:_IP_MAX]
             except ValueError:
                 pass
-    return peer[:_IP_MAX] if peer else None
+    return _DIRECT
 
 
 def _audit_login_failure(
@@ -105,7 +119,7 @@ def _audit_login_failure(
             entity_type="User",
             entity_id=username,
             description=description[:1024],
-            user_agent=user_agent,
+            user_agent=_ua(user_agent),
         ),
         user_id=None,
         user_email=username,
@@ -128,7 +142,7 @@ def _audit_login_success(
             entity_type="User",
             entity_id=str(user.id),
             description=description,
-            user_agent=user_agent,
+            user_agent=_ua(user_agent),
         ),
         user_id=user.id,
         user_email=user.email,
@@ -173,7 +187,7 @@ def _audit_ldap_failover(
             entity_type="AuthProviderConfig",
             entity_id="ldap",
             description=description,
-            user_agent=user_agent,
+            user_agent=_ua(user_agent),
         ),
         user_id=None,
         user_email=username,
