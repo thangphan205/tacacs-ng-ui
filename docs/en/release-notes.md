@@ -12,17 +12,46 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
-* ⬆ Bump coverage from 7.17.1 to 7.17.3 in /backend. PR [#417](https://github.com/thangphan205/tacacs-ng-ui/pull/417) by [@dependabot[bot]](https://github.com/apps/dependabot).
+## v0.6.9
+
+This release adds LDAP / Active Directory sign-in for the Web UI, shows when each TACACS+ user and each Web UI user last signed in, lets an administrator approve new users from an external identity provider, and redesigns the dashboard. It also fixes how the client address is found behind the reverse proxy: an `X-Forwarded-For` header written by the caller could set the address in audit rows and get past an API key's IP allow-list. It has three database migrations, all reversible; see **Upgrading from 0.6.8**.
+
+### Security
+
+* 🔒 **The client address can no longer be forged.** 0.6.8 took the leftmost `X-Forwarded-For` entry, which the caller writes, and uvicorn trusted the header from any peer. A client could therefore set the address stored in audit rows and the address an API key's **Allowed IPs** list was checked against, and so use a leaked MCP key from outside its allow-list. The backend now believes `X-Forwarded-For` only when the socket peer is a trusted proxy (`TRUSTED_PROXIES`, default `auto`: loopback plus the Docker networks the backend is attached to, never their gateway), and walks it from the right past trusted proxies. REST routes, the sign-in throttle and the MCP API-key check use the same rule. PR [#418](https://github.com/thangphan205/tacacs-ng-ui/pull/418) by [@thangphan205](https://github.com/thangphan205).
+* 🔒 **Sign-ins are throttled.** Too many failed sign-ins within `LOGIN_THROTTLE_WINDOW_MINUTES` (15) give HTTP 429: 50 per client address on both login endpoints, and 10 per (username, client address) on the LDAP endpoint, so a directory lockout policy is not tripped from here. A local username is never throttled by name alone, so nobody can lock the local emergency administrator out from elsewhere. PR [#418](https://github.com/thangphan205/tacacs-ng-ui/pull/418) by [@thangphan205](https://github.com/thangphan205).
 
 ### Features
 
-* ✨ Add require admin approval option for external IdP users. PR [#421](https://github.com/thangphan205/tacacs-ng-ui/pull/421) by [@thangphan205](https://github.com/thangphan205).
-* ✨ Track and display last login time for Web UI users. PR [#420](https://github.com/thangphan205/tacacs-ng-ui/pull/420) by [@thangphan205](https://github.com/thangphan205).
-* ✨ Track and display last successful authentication time for TACACS users. PR [#419](https://github.com/thangphan205/tacacs-ng-ui/pull/419) by [@thangphan205](https://github.com/thangphan205).
-* ✨ Add LDAP / Active Directory sign-in for the Web UI (#404). PR [#418](https://github.com/thangphan205/tacacs-ng-ui/pull/418) by [@thangphan205](https://github.com/thangphan205).
+* ✨ **LDAP / Active Directory sign-in for the Web UI.** **Admin → Auth Providers → LDAP / AD** connects the dashboard to FreeIPA, Active Directory, OpenLDAP or a custom schema over LDAPS, StartTLS or (only when explicitly allowed) plain LDAP. No identity provider or internet access is needed. PR [#418](https://github.com/thangphan205/tacacs-ng-ui/pull/418) by [@thangphan205](https://github.com/thangphan205), refs [#404](https://github.com/thangphan205/tacacs-ng-ui/issues/404).
+  * Provider presets for attributes and filters, several servers in priority order, an encrypted bind password, an optional **Required LDAP Group** (name or DN, nested AD groups included), a custom CA, **Prefill from MAVIS**, **Test Connection** and **Test User Login**.
+  * The login page gets two tabs, **LDAP** and **Local Account**, each with its own endpoint (`/login/ldap/access-token`, `/login/access-token`). A local sign-in never contacts the directory, so the local administrator gets in when every LDAP server is down.
+  * Failover to the next server happens only when a server cannot be reached; a wrong password or missing group ends the sign-in. Each failover is audited as `LDAP_FAILOVER`.
+  * LDAP decides who can sign in, not what they can do: a first sign-in creates a regular account, promoted in **Users Management**. Accounts are keyed on the entry's permanent ID (`objectGUID` / `ipaUniqueID` / `entryUUID`), so a re-created username never inherits someone else's account. Existing local accounts are linked by email only when **Link existing local accounts by email** is on, and never a superuser's.
+  * Directory accounts are directory-only: no local password, password reset, passkeys, API keys or Google / Keycloak / Microsoft sign-in, so removing someone from the directory or the group removes their access once their token expires (`LDAP_ACCESS_TOKEN_EXPIRE_MINUTES`, 480). **Reset LDAP link** in **Edit User** re-keys an account.
+  * ⚠️ **Allow password login** off (under **Passkeys**) now turns off *local* passwords only: LDAP keeps working under its own **Enable** switch.
+* ✨ **Last authenticated time for TACACS+ users.** The TACACS Users list shows each user's latest successful TACACS+ login on any node, from the statistics run plus today's live log files. PR [#419](https://github.com/thangphan205/tacacs-ng-ui/pull/419) by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Last login time for Web UI users.** **Users Management** shows each user's latest successful sign-in by any method. Sign-ins on a standby node are not recorded. PR [#420](https://github.com/thangphan205/tacacs-ng-ui/pull/420) by [@thangphan205](https://github.com/thangphan205).
+* ✨ **Admin approval for new external users.** Google, Keycloak, Microsoft and LDAP each get a **Require admin approval for new users** switch, off by default. When on, an account created by a first sign-in starts inactive and the login page shows *Pending Administrator Approval* until a superuser activates it. PR [#421](https://github.com/thangphan205/tacacs-ng-ui/pull/421) by [@thangphan205](https://github.com/thangphan205).
+* 🎨 **Redesigned dashboard.** Today's KPIs, today's AAA breakdown next to the TACACS+ inventory, one trend chart with Top 5 lists under a shared filter, and the last TACACS+ log events next to recent audit activity. By [@thangphan205](https://github.com/thangphan205).
+
+### Fixes
+
+* 🐛 Legacy time zone aliases such as `Asia/Saigon` resolve on every node: the backend now ships the `tzdata` package instead of relying on the image's zone files. By [@thangphan205](https://github.com/thangphan205).
+
+### Upgrading from 0.6.8
+
+* **Rebuild the images.** The backend gains `ldap3` and `tzdata`.
+* **Three migrations**, applied by `prestart.sh` on the primary (standbys receive them through replication): `e4b9c2d71a38` adds `user.ldap_id`, `f7a1c3d92b40` adds `tacacsuser.last_authenticated_at`, `a8c4e1b93d20` adds `user.last_login_at`. All are nullable columns and reversible.
+* **New optional settings:** `TRUSTED_PROXIES`, `LOGIN_THROTTLE_WINDOW_MINUTES`, `LOGIN_THROTTLE_MAX_FAILURES_PER_USER`, `LOGIN_THROTTLE_MAX_FAILURES_PER_IP`, and `LDAP_*` (`LDAP_HOSTS`, `LDAP_PROVIDER_TYPE`, `LDAP_BASE_DN`, `LDAP_BIND_DN`, `LDAP_BIND_PASSWORD`, `LDAP_REQUIRED_GROUP`, `LDAP_ALLOW_INSECURE`, `LDAP_ACCESS_TOKEN_EXPIRE_MINUTES`, `LDAP_MAX_CONCURRENT_SIGNINS`). The `LDAP_*` connection values only prefill the form until it is saved.
+* ⚠️ **Check `TRUSTED_PROXIES` if you do not use the bundled compose stack.** `auto` covers the bundled nginx and Traefik on any Docker network. Under host networking, on Kubernetes, or behind an extra proxy or CDN, list the proxies yourself (for example `TRUSTED_PROXIES=auto,104.16.0.0/13`); otherwise every request appears to come from the proxy, so audit rows show its address, the per-address throttle counts all clients together and API-key IP allow-lists see the proxy. The backend logs `X-Forwarded-For ... not in TRUSTED_PROXIES` once an hour naming an untrusted proxy. List proxies only, never office LAN ranges.
+* **Last Authenticated** starts empty. To fill it from log files still on disk, run `python scripts/tacacs_logs_authentication.py YYYY-MM-DD` for those days.
+* LDAP is off until enabled, so the login page is unchanged until then. On HA, upgrade every node; a first LDAP sign-in must happen on the primary, since a standby never creates users.
 
 ### Internal
 
+* 👷 Deploy `main` to the test server on push; the production deploy workflow is disabled. By [@thangphan205](https://github.com/thangphan205).
+* ⬆ Bump coverage from 7.17.1 to 7.17.3 in /backend. PR [#417](https://github.com/thangphan205/tacacs-ng-ui/pull/417) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump dnspython from 2.9.0 to 2.9.2 in /backend. PR [#416](https://github.com/thangphan205/tacacs-ng-ui/pull/416) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @chakra-ui/react from 3.36.1 to 3.38.0 in /frontend. PR [#411](https://github.com/thangphan205/tacacs-ng-ui/pull/411) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @simplewebauthn/browser from 13.3.0 to 14.0.0 in /frontend. PR [#414](https://github.com/thangphan205/tacacs-ng-ui/pull/414) by [@dependabot[bot]](https://github.com/apps/dependabot).
