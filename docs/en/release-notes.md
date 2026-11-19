@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Internal
+
+* 🔖 Release 0.6.9. PR [#422](https://github.com/thangphan205/tacacs-ng-ui/pull/422) by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.6.9
 
 This release adds LDAP / Active Directory sign-in for the Web UI, shows when each TACACS+ user and each Web UI user last signed in, lets an administrator approve new users from an external identity provider, and redesigns the dashboard. It also fixes how the client address is found behind the reverse proxy: an `X-Forwarded-For` header written by the caller could set the address in audit rows and get past an API key's IP allow-list. It has three database migrations, all reversible; see **Upgrading from 0.6.8**.
