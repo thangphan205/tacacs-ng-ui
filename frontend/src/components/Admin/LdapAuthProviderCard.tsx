@@ -167,6 +167,7 @@ const LdapAuthProviderCard = () => {
   const [groupSearchFilter, setGroupSearchFilter] = useState("")
   const [groupMemberAttr, setGroupMemberAttr] = useState("")
   const [startTls, setStartTls] = useState(false)
+  const [allowInsecure, setAllowInsecure] = useState(false)
   const [verifyTls, setVerifyTls] = useState(true)
   const [caCertPem, setCaCertPem] = useState("")
   const [connectTimeout, setConnectTimeout] = useState("5")
@@ -208,6 +209,7 @@ const LdapAuthProviderCard = () => {
       )
       setGroupMemberAttr(cfg.group_member_attr ?? preset.group_member_attr)
       setStartTls(cfg.start_tls === "true")
+      setAllowInsecure(cfg.allow_insecure === "true")
       setVerifyTls(cfg.verify_tls !== "false")
       setCaCertPem(cfg.ca_cert_pem ?? "")
       setConnectTimeout(cfg.connect_timeout ?? "5")
@@ -215,6 +217,14 @@ const LdapAuthProviderCard = () => {
       setInitialized(true)
     }
   }, [data, presets, initialized])
+
+  // Mirrors the backend: ldap:// (explicit or bare host) with no StartTLS.
+  const hasCleartextServer =
+    !startTls &&
+    servers.some((s) => {
+      const url = s.url.trim().toLowerCase()
+      return url.length > 0 && !url.startsWith("ldaps://")
+    })
 
   const buildConfigPayload = (): Record<string, string> => {
     const cleanServers = servers
@@ -244,6 +254,7 @@ const LdapAuthProviderCard = () => {
       group_search_filter: groupSearchFilter.trim(),
       group_member_attr: groupMemberAttr.trim(),
       start_tls: startTls ? "true" : "false",
+      allow_insecure: allowInsecure ? "true" : "false",
       verify_tls: verifyTls ? "true" : "false",
       ca_cert_pem: caCertPem.trim(),
       connect_timeout: connectTimeout.trim() || "5",
@@ -772,6 +783,27 @@ const LdapAuthProviderCard = () => {
                 Validate Server TLS Certificate
               </Checkbox>
             </HStack>
+            {hasCleartextServer && (
+              <Alert.Root status="warning" size="sm" mb={3}>
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Description>
+                    A plain ldap:// server without StartTLS sends the service
+                    account's password and every user's password unencrypted.
+                    Use ldaps:// or StartTLS.
+                  </Alert.Description>
+                  <Checkbox
+                    mt={2}
+                    checked={allowInsecure}
+                    onCheckedChange={({ checked }) =>
+                      setAllowInsecure(Boolean(checked))
+                    }
+                  >
+                    Allow unencrypted connections (trusted network only)
+                  </Checkbox>
+                </Alert.Content>
+              </Alert.Root>
+            )}
             <SimpleGrid columns={{ base: 1, md: 2 }} gap={3} mb={3}>
               <Box>
                 <Text fontSize="xs" mb={1} fontWeight="medium">

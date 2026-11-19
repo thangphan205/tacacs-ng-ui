@@ -510,6 +510,9 @@ Tất cả biến với giá trị mặc định (từ `.env.example`):
 | `LDAP_BIND_DN` | *(tùy chọn)* | DN của service account; để trống = tìm kiếm ẩn danh |
 | `LDAP_BIND_PASSWORD` | *(tùy chọn)* | Mật khẩu service account |
 | `LDAP_REQUIRED_GROUP` | *(tùy chọn)* | Tên group hoặc DN đầy đủ mà user phải là thành viên |
+| `LDAP_ALLOW_INSECURE` | `false` | Cho phép `ldap://` thuần không StartTLS (mật khẩu gửi không mã hóa). Mặc định bị từ chối |
+| `LDAP_ACCESS_TOKEN_EXPIRE_MINUTES` | `480` | Thời hạn token phiên của tài khoản thư mục (không vượt quá `ACCESS_TOKEN_EXPIRE_MINUTES`). Việc xóa khỏi thư mục có hiệu lực khi token hết hạn |
+| `LOGIN_THROTTLE_MAX_FAILURES_PER_IP` / `_PER_USER` | `50` / `10` | Số lần đăng nhập thất bại tối đa theo địa chỉ client (cả hai endpoint) hoặc theo username (chỉ LDAP) trong `LOGIN_THROTTLE_WINDOW_MINUTES` (`15`) trước khi trả HTTP 429. `0` để tắt |
 | `SIEM_WEBHOOK_URL` | *(tùy chọn)* | URL Splunk HEC hoặc Logstash HTTP input |
 | `SIEM_WEBHOOK_TOKEN` | *(tùy chọn)* | Splunk HEC token hoặc bearer token |
 | `SIEM_FORWARD_TACACS_EVENTS` | `false` | Chuyển tiếp bản ghi thống kê auth/authz/acct theo ngày đến SIEM (xem hướng dẫn sử dụng) |

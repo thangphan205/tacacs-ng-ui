@@ -221,6 +221,7 @@ def test_authenticate_ldap_user_custom_required_group_member_of_and_search(
     cfg = {
         "provider_type": "openldap",
         "hosts": "ldap://ldap01.example.com:389",
+        "allow_insecure": "true",
         "base_dn": "dc=example,dc=com",
         "bind_dn": "cn=admin,dc=example,dc=com",
         "required_group": "my-custom-group",
@@ -318,6 +319,7 @@ def test_build_effective_config_defaults() -> None:
 _BASE_CFG: dict[str, Any] = {
     "provider_type": "openldap",
     "hosts": "ldap://ldap01.example.com:389, ldap://ldap02.example.com:389",
+    "allow_insecure": "true",
     "base_dn": "dc=example,dc=com",
     "bind_dn": "cn=svc,dc=example,dc=com",
 }
@@ -882,3 +884,69 @@ def test_malformed_ca_certificate_is_misconfigured_not_unreachable(
     res = check_ldap_servers_connection(raw_config=cfg, secret="s")
     assert res.ok is False
     assert "CA certificate" in res.message
+
+
+def test_cleartext_ldap_is_refused_unless_allowed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_open(**_kwargs: Any) -> Any:
+        raise AssertionError("no connection before the cleartext decision")
+
+    monkeypatch.setattr("app.core.ldap_auth._open_server_connection", fake_open)
+    cfg = {k: v for k, v in _BASE_CFG.items() if k != "allow_insecure"}
+    outcome = authenticate_ldap_user(
+        username="alice", password="pw", raw_config=cfg, secret="s"
+    )
+    assert outcome.reason == "misconfigured"
+    assert "without encryption" in outcome.message
+    assert (
+        "without encryption"
+        in check_ldap_servers_connection(raw_config=cfg, secret="s").message
+    )
+
+    # StartTLS and ldaps:// are encrypted.
+    tls = build_effective_ldap_config({**cfg, "start_tls": "true"}, "s")
+    assert tls.servers and all(t.start_tls for t in tls.servers)
+    from app.core.ldap_auth import cleartext_servers
+
+    assert cleartext_servers(tls) == []
+    assert (
+        cleartext_servers(
+            build_effective_ldap_config({**cfg, "hosts": "ldaps://a.example.com"}, "s")
+        )
+        == []
+    )
+
+
+def test_filters_without_a_placeholder_are_refused() -> None:
+    from app.core.ldap_auth import invalid_ldap_filters
+
+    assert invalid_ldap_filters({"user_search_filter": "(uid=svc-account)"}) == [
+        "user_search_filter must contain {username} (or %s)"
+    ]
+    assert invalid_ldap_filters(
+        {"user_search_filter": "(uid={username})", "group_search_filter": "(cn=x)"}
+    ) == ["group_search_filter must contain {group} (or %s)"]
+    assert invalid_ldap_filters({"user_search_filter": "(uid=%s)"}) == []
+    assert invalid_ldap_filters({}) == []
+
+
+def test_undecryptable_bind_password_is_named_and_never_replaced_by_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core.config import settings
+    from app.core.ldap_auth import SECRET_UNDECRYPTABLE
+
+    monkeypatch.setattr(settings, "LDAP_BIND_PASSWORD", "env-password")
+    cfg = {**_BASE_CFG, SECRET_UNDECRYPTABLE: True}
+    eff = build_effective_ldap_config(cfg, None)
+    assert eff.bind_password == ""
+    assert eff.bind_password_undecryptable is True
+    outcome = authenticate_ldap_user(
+        username="alice", password="pw", raw_config=cfg, secret=None
+    )
+    assert outcome.reason == "misconfigured"
+    assert "cannot be decrypted" in outcome.message
+
+    # A password typed again wins.
+    assert build_effective_ldap_config(cfg, "typed").bind_password == "typed"

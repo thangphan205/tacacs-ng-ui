@@ -25,6 +25,23 @@ def db() -> Generator[Session, None, None]:
         session.commit()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _no_login_throttle() -> Generator[None, None, None]:
+    """LOGIN_FAILED rows persist across runs and every test shares one client
+    address, so a default limit would trip module-scoped fixtures too. Session
+    scoped; the tests that exercise throttling set their own limits."""
+    names = (
+        "LOGIN_THROTTLE_MAX_FAILURES_PER_IP",
+        "LOGIN_THROTTLE_MAX_FAILURES_PER_USER",
+    )
+    saved = {n: getattr(settings, n) for n in names}
+    for n in names:
+        setattr(settings, n, 0)
+    yield
+    for n, v in saved.items():
+        setattr(settings, n, v)
+
+
 @pytest.fixture(scope="session")
 def client() -> Generator[TestClient, None, None]:
     # Session-scoped, not module-scoped: entering the app lifespan once per test

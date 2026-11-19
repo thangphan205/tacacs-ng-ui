@@ -659,7 +659,7 @@ def test_saving_new_servers_needs_the_bind_password_again(
 ) -> None:
     """Save, not only Test, must not repoint the stored password."""
     _enable_ldap(db)
-    moved = {**LDAP_CONFIG, "hosts": "ldap://attacker.example.net:389"}
+    moved = {**LDAP_CONFIG, "hosts": "ldaps://attacker.example.net:636"}
 
     r = client.put(
         ADMIN_LDAP_URL, headers=superuser_token_headers, json={"config": moved}
@@ -950,3 +950,233 @@ def test_invalid_ca_certificate_is_refused_on_save(
     )
     assert r.status_code == 422
     assert "CA certificate" in r.json()["detail"]
+
+
+# --- review round 4 ----------------------------------------------------------
+
+
+def _local_user(db: Session, email: str = "ldap-existing@example.com") -> User:
+    user = User(email=email, hashed_password=get_password_hash("local-password-1"))
+    db.add(user)
+    db.commit()
+    return user
+
+
+def test_standby_never_hands_out_an_unlinked_account(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    user = _local_user(db)
+    monkeypatch.setattr(settings, "USERS_OPEN_REGISTRATION", False)
+    _enable_ldap(db, allow_email_link="true")
+    _fake_ldap_success(monkeypatch, ldap_id="existing", email=user.email)
+    monkeypatch.setattr(settings, "NODE_ROLE", "standby")
+    r = _login(client, "existing")
+    monkeypatch.setattr(settings, "NODE_ROLE", "primary")
+    assert r.status_code == 403
+    db.refresh(user)
+    assert user.ldap_id is None
+
+
+def test_concurrent_first_sign_in_returns_the_account_not_a_500(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.crud import users as users_crud
+
+    winner = User(
+        email="ldap-existing@example.com",
+        hashed_password=get_password_hash("x-password-1"),
+        ldap_id="raced",
+    )
+    db.add(winner)
+    db.commit()
+    # Another worker's insert landed between our lookups and our commit.
+    real = users_crud.get_user_by_ldap_id
+    calls = {"n": 0}
+
+    def miss_once(*, session: Session, ldap_id: str) -> User | None:
+        calls["n"] += 1
+        return None if calls["n"] == 1 else real(session=session, ldap_id=ldap_id)
+
+    monkeypatch.setattr(users_crud, "get_user_by_ldap_id", miss_once)
+    monkeypatch.setattr(users_crud, "get_user_by_email_ci", lambda **_kw: None)
+    user, refusal = users_crud.get_or_create_ldap_user(
+        session=db,
+        ldap_id="raced",
+        email="ldap-existing@example.com",
+        full_name=None,
+        allow_email_link=False,
+    )
+    assert refusal is None
+    assert user is not None and user.id == winner.id
+
+
+def test_ldap_tokens_are_shorter_lived(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import jwt
+
+    monkeypatch.setattr(settings, "LDAP_ACCESS_TOKEN_EXPIRE_MINUTES", 30)
+    _enable_ldap(db)
+    _fake_ldap_success(monkeypatch, ldap_id="netadmin1", email="netadmin1@example.com")
+    token = _login(client, "netadmin1").json()["access_token"]
+    claims = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+    import time
+
+    assert claims["exp"] - time.time() < 31 * 60
+
+
+def test_failed_ldap_sign_ins_are_throttled(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+    _fake_ldap_success(monkeypatch, ldap_id="x", email="netadmin1@example.com")
+
+    def refuse(**_kwargs: Any) -> LdapAuthOutcome:
+        return LdapAuthOutcome(
+            ok=False, reason="invalid_credentials", message="Invalid password"
+        )
+
+    monkeypatch.setattr("app.api.routes.login.authenticate_ldap_user", refuse)
+    monkeypatch.setattr(settings, "LOGIN_THROTTLE_MAX_FAILURES_PER_USER", 3)
+    name = f"victim-{uuid.uuid4().hex[:8]}"
+    for _ in range(3):
+        assert _login(client, name).status_code == 400
+    r = _login(client, name)
+    assert r.status_code == 429
+    assert "Retry-After" in r.headers
+    # Another username is unaffected, and the local endpoint never locks a name.
+    assert _login(client, f"other-{uuid.uuid4().hex[:8]}").status_code == 400
+    for _ in range(5):
+        _local_login(client, name, "wrong-password-1")
+    assert _local_login(client, name, "wrong-password-1").status_code == 400
+
+
+def test_failed_sign_ins_from_one_address_are_throttled_on_both_endpoints(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _enable_ldap(db)
+    ip = f"203.0.113.{uuid.uuid4().int % 250 + 1}"
+    headers = {"X-Forwarded-For": ip}
+    monkeypatch.setattr(settings, "LOGIN_THROTTLE_MAX_FAILURES_PER_IP", 3)
+    for i in range(3):
+        r = client.post(
+            LOGIN_URL,
+            data={"username": f"nobody{i}@example.com", "password": "x" * 12},
+            headers=headers,
+        )
+        assert r.status_code == 400
+    r = client.post(
+        LDAP_LOGIN_URL, data={"username": "u", "password": "p"}, headers=headers
+    )
+    assert r.status_code == 429
+
+
+def test_inactive_ldap_account_attempt_is_audited(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    user = _ldap_account(db)
+    user.is_active = False
+    db.add(user)
+    db.commit()
+    _enable_ldap(db)
+    _fake_ldap_success(monkeypatch, ldap_id="dirbound", email=user.email)
+    assert _login(client, "dirbound").status_code == 400
+    audit = db.exec(
+        select(AuditLog).where(
+            AuditLog.action == "LOGIN_FAILED",
+            AuditLog.entity_id == "dirbound",
+            AuditLog.description.contains("inactive"),  # type: ignore[union-attr]
+        )
+    ).first()
+    assert audit is not None
+
+
+def test_card_fills_keys_a_partial_saved_config_lacks(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    monkeypatch.setattr(settings, "LDAP_HOSTS", "ldaps://dc1.example.com")
+    monkeypatch.setattr(settings, "LDAP_BASE_DN", "dc=example,dc=com")
+    r = client.put(
+        ADMIN_LDAP_URL,
+        headers=superuser_token_headers,
+        json={"config": {"allow_email_link": "true", "required_group": ""}},
+    )
+    assert r.status_code == 200, r.text
+    config = client.get(ADMIN_LDAP_URL, headers=superuser_token_headers).json()[
+        "config"
+    ]
+    assert config["hosts"] == "ldaps://dc1.example.com"
+    assert config["base_dn"] == "dc=example,dc=com"
+    assert config["allow_email_link"] == "true"
+    assert config["required_group"] == ""  # saved empty stays empty
+
+
+def test_card_asks_for_the_bind_password_when_it_cannot_be_decrypted(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    _enable_ldap(db)
+
+    def broken(_row: Any) -> str:
+        raise ValueError("bad token")
+
+    monkeypatch.setattr(auth_providers_crud, "resolve_provider_secret", broken)
+    body = client.get(ADMIN_LDAP_URL, headers=superuser_token_headers).json()
+    assert body["secret_is_set"] is False
+    assert "_secret_undecryptable" not in body["config"]
+    enabled, cfg, secret = auth_providers_crud.ldap_login_settings(session=db)
+    assert enabled and secret is None and cfg["_secret_undecryptable"] is True
+
+
+def test_saving_cleartext_or_placeholderless_settings_is_refused(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    def save(**extra: str) -> Any:
+        return client.put(
+            ADMIN_LDAP_URL,
+            headers=superuser_token_headers,
+            json={"config": {**LDAP_CONFIG, **extra}, "secret": "x"},
+        )
+
+    r = save(hosts="ldap://dc1.example.com:389")
+    assert r.status_code == 422 and "without encryption" in r.json()["detail"]
+    assert save(hosts="ldap://dc1.example.com:389", start_tls="true").status_code == 200
+    assert (
+        save(hosts="ldap://dc1.example.com:389", allow_insecure="true").status_code
+        == 200
+    )
+    r = save(user_search_filter="(uid=svc-account)")
+    assert r.status_code == 422 and "{username}" in r.json()["detail"]
+
+
+def test_concurrent_failover_audits_are_serialised(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The dedupe takes the advisory lock before it checks."""
+    from app.api.routes import login as login_routes
+    from app.crud import audit_logs as audit_logs_crud
+
+    order: list[str] = []
+
+    def lock(_session: Session) -> None:
+        order.append("lock")
+
+    def exists(**_kwargs: Any) -> bool:
+        order.append("check")
+        return True
+
+    monkeypatch.setattr(audit_logs_crud, "lock_audit_dedupe", lock)
+    monkeypatch.setattr(audit_logs_crud, "recent_audit_log_exists", exists)
+    login_routes._audit_ldap_failover(
+        db,
+        outcome_server=None,
+        failed_servers=[("ldaps://x.example.com:636", "down")],
+        username="u",
+        user_agent=None,
+        ip=None,
+    )
+    assert order == ["lock", "check"]

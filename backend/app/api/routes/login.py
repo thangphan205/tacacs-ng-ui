@@ -120,6 +120,9 @@ def _audit_ldap_failover(
         if outcome_server
         else f"All LDAP servers unreachable: [{failed_summary}]"
     )[:1024]
+    # Lock first: with 4 workers, the check and the insert below could
+    # otherwise both pass in several of them at once.
+    audit_logs_crud.lock_audit_dedupe(session)
     if audit_logs_crud.recent_audit_log_exists(
         session=session,
         action="LDAP_FAILOVER",
@@ -143,12 +146,50 @@ def _audit_ldap_failover(
 
 
 def _token_for(user: User) -> Token:
+    minutes = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    if user.ldap_id:
+        # Never re-checked against the directory, so removal there takes
+        # effect only when the token expires: keep it shorter.
+        minutes = min(minutes, settings.LDAP_ACCESS_TOKEN_EXPIRE_MINUTES)
     return Token(
         access_token=security.create_access_token(
-            user.id,
-            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+            user.id, expires_delta=timedelta(minutes=minutes)
         )
     )
+
+
+def _throttle_login(
+    session: SessionDep, *, username: str, ip: str | None, by_user: bool
+) -> None:
+    """429 once too many LOGIN_FAILED rows exist for this client or username.
+
+    Per client address on both endpoints; per username on the LDAP endpoint
+    only, since every LDAP attempt reaches the directory and may trip its
+    lockout policy. (Locking a *local* username would let a stranger lock the
+    emergency administrator out.)
+    """
+    window = timedelta(minutes=settings.LOGIN_THROTTLE_WINDOW_MINUTES)
+    limits: list[tuple[int, dict[str, str | None]]] = [
+        (settings.LOGIN_THROTTLE_MAX_FAILURES_PER_IP, {"ip_address": ip}),
+    ]
+    if by_user:
+        limits.append(
+            (settings.LOGIN_THROTTLE_MAX_FAILURES_PER_USER, {"user_email": username})
+        )
+    for limit, key in limits:
+        if limit <= 0 or all(v is None for v in key.values()):
+            continue
+        if (
+            audit_logs_crud.count_recent_failed_logins(
+                session=session, within=window, **key
+            )
+            >= limit
+        ):
+            raise HTTPException(
+                status_code=429,
+                detail="Too many failed sign-in attempts. Try again later.",
+                headers={"Retry-After": str(int(window.total_seconds()))},
+            )
 
 
 @router.post("/login/access-token")
@@ -165,6 +206,7 @@ def login_access_token(
     ip = get_client_ip(request)
     user_agent = request.headers.get("user-agent")
 
+    _throttle_login(session, username=form_data.username, ip=ip, by_user=False)
     user = users.authenticate(
         session=session, email=form_data.username, password=form_data.password
     )
@@ -178,6 +220,13 @@ def login_access_token(
         )
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     if not user.is_active:
+        _audit_login_failure(
+            session,
+            username=form_data.username,
+            description="Password login refused: inactive user",
+            user_agent=user_agent,
+            ip=ip,
+        )
         raise HTTPException(status_code=400, detail="Inactive user")
     if not auth_providers_crud.password_login_allowed(session=session):
         raise HTTPException(
@@ -236,6 +285,7 @@ def login_ldap_access_token(
     )
     if not ldap_enabled:
         raise HTTPException(status_code=400, detail="LDAP sign-in is not enabled")
+    _throttle_login(session, username=form_data.username, ip=ip, by_user=True)
 
     effective = build_effective_ldap_config(ldap_cfg, ldap_secret)
     outcome = authenticate_ldap_user(
@@ -287,6 +337,7 @@ def login_ldap_access_token(
                 ),
             )
         if not ldap_user.is_active:
+            _fail(f"LDAP sign-in refused: {ldap_user.email} is inactive")
             raise HTTPException(status_code=400, detail="Inactive user")
 
         _audit_login_success(

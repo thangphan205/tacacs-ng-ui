@@ -225,6 +225,21 @@ class Settings(BaseSettings):
     LDAP_BIND_DN: str = ""
     LDAP_BIND_PASSWORD: str = ""
     LDAP_REQUIRED_GROUP: str = ""
+    # Plain ldap:// without StartTLS sends passwords unencrypted and is refused
+    # unless this (or the card's "Allow unencrypted connections") is on.
+    LDAP_ALLOW_INSECURE: bool = False
+    # Web UI sessions of directory accounts are never re-checked against the
+    # directory, so keep them short: removal there takes effect when the token
+    # expires (minutes; capped by ACCESS_TOKEN_EXPIRE_MINUTES).
+    LDAP_ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
+
+    # Sign-in throttling, from LOGIN_FAILED audit rows (shared by all workers;
+    # needs the primary, standbys write no audit rows). 0 turns a limit off.
+    # Per user: LDAP sign-in only, so a stranger cannot lock the local
+    # emergency administrator out by guessing at its name.
+    LOGIN_THROTTLE_WINDOW_MINUTES: int = 15
+    LOGIN_THROTTLE_MAX_FAILURES_PER_USER: int = 10
+    LOGIN_THROTTLE_MAX_FAILURES_PER_IP: int = 50
 
     # High Availability
     NODE_ROLE: Literal["primary", "standby"] = "primary"

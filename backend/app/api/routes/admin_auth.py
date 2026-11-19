@@ -12,9 +12,12 @@ from app.api.deps import (
 from app.core.config import settings
 from app.core.ldap_auth import (
     LDAP_PROVIDER_PRESETS,
+    build_effective_ldap_config,
     ca_cert_error,
     check_ldap_servers_connection,
     check_ldap_user_auth,
+    cleartext_servers,
+    invalid_ldap_filters,
     invalid_ldap_server_entries,
 )
 from app.crud import audit_logs as audit_logs_crud
@@ -65,6 +68,9 @@ def _refuse_invalid_ldap_servers(config: dict[str, Any] | None) -> None:
     ca_error = ca_cert_error(str((config or {}).get("ca_cert_pem") or ""))
     if ca_error:
         raise HTTPException(status_code=422, detail=ca_error)
+    bad_filters = invalid_ldap_filters(config or {})
+    if bad_filters:
+        raise HTTPException(status_code=422, detail="; ".join(bad_filters))
 
 
 @router.get(
@@ -201,6 +207,18 @@ def update_auth_provider(
             )
         ):
             raise HTTPException(status_code=400, detail=_LDAP_SECRET_REQUIRED)
+        if body.config is not None:
+            effective = build_effective_ldap_config(body.config, body.secret)
+            insecure = cleartext_servers(effective)
+            if insecure and not effective.allow_insecure:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        f"{', '.join(insecure)} would send passwords without "
+                        "encryption. Use ldaps:// or StartTLS, or tick Allow "
+                        "unencrypted connections."
+                    ),
+                )
     existing = auth_providers_crud.get_provider_config(
         session=session, provider=provider
     )

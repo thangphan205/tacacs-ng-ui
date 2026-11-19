@@ -3,6 +3,7 @@ import secrets
 import uuid
 from typing import Any
 
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, func, select
 
 from app.core.config import settings
@@ -272,12 +273,18 @@ LDAP_OPEN_REGISTRATION = "open_registration"
 
 def _link_ldap(
     *, session: Session, user: User, ldap_id: str, full_name: str | None
-) -> User:
+) -> User | None:
+    """Link `user` to the directory entry; None when another request won."""
     user.ldap_id = ldap_id
     if full_name and not user.full_name:
         user.full_name = full_name
     session.add(user)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        # Two first sign-ins of the same entry raced on the unique ldap_id.
+        session.rollback()
+        return get_user_by_ldap_id(session=session, ldap_id=ldap_id)
     session.refresh(user)
     return user
 
@@ -312,8 +319,8 @@ def get_or_create_ldap_user(
       (``USERS_OPEN_REGISTRATION``), so the "existing" account may be one an
       attacker registered with the victim's address — and its tokens would
       survive the link;
-    - ``new_on_standby``: the identity is new and this node is a standby
-      (read-only replica).
+    - ``new_on_standby``: the identity is new, or would be linked to an
+      existing account, and this node is a standby (read-only replica).
 
     Authentication only: an existing account keeps its ``is_superuser`` and
     ``is_active`` flags, and new accounts are created read-only.
@@ -353,9 +360,10 @@ def get_or_create_ldap_user(
                 return None, LDAP_SUPERUSER
             if standby:
                 return None, LDAP_NEW_ON_STANDBY
-            return _link_ldap(
+            linked = _link_ldap(
                 session=session, user=user, ldap_id=normalized_id, full_name=full_name
-            ), None
+            )
+            return (linked, None) if linked else (None, LDAP_LINKED_ELSEWHERE)
         if user.is_superuser:
             return None, LDAP_SUPERUSER
         if not allow_email_link:
@@ -363,10 +371,13 @@ def get_or_create_ldap_user(
         if settings.USERS_OPEN_REGISTRATION:
             return None, LDAP_OPEN_REGISTRATION
         if standby:
-            return user, None
-        return _link_ldap(
+            # The link is a write: refuse like any first sign-in. Returning the
+            # unlinked account would skip every LDAP-only protection on it.
+            return None, LDAP_NEW_ON_STANDBY
+        linked = _link_ldap(
             session=session, user=user, ldap_id=normalized_id, full_name=full_name
-        ), None
+        )
+        return (linked, None) if linked else (None, LDAP_LINKED_ELSEWHERE)
 
     # 3. New user — created on the primary only, with a random unguessable
     # password and the read-only role
@@ -381,7 +392,15 @@ def get_or_create_ldap_user(
         ldap_id=normalized_id,
     )
     session.add(user)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        # A concurrent first sign-in (double submit, another worker) created it.
+        session.rollback()
+        existing = get_user_by_ldap_id(session=session, ldap_id=normalized_id)
+        if existing is not None:
+            return existing, None
+        return None, LDAP_LINKED_ELSEWHERE  # the email is taken by another account
     session.refresh(user)
     return user, None
 

@@ -147,6 +147,9 @@ class LdapEffectiveConfig:
     receive_timeout: int
     fallback_email_domain: str
     allow_email_link: bool
+    allow_insecure: bool = False
+    # The saved bind password exists but cannot be decrypted (SECRET_KEY changed).
+    bind_password_undecryptable: bool = False
 
 
 @dataclass(frozen=True)
@@ -312,6 +315,10 @@ def invalid_ldap_server_entries(raw_config: dict[str, Any]) -> list[str]:
     return list(dict.fromkeys(bad))
 
 
+# Marker key crud.auth_providers adds to a config whose secret cannot be read.
+SECRET_UNDECRYPTABLE = "_secret_undecryptable"
+
+
 def _saved_or_env(cfg: dict[str, Any], key: str, env_value: str) -> str:
     """A saved value wins, even an empty one; env fills only an absent key.
 
@@ -343,8 +350,15 @@ def build_effective_ldap_config(
     user_base_dn = str(cfg.get("user_base_dn") or "").strip() or base_dn
     group_base_dn = str(cfg.get("group_base_dn") or "").strip() or base_dn
     bind_dn = _saved_or_env(cfg, "bind_dn", settings.LDAP_BIND_DN)
+    # `_secret_undecryptable` is set by crud.auth_providers when the saved
+    # password cannot be decrypted; a typed password overrides it. The env
+    # password is for a deployment with no saved one — never for a directory
+    # the admin configured.
+    undecryptable = bool(cfg.get(SECRET_UNDECRYPTABLE)) and not secret
     bind_password = (
-        secret if secret is not None else (settings.LDAP_BIND_PASSWORD or "")
+        ""
+        if undecryptable
+        else (secret if secret is not None else (settings.LDAP_BIND_PASSWORD or ""))
     )
 
     username_attr = (
@@ -403,7 +417,61 @@ def build_effective_ldap_config(
         receive_timeout=receive_timeout,
         fallback_email_domain=fallback_email_domain,
         allow_email_link=_parse_bool(cfg.get("allow_email_link"), False),
+        allow_insecure=_parse_bool(
+            cfg.get("allow_insecure"), settings.LDAP_ALLOW_INSECURE
+        ),
+        bind_password_undecryptable=undecryptable,
     )
+
+
+def cleartext_servers(cfg: LdapEffectiveConfig) -> list[str]:
+    """Servers a bind would reach without TLS (plain ldap:// and no StartTLS)."""
+    return [t.url for t in cfg.servers if not (t.use_ssl or t.start_tls)]
+
+
+def _has_placeholder(template: str, name: str) -> bool:
+    return bool(_PLACEHOLDER_RE[name].search(template))
+
+
+def invalid_ldap_filters(raw_config: dict[str, Any]) -> list[str]:
+    """Saved filters that would not depend on who is signing in.
+
+    ``(uid=svc)`` without a placeholder matches the same entry whatever
+    username was typed, so every sign-in becomes an attempt on that account.
+    """
+    bad: list[str] = []
+    for key, name in (
+        ("user_search_filter", "username"),
+        ("group_search_filter", "group"),
+    ):
+        value = str(raw_config.get(key) or "").strip()
+        if value and not _has_placeholder(value, name):
+            bad.append(f"{key} must contain {{{name}}} (or %s)")
+    return bad
+
+
+def configuration_problem(cfg: LdapEffectiveConfig) -> str | None:
+    """Why sign-in or a connection test must not run with `cfg`, or None."""
+    if cfg.bind_dn and not cfg.bind_password:
+        if cfg.bind_password_undecryptable:
+            return (
+                "The saved Bind Password cannot be decrypted (the SECRET_KEY "
+                "changed). Enter it again and save."
+            )
+        return "A Bind DN is set but no Bind Password is configured."
+    ca_error = ca_cert_error(cfg.ca_cert_pem)
+    if ca_error:
+        return ca_error
+    insecure = cleartext_servers(cfg)
+    if insecure and not cfg.allow_insecure:
+        return (
+            f"{', '.join(insecure)} would send passwords without encryption. "
+            "Use ldaps:// or StartTLS, or allow unencrypted connections "
+            "explicitly (only on a trusted network)."
+        )
+    if not _has_placeholder(cfg.user_search_filter, "username"):
+        return "The user search filter must contain {username} (or %s)."
+    return None
 
 
 def _build_tls(cfg: LdapEffectiveConfig) -> Tls:
@@ -742,17 +810,12 @@ def authenticate_ldap_user(
             reason="misconfigured",
             message="LDAP servers or Base DN are not configured.",
         )
-    if cfg.bind_dn and not cfg.bind_password:
-        # ldap3 refuses an empty simple-bind password before sending anything;
-        # caught as a connection error it would read as "server unreachable".
-        return LdapAuthOutcome(
-            ok=False,
-            reason="misconfigured",
-            message="A Bind DN is set but no Bind Password is configured.",
-        )
-    ca_error = ca_cert_error(cfg.ca_cert_pem)
-    if ca_error:
-        return LdapAuthOutcome(ok=False, reason="misconfigured", message=ca_error)
+    # Also covers a Bind DN with no password: ldap3 refuses an empty
+    # simple-bind password before sending anything, which caught as a
+    # connection error would read as "server unreachable".
+    problem = configuration_problem(cfg)
+    if problem:
+        return LdapAuthOutcome(ok=False, reason="misconfigured", message=problem)
 
     failed_servers: list[tuple[str, str]] = []
 
@@ -1027,14 +1090,9 @@ def check_ldap_servers_connection(
             ok=False,
             message="No LDAP servers configured.",
         )
-    if cfg.bind_dn and not cfg.bind_password:
-        return LdapTestConnectionResponse(
-            ok=False,
-            message="A Bind DN is set but no Bind Password is configured.",
-        )
-    ca_error = ca_cert_error(cfg.ca_cert_pem)
-    if ca_error:
-        return LdapTestConnectionResponse(ok=False, message=ca_error)
+    problem = configuration_problem(cfg)
+    if problem:
+        return LdapTestConnectionResponse(ok=False, message=problem)
 
     results: list[LdapServerDiagResult] = []
     # The server sign-in would stop at: (index, url, error or None when bound)

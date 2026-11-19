@@ -2,6 +2,7 @@ import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import text
 from sqlmodel import Session, delete, func, select
 
 from app.core.audit_redact import redact_audit_values
@@ -39,6 +40,42 @@ def create_audit_log(
     session.refresh(db_obj)
     _forward_to_siem(session, db_obj, db_obj.created_at)
     return db_obj
+
+
+def count_recent_failed_logins(
+    *,
+    session: Session,
+    within: timedelta,
+    user_email: str | None = None,
+    ip_address: str | None = None,
+) -> int:
+    """LOGIN_FAILED rows in the window for a username or a client address.
+
+    Shared by every uvicorn worker (the rows are in the database). Standbys
+    write no audit rows, so this is 0 there.
+    """
+    since = datetime.now(timezone.utc) - within
+    statement = (
+        select(func.count())
+        .select_from(AuditLog)
+        .where(AuditLog.action == "LOGIN_FAILED", AuditLog.created_at >= since)
+    )
+    if user_email is not None:
+        statement = statement.where(AuditLog.user_email == user_email)
+    if ip_address is not None:
+        statement = statement.where(AuditLog.ip_address == ip_address)
+    return int(session.exec(statement).one())
+
+
+def lock_audit_dedupe(session: Session) -> None:
+    """Serialise check-then-insert dedupe across workers until the next commit.
+
+    A transaction-level advisory lock, so ``recent_audit_log_exists`` followed
+    by ``create_audit_log`` cannot both pass in two workers at once.
+    """
+    if settings.NODE_ROLE == "standby":
+        return
+    session.execute(text("SELECT pg_advisory_xact_lock(7461636, 3)"))
 
 
 def recent_audit_log_exists(

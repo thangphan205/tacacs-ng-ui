@@ -511,6 +511,9 @@ All variables with their defaults (from `.env.example`):
 | `LDAP_BIND_DN` | *(optional)* | Service account DN; blank = anonymous search |
 | `LDAP_BIND_PASSWORD` | *(optional)* | Service account password |
 | `LDAP_REQUIRED_GROUP` | *(optional)* | Group name or full DN a user must belong to |
+| `LDAP_ALLOW_INSECURE` | `false` | Allow plain `ldap://` without StartTLS (passwords sent unencrypted). Refused otherwise |
+| `LDAP_ACCESS_TOKEN_EXPIRE_MINUTES` | `480` | Lifetime of a directory account's session token (capped by `ACCESS_TOKEN_EXPIRE_MINUTES`). Removal from the directory takes effect when it expires |
+| `LOGIN_THROTTLE_MAX_FAILURES_PER_IP` / `_PER_USER` | `50` / `10` | Failed sign-ins per client address (both endpoints) or per username (LDAP only) allowed within `LOGIN_THROTTLE_WINDOW_MINUTES` (`15`) before HTTP 429. `0` turns a limit off |
 | `SIEM_WEBHOOK_URL` | *(optional)* | **First start only:** seeds **Admin → SIEM Integration**, which owns the settings afterwards. Splunk HEC or Logstash HTTP input URL |
 | `SIEM_WEBHOOK_TOKEN` | *(optional)* | First start only. Splunk HEC token |
 | `SIEM_FORWARD_TACACS_EVENTS` | `false` | First start only. `true` ships authentication, authorization and accounting events |

@@ -8,6 +8,7 @@ from sqlmodel import Session, select
 from app.core.config import settings
 from app.core.ldap_auth import (
     LDAP_PROVIDER_PRESETS,
+    SECRET_UNDECRYPTABLE,
     LdapEffectiveConfig,
     build_effective_ldap_config,
 )
@@ -108,8 +109,10 @@ def _stored_ldap(
     try:
         secret = resolve_provider_secret(row)
     except Exception:
+        # Not "no password": sign-in must say so, not fall back to the env's.
         logger.warning("Could not decrypt the stored LDAP bind password")
         secret = None
+        cfg = {**cfg, SECRET_UNDECRYPTABLE: True}
     return row, cfg, secret
 
 
@@ -140,6 +143,7 @@ def ldap_env_public() -> AuthProviderConfigPublic:
         "base_dn": settings.LDAP_BASE_DN,
         "bind_dn": settings.LDAP_BIND_DN,
         "required_group": settings.LDAP_REQUIRED_GROUP,
+        "allow_insecure": "true" if settings.LDAP_ALLOW_INSECURE else "",
     }
     return AuthProviderConfigPublic(
         provider="ldap",
@@ -152,24 +156,30 @@ def ldap_env_public() -> AuthProviderConfigPublic:
 
 
 def ldap_public(*, session: Session) -> AuthProviderConfigPublic:
-    """The LDAP card's view: the saved settings, or the env ones in effect.
+    """The LDAP card's view: the saved settings over the env ones in effect.
 
-    The Enable switch saves no settings, so a row whose config is still empty
-    shows the ``LDAP_*`` values sign-in uses — otherwise the card would show
-    placeholders and Save would write them over a working env setup.
+    A key the saved config lacks takes the ``LDAP_*`` value sign-in uses for
+    it (the Enable switch saves a row with no settings at all, and a partial
+    config is possible too). Otherwise the card would show placeholders and
+    Save would write them over a working env setup. A key saved empty stays
+    empty: it is the admin's choice (`build_effective_ldap_config`).
     """
-    row = get_provider_config(session=session, provider="ldap")
-    if row is None:
-        return ldap_env_public()
-    public = to_public(row)
-    if public.config:
-        return public
+    row, stored_cfg, _secret = _stored_ldap(session=session)
     env = ldap_env_public()
-    return env.model_copy(
-        update={
-            "enabled": row.enabled,
-            "secret_is_set": public.secret_is_set or env.secret_is_set,
-        }
+    if row is None:
+        return env
+    saved = {
+        k: v for k, v in to_public(row).config.items() if k != SECRET_UNDECRYPTABLE
+    }
+    undecryptable = bool(stored_cfg.get(SECRET_UNDECRYPTABLE))
+    return AuthProviderConfigPublic(
+        provider="ldap",
+        enabled=row.enabled,
+        config={**env.config, **saved},
+        # An unreadable saved password is not "set": the card must ask for it.
+        secret_is_set=(
+            False if undecryptable else bool(row.encrypted_secret) or env.secret_is_set
+        ),
     )
 
 
