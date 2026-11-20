@@ -30,6 +30,10 @@ import {
   TacacsServicesService,
 } from "@/client"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
+import {
+  RADIUS_LISTS,
+  RadiusSuggestions,
+} from "@/components/Common/RadiusSuggestions"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -232,6 +236,7 @@ const AddProfileScript = ({
             <DialogTitle>Add ProfileScript</DialogTitle>
           </DialogHeader>
           <DialogBody>
+            <RadiusSuggestions />
             <Grid templateColumns={{ base: "1fr", lg: "7fr 5fr" }} gap={6}>
               <GridItem>
                 <Text mb={4} color="fg.muted" fontSize="sm">
@@ -334,6 +339,7 @@ const AddProfileScript = ({
                         required: "Key is required.",
                       })}
                       placeholder="Key"
+                      list={RADIUS_LISTS.scriptKeys}
                       type="text"
                     />
                   </Field>
@@ -386,6 +392,7 @@ const AddProfileScript = ({
                           required: "value is required.",
                         })}
                         placeholder="value"
+                        list={RADIUS_LISTS.scriptValues}
                         type="text"
                       />
                     )}

@@ -164,6 +164,7 @@ def format_tacacs_syslog(log_type: str, event: TacacsLogEvent | None, raw: str) 
         return _rfc5424(_PRI_INFO, when, TACACS_APP_NAME, body)
     parts = [
         f"type={_value(log_type)}",
+        f"protocol={_value(event.protocol)}",
         f"username={_value(event.username)}",
         f"nas_ip={_value(event.nas_ip)}",
         f"port={_value(event.port)}",
@@ -184,6 +185,7 @@ def tacacs_hec(log_type: str, event: TacacsLogEvent | None, raw: str) -> dict[st
     else:
         body.update(
             timestamp=event.timestamp,
+            protocol=event.protocol,
             username=event.username,
             nas_ip=event.nas_ip,
             port=event.port,

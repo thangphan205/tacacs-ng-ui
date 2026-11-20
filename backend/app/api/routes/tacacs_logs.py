@@ -285,6 +285,7 @@ def list_log_events(
     username: str | None = None,
     nas_ip: str | None = None,
     search: str | None = None,
+    protocol: Literal["tacacs", "radius"] | None = None,
     skip: int = 0,
     limit: int = 20,
 ) -> Any:
@@ -292,6 +293,8 @@ def list_log_events(
     Return structured TACACS+ log events parsed from log files.
     date_from / date_to: YYYY-MM-DD range (inclusive). date: single-day shorthand (deprecated).
     log_type: authentication|authorization|accounting|all.
+    protocol: tacacs|radius (RADIUS lines share the authentication and
+    accounting files).
     """
     # Naive like the strptime() results it is compared with below.
     today = _local_today_midnight()
@@ -337,6 +340,8 @@ def list_log_events(
     all_events.sort(key=lambda e: e.timestamp, reverse=True)
 
     # Apply filters
+    if protocol:
+        all_events = [e for e in all_events if e.protocol == protocol]
     if result:
         all_events = [e for e in all_events if e.result == result]
     if username:
@@ -357,6 +362,7 @@ def list_log_events(
             or (e.port and q in e.port.lower())
             or q in e.result.lower()
             or q in e.log_type.lower()
+            or q in e.protocol
             or (e.command and q in e.command.lower())
             or q in e.message.lower()
         ]

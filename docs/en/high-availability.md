@@ -65,6 +65,7 @@ Zone A is the primary (all writes). Zone B is a hot standby — its PostgreSQL r
 | `5432` | Zone B → Zone A | PostgreSQL streaming replication |
 | `8000` | Zone A → Zone B | Internal config reload trigger (optional, auto-sync only) |
 | `49` | Network devices → both zones | TACACS+ authentication |
+| `1812/udp`, `1813/udp` | Network devices → both zones | RADIUS authentication / accounting (only when RADIUS is enabled — see [RADIUS](radius.md)) |
 | `443` | Admin browsers → both zones | HTTPS dashboard |
 
 > **Security:** Expose port 5432 only on a private/VPN network, never to the public internet.
@@ -375,6 +376,7 @@ When `NODE_ROLE=standby`, the backend behaves differently to protect the read-on
 | DB migrations on startup | ✅ | ⏭ Skipped (schema arrives via replication) |
 | Alert evaluation / ML scoring / audit purge / stats collection / cron | ✅ | ❌ Never runs — decided by `NODE_ROLE=standby`, not by the replicated `scheduler_enabled` row |
 | TACACS+ authentication (port 49) | ✅ | ✅ |
+| RADIUS authentication / accounting (1812-1813/udp, when enabled) | ✅ | ✅ |
 | Dashboard — view | ✅ | ✅ |
 | Dashboard — edit | ✅ | ❌ Blocked with "read-only mode" message |
 

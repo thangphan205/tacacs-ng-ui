@@ -2694,6 +2694,8 @@ export class TacacsLogsService {
      * Return structured TACACS+ log events parsed from log files.
      * date_from / date_to: YYYY-MM-DD range (inclusive). date: single-day shorthand (deprecated).
      * log_type: authentication|authorization|accounting|all.
+     * protocol: tacacs|radius (RADIUS lines share the authentication and
+     * accounting files).
      */
     public static listLogEvents<ThrowOnError extends boolean = true>(parameters?: {
         date?: string | null;
@@ -2704,6 +2706,7 @@ export class TacacsLogsService {
         username?: string | null;
         nas_ip?: string | null;
         search?: string | null;
+        protocol?: 'tacacs' | 'radius' | null;
         skip?: number;
         limit?: number;
     }, options?: Options<never, ThrowOnError>): RequestResult<TacacsLogsListLogEventsResponses, TacacsLogsListLogEventsErrors, ThrowOnError, 'data'> {
@@ -2716,6 +2719,7 @@ export class TacacsLogsService {
                     { in: 'query', key: 'username' },
                     { in: 'query', key: 'nas_ip' },
                     { in: 'query', key: 'search' },
+                    { in: 'query', key: 'protocol' },
                     { in: 'query', key: 'skip' },
                     { in: 'query', key: 'limit' }
                 ] }]);
