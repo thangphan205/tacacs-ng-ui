@@ -49,7 +49,7 @@ ENTITY_TYPES: dict[str, tuple[type[SQLModel], str]] = {
 
 # Fields never returned to an MCP client, per entity type.
 _ENTITY_SECRET_FIELDS: dict[str, frozenset[str]] = {
-    "host": frozenset({"secret_key"}),
+    "host": frozenset({"secret_key", "radius_secret_key"}),
     "user": frozenset({"password"}),
     "mavis": frozenset({"mavis_value"}),
 }

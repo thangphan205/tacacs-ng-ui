@@ -138,6 +138,11 @@ services:
       retries: 5
     ports:
       - "49:49"
+      # RADIUS authentication / accounting. Nothing listens on them until RADIUS
+      # is enabled under TACACS NG Settings; change both sides together if the
+      # ports there are changed.
+      - "1812:1812/udp"
+      - "1813:1813/udp"
     build:
       context: ./backend
     volumes:
@@ -145,8 +150,8 @@ services:
       - tacacs_log_data:/var/log/tacacs
     # No traefik labels: the backend is not routed from the outside. The
     # frontend's nginx proxies /api, /mcp, /docs and /redoc to it, so the whole
-    # application lives on one URL. Port 49 above is TACACS+ itself, which
-    # never went through traefik.
+    # application lives on one URL. Port 49 above is TACACS+ itself, and
+    # 1812-1813/udp RADIUS, which never went through traefik.
 
   frontend:
     image: "${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}"

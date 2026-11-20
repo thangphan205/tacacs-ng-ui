@@ -50,6 +50,7 @@ def test_a_secret_set_for_the_first_time_is_not_flagged_as_changed() -> None:
     ("entity_type", "field"),
     [
         ("Host", "secret_key"),
+        ("Host", "radius_secret_key"),
         ("TacacsUser", "password"),
         ("User", "hashed_password"),
         ("ApiKey", "key_hash"),

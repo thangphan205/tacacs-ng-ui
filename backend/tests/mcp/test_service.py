@@ -296,3 +296,43 @@ def test_get_tacacs_settings_or_raises(db: Session) -> None:
         pytest.skip("no TacacsNgSetting row seeded in this database")
     assert "ipv4_address" in settings_payload
     assert "ipv4_port" in settings_payload
+
+
+# --- RADIUS secrets ---
+
+
+@pytest.fixture
+def radius_host(db: Session) -> Host:
+    from sqlmodel import select
+
+    from app.models import TacacsNgSetting
+
+    setting = db.exec(select(TacacsNgSetting)).first()
+    assert setting is not None
+    was_enabled = setting.radius_enabled
+    setting.radius_enabled = True
+    host = Host(
+        name=f"h-{random_lower_string()[:10]}",
+        ipv4_address="10.9.7.0/24",
+        radius_secret_key="mcp-test-radius-secret",
+        generate_config=True,
+    )
+    db.add(setting)
+    db.add(host)
+    db.commit()
+    db.refresh(host)
+    yield host
+    db.delete(host)
+    setting.radius_enabled = was_enabled
+    db.add(setting)
+    db.commit()
+
+
+def test_radius_secret_is_masked_everywhere(db: Session, radius_host: Host) -> None:
+    listed = service.list_entities(session=db, entity_type="host")
+    match = next(i for i in listed["items"] if i["name"] == radius_host.name)
+    assert match["radius_secret_key"] == "***REDACTED***"
+
+    preview = service.generate_config_preview(session=db)
+    assert "radius.key" in preview["config"]
+    assert radius_host.radius_secret_key not in preview["config"]

@@ -17,6 +17,7 @@ from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
 
 from app.core.config import settings
+from app.core.radius_dictionary import normalize_radius_dictionary
 from app.core.raw_script import check_profile_name, normalize_raw_script
 
 
@@ -234,6 +235,16 @@ class TacacsNgSettingBase(SQLModel):
     # authentication, authorization and accounting event to as UDP syslog, in
     # addition to the local files, from every node (#373). Empty = disabled.
     remote_syslog_destination: str = Field(default="", max_length=21)
+    # RADIUS (served by the same tac_plus-ng). Off by default: with it off the
+    # generated config is exactly what it was before RADIUS existed, and the
+    # host RADIUS secrets and dictionary text below are kept but not emitted.
+    radius_enabled: bool = Field(default=False)
+    radius_auth_port: int = Field(default=1812, ge=1, le=65535)
+    radius_acct_port: int = Field(default=1813, ge=1, le=65535)
+    # Extra `radius.dictionary` blocks appended after the built-in dictionary.
+    radius_dictionary_extra: str | None = Field(
+        default=None, sa_column=Column(sa.Text, nullable=True)
+    )
 
 
 def check_remote_syslog_destination(value: str) -> str:
@@ -263,11 +274,35 @@ def check_remote_syslog_destination(value: str) -> str:
     return host
 
 
+def check_radius_ports(setting: "TacacsNgSettingBase") -> None:
+    """RADIUS ports must differ from each other and from TACACS+.
+
+    Run on the merged row: the settings PUT is partial, so a validator on
+    `TacacsNgSettingUpdate` would compare a sent port with the defaults
+    instead of the stored values.
+    """
+    ports = {setting.radius_auth_port, setting.radius_acct_port}
+    if len(ports) != 2:
+        raise ValueError("RADIUS authentication and accounting ports must differ.")
+    if setting.ipv4_port in ports:
+        raise ValueError("RADIUS ports must differ from the TACACS+ port.")
+
+
 class TacacsNgSettingCreate(TacacsNgSettingBase):
     @field_validator("remote_syslog_destination")
     @classmethod
     def _check_remote_syslog(cls, v: str) -> str:
         return check_remote_syslog_destination(v)
+
+    @field_validator("radius_dictionary_extra")
+    @classmethod
+    def _check_radius_dictionary(cls, v: str | None) -> str | None:
+        return normalize_radius_dictionary(v)
+
+    @model_validator(mode="after")
+    def _check_radius(self) -> "TacacsNgSettingCreate":
+        check_radius_ports(self)
+        return self
 
 
 # Validated on Create/Update only: Public and the table model also inherit
@@ -277,6 +312,11 @@ class TacacsNgSettingUpdate(TacacsNgSettingBase):
     @classmethod
     def _check_remote_syslog(cls, v: str) -> str:
         return check_remote_syslog_destination(v)
+
+    @field_validator("radius_dictionary_extra")
+    @classmethod
+    def _check_radius_dictionary(cls, v: str | None) -> str | None:
+        return normalize_radius_dictionary(v)
 
 
 # Database model, database table inferred from class name
@@ -337,6 +377,9 @@ class HostBase(SQLModel):
     ipv4_address: str | None = None
     ipv6_address: str | None = None
     secret_key: str | None = Field(default=None, max_length=255)
+    # RADIUS shared secret. tac_plus-ng answers RADIUS only for a host with
+    # one (own or inherited from `parent`), and only while RADIUS is enabled.
+    radius_secret_key: str | None = Field(default=None, max_length=255)
     welcome_banner: str | None = None
     reject_banner: str | None = None
     motd_banner: str | None = None
@@ -347,13 +390,32 @@ class HostBase(SQLModel):
 
 
 def _require_key_or_parent(host: "HostBase") -> "HostBase":
-    # A host without a parent has nothing to inherit its key from.
-    if not host.secret_key and not host.parent:
-        raise ValueError("secret_key is required unless a parent host is set")
+    # A host without a parent has nothing to inherit its key from. A
+    # RADIUS-only device (e.g. MikroTik) has a RADIUS secret and no TACACS+ key.
+    if not host.secret_key and not host.radius_secret_key and not host.parent:
+        raise ValueError(
+            "secret_key or radius_secret_key is required unless a parent host is set"
+        )
     return host
 
 
+# Keys are written into the config as `key = "<value>"`: a quote, backslash or
+# line break would end the string and let the rest add arbitrary config.
+_UNSAFE_KEY = re.compile(r'["\\\r\n]')
+
+
+def check_host_key(value: str | None) -> str | None:
+    if value and _UNSAFE_KEY.search(value):
+        raise ValueError("Keys can't contain quotes, backslashes or line breaks.")
+    return value
+
+
 class HostCreate(HostBase):
+    @field_validator("secret_key", "radius_secret_key")
+    @classmethod
+    def _check_key(cls, v: str | None) -> str | None:
+        return check_host_key(v)
+
     @model_validator(mode="after")
     def _check_key_or_parent(self) -> "HostCreate":
         _require_key_or_parent(self)
@@ -361,6 +423,11 @@ class HostCreate(HostBase):
 
 
 class HostUpdate(HostBase):
+    @field_validator("secret_key", "radius_secret_key")
+    @classmethod
+    def _check_key(cls, v: str | None) -> str | None:
+        return check_host_key(v)
+
     @model_validator(mode="after")
     def _check_key_or_parent(self) -> "HostUpdate":
         _require_key_or_parent(self)
@@ -1009,6 +1076,9 @@ class TacacsLogEvent(SQLModel):
     session_id: str | None = (
         None  # logical session grouping key (username+nas_ip+client_ip+port)
     )
+    # "tacacs" | "radius": RADIUS lines share the authentication and
+    # accounting files (core/tacacs_log_parse.log_protocol).
+    protocol: str = "tacacs"
 
 
 class TacacsLogEventsPublic(SQLModel):

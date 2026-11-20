@@ -428,3 +428,122 @@ def test_collector_live_today_and_alerts_agree_on_logins(
     # the Events tab still shows each line with its own result
     event = parse_log_line("authentication", PASSWORD_CHANGE_FAILED)
     assert event is not None and event.result == "failed"
+
+
+# --- RADIUS lines in the shared files ----------------------------------------
+#
+# The shape tac_plus-ng writes with the radius.access / radius.accounting
+# formats from crud/tacacs_configs.py, checked against the binary
+# (tests/core/test_radius_binary.py).
+
+RADIUS_AUTH_OK = _line(
+    "192.0.2.50",
+    "alice",
+    "",
+    "198.51.100.7",
+    "radius pap login succeeded\tMikroTik:MikroTik-Group=full",
+)
+RADIUS_AUTH_FAIL = _line(
+    "192.0.2.50", "alice", "", "198.51.100.7", "radius pap login failed\t"
+)
+# Reply attributes come after the verdict and may say anything.
+RADIUS_AUTH_FAIL_SPOOF = _line(
+    "192.0.2.50",
+    "mallory",
+    "",
+    "198.51.100.8",
+    'radius pap login failed\tReply-Message="login succeeded"',
+)
+RADIUS_ACCT_START = _line(
+    "192.0.2.50",
+    "alice",
+    "",
+    "198.51.100.7",
+    "start\tradius\tUser-Name=alice Acct-Status-Type=Start Acct-Session-Id=s1",
+)
+# Attributes are written by whoever sends the request: a User-Name of "stop".
+RADIUS_ACCT_UPDATE = _line(
+    "192.0.2.50",
+    "stop",
+    "",
+    "198.51.100.7",
+    "update\tradius\tUser-Name=stop Acct-Status-Type=Interim-Update",
+)
+
+
+def test_radius_authentication_lines_parse_like_tacacs() -> None:
+    ok = parse_log_line("authentication", RADIUS_AUTH_OK)
+    assert ok is not None
+    assert (ok.username, ok.nas_ip, ok.client_ip) == (
+        "alice",
+        "192.0.2.50",
+        "198.51.100.7",
+    )
+    assert ok.result == "success"
+    assert ok.protocol == "radius"
+
+    fail = parse_log_line("authentication", RADIUS_AUTH_FAIL)
+    assert fail is not None and fail.result == "failed" and fail.protocol == "radius"
+
+
+def test_tacacs_lines_are_tacacs() -> None:
+    for log_type, line in (
+        ("authentication", AUTH_EMPTY_PORT),
+        ("authorization", AUTHZ_EMPTY_PORT),
+        ("accounting", ACCT_NO_CLIENT),
+    ):
+        event = parse_log_line(log_type, line)
+        assert event is not None and event.protocol == "tacacs"
+
+
+def test_reply_attributes_cannot_turn_a_failed_login_into_success() -> None:
+    fields = split_log_line(RADIUS_AUTH_FAIL_SPOOF)
+    assert fields is not None
+    assert authentication_outcome(fields.message) == "fail"
+    event = parse_log_line("authentication", RADIUS_AUTH_FAIL_SPOOF)
+    assert event is not None and event.result == "failed"
+
+
+def test_radius_failures_reach_statistics_and_alerts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    log_dir = _write(
+        tmp_path,
+        "authentication",
+        RADIUS_AUTH_OK,
+        RADIUS_AUTH_FAIL,
+        RADIUS_AUTH_FAIL_SPOOF,
+    )
+    ok, failed = parse_authentication_logs(DAY, log_dir)
+    assert ok == {("alice", "192.0.2.50", "198.51.100.7"): 1}
+    assert failed == {
+        ("alice", "192.0.2.50", "198.51.100.7"): 1,
+        ("mallory", "192.0.2.50", "198.51.100.8"): 1,
+    }
+
+    path = build_log_file_path(DAY, "authentication", log_dir)
+    monkeypatch.setattr(alert_evaluator, "_log_paths_for_window", lambda *_a: [path])
+    window = alert_evaluator._parse_auth_log(
+        datetime(2026, 11, 7, tzinfo=timezone.utc),
+        datetime(2026, 11, 9, tzinfo=timezone.utc),
+    )
+    assert window.fail_by_user == {"alice": 1, "mallory": 1}
+
+
+def test_radius_accounting_lines() -> None:
+    start = parse_log_line("accounting", RADIUS_ACCT_START)
+    assert start is not None
+    assert (start.result, start.protocol) == ("start", "radius")
+    assert start.command == "User-Name=alice Acct-Status-Type=Start Acct-Session-Id=s1"
+
+    # an interim update is neither start nor stop, whatever the attributes say
+    update = parse_log_line("accounting", RADIUS_ACCT_UPDATE)
+    assert update is not None
+    assert (update.result, update.protocol) == ("unknown", "radius")
+
+
+def test_radius_accounting_statistics(tmp_path: Path) -> None:
+    log_dir = _write(tmp_path, "accounting", RADIUS_ACCT_START, RADIUS_ACCT_UPDATE)
+    starts, stops = parse_accounting_logs(DAY, log_dir)
+    assert starts == {("alice", "192.0.2.50", "198.51.100.7"): 1}
+    assert stops == {}

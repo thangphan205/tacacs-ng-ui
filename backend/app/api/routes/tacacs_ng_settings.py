@@ -62,9 +62,12 @@ def update_tacacs_ng_settings(
             status_code=404, detail="TacacsNgSetting settings not found"
         )
     old_values = db_tacacs_ng.model_dump_json(exclude=_SENSITIVE)
-    db_tacacs_ng = tacacs_ng_settings.update_tacacs_ng(
-        session=session, db_tacacs_ng=db_tacacs_ng, tacacs_ng_in=tacacs_ng_in
-    )
+    try:
+        db_tacacs_ng = tacacs_ng_settings.update_tacacs_ng(
+            session=session, db_tacacs_ng=db_tacacs_ng, tacacs_ng_in=tacacs_ng_in
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     audit_logs_crud.log_entity_action(
         session=session,
         action="UPDATE",

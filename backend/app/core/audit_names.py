@@ -2,7 +2,8 @@
 
 An audit row identifies its object by UUID only, and after a delete that id
 resolves to nothing. The name is in the row's old/new values JSON, but those
-values hold secrets (TacacsUser.password hash, Host.secret_key, Mavis values),
+values hold secrets (TacacsUser.password hash, Host.secret_key and
+radius_secret_key, Mavis values),
 so they are never sent to a SIEM. Only this one derived value is.
 """
 

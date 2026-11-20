@@ -65,7 +65,12 @@ def find_default_credentials(*, session: Session) -> list[DefaultCredentialFindi
     hosts = session.exec(
         select(Host)
         .where(col(Host.generate_config).is_(True))
-        .where(col(Host.secret_key) == DEMO_PASSWORD)
+        .where(
+            or_(
+                col(Host.secret_key) == DEMO_PASSWORD,
+                col(Host.radius_secret_key) == DEMO_PASSWORD,
+            )
+        )
         .order_by(col(Host.name))
     ).all()
     findings.extend(
