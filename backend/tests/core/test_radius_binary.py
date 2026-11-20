@@ -109,6 +109,27 @@ def access_request(user: str, password: str) -> tuple[int, list[tuple[int, bytes
     return reply
 
 
+def chap_request(user: str, password: str) -> int:
+    """RFC 2865 CHAP: CHAP-Password = ident + MD5(ident + password + challenge)."""
+    challenge, ident = os.urandom(16), 7
+    digest = hashlib.md5(bytes([ident]) + password.encode() + challenge).digest()
+    authenticator = os.urandom(16)
+    body = (
+        _attr(1, user.encode())
+        + _attr(3, bytes([ident]) + digest)
+        + _attr(60, challenge)
+        + _attr(4, socket.inet_aton("127.0.0.1"))
+        + _attr(80, b"\0" * 16)
+    )
+    packet = (
+        struct.pack("!BBH", ACCESS_REQUEST, 3, 20 + len(body)) + authenticator + body
+    )
+    signature = hmac.new(SECRET, packet, hashlib.md5).digest()
+    reply = _send(AUTH_PORT, packet[:-16] + signature)
+    assert reply is not None, "no answer to CHAP Access-Request"
+    return reply[0]
+
+
 def accounting_request(user: str, status: int) -> int:
     body = (
         _attr(1, user.encode())
@@ -172,6 +193,13 @@ def radius_config(db: Session, tmp_path: Path) -> Iterator[tuple[str, Path, str]
         member=group.group_name,
         generate_config=True,
     )
+    clear_user = TacacsUser(
+        username=f"radclear{suffix}",
+        password_type="clear",
+        password=PASSWORD,
+        member=group.group_name,
+        generate_config=True,
+    )
     host = Host(
         name=f"RADHOST_{suffix}",
         ipv4_address="127.0.0.1/32",
@@ -209,7 +237,7 @@ def radius_config(db: Session, tmp_path: Path) -> Iterator[tuple[str, Path, str]
             "} }"
         ),
     )
-    rows = [group, user, host, profile, script, *sets, rule]
+    rows = [group, user, clear_user, host, profile, script, *sets, rule]
     for row in [setting, *rows]:
         db.add(row)
     db.commit()
@@ -308,3 +336,18 @@ def test_radius_login_accounting_and_logs(
     assert all(e is not None and e.protocol == "radius" for e in events), events
     assert [e.result for e in events if e] == ["start", "unknown", "stop"]
     assert all(e.username == username for e in events if e)
+
+
+def test_chap_needs_a_cleartext_password(
+    daemon: Path, radius_config: tuple[str, Path, str]
+) -> None:
+    """CHAP and MS-CHAP (MikroTik RouterOS logins) can't be checked against a
+    hash: a `crypt` user is refused, a `clear` user gets in. MS-CHAPv2 uses the
+    same `password ms-chap = clear` path and was verified against RouterOS."""
+    _, _, crypt_user = radius_config
+    clear_user = crypt_user.replace("radalice", "radclear")
+    assert chap_request(clear_user, PASSWORD) == ACCESS_ACCEPT
+    assert chap_request(clear_user, "wrong-password") == ACCESS_REJECT
+    assert chap_request(crypt_user, PASSWORD) == ACCESS_REJECT
+    lines = _lines(daemon / "authentication.log")
+    assert any("radius chap login succeeded" in line for line in lines), lines

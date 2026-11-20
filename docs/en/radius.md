@@ -16,7 +16,7 @@ RADIUS is **off by default**. While it is off, the generated config contains no 
 What it does not do:
 
 - **No RadSec or DTLS.** RADIUS runs over plain UDP only.
-- **PAP only for local users.** Locally defined users have their passwords stored as hashes, so they can sign in with PAP only. CHAP and MS-CHAP need the cleartext password, which only a user with password type `clear` has. The RADIUS line in the Events tab names the method the device used, for example `radius pap login succeeded`.
+- **CHAP and MS-CHAP need password type `clear`.** A user with password type `crypt` (a SHA-512 hash, the default) can sign in with **PAP only**. CHAP and MS-CHAP prove the password without sending it, so the server must hold it in cleartext. For a user with password type `clear`, the generated config also adds `password chap` and `password ms-chap` lines. **MikroTik RouterOS logs users in with MS-CHAPv2** (verified on RouterOS 7.25.1), so users who log in to MikroTik devices need password type `clear`. A `clear` password is stored as plain text in the database and the generated config; audit logs and MCP output still redact it. The Events tab names the method each device used, for example `radius mschapv2 login succeeded`.
 
 ---
 
@@ -36,7 +36,7 @@ Go to **NG Settings → RADIUS** and check **Enable RADIUS**. The defaults are:
 On a fresh install you can enable RADIUS from the start with `RADIUS_ENABLED=true` in `.env`. That value is read on first startup only; after that the UI owns the setting.
 
 > [!IMPORTANT]
-> RADIUS identifies a device by its source address. The device's real address must reach the container. Docker on Linux keeps it for published UDP ports. Docker Desktop (macOS, Windows) rewrites it, so every device appears to come from the same internal address.
+> RADIUS identifies a device by its source address. The device's real address must reach the container. Docker on Linux keeps it for a device on another machine. Docker Desktop (macOS, Windows) rewrites it, so every device appears to come from the same internal address. So does Docker on Linux for a device running on the same host, for example a containerlab router: its requests arrive from the gateway of the `tacacs-ng-ui_default` network (e.g. `172.19.0.1`). The Events tab shows the address the server saw in the NAS column.
 
 ### 2. Give the device a RADIUS secret
 
@@ -121,7 +121,7 @@ Standby nodes receive the RADIUS configuration with the rest of the config. Each
 |---|---|
 | The device gets no answer | Is RADIUS enabled, and the config generated and activated? Does the host's address match the address the request arrives from? Does the host have a RADIUS secret, its own or its parent's? Is the UDP port open? |
 | The device reports a bad secret, or `denied (bad RADIUS secret)` appears in the logs | The secret differs between the device and the host. |
-| `radius chap login failed` or `radius mschapv2 login failed` | The device uses CHAP or MS-CHAP, which hashed local passwords can't answer. Switch the device to PAP, or give the user a `clear` password. |
+| `radius chap login failed` or `radius mschapv2 login failed` for a password you know is right | The device uses CHAP or MS-CHAP, which a `crypt` (hashed) password can't answer. Set the user's password type to `clear` and re-enter the password, or switch the device to PAP if it allows that (RouterOS doesn't). |
 | The login succeeds but has the wrong rights | The profile has no RADIUS script, or the attribute value doesn't match a group or role on the device. The Events tab shows the attributes that were returned at the end of the line. |
 
 See also: [MikroTik RouterOS example](config-examples/mikrotik.md).

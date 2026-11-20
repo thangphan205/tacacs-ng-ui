@@ -755,9 +755,10 @@ function TacacsNgSettingsForm() {
                   </Field>
 
                   <Text fontSize="xs" color="fg.muted">
-                    Local users can sign in over RADIUS with PAP only: their
-                    passwords are stored as hashes, which CHAP and MS-CHAP
-                    cannot check.
+                    Users with password type crypt (hashed) can sign in over
+                    RADIUS with PAP only. Devices that use CHAP or MS-CHAP, such
+                    as MikroTik RouterOS (MS-CHAPv2), need users with password
+                    type clear.
                   </Text>
                 </>
               )}

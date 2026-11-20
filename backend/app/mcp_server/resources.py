@@ -244,8 +244,11 @@ value `radius`, action `permit`, and a ProfileScriptSet with key
 `radius[MikroTik:MikroTik-Group]`, value `full`. In a RADIUS request `service`
 is the Service-Type (e.g. `Administrative-User`), so TACACS+ `service == shell`
 tests never match it. Without a RADIUS branch a `permit` fall-through accepts
-the login with no attributes. Locally defined users can use PAP only (their
-passwords are hashes); CHAP and MS-CHAP need a `clear` password.
+the login with no attributes. A `crypt` user can use PAP only; CHAP and MS-CHAP
+need password type `clear`, for which the generator adds
+`password chap = clear "..."` and `password ms-chap = clear "..."`
+(`password ms-chap = login` parses but never matches). MikroTik RouterOS logs
+in with MS-CHAPv2, so its users need `clear`.
 
 ## Ordering
 
@@ -278,7 +281,7 @@ exist in the UI but are **not** emitted into the config.
 | `Mavis` | `mavis_key`, `mavis_value` → `setenv K="V"` | All rows, unfiltered. A `MAVIS_OVERRIDE_<key>` environment variable takes precedence over the stored value (used for per-zone LDAP servers in HA). |
 | `Host` | `name`, `ipv4_address`, `secret_key`, `radius_secret_key`, `parent` | A host needs `secret_key` (TACACS+), `radius_secret_key` (RADIUS, emitted as `radius.key` only while RADIUS is enabled) or a `parent`. Keys can't contain quotes, backslashes or line breaks. `parent` emits `parent = <host>` and parents are written before children; a child with no key of its own inherits its parent's. `ipv6_address`, the four banner fields and `description` are stored but **not** emitted. |
 | `TacacsGroup` | `group_name` | Emits a bare `group = <name>`. |
-| `TacacsUser` | `username`, `password_type`, `password`, `member`, `account_expires_at` | `email` is stored but not emitted. A user whose `account_expires_at` (YYYY-MM-DD, last valid day) is in the past is omitted from the config. **`password` is the plaintext password — write it, never a digest.** With `password_type == "crypt"` the server applies sha512-crypt on save; pre-hashing it yourself makes the digest string itself the password. `password_type == "mavis"` emits `password login = mavis` with no argument and no `password pap`. Every other type is a local user and also emits `password pap = login`. |
+| `TacacsUser` | `username`, `password_type`, `password`, `member`, `account_expires_at` | `email` is stored but not emitted. A user whose `account_expires_at` (YYYY-MM-DD, last valid day) is in the past is omitted from the config. **`password` is the plaintext password — write it, never a digest.** With `password_type == "crypt"` the server applies sha512-crypt on save; pre-hashing it yourself makes the digest string itself the password. `password_type == "mavis"` emits `password login = mavis` with no argument and no `password pap`. Every other type is a local user and also emits `password pap = login`; `clear` additionally emits `password chap` / `password ms-chap` with the same cleartext (RADIUS CHAP / MS-CHAP). |
 | `Profile` | `name`, `action` (the fall-through verb), `raw_script` | Profiles with zero scripts and no `raw_script` are skipped entirely. `raw_script` is the `script { }` body only (no `profile`/`script` wrappers, balanced braces, no `include`); when set it is emitted verbatim instead of the structured scripts and `action` is not emitted. A profile is one or the other: scripts can't be added to a raw profile, and `raw_script` can't be set on a profile that has scripts. |
 | `ProfileScript` | `condition`, `key`, `value`, `action`, `position` | Emitted in `position` order within the profile. A script with zero sets still emits its test and action. An `else` emits no test. |
 | `ProfileScriptSet` | `key`, `value` → `set k=v` | |
