@@ -36,7 +36,7 @@ Go to **NG Settings → RADIUS** and check **Enable RADIUS**. The defaults are:
 On a fresh install you can enable RADIUS from the start with `RADIUS_ENABLED=true` in `.env`. That value is read on first startup only; after that the UI owns the setting.
 
 > [!IMPORTANT]
-> RADIUS identifies a device by its source address. The device's real address must reach the container. Docker on Linux keeps it for a device on another machine. Docker Desktop (macOS, Windows) rewrites it, so every device appears to come from the same internal address. So does Docker on Linux for a device running on the same host, for example a containerlab router: its requests arrive from the gateway of the `tacacs-ng-ui_default` network (e.g. `172.19.0.1`). The Events tab shows the address the server saw in the NAS column.
+> RADIUS identifies a device by its source address. The device's real address must reach the container. Docker on Linux keeps it for a device on another machine. Docker Desktop (macOS, Windows) rewrites it, so every device appears to come from the same internal address. So does Docker on Linux for a device running on the same host, for example a containerlab router: its requests arrive from the gateway of the `tacacs-ng-ui_default` network (e.g. `172.19.0.1`). The host entry must match that source address. The Events tab can't show it: its NAS column is the `NAS-IP-Address` the device reports about itself. A request from an address no host matches gets no answer and leaves no log line.
 
 ### 2. Give the device a RADIUS secret
 
