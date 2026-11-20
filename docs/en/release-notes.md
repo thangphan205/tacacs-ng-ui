@@ -14,6 +14,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Features
 
+* ✨ RADIUS settings tab and host RADIUS secret (2/3: UI). PR [#424](https://github.com/thangphan205/tacacs-ng-ui/pull/424) by [@thangphan205](https://github.com/thangphan205).
 * ✨ Serve RADIUS from tac_plus-ng (1/3: backend, off by default). PR [#423](https://github.com/thangphan205/tacacs-ng-ui/pull/423) by [@thangphan205](https://github.com/thangphan205).
 
 ### Internal
