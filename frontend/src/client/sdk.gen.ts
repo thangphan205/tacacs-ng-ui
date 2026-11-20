@@ -1890,6 +1890,8 @@ export class HostsService {
      * Read Hosts
      *
      * Retrieve hosts, sorted by name unless sort_by says otherwise.
+     * `has_radius_secret` keeps only hosts with (true) or without (false) a
+     * RADIUS secret of their own.
      */
     public static readHosts<ThrowOnError extends boolean = true>(parameters?: {
         skip?: number;
@@ -1897,13 +1899,15 @@ export class HostsService {
         search?: string | null;
         sort_by?: string;
         sort_order?: string;
+        has_radius_secret?: boolean | null;
     }, options?: Options<never, ThrowOnError>): RequestResult<HostsReadHostsResponses, HostsReadHostsErrors, ThrowOnError, 'data'> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'query', key: 'skip' },
                     { in: 'query', key: 'limit' },
                     { in: 'query', key: 'search' },
                     { in: 'query', key: 'sort_by' },
-                    { in: 'query', key: 'sort_order' }
+                    { in: 'query', key: 'sort_order' },
+                    { in: 'query', key: 'has_radius_secret' }
                 ] }]);
         return (options?.client ?? client).get<HostsReadHostsResponses, HostsReadHostsErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',

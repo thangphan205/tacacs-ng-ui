@@ -18,7 +18,7 @@ import { useState } from "react"
 import { FiFileText, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
-import { TacacsConfigsService } from "@/client"
+import { HostsService, TacacsConfigsService } from "@/client"
 import { DefaultCredentialsAlert } from "@/components/Common/DefaultCredentialsAlert"
 import { ListToolbar } from "@/components/Common/ListToolbar"
 import { PageSizeSelect } from "@/components/Common/PageSizeSelect"
@@ -37,6 +37,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
+import useRadiusEnabled from "@/hooks/useRadiusEnabled"
 import { formatDateTime } from "@/utils"
 
 const tacacs_configsSearchSchema = z.object({
@@ -140,6 +141,40 @@ function PendingChangesAlert() {
           {running === null
             ? "Generate a configuration and activate it to start serving it."
             : "The database no longer matches the config tac_plus-ng is running. Changes made on the entity pages, or by an MCP client, only take effect once you generate a new configuration and activate it here."}
+        </Alert.Description>
+      </Alert.Content>
+    </Alert.Root>
+  )
+}
+
+/**
+ * RADIUS is off but some hosts carry a RADIUS secret: those secrets are kept
+ * and not written to the config, so the devices get no RADIUS answer. Never
+ * blocks Generate.
+ */
+function RadiusDisabledAlert() {
+  const radiusEnabled = useRadiusEnabled()
+  const { data } = useQuery({
+    queryKey: ["hosts", { has_radius_secret: true, limit: 0 }],
+    queryFn: () =>
+      HostsService.readHosts({ has_radius_secret: true, limit: 0 }),
+    enabled: radiusEnabled === false,
+  })
+  const count = data?.count ?? 0
+  if (radiusEnabled !== false || count === 0) return null
+  return (
+    <Alert.Root status="info" mb={4} borderRadius="md">
+      <Alert.Indicator />
+      <Alert.Content>
+        <Alert.Title>
+          {count === 1
+            ? "1 host has a RADIUS secret, but RADIUS is disabled"
+            : `${count} hosts have a RADIUS secret, but RADIUS is disabled`}
+        </Alert.Title>
+        <Alert.Description>
+          Their RADIUS secrets are kept but not written to the generated config,
+          so those devices get no RADIUS answer. Enable RADIUS under TACACS NG
+          Settings → RADIUS if they need it.
         </Alert.Description>
       </Alert.Content>
     </Alert.Root>
@@ -299,6 +334,7 @@ function TacacsConfigs() {
 
       <DefaultCredentialsAlert mb={4} />
       <PendingChangesAlert />
+      <RadiusDisabledAlert />
 
       <ListToolbar
         actions={

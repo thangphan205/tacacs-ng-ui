@@ -46,9 +46,12 @@ def read_hosts(
     search: str | None = None,
     sort_by: str = "name",
     sort_order: str = "asc",
+    has_radius_secret: bool | None = None,
 ) -> Any:
     """
     Retrieve hosts, sorted by name unless sort_by says otherwise.
+    `has_radius_secret` keeps only hosts with (true) or without (false) a
+    RADIUS secret of their own.
     """
 
     count_statement = select(func.count()).select_from(Host)
@@ -60,6 +63,11 @@ def read_hosts(
             | Host.ipv6_address.ilike(f"%{search}%")
             | Host.description.ilike(f"%{search}%")
         )
+        count_statement = count_statement.where(f)
+        statement = statement.where(f)
+    if has_radius_secret is not None:
+        has = Host.radius_secret_key.is_not(None) & (Host.radius_secret_key != "")
+        f = has if has_radius_secret else ~has
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     col = _SORT_FIELDS.get(sort_by, Host.name)

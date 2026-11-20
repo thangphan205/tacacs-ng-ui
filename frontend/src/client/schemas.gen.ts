@@ -2358,6 +2358,18 @@ export const HostCreateSchema = {
             ],
             title: 'Secret Key'
         },
+        radius_secret_key: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Radius Secret Key'
+        },
         welcome_banner: {
             anyOf: [
                 {
@@ -2477,6 +2489,18 @@ export const HostPublicSchema = {
                 }
             ],
             title: 'Secret Key'
+        },
+        radius_secret_key: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Radius Secret Key'
         },
         welcome_banner: {
             anyOf: [
@@ -2615,6 +2639,18 @@ export const HostUpdateSchema = {
                 }
             ],
             title: 'Secret Key'
+        },
+        radius_secret_key: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Radius Secret Key'
         },
         welcome_banner: {
             anyOf: [
@@ -5870,6 +5906,11 @@ export const TacacsLogEventSchema = {
                 }
             ],
             title: 'Session Id'
+        },
+        protocol: {
+            type: 'string',
+            title: 'Protocol',
+            default: 'tacacs'
         }
     },
     type: 'object',
@@ -6148,6 +6189,36 @@ export const TacacsNgSettingPublicSchema = {
             title: 'Remote Syslog Destination',
             default: ''
         },
+        radius_enabled: {
+            type: 'boolean',
+            title: 'Radius Enabled',
+            default: false
+        },
+        radius_auth_port: {
+            type: 'integer',
+            maximum: 65535,
+            minimum: 1,
+            title: 'Radius Auth Port',
+            default: 1812
+        },
+        radius_acct_port: {
+            type: 'integer',
+            maximum: 65535,
+            minimum: 1,
+            title: 'Radius Acct Port',
+            default: 1813
+        },
+        radius_dictionary_extra: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Radius Dictionary Extra'
+        },
         id: {
             type: 'string',
             format: 'uuid',
@@ -6265,6 +6336,36 @@ export const TacacsNgSettingUpdateSchema = {
             maxLength: 21,
             title: 'Remote Syslog Destination',
             default: ''
+        },
+        radius_enabled: {
+            type: 'boolean',
+            title: 'Radius Enabled',
+            default: false
+        },
+        radius_auth_port: {
+            type: 'integer',
+            maximum: 65535,
+            minimum: 1,
+            title: 'Radius Auth Port',
+            default: 1812
+        },
+        radius_acct_port: {
+            type: 'integer',
+            maximum: 65535,
+            minimum: 1,
+            title: 'Radius Acct Port',
+            default: 1813
+        },
+        radius_dictionary_extra: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Radius Dictionary Extra'
         }
     },
     type: 'object',

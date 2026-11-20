@@ -1365,6 +1365,10 @@ export type HostCreate = {
      */
     secret_key?: string | null;
     /**
+     * Radius Secret Key
+     */
+    radius_secret_key?: string | null;
+    /**
      * Welcome Banner
      */
     welcome_banner?: string | null;
@@ -1414,6 +1418,10 @@ export type HostPublic = {
      * Secret Key
      */
     secret_key?: string | null;
+    /**
+     * Radius Secret Key
+     */
+    radius_secret_key?: string | null;
     /**
      * Welcome Banner
      */
@@ -1476,6 +1484,10 @@ export type HostUpdate = {
      * Secret Key
      */
     secret_key?: string | null;
+    /**
+     * Radius Secret Key
+     */
+    radius_secret_key?: string | null;
     /**
      * Welcome Banner
      */
@@ -3285,6 +3297,10 @@ export type TacacsLogEvent = {
      * Session Id
      */
     session_id?: string | null;
+    /**
+     * Protocol
+     */
+    protocol?: string;
 };
 
 /**
@@ -3474,6 +3490,22 @@ export type TacacsNgSettingPublic = {
      */
     remote_syslog_destination?: string;
     /**
+     * Radius Enabled
+     */
+    radius_enabled?: boolean;
+    /**
+     * Radius Auth Port
+     */
+    radius_auth_port?: number;
+    /**
+     * Radius Acct Port
+     */
+    radius_acct_port?: number;
+    /**
+     * Radius Dictionary Extra
+     */
+    radius_dictionary_extra?: string | null;
+    /**
      * Id
      */
     id: string;
@@ -3563,6 +3595,22 @@ export type TacacsNgSettingUpdate = {
      * Remote Syslog Destination
      */
     remote_syslog_destination?: string;
+    /**
+     * Radius Enabled
+     */
+    radius_enabled?: boolean;
+    /**
+     * Radius Auth Port
+     */
+    radius_auth_port?: number;
+    /**
+     * Radius Acct Port
+     */
+    radius_acct_port?: number;
+    /**
+     * Radius Dictionary Extra
+     */
+    radius_dictionary_extra?: string | null;
 };
 
 /**
@@ -6619,6 +6667,10 @@ export type HostsReadHostsData = {
          * Sort Order
          */
         sort_order?: string;
+        /**
+         * Has Radius Secret
+         */
+        has_radius_secret?: boolean | null;
     };
     url: '/api/v1/hosts/';
 };

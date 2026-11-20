@@ -29,6 +29,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
+import useRadiusEnabled from "@/hooks/useRadiusEnabled"
 
 const hostsSearchSchema = z.object({
   page: z.number().catch(1),
@@ -67,6 +68,7 @@ function HostsTable() {
   const { page, search } = Route.useSearch()
 
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
+  const radiusEnabled = useRadiusEnabled()
 
   const { data, isLoading, isPlaceholderData } = useQuery({
     ...getHostsQueryOptions({ page, search, perPage }),
@@ -118,6 +120,9 @@ function HostsTable() {
                   <Table.ColumnHeader>IPv4 Address</Table.ColumnHeader>
                   <Table.ColumnHeader>IPv6 Address</Table.ColumnHeader>
                   <Table.ColumnHeader>Parent</Table.ColumnHeader>
+                  {radiusEnabled && (
+                    <Table.ColumnHeader>Protocols</Table.ColumnHeader>
+                  )}
                   <Table.ColumnHeader>Generate</Table.ColumnHeader>
                   <Table.ColumnHeader>Description</Table.ColumnHeader>
                   <Table.ColumnHeader w="16">Actions</Table.ColumnHeader>
@@ -157,6 +162,37 @@ function HostsTable() {
                     <Table.Cell color={!host.parent ? "fg.muted" : "inherit"}>
                       {host.parent || "—"}
                     </Table.Cell>
+                    {radiusEnabled && (
+                      <Table.Cell>
+                        <Flex gap={1} wrap="wrap">
+                          {host.secret_key && (
+                            <Badge
+                              colorPalette="teal"
+                              variant="subtle"
+                              size="sm"
+                            >
+                              TACACS+
+                            </Badge>
+                          )}
+                          {host.radius_secret_key && (
+                            <Badge
+                              colorPalette="orange"
+                              variant="subtle"
+                              size="sm"
+                            >
+                              RADIUS
+                            </Badge>
+                          )}
+                          {!host.secret_key &&
+                            !host.radius_secret_key &&
+                            host.parent && (
+                              <Text color="fg.muted" fontSize="xs">
+                                from parent
+                              </Text>
+                            )}
+                        </Flex>
+                      </Table.Cell>
+                    )}
                     <Table.Cell>
                       <Badge
                         colorPalette={host.generate_config ? "green" : "red"}

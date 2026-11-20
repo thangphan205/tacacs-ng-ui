@@ -22,6 +22,7 @@ import {
   FiLayers,
   FiMessageSquare,
   FiPlus,
+  FiRadio,
   FiServer,
   FiSettings,
   FiType,
@@ -31,6 +32,7 @@ import { type HostCreate, HostsService } from "@/client"
 import { defaultCredentialsQueryKey } from "@/components/Common/DefaultCredentialsAlert"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
+import useRadiusEnabled from "@/hooks/useRadiusEnabled"
 import { handleError } from "@/utils"
 import { Checkbox } from "../ui/checkbox"
 import {
@@ -44,6 +46,7 @@ import {
 } from "../ui/dialog"
 import { Field } from "../ui/field"
 import { HostSelect } from "./HostSelect"
+import { SAFE_KEY } from "./hostKeys"
 
 const fieldGuideItems: FieldGuideItem[] = [
   {
@@ -73,9 +76,16 @@ const fieldGuideItems: FieldGuideItem[] = [
     icon: FiKey,
     label: "Secret Key",
     description:
-      "The shared secret between this device and the TACACS+ server. Must match the key configured on the network device exactly (case-sensitive).",
+      "The shared secret between this device and the TACACS+ server. Must match the key configured on the network device exactly (case-sensitive). Not needed for a RADIUS-only device.",
     example: "MyS3cretK3y!",
     required: true,
+  },
+  {
+    icon: FiRadio,
+    label: "RADIUS Secret",
+    description:
+      "Shared secret for RADIUS (only while RADIUS is enabled under TACACS NG Settings). The server answers RADIUS only for hosts with one, own or inherited from the parent. Use it for devices that speak only RADIUS, such as MikroTik.",
+    example: "MyR4diusS3cret",
   },
   {
     icon: FiLayers,
@@ -113,6 +123,7 @@ const AddHost = () => {
     reset,
     setValue,
     getValues,
+    trigger,
     watch,
     control,
     formState: { errors, isValid, isSubmitting },
@@ -124,6 +135,7 @@ const AddHost = () => {
       ipv4_address: "",
       ipv6_address: "",
       secret_key: "",
+      radius_secret_key: "",
       description: "",
       welcome_banner: "",
       reject_banner: "",
@@ -135,6 +147,16 @@ const AddHost = () => {
   })
 
   const parentValue = watch("parent")
+  const radiusEnabled = useRadiusEnabled()
+  // RADIUS stays out of the guide while it is off. While it is on, a RADIUS
+  // secret can stand in for the TACACS+ key, which is then not required.
+  const guideItems = fieldGuideItems
+    .filter((item) => radiusEnabled || item.label !== "RADIUS Secret")
+    .map((item) =>
+      item.label === "Secret Key"
+        ? { ...item, required: !radiusEnabled }
+        : item,
+    )
 
   const mutation = useMutation({
     mutationFn: (data: HostCreate) =>
@@ -225,17 +247,21 @@ const AddHost = () => {
                       />
                     </Field>
                     <Field
-                      required={!parentValue}
+                      required={!parentValue && !radiusEnabled}
                       invalid={!!errors.secret_key}
                       errorText={errors.secret_key?.message}
                       label="Secret Key"
                     >
                       <Input
                         {...register("secret_key", {
+                          pattern: SAFE_KEY,
                           validate: (value) =>
                             !!value ||
+                            !!getValues("radius_secret_key") ||
                             !!getValues("parent") ||
-                            "Secret key is required unless a parent host is set.",
+                            (radiusEnabled
+                              ? "Set a secret key or a RADIUS secret, unless a parent host is set."
+                              : "Secret key is required unless a parent host is set."),
                         })}
                         placeholder={
                           parentValue
@@ -252,11 +278,33 @@ const AddHost = () => {
                     >
                       <HostSelect
                         value={parentValue}
-                        onChange={(name) =>
+                        onChange={(name) => {
                           setValue("parent", name, { shouldDirty: true })
-                        }
+                          if (errors.secret_key) trigger("secret_key")
+                        }}
                       />
                     </Field>
+                    {radiusEnabled && (
+                      <Field
+                        invalid={!!errors.radius_secret_key}
+                        errorText={errors.radius_secret_key?.message}
+                        label="RADIUS Secret"
+                        helperText="Optional. For devices that use RADIUS (e.g. MikroTik)."
+                      >
+                        <Input
+                          {...register("radius_secret_key", {
+                            pattern: SAFE_KEY,
+                            deps: ["secret_key"],
+                          })}
+                          placeholder={
+                            parentValue
+                              ? "Inherited from parent if empty"
+                              : "RADIUS shared secret"
+                          }
+                          type="password"
+                        />
+                      </Field>
+                    )}
                   </SimpleGrid>
                   <Field
                     invalid={!!errors.description}
@@ -344,7 +392,7 @@ const AddHost = () => {
               {/* Right Column: Field Guide */}
               <GridItem>
                 <FieldGuide
-                  items={fieldGuideItems}
+                  items={guideItems}
                   icon={FiServer}
                   subtitle="Learn what each field means and how it maps to the TACACS+ daemon configuration."
                   howItWorks='When you save a host with "Generate to Config" enabled, the system creates a host block in the TACACS+ daemon config using the Name, IPv4 Address, and Secret Key you provide.'
