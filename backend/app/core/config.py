@@ -138,6 +138,11 @@ class Settings(BaseSettings):
     # this container names its log files in; a fixed "UTC" default ignored a
     # non-UTC TZ and put "today" on the wrong log file (#356).
     TACACS_TIMEZONE: str = Field(default_factory=lambda: os.environ.get("TZ") or "UTC")
+    # Seed TacacsNgSetting.radius_* on first initialization only; the UI owns
+    # them afterwards. RADIUS stays off unless asked for.
+    RADIUS_ENABLED: bool = False
+    RADIUS_AUTH_PORT: int = 1812
+    RADIUS_ACCT_PORT: int = 1813
     ACCESS_LOG_DESTINATION: str = TACACS_LOG_DIRECTORY + "%Y/%m/access-%Y-%m-%d.log"
     AUTHENTICATION_LOG_DESTINATION: str = (
         TACACS_LOG_DIRECTORY + "%Y/%m/authentication-%Y-%m-%d.log"

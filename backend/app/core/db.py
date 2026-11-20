@@ -329,6 +329,9 @@ def init_db(session: Session) -> None:
             user_backend=settings.USER_BACKEND,
             pap_backend=settings.PAP_BACKEND,
             timezone=settings.TACACS_TIMEZONE,
+            radius_enabled=settings.RADIUS_ENABLED,
+            radius_auth_port=settings.RADIUS_AUTH_PORT,
+            radius_acct_port=settings.RADIUS_ACCT_PORT,
         )
         tacacs_settings = TacacsNgSetting.model_validate(tacacs_in)
         session.add(tacacs_settings)

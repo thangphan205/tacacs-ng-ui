@@ -22,6 +22,16 @@ Only ``nas`` is required. ``user`` can be empty too — tac_plus-ng logs an
 authorization request that carried no username as ``${nas}<TAB><TAB>…deny`` —
 and such a line is kept: the Events tab and the SIEM show it, and NAS-level
 counters count it, while per-user statistics and alert counters skip it.
+
+RADIUS requests answered by the same tac_plus-ng are written into the same
+authentication and accounting files, in the same column layout (the
+`radius.access` / `radius.accounting` formats in crud/tacacs_configs.py):
+
+    authentication: ``…<TAB>radius pap login succeeded<TAB>${rargs}``
+    accounting:     ``…<TAB>${accttype}<TAB>radius<TAB>${args}``
+
+so every reader handles both protocols alike; ``log_protocol()`` tells them
+apart by those server-written markers.
 """
 
 import ipaddress
@@ -145,6 +155,32 @@ def accounting_action(message: str) -> str | None:
     return action if action in ("start", "stop") else None
 
 
+def _first_column(message: str) -> str:
+    """The first TAB column of the part after nac, lowercased.
+
+    An authentication line's verdict is in its first column
+    (``${action} ${hint}``). A RADIUS line adds the reply attributes after a
+    TAB, and those may say anything (``Reply-Message="login succeeded"``), so
+    nothing past the first column may decide the outcome.
+    """
+    return message.split("\t", 1)[0].strip().lower()
+
+
+def log_protocol(log_type: str, message: str) -> Literal["tacacs", "radius"]:
+    """Which protocol a line was logged for: ``radius`` or ``tacacs``.
+
+    Both markers are written by tac_plus-ng, never copied from the request:
+    the action of a RADIUS authentication line starts with ``radius``
+    (``radius pap login succeeded``), and RADIUS accounting lines carry the
+    literal ``radius`` in the service column.
+    """
+    if log_type == "authentication" and _first_column(message).startswith("radius "):
+        return "radius"
+    if log_type == "accounting" and _column(message, 1) == "radius":
+        return "radius"
+    return "tacacs"
+
+
 def authentication_outcome(message: str) -> Literal["success", "fail"] | None:
     """Whether an authentication line is a successful or a failed login.
 
@@ -156,8 +192,10 @@ def authentication_outcome(message: str) -> Literal["success", "fail"] | None:
     failure. The daily statistics collector always counted this way; today's
     live numbers and the alert evaluator use the same rule, so a day's count
     does not change once it is collected.
+
+    Only the first column is read (see ``_first_column``).
     """
-    msg = message.lower()
+    msg = _first_column(message)
     if "login" not in msg:
         return None
     return "success" if "succeeded" in msg else "fail"
@@ -168,7 +206,12 @@ def classify_result(log_type: str, message: str) -> str:
         return result
     if log_type == "accounting" and (action := accounting_action(message)):
         return action
-    msg = message.lower()
+    if log_type == "accounting" and log_protocol(log_type, message) == "radius":
+        # The rest is the request's attribute dump: a User-Name of "stop"
+        # must not make an interim update a stop.
+        return "unknown"
+    # An authentication verdict is in the first column only.
+    msg = _first_column(message) if log_type == "authentication" else message.lower()
     for kw, result in _RESULT_MAPS.get(log_type, {}).items():
         if kw in msg:
             return result
@@ -212,4 +255,5 @@ def parse_log_line(log_type: str, line: str) -> TacacsLogEvent | None:
         command=extract_command(log_type, message),
         port=fields.port,
         session_id=session_id,
+        protocol=log_protocol(log_type, message),
     )

@@ -30,6 +30,7 @@ SECRET_FIELDS = frozenset(
         "new_password",
         "hashed_password",
         "secret_key",  # a host's shared TACACS+ secret
+        "radius_secret_key",  # a host's shared RADIUS secret
         "encrypted_secret",
         "key_hash",
         "plaintext_key",

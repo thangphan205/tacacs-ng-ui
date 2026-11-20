@@ -10,6 +10,10 @@ import httpx
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
+from app.core.radius_dictionary import (
+    builtin_radius_dictionary,
+    normalize_radius_dictionary,
+)
 from app.crud import hosts as hosts_crud
 from app.crud import profiles, rulesets
 from app.models import (
@@ -130,7 +134,7 @@ def reload_active_config_from_db(*, session: Session) -> bool:
     return True
 
 
-def _remote_log_block(destination: str | None) -> str:
+def _remote_log_block(destination: str | None, radius: bool = False) -> str:
     """Extra `log` lines sending every log to a remote syslog host (#373).
 
     Added next to the local files, never instead of them: statistics, alerts
@@ -146,13 +150,91 @@ def _remote_log_block(destination: str | None) -> str:
         # interpolate it into the config.
         log.error("Ignoring invalid remote_syslog_destination %r", destination)
         return ""
+    radius_lines = (
+        "    radius.access log = remotelog\n    radius.accounting log = remotelog\n"
+        if radius
+        else ""
+    )
     return (
         f"\n    log remotelog {{ destination = {destination} }}\n"
         "    access log = remotelog\n"
         "    authentication log = remotelog\n"
         "    authorization log = remotelog\n"
         "    accounting log = remotelog\n"
+        f"{radius_lines}"
     )
+
+
+# RADIUS lines go into the same files as TACACS+ lines, in the TACACS+ column
+# layout, so the log parser, statistics, alerts and SIEM read both alike:
+# `nas, user, port, nac` then the message. tac_plus-ng's default RADIUS access
+# format adds an empty accounting-type column and the request attributes; the
+# request attributes are left out because the NAS (or whoever sends the
+# request) writes them, and a message column containing `succeeded` must not
+# be possible from outside. The reply attributes (`rargs`, e.g.
+# `MikroTik:MikroTik-Group=full`) are what this server granted. Accounting
+# lines carry the literal `radius` in the service column, which marks them.
+RADIUS_ACCESS_FORMAT = (
+    "${nas}${FS}${user}${FS}${port}${FS}${nac}${FS}${action} ${hint}${FS}${rargs, }"
+)
+RADIUS_ACCOUNTING_FORMAT = (
+    "${nas}${FS}${user}${FS}${port}${FS}${nac}${FS}${accttype}${FS}radius${FS}${args, }"
+)
+
+
+def _radius_listen_block(setting: dict[str, Any]) -> str:
+    if not setting.get("radius_enabled"):
+        return ""
+    return (
+        "\n    listen = {{\n"
+        "        address = {addr}\n"
+        "        port = {auth}\n"
+        "        protocol = UDP\n"
+        "    }}\n"
+        "    listen = {{\n"
+        "        address = {addr}\n"
+        "        port = {acct}\n"
+        "        protocol = UDP\n"
+        "        flag = accounting\n"
+        "    }}"
+    ).format(
+        addr=setting["ipv4_address"],
+        auth=int(setting["radius_auth_port"]),
+        acct=int(setting["radius_acct_port"]),
+    )
+
+
+def _radius_log_format(setting: dict[str, Any], kind: str) -> str:
+    """The `radius.<kind> format` line inside a shared log object, or ""."""
+    if not setting.get("radius_enabled"):
+        return ""
+    fmt = RADIUS_ACCESS_FORMAT if kind == "access" else RADIUS_ACCOUNTING_FORMAT
+    return f'\n        radius.{kind} format = "{fmt}"\n   '
+
+
+def _radius_block(setting: dict[str, Any]) -> str:
+    """RADIUS log routing and dictionaries, or "" while RADIUS is disabled."""
+    if not setting.get("radius_enabled"):
+        return ""
+    block = (
+        "\n    radius.access log = authenticationlog"
+        "\n    radius.accounting log = accountinglog\n"
+        + builtin_radius_dictionary().rstrip("\n")
+    )
+    extra = setting.get("radius_dictionary_extra")
+    if extra:
+        try:
+            extra = normalize_radius_dictionary(extra)
+        except ValueError:
+            # Only reachable if a bad value was written around the API; never
+            # interpolate it into the config.
+            log.error("Ignoring invalid radius_dictionary_extra")
+            extra = None
+    if extra:
+        block += "\n    # Custom RADIUS dictionary\n" + "\n".join(
+            f"    {line}" if line else "" for line in extra.split("\n")
+        )
+    return block
 
 
 def generate_tacacs_ng_config(
@@ -187,7 +269,7 @@ id = spawnd {{
     listen = {{
         address = {addr}
         port = {port}
-    }}
+    }}{radius_listen}
     spawn = {{
         instances min = {inst_min}
         instances max = {inst_max}
@@ -196,14 +278,14 @@ id = spawnd {{
 }}
 id = tac_plus-ng {{
     log accesslog {{ destination = {accesslog} }}
-    log authenticationlog {{ destination = {authenticationlog} }}
+    log authenticationlog {{ destination = {authenticationlog}{radius_access_format} }}
     log authorizationlog {{ destination = {authorizationlog} }}
-    log accountinglog {{ destination = {accountinglog} }}
+    log accountinglog {{ destination = {accountinglog}{radius_accounting_format} }}
     
     access log = accesslog
     authentication log = authenticationlog
     authorization log = authorizationlog
-    accounting log = accountinglog
+    accounting log = accountinglog{radius_block}
     {remote_log}
     {mavises_template}
 
@@ -219,7 +301,14 @@ id = tac_plus-ng {{
         authenticationlog=tacacs_ng_info["authentication_logfile_destination"],
         authorizationlog=tacacs_ng_info["authorization_logfile_destination"],
         accountinglog=tacacs_ng_info["accounting_logfile_destination"],
-        remote_log=_remote_log_block(tacacs_ng_info.get("remote_syslog_destination")),
+        remote_log=_remote_log_block(
+            tacacs_ng_info.get("remote_syslog_destination"),
+            radius=bool(tacacs_ng_info.get("radius_enabled")),
+        ),
+        radius_listen=_radius_listen_block(tacacs_ng_info),
+        radius_access_format=_radius_log_format(tacacs_ng_info, "access"),
+        radius_accounting_format=_radius_log_format(tacacs_ng_info, "accounting"),
+        radius_block=_radius_block(tacacs_ng_info),
         mavises_template=mavises_template,
     )
 
@@ -237,6 +326,7 @@ id = tac_plus-ng {{
     statement = select(Host).where(Host.generate_config == True)
     host_basic = session.exec(statement).all()
 
+    radius_enabled = bool(tacacs_ng_info.get("radius_enabled"))
     rendered_host_names = {h.name for h in host_basic}
     for host in hosts_crud.order_hosts_parent_first(list(host_basic)):
         host_lines = []
@@ -255,6 +345,8 @@ id = tac_plus-ng {{
             host_lines.append(f"        address = {host.ipv4_address}")
         if host.secret_key:
             host_lines.append(f'        key = "{host.secret_key}"')
+        if host.radius_secret_key and radius_enabled:
+            host_lines.append(f'        radius.key = "{host.radius_secret_key}"')
         hosts_template += "\n    host = {name} {{\n{body}\n    }}".format(
             name=host.name, body="\n".join(host_lines)
         )

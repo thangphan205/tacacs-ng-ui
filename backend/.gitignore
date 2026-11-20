@@ -7,3 +7,5 @@ htmlcov
 .cache
 .venv
 *.cfg
+# Shipped with the app (built-in RADIUS dictionary), not generated
+!app/core/radius_dictionary.cfg

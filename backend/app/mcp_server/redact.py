@@ -1,6 +1,6 @@
 """Strip secrets out of generated tac_plus-ng config text.
 
-`Host.secret_key`, `TacacsUser.password` and MAVIS LDAP credentials are emitted
+`Host.secret_key`, `Host.radius_secret_key`, `TacacsUser.password` and MAVIS LDAP credentials are emitted
 in cleartext by the generators, so any config text handed to an LLM client must
 be scrubbed first.
 
@@ -50,6 +50,8 @@ def collect_secrets(*, session: Session) -> list[str]:
     for host in session.exec(select(Host)).all():
         if host.secret_key:
             secrets.append(host.secret_key)
+        if host.radius_secret_key:
+            secrets.append(host.radius_secret_key)
 
     for user in session.exec(select(TacacsUser)).all():
         if user.password:

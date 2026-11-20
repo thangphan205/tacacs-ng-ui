@@ -2,7 +2,13 @@ from typing import Any
 
 from sqlmodel import Session, select
 
-from app.models import TacacsNgSetting, TacacsNgSettingCreate, TacacsNgSettingUpdate
+from app.models import (
+    TacacsNgSetting,
+    TacacsNgSettingBase,
+    TacacsNgSettingCreate,
+    TacacsNgSettingUpdate,
+    check_radius_ports,
+)
 
 
 def get_tacacs_ng(*, session: Session) -> TacacsNgSetting | None:
@@ -27,7 +33,13 @@ def update_tacacs_ng(
     db_tacacs_ng: TacacsNgSetting,
     tacacs_ng_in: TacacsNgSettingUpdate,
 ) -> Any:
+    """Raises ``ValueError`` when the merged RADIUS ports collide."""
     tacacs_ng_data = tacacs_ng_in.model_dump(exclude_unset=True)
+    check_radius_ports(
+        TacacsNgSettingBase.model_validate(
+            {**db_tacacs_ng.model_dump(), **tacacs_ng_data}
+        )
+    )
     db_tacacs_ng.sqlmodel_update(tacacs_ng_data)
     session.add(db_tacacs_ng)
     session.commit()

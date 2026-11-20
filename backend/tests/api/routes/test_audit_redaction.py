@@ -13,7 +13,13 @@ from app.crud import audit_logs as audit_logs_crud
 from app.models import AuditLog, AuditLogCreate
 
 API = settings.API_V1_STR
-SECRETS = ("Sup3rSecretPw!", "shared-secret-777", "bind-pw-xyz", "rounds=")
+SECRETS = (
+    "Sup3rSecretPw!",
+    "shared-secret-777",
+    "radius-secret-888",
+    "bind-pw-xyz",
+    "rounds=",
+)
 
 
 def entries(db: Session, entity_type: str, entity_id: str) -> list[AuditLog]:
@@ -96,6 +102,7 @@ def test_host_secret_key_is_redacted(
             "name": name,
             "ipv4_address": "192.0.2.77/32",
             "secret_key": "shared-secret-777",
+            "radius_secret_key": "radius-secret-888",
         },
     )
     assert r.status_code == 200, r.text
@@ -107,6 +114,7 @@ def test_host_secret_key_is_redacted(
     assert len(rows) == 2
     no_secret(rows)
     assert f'"name":"{name}"' in (rows[0].new_values or "")  # the rest is still there
+    assert f'"radius_secret_key":"{REDACTED}"' in (rows[0].new_values or "")
 
 
 def test_mavis_secret_value_is_redacted_but_plain_values_are_not(
