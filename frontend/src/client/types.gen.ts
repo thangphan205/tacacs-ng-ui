@@ -6667,6 +6667,10 @@ export type HostsReadHostsData = {
          * Sort Order
          */
         sort_order?: string;
+        /**
+         * Has Radius Secret
+         */
+        has_radius_secret?: boolean | null;
     };
     url: '/api/v1/hosts/';
 };

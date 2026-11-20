@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   Container,
@@ -9,6 +10,7 @@ import {
   Input,
   SimpleGrid,
   Text,
+  Textarea,
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -19,13 +21,18 @@ import {
   FiCpu,
   FiDatabase,
   FiFileText,
+  FiRadio,
   FiSave,
   FiServer,
   FiSettings,
 } from "react-icons/fi"
 
 import type { ApiError } from "@/api"
-import { TacacsNgSettingsService, type TacacsNgSettingUpdate } from "@/client"
+import {
+  type TacacsNgSettingPublic,
+  TacacsNgSettingsService,
+  type TacacsNgSettingUpdate,
+} from "@/client"
 import PendingTacacsNgSettings from "@/components/Pending/PendingTacacsNgSettings"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field } from "@/components/ui/field"
@@ -36,6 +43,17 @@ function getTacacsNgSettingsQueryOptions() {
   return {
     queryFn: () => TacacsNgSettingsService.readTacacsNgSettings(),
     queryKey: ["tacacs_ng_settings"],
+  }
+}
+
+const DEFAULT_RADIUS_AUTH_PORT = 1812
+const DEFAULT_RADIUS_ACCT_PORT = 1813
+
+// A textarea needs a string; the API sends null for "no custom dictionary".
+function toForm(settings: TacacsNgSettingPublic): TacacsNgSettingUpdate {
+  return {
+    ...settings,
+    radius_dictionary_extra: settings.radius_dictionary_extra ?? "",
   }
 }
 
@@ -82,16 +100,26 @@ function TacacsNgSettingsForm() {
       user_backend: "mavis",
       pap_backend: "mavis",
       timezone: "UTC",
+      radius_enabled: false,
+      radius_auth_port: DEFAULT_RADIUS_AUTH_PORT,
+      radius_acct_port: DEFAULT_RADIUS_ACCT_PORT,
+      radius_dictionary_extra: "",
     },
   })
 
   // Watch network listen states to disable fields reactively
   const watchIpv4Enabled = watch("ipv4_enabled", true)
   const watchIpv6Enabled = watch("ipv6_enabled", false)
+  const watchRadiusEnabled = watch("radius_enabled", false)
+  const watchRadiusAuthPort = watch("radius_auth_port")
+  const watchRadiusAcctPort = watch("radius_acct_port")
+  const radiusPortsMoved =
+    watchRadiusAuthPort !== DEFAULT_RADIUS_AUTH_PORT ||
+    watchRadiusAcctPort !== DEFAULT_RADIUS_ACCT_PORT
 
   useEffect(() => {
     if (settings) {
-      reset(settings)
+      reset(toForm(settings))
     }
   }, [settings, reset])
 
@@ -159,6 +187,14 @@ function TacacsNgSettingsForm() {
       label: "Logging Paths",
       icon: FiFileText,
       desc: "Path destinations and timezone setup.",
+    },
+    {
+      id: "radius",
+      label: "RADIUS",
+      icon: FiRadio,
+      desc: settings.radius_enabled
+        ? "Enabled: RADIUS-only devices."
+        : "Off. For RADIUS-only devices.",
     },
   ]
 
@@ -588,6 +624,145 @@ function TacacsNgSettingsForm() {
               </Field>
             </VStack>
           )}
+          {activeTab === "radius" && (
+            <VStack gap={6} align="stretch">
+              <Box>
+                <Heading size="sm" mb={1}>
+                  RADIUS
+                </Heading>
+                <Text fontSize="xs" color="fg.muted">
+                  Serve RADIUS from the same server, for devices that do not
+                  speak TACACS+ (for example MikroTik). Users, groups, profiles
+                  and rulesets are shared with TACACS+; a profile returns RADIUS
+                  attributes with lines such as{" "}
+                  <code>set radius[MikroTik:MikroTik-Group] = full</code> inside{" "}
+                  <code>if (aaa.protocol == radius)</code>. Takes effect after
+                  Generate and Activate.
+                </Text>
+              </Box>
+
+              <Box p={4} borderWidth="1px" borderRadius="lg" bg="bg.subtle">
+                <Controller
+                  control={control}
+                  name="radius_enabled"
+                  render={({ field }) => (
+                    <Field
+                      disabled={field.disabled}
+                      colorPalette="teal"
+                      helperText={
+                        field.value
+                          ? "RADIUS listeners, the RADIUS dictionary and the hosts' RADIUS secrets are written to the generated config."
+                          : "Off: the generated config has no RADIUS at all. Host RADIUS secrets and the custom dictionary are kept and come back when it is turned on."
+                      }
+                    >
+                      <Checkbox
+                        checked={!!field.value}
+                        onCheckedChange={({ checked }) =>
+                          field.onChange(!!checked)
+                        }
+                      >
+                        Enable RADIUS
+                      </Checkbox>
+                    </Field>
+                  )}
+                />
+              </Box>
+
+              {watchRadiusEnabled && (
+                <>
+                  <SimpleGrid columns={{ base: 1, sm: 2 }} gap={4}>
+                    <Field
+                      label="Authentication Port (UDP)"
+                      required
+                      invalid={!!errors.radius_auth_port}
+                      errorText={errors.radius_auth_port?.message}
+                      helperText="Standard: 1812"
+                    >
+                      <Input
+                        {...register("radius_auth_port", {
+                          required: "Authentication port is required.",
+                          valueAsNumber: true,
+                          min: { value: 1, message: "Use 1-65535." },
+                          max: { value: 65535, message: "Use 1-65535." },
+                          validate: (value) =>
+                            value !== getValues("radius_acct_port") ||
+                            "Must differ from the accounting port.",
+                        })}
+                        type="number"
+                        placeholder="1812"
+                      />
+                    </Field>
+                    <Field
+                      label="Accounting Port (UDP)"
+                      required
+                      invalid={!!errors.radius_acct_port}
+                      errorText={errors.radius_acct_port?.message}
+                      helperText="Standard: 1813"
+                    >
+                      <Input
+                        {...register("radius_acct_port", {
+                          required: "Accounting port is required.",
+                          valueAsNumber: true,
+                          min: { value: 1, message: "Use 1-65535." },
+                          max: { value: 65535, message: "Use 1-65535." },
+                          deps: ["radius_auth_port"],
+                        })}
+                        type="number"
+                        placeholder="1813"
+                      />
+                    </Field>
+                  </SimpleGrid>
+
+                  <Alert.Root
+                    status={radiusPortsMoved ? "warning" : "info"}
+                    size="sm"
+                    borderRadius="md"
+                  >
+                    <Alert.Indicator />
+                    <Alert.Content>
+                      <Alert.Title>
+                        {radiusPortsMoved
+                          ? "Update the published ports too"
+                          : "UDP ports"}
+                      </Alert.Title>
+                      <Alert.Description>
+                        docker-compose.yml publishes 1812/udp and 1813/udp from
+                        the backend container.
+                        {radiusPortsMoved &&
+                          " Change those mappings to match, or devices cannot reach the new ports."}{" "}
+                        RADIUS identifies a device by its source address, so the
+                        published port must keep it (Docker Desktop rewrites it;
+                        Linux hosts keep it).
+                      </Alert.Description>
+                    </Alert.Content>
+                  </Alert.Root>
+
+                  <Field
+                    label="Custom RADIUS Dictionary"
+                    invalid={!!errors.radius_dictionary_extra}
+                    errorText={errors.radius_dictionary_extra?.message}
+                    helperText="Optional. Extra vendor attributes, added after the built-in dictionary (RFC attributes plus Cisco, Juniper, Fortinet, PaloAlto, Aruba, Huawei, MikroTik and Microsoft). Only radius.dictionary blocks are allowed."
+                  >
+                    <Textarea
+                      {...register("radius_dictionary_extra")}
+                      fontFamily="mono"
+                      fontSize="xs"
+                      rows={8}
+                      placeholder={
+                        "radius.dictionary Ubiquiti 41112 {\n    attribute Ubiquiti-Admin-Role 1 string\n}"
+                      }
+                    />
+                  </Field>
+
+                  <Text fontSize="xs" color="fg.muted">
+                    Local users can sign in over RADIUS with PAP only: their
+                    passwords are stored as hashes, which CHAP and MS-CHAP
+                    cannot check.
+                  </Text>
+                </>
+              )}
+            </VStack>
+          )}
         </Box>
       </Flex>
 
@@ -622,7 +797,7 @@ function TacacsNgSettingsForm() {
                 size="sm"
                 variant="outline"
                 disabled={isSubmitting}
-                onClick={() => reset(settings)}
+                onClick={() => reset(toForm(settings))}
               >
                 Discard
               </Button>

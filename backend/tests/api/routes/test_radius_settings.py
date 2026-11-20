@@ -112,3 +112,44 @@ def test_radius_only_host(
         assert bad.status_code == 422
     finally:
         client.delete(f"{API}/hosts/{hid}", headers=superuser_token_headers)
+
+
+def test_hosts_filter_by_radius_secret(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    tag = uuid.uuid4().hex[:8]
+    ids = []
+    for suffix, body in (
+        ("r", {"ipv4_address": "192.0.2.90/32", "radius_secret_key": "r4dius"}),
+        (
+            "t",
+            {
+                "ipv4_address": "192.0.2.91/32",
+                "secret_key": "t",
+                "radius_secret_key": "",
+            },
+        ),
+    ):
+        r = client.post(
+            f"{API}/hosts/",
+            headers=superuser_token_headers,
+            json={"name": f"filter-{tag}-{suffix}"} | body,
+        )
+        assert r.status_code == 200, r.text
+        ids.append(r.json()["id"])
+    try:
+        names = {
+            flag: [
+                h["name"]
+                for h in client.get(
+                    f"{API}/hosts/",
+                    headers=superuser_token_headers,
+                    params={"search": f"filter-{tag}", "has_radius_secret": flag},
+                ).json()["data"]
+            ]
+            for flag in ("true", "false")
+        }
+        assert names == {"true": [f"filter-{tag}-r"], "false": [f"filter-{tag}-t"]}
+    finally:
+        for hid in ids:
+            client.delete(f"{API}/hosts/{hid}", headers=superuser_token_headers)
