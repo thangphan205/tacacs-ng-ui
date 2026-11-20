@@ -18,6 +18,10 @@ of cutting a release; do not delete the heading itself. -->
 * ✨ RADIUS settings tab and host RADIUS secret (2/3: UI). PR [#424](https://github.com/thangphan205/tacacs-ng-ui/pull/424) by [@thangphan205](https://github.com/thangphan205).
 * ✨ Serve RADIUS from tac_plus-ng (1/3: backend, off by default). PR [#423](https://github.com/thangphan205/tacacs-ng-ui/pull/423) by [@thangphan205](https://github.com/thangphan205).
 
+### Fixes
+
+* 🐛 RADIUS: serve CHAP / MS-CHAP for clear-password users (MikroTik RouterOS). PR [#426](https://github.com/thangphan205/tacacs-ng-ui/pull/426) by [@thangphan205](https://github.com/thangphan205).
+
 ### Internal
 
 * 🔖 Release 0.6.9. PR [#422](https://github.com/thangphan205/tacacs-ng-ui/pull/422) by [@thangphan205](https://github.com/thangphan205).
