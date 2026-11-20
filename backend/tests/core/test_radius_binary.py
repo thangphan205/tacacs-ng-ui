@@ -33,6 +33,8 @@ from app.models import (
     ConfigurationOption,
     Host,
     Profile,
+    ProfileScript,
+    ProfileScriptSet,
     TacacsGroup,
     TacacsNgSetting,
     TacacsUser,
@@ -53,6 +55,7 @@ ACCT_PORT = 11813
 ACCESS_REQUEST, ACCESS_ACCEPT, ACCESS_REJECT = 1, 2, 3
 ACCOUNTING_REQUEST, ACCOUNTING_RESPONSE = 4, 5
 VENDOR_SPECIFIC, MIKROTIK, MIKROTIK_GROUP = 26, 14988, 3
+CISCO, CISCO_AVPAIR = 9, 1
 
 
 # --- a minimal RADIUS client (RFC 2865 / 2866 / 3579) ---------------------------
@@ -174,27 +177,39 @@ def radius_config(db: Session, tmp_path: Path) -> Iterator[tuple[str, Path, str]
         ipv4_address="127.0.0.1/32",
         radius_secret_key=SECRET.decode(),
     )
-    profile = Profile(
-        name=f"radprofile{suffix}",
+    # Structured scripts, exactly as the UI's "Add RADIUS Attribute" writes
+    # them: `if (aaa.protocol==radius)`, `set radius[...]=value`, and a value
+    # that is not one bare token quoted.
+    profile = Profile(name=f"radprofile{suffix}", action="permit", generate_config=True)
+    script = ProfileScript(
+        condition="if",
+        key="aaa.protocol",
+        value="radius",
         action="permit",
-        generate_config=True,
-        raw_script=(
-            "if (aaa.protocol == radius) {\n"
-            "    set radius[MikroTik:MikroTik-Group] = full\n"
-            "    permit\n"
-            "}\n"
-            "permit"
-        ),
+        profile_id=profile.id,
+        position=0,
     )
+    sets = [
+        ProfileScriptSet(
+            key="radius[MikroTik:MikroTik-Group]",
+            value="full",
+            profilescript_id=script.id,
+        ),
+        ProfileScriptSet(
+            key="radius[Cisco:Cisco-AVPair]",
+            value='"shell:priv-lvl=15"',
+            profilescript_id=script.id,
+        ),
+    ]
     rule = ConfigurationOption(
         name="rule",
         config_option=(
             f"rule radrule{suffix} {{ script {{ "
-            f'if (user == "{user.username}") {{ profile = {profile.name} permit }} '
+            f"if (group == {group.group_name}) {{ profile = {profile.name} permit }} "
             "} }"
         ),
     )
-    rows = [group, user, host, profile, rule]
+    rows = [group, user, host, profile, script, *sets, rule]
     for row in [setting, *rows]:
         db.add(row)
     db.commit()
@@ -260,6 +275,7 @@ def test_radius_login_accounting_and_logs(
     code, attrs = access_request(username, PASSWORD)
     assert code == ACCESS_ACCEPT
     assert _vsa(attrs, MIKROTIK, MIKROTIK_GROUP) == b"full"
+    assert _vsa(attrs, CISCO, CISCO_AVPAIR) == b"shell:priv-lvl=15"
 
     code, attrs = access_request(username, "wrong-password")
     assert code == ACCESS_REJECT

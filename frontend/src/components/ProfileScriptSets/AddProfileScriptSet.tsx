@@ -30,6 +30,10 @@ import {
   ProfilescriptsService,
 } from "@/client"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
+import {
+  RADIUS_LISTS,
+  RadiusSuggestions,
+} from "@/components/Common/RadiusSuggestions"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -178,6 +182,7 @@ const AddProfileScriptSet = ({
             <DialogTitle>Add ProfileScriptSet</DialogTitle>
           </DialogHeader>
           <DialogBody>
+            <RadiusSuggestions />
             <Grid templateColumns={{ base: "1fr", lg: "7fr 5fr" }} gap={6}>
               <GridItem>
                 <Text mb={4} color="fg.muted" fontSize="sm">
@@ -253,6 +258,7 @@ const AddProfileScriptSet = ({
                         required: "key is required.",
                       })}
                       placeholder="key"
+                      list={RADIUS_LISTS.setKeys}
                       type="text"
                     />
                   </Field>

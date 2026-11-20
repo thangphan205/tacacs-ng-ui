@@ -349,3 +349,9 @@ def diff_generated_vs_active(
         "redacted": redact_secrets,
         "active_config_exists": os.path.exists(active_path),
     }
+
+
+def radius_enabled(*, session: Session) -> bool:
+    """Whether the generated config includes RADIUS (off by default)."""
+    setting = session.exec(select(TacacsNgSetting)).first()
+    return bool(setting and setting.radius_enabled)

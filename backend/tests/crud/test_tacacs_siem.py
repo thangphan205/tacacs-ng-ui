@@ -59,7 +59,7 @@ def test_tacacs_message_is_rfc5424_with_event_time_and_node() -> None:
     assert m["app"] == "tacacs-ng"
     assert m["pri"] == "12"  # failed → warning
     assert m["msg"] == (
-        "type=authentication username=alice nas_ip=10.0.0.1 port=tty0 "
+        "type=authentication protocol=tacacs username=alice nas_ip=10.0.0.1 port=tty0 "
         "client_ip=192.0.2.7 result=failed msg=shell login failed"
     )
 
@@ -105,6 +105,19 @@ def test_tacacs_hec_event() -> None:
     assert hec["event"]["username"] == "alice"
     assert hec["event"]["result"] == "failed"
     assert hec["event"]["node"] == "tacacs-01"
+    assert hec["event"]["protocol"] == "tacacs"
+
+
+def test_radius_lines_are_marked_in_both_sinks() -> None:
+    line = (
+        "2026-11-07 14:00:04 +0700\t10.0.0.9\talice\t\t192.0.2.7\t"
+        "radius pap login succeeded\tMikroTik:MikroTik-Group=full"
+    )
+    ev = parse_log_line("authentication", line)
+    m = RFC5424.match(format_tacacs_syslog("authentication", ev, line))
+    assert m and m["msg"].startswith("type=authentication protocol=radius ")
+    assert "result=success" in m["msg"]
+    assert tacacs_hec("authentication", ev, line)["event"]["protocol"] == "radius"
 
 
 def _audit() -> AuditLog:

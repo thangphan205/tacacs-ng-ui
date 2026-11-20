@@ -117,6 +117,8 @@ The web UI deliberately stays with the basic case; the advanced cases are writte
   - [Huawei Config - Virtual CE12800 (VRP)](docs/en/config-examples/huawei.md)
   - [Huawei Config - Physical Campus S-Series (VRP)](docs/en/config-examples/huawei-physical.md)
   - [Ciena Config - 6500 Packet-Optical (TL1 / Site Manager)](docs/en/config-examples/ciena-6500.md)
+  - [MikroTik Config - RouterOS (RADIUS)](docs/en/config-examples/mikrotik.md)
+- [RADIUS for RADIUS-only devices](docs/en/radius.md)
 - [Technology Stack](#technology-stack-and-features)
 - [How To Use It](#how-to-use-it)
 - Deployment
@@ -141,6 +143,7 @@ The web UI deliberately stays with the basic case; the advanced cases are writte
 
 - **Intuitive Web Interface**: Manage TACACS+ users, groups, and policies through a clean and responsive UI built with React and Chakra UI. Every management table has a unified premium layout with live search, sort, and pagination.
 - **TACACS+ Server**: Utilizes [tac_plus-ng](https://github.com/MarcJHuber/event-driven-servers) as the backend TACACS+ server, a modern and actively maintained implementation.
+- **RADIUS for RADIUS-only devices**: Optional (off by default). The same tac_plus-ng also answers RADIUS on UDP 1812/1813 for devices that have no TACACS+, such as MikroTik RouterOS, with the same users, groups, profiles and rulesets. Profiles return vendor attributes (`MikroTik-Group`, `Cisco-AVPair`, `Fortinet-Access-Profile`, …) from a built-in dictionary, and RADIUS logins flow into the same statistics, alerts and SIEM feed. See [docs/en/radius.md](docs/en/radius.md).
 - **Versioned Config Management**: Generate, preview, and activate TACACS+ configuration snapshots — each version is stored, can be rolled back, and compared with a built-in diff viewer. Supports inline editing of the config file directly in the browser.
 - **Multi-Vendor Seed Data**: First startup automatically creates ready-to-use groups (`tacacs_super_user`, `tacacs_read_only`), users (`user_admin`, `user_read_only`), and authorization profiles covering **Cisco, Arista, Huawei (VRP + H3C), Juniper, Palo Alto, and Fortinet** — no manual setup required to test with real devices.
 - **Interactive Field Guides**: Every Add/Edit dialog includes a contextual Field Guide panel explaining each field, accepted values, and examples — no need to consult external docs while configuring.

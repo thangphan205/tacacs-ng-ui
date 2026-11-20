@@ -191,6 +191,36 @@ def test_resources_and_prompt_are_registered(
     assert {p["name"] for p in prompts["prompts"]} == {"author_tacacs_config"}
 
 
+def test_syntax_reference_says_whether_radius_is_on(
+    client: TestClient, db: Session, mcp_headers: dict[str, str]
+) -> None:
+    from sqlmodel import select
+
+    from app.models import TacacsNgSetting
+
+    def read() -> str:
+        result = _rpc(
+            client, mcp_headers, "resources/read", {"uri": "tacacs://syntax/reference"}
+        )
+        return result["contents"][0]["text"]
+
+    setting = db.exec(select(TacacsNgSetting)).first()
+    assert setting is not None
+    was = setting.radius_enabled
+    try:
+        for on, phrase in ((False, "**disabled**"), (True, "**enabled**")):
+            setting.radius_enabled = on
+            db.add(setting)
+            db.commit()
+            text = read()
+            assert "## RADIUS" in text
+            assert f"RADIUS is {phrase} on this server" in text
+    finally:
+        setting.radius_enabled = was
+        db.add(setting)
+        db.commit()
+
+
 def test_whoami_reports_the_bound_identity(
     client: TestClient, mcp_headers: dict[str, str]
 ) -> None:

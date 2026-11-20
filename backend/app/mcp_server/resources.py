@@ -187,10 +187,71 @@ All rules live inside a single `ruleset { }` block.
 Inside a rule script, assignments are bare `k=v` (e.g. `profile=...`), *not*
 `set k=v` — that difference from profile scripts is a common mistake.
 
+## RADIUS (same daemon, off by default)
+
+tac_plus-ng also serves RADIUS. The generator emits it only while
+`TacacsNgSetting.radius_enabled` is true (the line at the end of this resource
+says whether it is on this server); while off, nothing below appears.
+
+```
+id = spawnd {
+    listen = { address = 0.0.0.0 port = 49 }
+    listen = { address = 0.0.0.0 port = 1812 protocol = UDP }
+    listen = { address = 0.0.0.0 port = 1813 protocol = UDP flag = accounting }
+    ...
+}
+id = tac_plus-ng {
+    ...
+    radius.access log = authenticationlog
+    radius.accounting log = accountinglog
+    radius.dictionary MikroTik 14988 {
+        attribute MikroTik-Group 3 string
+    }
+    host = MIKROTIK {
+        address = 192.0.2.1
+        radius.key = "radius-secret"
+    }
+}
+```
+
+A host answers RADIUS only with a `radius.key` (own or from `parent`); `key` is
+the TACACS+ key and either may be absent. The built-in dictionary covers the RFC
+attributes and Cisco, Juniper, Fortinet, PaloAlto, Aruba, Huawei, MikroTik and
+Microsoft; more come from `radius_dictionary_extra`.
+
+Users, groups, profiles and rulesets are shared with TACACS+. A profile tells the
+protocols apart with `aaa.protocol` and returns RADIUS attributes with
+`set radius[Vendor:Attribute] = value`:
+
+```
+    profile network_admin {
+        script {
+            if (aaa.protocol == radius) {
+                set radius[MikroTik:MikroTik-Group] = full
+                permit
+            }
+            if (service == shell) {
+                set priv-lvl = 15
+                permit
+            }
+            deny
+        }
+    }
+```
+
+As structured scripts: a ProfileScript with condition `if`, key `aaa.protocol`,
+value `radius`, action `permit`, and a ProfileScriptSet with key
+`radius[MikroTik:MikroTik-Group]`, value `full`. In a RADIUS request `service`
+is the Service-Type (e.g. `Administrative-User`), so TACACS+ `service == shell`
+tests never match it. Without a RADIUS branch a `permit` fall-through accepts
+the login with no attributes. Locally defined users can use PAP only (their
+passwords are hashes); CHAP and MS-CHAP need a `clear` password.
+
 ## Ordering
 
-Within `id = tac_plus-ng { }` the generator emits, in order: logs, MAVIS,
-backends, hosts, groups, users, profiles, ruleset.
+Within `id = tac_plus-ng { }` the generator emits, in order: logs, (RADIUS log
+routing and dictionaries), MAVIS, backends, hosts, groups, users, profiles,
+ruleset.
 
 Inside a `script { }`, tac_plus-ng tests the blocks top to bottom and stops at
 the first `permit` or `deny` it reaches; the rules of a `ruleset` are tried the
@@ -213,9 +274,9 @@ exist in the UI but are **not** emitted into the config.
 
 | Entity | Fields that reach the config | Notes |
 |---|---|---|
-| `TacacsNgSetting` | `ipv4_address`, `ipv4_port`, `instances_min`, `instances_max`, `background`, the four `*_logfile_destination`, `remote_syslog_destination` (IPv4[:port]; when set, every log also goes there as UDP syslog) | Singleton. `ipv6_*`, `login_backend`, `user_backend`, `pap_backend` and `timezone` are stored but **not** emitted — the backends are hardcoded to `mavis`. |
+| `TacacsNgSetting` | `ipv4_address`, `ipv4_port`, `instances_min`, `instances_max`, `background`, the four `*_logfile_destination`, `remote_syslog_destination` (IPv4[:port]; when set, every log also goes there as UDP syslog), `radius_enabled`, `radius_auth_port`, `radius_acct_port`, `radius_dictionary_extra` (only `radius.dictionary` blocks) | Singleton. `ipv6_*`, `login_backend`, `user_backend`, `pap_backend` and `timezone` are stored but **not** emitted — the backends are hardcoded to `mavis`. |
 | `Mavis` | `mavis_key`, `mavis_value` → `setenv K="V"` | All rows, unfiltered. A `MAVIS_OVERRIDE_<key>` environment variable takes precedence over the stored value (used for per-zone LDAP servers in HA). |
-| `Host` | `name`, `ipv4_address`, `secret_key`, `parent` | `parent` emits `parent = <host>` and parents are written before children; a child with no `secret_key` inherits its parent's key. `ipv6_address`, the four banner fields and `description` are stored but **not** emitted. |
+| `Host` | `name`, `ipv4_address`, `secret_key`, `radius_secret_key`, `parent` | A host needs `secret_key` (TACACS+), `radius_secret_key` (RADIUS, emitted as `radius.key` only while RADIUS is enabled) or a `parent`. Keys can't contain quotes, backslashes or line breaks. `parent` emits `parent = <host>` and parents are written before children; a child with no key of its own inherits its parent's. `ipv6_address`, the four banner fields and `description` are stored but **not** emitted. |
 | `TacacsGroup` | `group_name` | Emits a bare `group = <name>`. |
 | `TacacsUser` | `username`, `password_type`, `password`, `member`, `account_expires_at` | `email` is stored but not emitted. A user whose `account_expires_at` (YYYY-MM-DD, last valid day) is in the past is omitted from the config. **`password` is the plaintext password — write it, never a digest.** With `password_type == "crypt"` the server applies sha512-crypt on save; pre-hashing it yourself makes the digest string itself the password. `password_type == "mavis"` emits `password login = mavis` with no argument and no `password pap`. Every other type is a local user and also emits `password pap = login`. |
 | `Profile` | `name`, `action` (the fall-through verb), `raw_script` | Profiles with zero scripts and no `raw_script` are skipped entirely. `raw_script` is the `script { }` body only (no `profile`/`script` wrappers, balanced braces, no `include`); when set it is emitted verbatim instead of the structured scripts and `action` is not emitted. A profile is one or the other: scripts can't be added to a raw profile, and `raw_script` can't be set on a profile that has scripts. |
@@ -229,7 +290,8 @@ exist in the UI but are **not** emitted into the config.
 
 There are no ACL, realm, net or device-group entities in this application.
 
-Secrets (`Host.secret_key`, `TacacsUser.password`, MAVIS credential values) are
+Secrets (`Host.secret_key`, `Host.radius_secret_key`, `TacacsUser.password`,
+MAVIS credential values) are
 masked in every tool response unless explicitly requested by a superuser key
 holding the `mcp:secrets` scope.
 """
@@ -280,7 +342,15 @@ def register(server: MCPServer) -> None:
         mime_type="text/markdown",
     )
     def syntax_reference() -> str:
-        return SYNTAX_REFERENCE
+        with Session(engine) as session:
+            on = service.radius_enabled(session=session)
+        state = (
+            "RADIUS is **enabled** on this server."
+            if on
+            else "RADIUS is **disabled** on this server: the generated config has no "
+            "RADIUS until an administrator enables it under TACACS NG Settings."
+        )
+        return f"{SYNTAX_REFERENCE}\n## This server\n\n{state}\n"
 
     @server.resource(
         "tacacs://schema/entities",

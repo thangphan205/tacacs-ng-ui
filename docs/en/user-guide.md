@@ -199,6 +199,7 @@ Go to **Rulesets** → **Add Ruleset**.
 
 Go to **Hosts** → **Add Host**.
 - Set the device IP address and `secret_key` (must match what is configured on the device).
+- A device that speaks only RADIUS (for example MikroTik) gets a **RADIUS Secret** instead, once RADIUS is enabled under **NG Settings → RADIUS**. See [RADIUS](radius.md).
 
 ### 7. Generate and Activate Config
 
@@ -730,8 +731,8 @@ Forwarding is switched on if a webhook URL or syslog host was set. After that th
 Messages are [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424), facility `user`. Severity is `warning` for a failed login or a denied command, `info` otherwise:
 
 ```
-<12>1 2026-11-07T07:00:04.000Z primary tacacs-ng - - - type=authentication username=alice nas_ip=10.0.0.1 port=tty0 client_ip=192.0.2.7 result=failed msg=shell login failed
-<14>1 2026-11-07T07:00:05.000Z primary tacacs-ng - - - type=accounting username=alice nas_ip=10.0.0.1 port=tty0 client_ip=192.0.2.7 result=start command=show_version msg=start shell show version <cr>
+<12>1 2026-11-07T07:00:04.000Z primary tacacs-ng - - - type=authentication protocol=tacacs username=alice nas_ip=10.0.0.1 port=tty0 client_ip=192.0.2.7 result=failed msg=shell login failed
+<14>1 2026-11-07T07:00:05.000Z primary tacacs-ng - - - type=accounting protocol=tacacs username=alice nas_ip=10.0.0.1 port=tty0 client_ip=192.0.2.7 result=start command=show_version msg=start shell show version <cr>
 <14>1 2026-11-07T07:01:00.000Z primary tacacs-ng-ui - - - type=audit action=UPDATE entity_type=Host entity_id=… entity_name=core-sw user_email=admin@example.com ip=198.51.100.4 msg=Updated host core-sw
 <14>1 2026-11-07T11:27:30.811Z primary tacacs-ng-ui - - - type=audit action=DELETE entity_type=TacacsUser entity_id=a22b4a0f-… entity_name=abc user_email=admin@example.com ip=198.51.100.4 msg=-
 ```
@@ -748,7 +749,7 @@ Messages are [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424), facility
 | `renamed_from` | Audit entries only, and only when the entry renamed the object: the previous name |
 | `msg` | The raw log message, last, with its spaces kept |
 
-Key=value fields never contain spaces. A line the shipper cannot parse is sent as `type=<log type> msg=<the line>`.
+Key=value fields never contain spaces. `protocol` is `tacacs` or `radius`: RADIUS logins and accounting (when [RADIUS](radius.md) is enabled) are in the same log files and the same feed. A line the shipper cannot parse is sent as `type=<log type> msg=<the line>`.
 
 Over **TCP** each message ends with a newline (RFC 6587 non-transparent framing), which is what default syslog TCP inputs expect. Over **UDP** each message is one datagram.
 

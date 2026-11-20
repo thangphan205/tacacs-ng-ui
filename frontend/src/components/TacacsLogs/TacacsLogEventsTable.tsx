@@ -39,6 +39,7 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination"
 import useLogDays from "@/hooks/useLogDays"
+import useRadiusEnabled from "@/hooks/useRadiusEnabled"
 
 const TYPE_COLORS: Record<string, string> = {
   authentication: "purple",
@@ -67,6 +68,21 @@ const LOG_TYPE_OPTIONS = [
   { value: "authorization", label: "Authorization" },
   { value: "accounting", label: "Accounting" },
 ]
+
+const PROTOCOL_OPTIONS = [
+  { value: "tacacs", label: "TACACS+" },
+  { value: "radius", label: "RADIUS" },
+]
+
+/** RADIUS lines share the authentication and accounting files; mark them. */
+function RadiusBadge({ event }: { event: TacacsLogEvent }) {
+  if (event.protocol !== "radius") return null
+  return (
+    <Badge colorPalette="orange" variant="subtle" size="sm">
+      RADIUS
+    </Badge>
+  )
+}
 
 const RESULT_OPTIONS = [
   { value: "success", label: "Success" },
@@ -155,6 +171,12 @@ function EventDetailDrawer({
                     {LOG_TYPE_LABEL[event.log_type] ??
                       event.log_type.toUpperCase()}
                   </Badge>
+                </Flex>
+                <Flex justify="space-between">
+                  <Text color="fg.muted">Protocol</Text>
+                  <Text fontSize="xs" fontWeight="medium">
+                    {event.protocol === "radius" ? "RADIUS" : "TACACS+"}
+                  </Text>
                 </Flex>
                 <Flex justify="space-between">
                   <Text color="fg.muted">Result</Text>
@@ -350,6 +372,8 @@ export default function TacacsLogEventsTable() {
   ])
   const [logType, setLogType] = useState<string | undefined>()
   const [result, setResult] = useState<string | undefined>()
+  const [protocol, setProtocol] = useState<"tacacs" | "radius" | undefined>()
+  const radiusEnabled = useRadiusEnabled()
   const [search, setSearch] = useState("")
   const [selectedEvent, setSelectedEvent] = useState<TacacsLogEvent | null>(
     null,
@@ -387,7 +411,7 @@ export default function TacacsLogEventsTable() {
   const { data, isLoading, isFetching, dataUpdatedAt, refetch } = useQuery({
     queryKey: [
       "tacacs_log_events",
-      { page, perPage, dateFrom, dateTo, logType, result, search },
+      { page, perPage, dateFrom, dateTo, logType, result, protocol, search },
     ],
     queryFn: () =>
       TacacsLogsService.listLogEvents({
@@ -395,6 +419,7 @@ export default function TacacsLogEventsTable() {
         date_to: dateTo,
         log_type: logType,
         result,
+        protocol,
         search: search || undefined,
         skip: (page - 1) * perPage,
         limit: perPage,
@@ -484,6 +509,19 @@ export default function TacacsLogEventsTable() {
             ariaLabel="Filter by result"
           />
 
+          {(radiusEnabled || protocol) && (
+            <FilterSelect
+              value={protocol}
+              onChange={(v) => {
+                setProtocol(v as "tacacs" | "radius" | undefined)
+                setPage(1)
+              }}
+              options={PROTOCOL_OPTIONS}
+              placeholder="All protocols"
+              ariaLabel="Filter by protocol"
+            />
+          )}
+
           <SearchBox
             initialValue={search}
             onSearch={(v) => {
@@ -556,13 +594,16 @@ export default function TacacsLogEventsTable() {
                       {event.timestamp}
                     </Table.Cell>
                     <Table.Cell>
-                      <Badge
-                        colorPalette={TYPE_COLORS[event.log_type] ?? "gray"}
-                        size="sm"
-                      >
-                        {LOG_TYPE_LABEL[event.log_type] ??
-                          event.log_type.toUpperCase()}
-                      </Badge>
+                      <Flex gap={1} wrap="nowrap">
+                        <Badge
+                          colorPalette={TYPE_COLORS[event.log_type] ?? "gray"}
+                          size="sm"
+                        >
+                          {LOG_TYPE_LABEL[event.log_type] ??
+                            event.log_type.toUpperCase()}
+                        </Badge>
+                        <RadiusBadge event={event} />
+                      </Flex>
                     </Table.Cell>
                     <Table.Cell>
                       {/* Clickable username badge — sets the username filter.

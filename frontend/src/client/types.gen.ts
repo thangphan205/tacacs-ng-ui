@@ -7778,6 +7778,10 @@ export type TacacsLogsListLogEventsData = {
          */
         search?: string | null;
         /**
+         * Protocol
+         */
+        protocol?: 'tacacs' | 'radius' | null;
+        /**
          * Skip
          */
         skip?: number;

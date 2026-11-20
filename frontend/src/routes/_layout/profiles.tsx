@@ -240,6 +240,7 @@ function ProfilesTable() {
                       <ProfileActionsMenu
                         profile={profile}
                         scriptCount={profileScripts.length}
+                        scripts={profileScripts}
                       />
                     </Table.Cell>
                   </Table.Row>
