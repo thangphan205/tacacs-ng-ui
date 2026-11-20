@@ -148,6 +148,14 @@ def test_generate_config_pap_login_for_local_users(db: Session) -> None:
     assert "password pap = login" in user_block("USER_PAP_CRYPT")
     assert "password pap = login" not in user_block("USER_PAP_MAVIS")
 
+    # CHAP / MS-CHAP (RADIUS: MikroTik RouterOS logs in with MS-CHAPv2) work
+    # only against an explicit cleartext password; `= login` never matches.
+    clear = user_block("USER_PAP_CLEAR")
+    assert 'password chap = clear "pwd1"' in clear
+    assert 'password ms-chap = clear "pwd1"' in clear
+    for other in ("USER_PAP_CRYPT", "USER_PAP_MAVIS"):
+        assert "chap" not in user_block(other)
+
 
 def test_expired_users_are_left_out_of_generated_config(db: Session) -> None:
     import uuid

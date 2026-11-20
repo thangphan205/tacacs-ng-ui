@@ -41,9 +41,16 @@ if (aaa.protocol == radius) {
 }
 ```
 
-Users, groups and rulesets need no changes. A user in `tacacs_super_user` gets the super-user profile and therefore `full`, just as their TACACS+ logins get privilege 15.
+Groups and rulesets need no changes. A user in `tacacs_super_user` gets the super-user profile and therefore `full`, just as their TACACS+ logins get privilege 15.
 
-### D. Generate and activate
+### D. Users: password type `clear`
+
+RouterOS logs users in with **MS-CHAPv2** (verified with SSH logins on RouterOS 7.25.1). MS-CHAPv2 can only be checked against a cleartext password. For every user who logs in to MikroTik devices, open **Users**, set **Password Type** to `clear`, and enter the password again. A `crypt` user is refused (`radius mschapv2 login failed` in the Events tab), even with the right password.
+
+> [!WARNING]
+> A `clear` password is stored as plain text in the database and in the generated config. Use `clear` only for the accounts that need it, and keep `crypt` for TACACS+-only users. Audit logs and MCP output still redact it.
+
+### E. Generate and activate
 
 **TACACS Configs → Generate Config → Activate**.
 
@@ -71,8 +78,8 @@ set use-radius=yes accounting=yes default-group=read
 
 ## 3. Verify
 
-1. Log in to the router over SSH with a tacacs-ng-ui user, for example `user_admin`.
-2. On the router, `/user active print` lists the session with the group from the profile. `/user print` doesn't list the user, because the account comes from RADIUS. A `read` user can't change the configuration.
-3. In tacacs-ng-ui, **TACACS Logs → Events** shows the login with a **RADIUS** badge, for example `radius pap login succeeded  MikroTik:MikroTik-Group=full`. With `accounting=yes`, start and stop records appear under accounting.
+1. Log in to the router over SSH with a tacacs-ng-ui user whose password type is `clear`.
+2. On the router, `/user active print` flags the session `R` (RADIUS). `/user print` doesn't list the user, because the account comes from RADIUS. A `read` user gets `not enough permissions` when trying to change the configuration.
+3. In tacacs-ng-ui, **TACACS Logs → Events** shows the login with a **RADIUS** badge, for example `radius mschapv2 login succeeded  MikroTik:MikroTik-Group=full …`. With `accounting=yes`, start and stop records appear under accounting, plus an `on` record when the router starts.
 
-If the Events line says `radius chap login` or `radius mschapv2 login` and fails, the router used CHAP or MS-CHAP. Local tacacs-ng-ui users have hashed passwords, which only PAP can check. See [RADIUS → Troubleshooting](../radius.md#troubleshooting).
+If the Events line says `radius mschapv2 login failed` for a correct password, the user's password type is `crypt`; see step 1.D. If nothing appears at all, the request didn't match a host: check the address in the host entry against the address the router sends from. See [RADIUS → Troubleshooting](../radius.md#troubleshooting).

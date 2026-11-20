@@ -407,15 +407,29 @@ id = tac_plus-ng {{
                 member=tacacs_user_info["member"],
             )
         else:
+            # CHAP and MS-CHAP prove knowledge of the password without sending
+            # it, so tac_plus-ng can check them only against a cleartext
+            # password, given explicitly: `password ms-chap = login` is
+            # accepted by the parser but never matches. RADIUS devices that
+            # use MS-CHAPv2 for logins (MikroTik RouterOS) therefore need
+            # users with password type `clear`; a hashed (`crypt`) password
+            # serves PAP only.
+            challenge_lines = ""
+            if tacacs_user_info["password_type"] == "clear":
+                challenge_lines = (
+                    '\n        password chap = clear "{pw}"'
+                    '\n        password ms-chap = clear "{pw}"'
+                ).format(pw=tacacs_user_info["password"])
             tacacs_users_template += """
     user {username} {{
         password login = {mavis_type} "{mavis_password}"
-        password pap = login
+        password pap = login{challenge_lines}
         member = {member}
     }}""".format(
                 username=tacacs_user_info["username"],
                 mavis_type=tacacs_user_info["password_type"],
                 mavis_password=tacacs_user_info["password"],
+                challenge_lines=challenge_lines,
                 member=tacacs_user_info["member"],
             )
 

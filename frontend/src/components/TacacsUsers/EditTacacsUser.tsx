@@ -59,7 +59,7 @@ const fieldGuideItems: FieldGuideItem[] = [
     icon: FiKey,
     label: "Password Type",
     description:
-      "How the password is stored: 'crypt' hashes with SHA-512 (recommended), 'clear' stores as plaintext, 'mavis' delegates authentication to a remote backend (LDAP/AD).",
+      "How the password is stored: 'crypt' hashes with SHA-512 (recommended), 'clear' stores as plaintext, 'mavis' delegates authentication to a remote backend (LDAP/AD). RADIUS devices that use CHAP or MS-CHAP (e.g. MikroTik RouterOS) need 'clear': a hash only works with PAP.",
     required: true,
   },
   {
