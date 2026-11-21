@@ -104,7 +104,7 @@ requires-dist = [
     { name = "authlib", specifier = ">=1.9.1" },
     { name = "cryptography", specifier = ">=50.0.1" },
     { name = "email-validator", specifier = ">=2.1.0.post1,<3.0.0.0" },
-    { name = "emails", specifier = ">=1.1.2,<2.0" },
+    { name = "emails", specifier = ">=1.1.3,<2.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.162.0,<1.0.0" },
     { name = "httpx", specifier = ">=0.25.1,<1.0.0" },
     { name = "jinja2", specifier = ">=3.1.4,<4.0.0" },
@@ -822,16 +822,16 @@ wheels = [
 
 [[package]]
 name = "emails"
-version = "1.1.2"
+version = "1.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dkimpy" },
     { name = "puremagic" },
     { name = "python-dateutil" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/25/bb/073e0244a4da617a1e7add93779e3a40ec173a36ff81b396450d73313f33/emails-1.1.2.tar.gz", hash = "sha256:9fd216b691704b3df9ad70073fc85945ba4e8eac80198233919cfa2488af8665", size = 37156, upload-time = "2026-05-18T13:26:29.958Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c0/da/81560b8c358c35315b3a96e6d80b88fca1607db863370f3266edaa99fe03/emails-1.1.3.tar.gz", hash = "sha256:935c70428c664f26e93b410673e59a763baa688886167fd1d50dc03506b17cc5", size = 38584, upload-time = "2026-09-28T21:55:47.051Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bb/7a/d64aea2f1bd6838fed3131460394c0d9d67c016a3fa1b45ef861a83310bc/emails-1.1.2-py3-none-any.whl", hash = "sha256:0ab991876921eeac13039d5be93192ab27da1600afa7d7ea6d51dfa7cd006eda", size = 42920, upload-time = "2026-05-18T13:26:28.702Z" },
+    { url = "https://files.pythonhosted.org/packages/e0/67/c60e8b25bc0134b6b8de84e99c576bbb87060e854ea2f27c51e8a8f405df/emails-1.1.3-py3-none-any.whl", hash = "sha256:54e3fb6e93c0e687d94afd3e40d21994554e4eca85ea22239d715a72d5199f59", size = 44357, upload-time = "2026-09-28T21:55:45.532Z" },
 ]
 
 [[package]]
