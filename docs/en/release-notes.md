@@ -12,21 +12,18 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
-### Fixes
-
-* 🔒 Refuse TACACS+ user values that would end their config token. PR [#439](https://github.com/thangphan205/tacacs-ng-ui/pull/439) by [@thangphan205](https://github.com/thangphan205).
-
 ### Internal
 
 * 🔖 Release 0.7.0. PR [#438](https://github.com/thangphan205/tacacs-ng-ui/pull/438) by [@thangphan205](https://github.com/thangphan205).
 
 ## v0.7.0
 
-This release adds RADIUS for devices that can't use TACACS+, such as MikroTik RouterOS. The same tac_plus-ng answers RADIUS on UDP 1812/1813, with the same users, groups, profiles and rulesets, and RADIUS logins show up in the same Events, statistics, alerts and SIEM feed. RADIUS is **off by default**: until it is turned on, the generated config has no RADIUS in it at all. The release also closes a gap that RADIUS-only hosts would have opened: tac_plus-ng accepts cleartext TACACS+ from a host that has no key. It has one database migration, reversible; see **Upgrading from 0.6.9**.
+This release adds RADIUS for devices that can't use TACACS+, such as MikroTik RouterOS. The same tac_plus-ng answers RADIUS on UDP 1812/1813, with the same users, groups, profiles and rulesets, and RADIUS logins show up in the same Events, statistics, alerts and SIEM feed. RADIUS is **off by default**: until it is turned on, the generated config has no RADIUS in it at all. The release also closes a gap that RADIUS-only hosts would have opened: tac_plus-ng accepts cleartext TACACS+ from a host that has no key. It also stops a TACACS+ user's clear password or password type from adding config. It has one database migration, reversible; see **Upgrading from 0.6.9**.
 
 ### Security
 
 * 🔒 **A host without a TACACS+ key can't be used to log in over TACACS+.** tac_plus-ng refuses unencrypted TACACS+ from a `host` with no `key`, but reads a request sent without the unencrypted flag as cleartext and checks the password in it. A RADIUS-only host (a RADIUS secret, no TACACS+ key, no parent) would therefore have let anyone at its address log in over TACACS+ without a shared secret, whether RADIUS was on or not. Such a host, and a host whose parent is not in the generated config, now gets an internal key derived from `SECRET_KEY` that no device knows. It never changes between Generate runs and is redacted in MCP output. PR [#436](https://github.com/thangphan205/tacacs-ng-ui/pull/436) by [@thangphan205](https://github.com/thangphan205).
+* 🔒 **A TACACS+ user's password can no longer add config.** A `clear` password is written inside quotes (`password login = clear "…"`, and now the chap / ms-chap lines too), and a quote, backslash or line break in it ended the string, so the rest was read as config inside the `user { }` block. `password_type`, written without quotes on the same line, accepted any text from the REST API and MCP write tools. A clear password now refuses `"`, `\` and line breaks, `password_type` must be `clear`, `crypt` or `mavis`, and Generate leaves out a stored user that fails either check. `crypt` passwords are hashed before they are stored and are unaffected. PR [#439](https://github.com/thangphan205/tacacs-ng-ui/pull/439) by [@thangphan205](https://github.com/thangphan205), fixes [#437](https://github.com/thangphan205/tacacs-ng-ui/issues/437).
 
 ### Features
 
@@ -48,6 +45,7 @@ This release adds RADIUS for devices that can't use TACACS+, such as MikroTik Ro
 * **New optional settings:** `RADIUS_ENABLED`, `RADIUS_AUTH_PORT`, `RADIUS_ACCT_PORT`. They are read on first startup only, to seed **NG Settings → RADIUS**; after that the UI owns them.
 * ⚠️ **`docker-compose.yml` now publishes `1812/udp` and `1813/udp`** on the backend. Nothing listens there until RADIUS is enabled. If you change the ports in the UI, change them in compose as well. With your own compose file or firewall, or on HA, open them on every node.
 * **The generated config does not change** until RADIUS is enabled, except for the Security fix above: a host with no TACACS+ key of its own and no parent in the config now gets a `key` line. After upgrading, the TACACS Configs page shows unapplied changes for such hosts; Generate and Activate to apply them.
+* **Check clear passwords.** A TACACS+ user whose stored `clear` password contains `"`, `\` or a line break, or whose password type is not `clear` / `crypt` / `mavis`, is now left out of the generated config (the backend logs `Leaving TACACS+ user … out of the config`). Such a config would not have passed the syntax check or would have contained injected lines. Set a new password for that user, then Generate.
 * **SIEM consumers:** syslog messages have a new `protocol=` field after `type=`, and webhook events a `protocol` key. Parsers that read the key=value fields by name need no change.
 
 ### Internal
