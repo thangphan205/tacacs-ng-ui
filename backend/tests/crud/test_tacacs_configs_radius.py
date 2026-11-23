@@ -9,6 +9,7 @@ from collections.abc import Iterator
 import pytest
 from sqlmodel import Session, select
 
+from app.core.host_keys import unused_tacacs_key
 from app.core.radius_dictionary import builtin_radius_dictionary
 from app.crud.tacacs_configs import (
     RADIUS_ACCESS_FORMAT,
@@ -138,6 +139,7 @@ def test_enabled_radius_emits_listeners_logs_and_dictionaries(
     assert 'radius.key = "radius-key"' in parent_block
     child_block = config.split(f"host = {child.name} {{", 1)[1].split("}", 1)[0]
     assert "radius.key" not in child_block  # inherited through parent
+    assert "\n        key = " not in child_block  # so is the TACACS+ key
     assert f"parent = {parent.name}" in child_block
 
 
@@ -170,3 +172,43 @@ def test_a_bad_stored_dictionary_is_left_out(
     )
     config = generate_tacacs_ng_config(session=db)
     assert "host evil" not in config
+
+
+def _host_block(config: str, name: str) -> str:
+    return config.split(f"host = {name} {{", 1)[1].split("\n    }", 1)[0]
+
+
+@pytest.mark.parametrize("radius_enabled", [True, False])
+def test_a_host_without_a_tacacs_key_gets_one_nobody_knows(
+    db: Session, setting: TacacsNgSetting, radius_enabled: bool
+) -> None:
+    """Without a `key` tac_plus-ng takes cleartext TACACS+ from the host's
+    address (tests/core/test_radius_binary.py), so a RADIUS-only host, and a
+    host whose parent is not rendered, get a derived key, RADIUS on or off."""
+    suffix = uuid.uuid4().hex[:8]
+    radius_only = Host(
+        name=f"RAD_ONLY_{suffix}",
+        ipv4_address="198.18.11.1/32",
+        radius_secret_key="radius-only-key",
+    )
+    orphan = Host(
+        name=f"RAD_ORPHAN_{suffix}",
+        ipv4_address="198.18.11.2/32",
+        parent=f"NOT_RENDERED_{suffix}",
+    )
+    db.add(radius_only)
+    db.add(orphan)
+    _set(db, setting, radius_enabled=radius_enabled)
+    try:
+        config = generate_tacacs_ng_config(session=db)
+        for host in (radius_only, orphan):
+            key = unused_tacacs_key(host.id)
+            assert len(key) == 64 and int(key, 16) >= 0
+            assert f'\n        key = "{key}"' in _host_block(config, host.name)
+        assert unused_tacacs_key(radius_only.id) != unused_tacacs_key(orphan.id)
+        # the same on every Generate, so the preview matches the active config
+        assert generate_tacacs_ng_config(session=db) == config
+    finally:
+        db.delete(radius_only)
+        db.delete(orphan)
+        db.commit()
