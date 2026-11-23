@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Internal
+
+* 🔖 Release 0.7.0. PR [#438](https://github.com/thangphan205/tacacs-ng-ui/pull/438) by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.7.0
 
 This release adds RADIUS for devices that can't use TACACS+, such as MikroTik RouterOS. The same tac_plus-ng answers RADIUS on UDP 1812/1813, with the same users, groups, profiles and rulesets, and RADIUS logins show up in the same Events, statistics, alerts and SIEM feed. RADIUS is **off by default**: until it is turned on, the generated config has no RADIUS in it at all. The release also closes a gap that RADIUS-only hosts would have opened: tac_plus-ng accepts cleartext TACACS+ from a host that has no key. It has one database migration, reversible; see **Upgrading from 0.6.9**.
