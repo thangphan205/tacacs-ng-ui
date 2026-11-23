@@ -1,6 +1,7 @@
 import pytest
 from sqlmodel import Session
 
+from app.core.host_keys import unused_tacacs_key
 from app.mcp_server import service
 from app.models import (
     Host,
@@ -336,3 +337,5 @@ def test_radius_secret_is_masked_everywhere(db: Session, radius_host: Host) -> N
     preview = service.generate_config_preview(session=db)
     assert "radius.key" in preview["config"]
     assert radius_host.radius_secret_key not in preview["config"]
+    # nor the TACACS+ key a RADIUS-only host gets (core/host_keys.py)
+    assert unused_tacacs_key(radius_host.id) not in preview["config"]

@@ -351,3 +351,42 @@ def test_chap_needs_a_cleartext_password(
     assert chap_request(crypt_user, PASSWORD) == ACCESS_REJECT
     lines = _lines(daemon / "authentication.log")
     assert any("radius chap login succeeded" in line for line in lines), lines
+
+
+# --- TACACS+ from a RADIUS-only host ---------------------------------------------
+
+TAC_PLUS_AUTHEN, TAC_PLUS_UNENCRYPTED_FLAG = 1, 0x01
+AUTHEN_PASS = 1
+
+
+def cleartext_tacacs_pap(user: str, password: str, flags: int) -> int | None:
+    """One TACACS+ PAP authentication START (RFC 8907) with a cleartext body,
+    as a client without the shared key would send it. The reply status, or
+    None when the server sends nothing back."""
+    body = (
+        struct.pack("BBBBBBBB", 1, 1, 2, 1, len(user), 0, 0, len(password))
+        + user.encode()
+        + password.encode()
+    )
+    header = struct.pack("!BBBBII", 0xC1, TAC_PLUS_AUTHEN, 1, flags, 0x1234, len(body))
+    with socket.create_connection(("127.0.0.1", TACACS_PORT), timeout=3) as s:
+        s.sendall(header + body)
+        try:
+            reply = s.recv(4096)
+        except (TimeoutError, ConnectionResetError):
+            return None
+    return reply[12] if len(reply) > 12 else None
+
+
+@pytest.mark.usefixtures("daemon")
+@pytest.mark.parametrize("flags", [0, TAC_PLUS_UNENCRYPTED_FLAG])
+def test_radius_only_host_refuses_tacacs_without_a_key(
+    radius_config: tuple[str, Path, str], flags: int
+) -> None:
+    """A host with a RADIUS secret and no TACACS+ key must not be a way in over
+    TACACS+. A `host` with no `key` makes tac_plus-ng refuse the unencrypted
+    flag ("Peers MUST use Obfuscation") but read a body with the flag clear as
+    cleartext, and let the login through (verified on the binary), so the
+    generator gives such a host a key nobody knows."""
+    _, _, username = radius_config
+    assert cleartext_tacacs_pap(username, PASSWORD, flags) != AUTHEN_PASS

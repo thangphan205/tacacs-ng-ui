@@ -10,7 +10,7 @@ RADIUS is **off by default**. While it is off, the generated config contains no 
 
 - **Same server, extra listeners.** tac_plus-ng itself speaks RADIUS. When RADIUS is enabled, the generated config adds UDP listeners on the authentication port (1812) and the accounting port (1813), next to TACACS+ on 49.
 - **Shared policy.** A RADIUS login is matched against the same users, the same rulesets and the same profiles as a TACACS+ login. A profile tells the two protocols apart with `aaa.protocol`, and returns RADIUS attributes such as `MikroTik-Group` instead of TACACS+ attributes such as `priv-lvl`.
-- **One secret per device.** RADIUS uses its own shared secret, set per host (**RADIUS Secret**). The server answers RADIUS only for hosts that have one, either their own or one inherited from a parent host. A host may have a TACACS+ key, a RADIUS secret, or both.
+- **One secret per device.** RADIUS uses its own shared secret, set per host (**RADIUS Secret**). The server answers RADIUS only for hosts that have one, either their own or one inherited from a parent host. A host may have a TACACS+ key, a RADIUS secret, or both. A host with no TACACS+ key of its own or from a parent gets an internal one that no device knows, so it can't be used to log in over TACACS+ (tac_plus-ng would otherwise accept cleartext TACACS+ from a host without a key).
 - **Same logs.** RADIUS logins and accounting are written into the same authentication and accounting log files as TACACS+. Statistics, alert rules, anomaly detection and SIEM forwarding count them without extra setup. The Events tab marks RADIUS lines with a **RADIUS** badge, and SIEM events carry `protocol=radius`.
 
 What it does not do:

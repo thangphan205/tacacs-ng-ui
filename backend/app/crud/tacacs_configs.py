@@ -10,6 +10,7 @@ import httpx
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
+from app.core.host_keys import unused_tacacs_key
 from app.core.radius_dictionary import (
     builtin_radius_dictionary,
     normalize_radius_dictionary,
@@ -330,7 +331,8 @@ id = tac_plus-ng {{
     rendered_host_names = {h.name for h in host_basic}
     for host in hosts_crud.order_hosts_parent_first(list(host_basic)):
         host_lines = []
-        if host.parent in rendered_host_names:
+        has_parent = host.parent in rendered_host_names
+        if has_parent:
             host_lines.append(f"        parent = {host.parent}")
         elif host.parent:
             # `parent` was free text and ignored before it was emitted, so older
@@ -345,6 +347,11 @@ id = tac_plus-ng {{
             host_lines.append(f"        address = {host.ipv4_address}")
         if host.secret_key:
             host_lines.append(f'        key = "{host.secret_key}"')
+        elif not has_parent:
+            # No key of its own and none to inherit (a RADIUS-only host, or a
+            # parent that is not rendered): without a key tac_plus-ng would
+            # take cleartext TACACS+ from this address (core/host_keys.py).
+            host_lines.append(f'        key = "{unused_tacacs_key(host.id)}"')
         if host.radius_secret_key and radius_enabled:
             host_lines.append(f'        radius.key = "{host.radius_secret_key}"')
         hosts_template += "\n    host = {name} {{\n{body}\n    }}".format(

@@ -23,6 +23,7 @@ from collections.abc import Iterable
 
 from sqlmodel import Session, select
 
+from app.core.host_keys import unused_tacacs_key
 from app.models import Host, Mavis, TacacsUser
 
 REDACTED = "***REDACTED***"
@@ -50,6 +51,9 @@ def collect_secrets(*, session: Session) -> list[str]:
     for host in session.exec(select(Host)).all():
         if host.secret_key:
             secrets.append(host.secret_key)
+        else:
+            # the key the generator gives a host without one (core/host_keys)
+            secrets.append(unused_tacacs_key(host.id))
         if host.radius_secret_key:
             secrets.append(host.radius_secret_key)
 
