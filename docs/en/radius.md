@@ -24,7 +24,7 @@ What it does not do:
 
 ### 1. Enable RADIUS
 
-Go to **NG Settings → RADIUS** and check **Enable RADIUS**. The defaults are:
+Go to **AAA Config → RADIUS** and check **Enable RADIUS**. The defaults are:
 
 | Setting | Default |
 |---|---|
@@ -95,7 +95,7 @@ Refer to an attribute as `radius[Vendor:Attribute]` (vendor-specific) or `radius
 
 ### Custom dictionary
 
-For another vendor, add its attributes under **NG Settings → RADIUS → Custom RADIUS Dictionary**:
+For another vendor, add its attributes under **AAA Config → RADIUS → Custom RADIUS Dictionary**:
 
 ```
 radius.dictionary Ubiquiti 41112 {

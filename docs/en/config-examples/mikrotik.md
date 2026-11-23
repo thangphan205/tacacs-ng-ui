@@ -10,7 +10,7 @@ For how RADIUS works in tacacs-ng-ui, see [RADIUS](../radius.md).
 
 ### A. Enable RADIUS
 
-**NG Settings → RADIUS** → check **Enable RADIUS**. Keep the default ports, 1812 (authentication) and 1813 (accounting).
+**AAA Config → RADIUS** → check **Enable RADIUS**. Keep the default ports, 1812 (authentication) and 1813 (accounting).
 
 ### B. Add the router as a host
 

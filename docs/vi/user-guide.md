@@ -106,7 +106,7 @@ Vào **Rulesets** → **Add Ruleset**.
 
 Vào **Hosts** → **Add Host**.
 - Đặt địa chỉ IP thiết bị và `secret_key` (phải khớp với cấu hình trên thiết bị).
-- Thiết bị chỉ hỗ trợ RADIUS (ví dụ MikroTik) dùng **RADIUS Secret** thay cho `secret_key`, sau khi bật RADIUS tại **NG Settings → RADIUS**. Xem [RADIUS](../en/radius.md).
+- Thiết bị chỉ hỗ trợ RADIUS (ví dụ MikroTik) dùng **RADIUS Secret** thay cho `secret_key`, sau khi bật RADIUS tại **AAA Config → RADIUS**. Xem [RADIUS](../en/radius.md).
 
 ### 7. Tạo và Kích Hoạt Config
 

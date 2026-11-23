@@ -512,7 +512,7 @@ For air-gapped or intranet-only environments, configure native LDAP / LDAPS auth
 
 For devices that speak only RADIUS (MikroTik RouterOS, many wireless controllers and small firewalls):
 
-- **Enable** under **NG Settings → RADIUS** (authentication / accounting ports, default UDP 1812 / 1813). `RADIUS_ENABLED=true` in `.env` turns it on at first startup only; the UI owns the setting after that. While it is off, the generated config contains no RADIUS at all.
+- **Enable** under **AAA Config → RADIUS** (authentication / accounting ports, default UDP 1812 / 1813). `RADIUS_ENABLED=true` in `.env` turns it on at first startup only; the UI owns the setting after that. While it is off, the generated config contains no RADIUS at all.
 - **Per-host RADIUS Secret** under **Hosts**, inherited through **Parent** like the TACACS+ key. A RADIUS-only device needs no TACACS+ key.
 - **Vendor attributes** from a built-in dictionary (MikroTik, Cisco, Microsoft, Fortinet, Palo Alto, Juniper, Aruba, Huawei); add more as `radius.dictionary` text. A profile's **Add RADIUS Attribute** menu writes the `if (aaa.protocol == radius)` script for you.
 - **CHAP / MS-CHAP need password type `clear`.** MikroTik RouterOS logs in with MS-CHAPv2, so its users must be `clear`; `crypt` users can use PAP only.
