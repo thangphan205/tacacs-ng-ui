@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Fixes
+
+* 🔒 Validate names and actions written unquoted into the config. PR [#443](https://github.com/thangphan205/tacacs-ng-ui/pull/443) by [@thangphan205](https://github.com/thangphan205).
+
 ### Docs
 
 * 📝 README: RADIUS and 0.7.0. PR [#441](https://github.com/thangphan205/tacacs-ng-ui/pull/441) by [@thangphan205](https://github.com/thangphan205).
