@@ -12,6 +12,14 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+## v0.7.1
+
+This release moves the RADIUS settings to their own page and closes a config-injection gap: names and actions are written into the generated config as bare tokens, and a value such as a username containing `}` could add a second block. No database migration; rebuild the images. See **Upgrading from 0.7.0**.
+
+### Security
+
+* 🔒 **Names and actions can no longer add config.** Usernames, `member` lists, group names, host names and parents, ruleset names and every profile, ruleset and script `action` are now checked on entry (REST, MCP write keys and the Add / Edit forms): whitespace, braces, quotes, `#`, `\` and `= , ( ) !` are refused. On update the check applies only to a value that changes, so existing names such as `o'brien` or `DOMAIN\user` stay editable. Generate also drops anything that would change the config's structure, and fails closed: such hosts, groups and users are left out, a rule keeps its place as `ruleset_<id>`, and an unsafe action is written as `deny`. PR [#443](https://github.com/thangphan205/tacacs-ng-ui/pull/443) by [@thangphan205](https://github.com/thangphan205).
+
 ### Features
 
 * ✨ Move RADIUS settings to their own page under AAA Config. PR [#444](https://github.com/thangphan205/tacacs-ng-ui/pull/444) by [@thangphan205](https://github.com/thangphan205).
@@ -20,19 +28,17 @@ of cutting a release; do not delete the heading itself. -->
   * Saving NG Settings no longer sends the RADIUS fields, so it cannot overwrite changes saved on the RADIUS page.
 * 🎨 Redesign the Add/Edit Host modal with a structured layout and a live preview of the host's config.
 
-### Fixes
-
-* 🔒 Validate names and actions written unquoted into the config. PR [#443](https://github.com/thangphan205/tacacs-ng-ui/pull/443) by [@thangphan205](https://github.com/thangphan205).
-
 ### Docs
 
 * 📝 Release notes: detail the RADIUS page move and host modal redesign. PR [#445](https://github.com/thangphan205/tacacs-ng-ui/pull/445) by [@thangphan205](https://github.com/thangphan205).
 * 📝 README: RADIUS and 0.7.0. PR [#441](https://github.com/thangphan205/tacacs-ng-ui/pull/441) by [@thangphan205](https://github.com/thangphan205).
 * 📝 Release notes: include #439 in 0.7.0. PR [#440](https://github.com/thangphan205/tacacs-ng-ui/pull/440) by [@thangphan205](https://github.com/thangphan205).
 
-### Internal
+### Upgrading from 0.7.0
 
-* 🔖 Release 0.7.0. PR [#438](https://github.com/thangphan205/tacacs-ng-ui/pull/438) by [@thangphan205](https://github.com/thangphan205).
+* **Rebuild the images.** There is no database migration and no new setting.
+* **The RADIUS settings moved** to **AAA Config → RADIUS** in the sidebar. The stored values are unchanged.
+* **Names with a quote, `#` or `\` keep working** and stay editable. A stored name or action with whitespace or braces, which only got in before this fix, is now left out of the generated config (an action becomes `deny`). Check the TACACS Configs page for unapplied changes, then Generate and Activate.
 
 ## v0.7.0
 
@@ -68,6 +74,7 @@ This release adds RADIUS for devices that can't use TACACS+, such as MikroTik Ro
 
 ### Internal
 
+* 🔖 Release 0.7.0. PR [#438](https://github.com/thangphan205/tacacs-ng-ui/pull/438) by [@thangphan205](https://github.com/thangphan205).
 * ⬆ Bump react-hook-form from 7.91.0 to 7.92.0 in /frontend. PR [#432](https://github.com/thangphan205/tacacs-ng-ui/pull/432) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @biomejs/biome from 2.5.15 to 2.6.8 in /frontend. PR [#434](https://github.com/thangphan205/tacacs-ng-ui/pull/434) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @tanstack/router-plugin from 1.168.35 to 1.169.0 in /frontend. PR [#429](https://github.com/thangphan205/tacacs-ng-ui/pull/429) by [@dependabot[bot]](https://github.com/apps/dependabot).
