@@ -8,6 +8,7 @@ from sqlalchemy import update as sa_update
 from sqlmodel import Session, select
 
 from app.core.config import settings
+from app.core.config_names import check_changed, name_check, normalize_member
 from app.models import (
     TacacsUser,
     TacacsUserCreate,
@@ -180,6 +181,11 @@ def update_tacacs_user(
 ) -> Any:
     """Raises ``ValueError`` when the merged row has an unsafe clear password."""
     user_data = user_in.model_dump(exclude_unset=True)
+    check_changed(
+        user_data,
+        db_user,
+        {"username": name_check("Username"), "member": normalize_member},
+    )
     check_clear_password(
         user_data.get("password_type", db_user.password_type),
         user_data.get("password", db_user.password),

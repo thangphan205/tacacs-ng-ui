@@ -16,7 +16,7 @@ import type { ApiError } from "@/api"
 import { type TacacsGroupCreate, TacacsGroupsService } from "@/client"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { configNameRule, handleError } from "@/utils"
 import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
@@ -129,6 +129,7 @@ const AddTacacsGroup = () => {
                     <Input
                       {...register("group_name", {
                         required: "Group Name is required.",
+                        validate: configNameRule("Group name"),
                       })}
                       placeholder="Group Name"
                       type="text"

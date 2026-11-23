@@ -33,7 +33,7 @@ import { defaultCredentialsQueryKey } from "@/components/Common/DefaultCredentia
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
 import useRadiusEnabled from "@/hooks/useRadiusEnabled"
-import { handleError } from "@/utils"
+import { configNameRule, handleError } from "@/utils"
 import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
@@ -215,6 +215,7 @@ const AddHost = () => {
                     <Input
                       {...register("name", {
                         required: "Name is required.",
+                        validate: configNameRule("Host name"),
                       })}
                       placeholder="core-switch-01"
                       type="text"

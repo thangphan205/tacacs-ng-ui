@@ -2,6 +2,7 @@ from typing import Any
 
 from sqlmodel import Session, select
 
+from app.core.config_names import check_changed, name_check
 from app.models import Host, HostCreate, HostUpdate
 
 
@@ -26,8 +27,13 @@ def create_host(*, session: Session, host_create: HostCreate) -> Host:
 
 
 def update_host(*, session: Session, db_host: Host, host_in: HostUpdate) -> Any:
-    """Update a host. Raises ``ValueError`` on an invalid parent or a rename that
-    would orphan child hosts."""
+    """Update a host. Raises ``ValueError`` on an unsafe name (#442), an invalid
+    parent or a rename that would orphan child hosts."""
+    check_changed(
+        host_in.model_dump(exclude_unset=True),
+        db_host,
+        {"name": name_check("Host name"), "parent": name_check("Parent host")},
+    )
     new_name = host_in.name if host_in.name is not None else db_host.name
     new_parent = (
         host_in.parent if "parent" in host_in.model_fields_set else db_host.parent

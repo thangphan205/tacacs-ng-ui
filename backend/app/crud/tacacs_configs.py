@@ -11,6 +11,7 @@ import httpx
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
+from app.core.config_names import render_member, renderable_name
 from app.core.host_keys import unused_tacacs_key
 from app.core.radius_dictionary import (
     builtin_radius_dictionary,
@@ -244,8 +245,10 @@ _BARE_WORD = re.compile(r"[A-Za-z0-9_-]+\Z")
 
 
 def _user_is_safe_to_render(user: TacacsUser) -> bool:
-    """The password type is written unquoted and a clear password inside
-    quotes; neither may be able to end its token."""
+    """The username, group list and password type are written unquoted and a
+    clear password inside quotes; none may be able to end its token."""
+    if not renderable_name(user.username) or render_member(user.member) is None:
+        return False
     if not _BARE_WORD.match(user.password_type or ""):
         return False
     try:
@@ -342,7 +345,15 @@ id = tac_plus-ng {{
             hosts_template += f"""   {configuration_host_option.config_option}\n"""
             hosts_template += "\n    # End of Host Configuration Options\n"
     statement = select(Host).where(Host.generate_config == True)
-    host_basic = session.exec(statement).all()
+    host_basic = []
+    for host in session.exec(statement).all():
+        if renderable_name(host.name):
+            host_basic.append(host)
+        else:
+            # Only reachable for a row stored before names were checked, or
+            # written around the API (core/config_names.py). A dropped host
+            # gets no TACACS+ or RADIUS answers, and its children no parent.
+            log.error("Leaving host %r out of the config: unsafe name", host.name)
 
     radius_enabled = bool(tacacs_ng_info.get("radius_enabled"))
     rendered_host_names = {h.name for h in host_basic}
@@ -391,6 +402,14 @@ id = tac_plus-ng {{
     tacacs_group_basic = session.exec(statement).all()
 
     for tacacs_group in tacacs_group_basic:
+        if not renderable_name(tacacs_group.group_name):
+            # Users listing it are left out too: their member fails the same
+            # check (core/config_names.py).
+            log.error(
+                "Leaving group %r out of the config: unsafe name",
+                tacacs_group.group_name,
+            )
+            continue
         tacacs_group_info = tacacs_group.model_dump()
         tacacs_groups_template += """
     group = {group_name}""".format(group_name=tacacs_group_info["group_name"])
@@ -426,11 +445,12 @@ id = tac_plus-ng {{
             # (models.check_clear_password / check_password_type), or written
             # around the API: never interpolate it into the config.
             log.error(
-                "Leaving TACACS+ user %s out of the config: its password or "
-                "password type would end the quoted string",
+                "Leaving TACACS+ user %r out of the config: its username, group "
+                "list, password type or clear password would end its token",
                 tacacs_user.username,
             )
             continue
+        tacacs_user_info["member"] = render_member(tacacs_user.member)
         if tacacs_user_info["password_type"] == "mavis":
             tacacs_users_template += """
     user {username} {{

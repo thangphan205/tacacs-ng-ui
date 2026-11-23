@@ -2,6 +2,13 @@ from typing import Any
 
 from sqlmodel import Session, col, select
 
+from app.core.config_names import (
+    action_check,
+    check_changed,
+    name_check,
+    render_action,
+    render_rule_name,
+)
 from app.crud import ordering
 from app.crud.ordering import order_columns
 from app.crud.script_render import script_header
@@ -39,12 +46,14 @@ def create_ruleset(*, session: Session, ruleset_create: RulesetCreate) -> Rulese
 def update_ruleset(
     *, session: Session, db_ruleset: Ruleset, ruleset_in: RulesetUpdate
 ) -> Any:
-    return ordering.update(
-        session=session,
-        spec=SIBLINGS,
-        row=db_ruleset,
-        data=ruleset_in.model_dump(exclude_unset=True),
+    """Raises ``ValueError`` when a changed name or action is unsafe (#442)."""
+    data = ruleset_in.model_dump(exclude_unset=True)
+    check_changed(
+        data,
+        db_ruleset,
+        {"name": name_check("Ruleset name"), "action": action_check("Ruleset action")},
     )
+    return ordering.update(session=session, spec=SIBLINGS, row=db_ruleset, data=data)
 
 
 def move_ruleset(*, session: Session, db_ruleset: Ruleset, position: int) -> Ruleset:
@@ -117,13 +126,18 @@ def ruleset_generator(session: Session) -> str:
         }}\n""".format(
                 header=header,
                 rulesetscriptset_template=rulesetscriptset_template,
-                action=rulesetscript_info["action"],
+                action=render_action(
+                    rulesetscript_info["action"],
+                    f"a script of rule {ruleset_db.name!r}",
+                ),
             )
-        ruleset_template += f"""     rule {ruleset_db.name} {{
+        rule_name = render_rule_name(ruleset_db.name, ruleset_db.id)
+        rule_action = render_action(ruleset_db.action, f"rule {ruleset_db.name!r}")
+        ruleset_template += f"""     rule {rule_name} {{
         enabled=yes
         script {{
 {rulesetscript_template}
-            {ruleset_db.action}
+            {rule_action}
             }}
         }}\n"""
 

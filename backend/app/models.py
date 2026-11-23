@@ -17,6 +17,7 @@ from sqlalchemy import UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
 
 from app.core.config import settings
+from app.core.config_names import check_action, check_config_name, normalize_member
 from app.core.radius_dictionary import normalize_radius_dictionary
 from app.core.raw_script import check_profile_name, normalize_raw_script
 
@@ -411,6 +412,18 @@ def check_host_key(value: str | None) -> str | None:
 
 
 class HostCreate(HostBase):
+    # Names are checked on Create only; crud.hosts.update_host checks a name
+    # or parent that changes, so a stored row stays editable (#442).
+    @field_validator("name")
+    @classmethod
+    def _check_name(cls, v: str) -> str:
+        return check_config_name(v, "Host name")
+
+    @field_validator("parent")
+    @classmethod
+    def _check_parent(cls, v: str | None) -> str | None:
+        return check_config_name(v, "Parent host") if v else v
+
     @field_validator("secret_key", "radius_secret_key")
     @classmethod
     def _check_key(cls, v: str | None) -> str | None:
@@ -458,7 +471,11 @@ class TacacsGroupBase(SQLModel):
 
 
 class TacacsGroupCreate(TacacsGroupBase):
-    pass
+    # crud.tacacs_groups.update_tacacs_group checks a changed name (#442).
+    @field_validator("group_name")
+    @classmethod
+    def _check_group_name(cls, v: str) -> str:
+        return check_config_name(v, "Group name")
 
 
 class TacacsGroupUpdate(TacacsGroupBase):
@@ -555,6 +572,17 @@ class TacacsUserCreate(TacacsUserBase):
     def _check_password_type(cls, value: str) -> str:
         check_password_type(value)
         return value
+
+    # crud.tacacs_users.update_tacacs_user checks changed values (#442).
+    @field_validator("username")
+    @classmethod
+    def _check_username(cls, value: str) -> str:
+        return check_config_name(value, "Username")
+
+    @field_validator("member")
+    @classmethod
+    def _check_member(cls, value: str) -> str:
+        return normalize_member(value)
 
     @model_validator(mode="after")
     def _check_clear_password(self) -> "TacacsUserCreate":
@@ -665,6 +693,7 @@ class ProfileCreate(ProfileBase):
     @model_validator(mode="after")
     def _check_raw_script(self) -> "ProfileCreate":
         check_profile_name(self.name)
+        check_action(self.action, "Profile action")
         self.raw_script = normalize_raw_script(self.raw_script)
         return self
 
@@ -756,6 +785,12 @@ class ProfileScriptCreate(ProfileScriptBase):
     # 0-based index among siblings. Omit on create to append at the end; on
     # update, omit to keep the current place.
     position: int | None = Field(default=None, ge=0)
+
+    # crud.profilescripts.update_profilescript checks a changed action (#442).
+    @field_validator("action")
+    @classmethod
+    def _check_action(cls, v: str) -> str:
+        return check_action(v, "Script action")
 
 
 class ProfileScriptUpdate(ProfileScriptBase):
@@ -857,6 +892,17 @@ class RulesetCreate(RulesetBase):
     # update, omit to keep the current place.
     position: int | None = Field(default=None, ge=0)
 
+    # crud.rulesets.update_ruleset checks changed values (#442).
+    @field_validator("name")
+    @classmethod
+    def _check_name(cls, v: str) -> str:
+        return check_config_name(v, "Ruleset name")
+
+    @field_validator("action")
+    @classmethod
+    def _check_action(cls, v: str) -> str:
+        return check_action(v, "Ruleset action")
+
 
 class RulesetUpdate(RulesetBase):
     # 0-based index among siblings. Omit on create to append at the end; on
@@ -909,6 +955,12 @@ class RulesetScriptCreate(RulesetScriptBase):
     # 0-based index among siblings. Omit on create to append at the end; on
     # update, omit to keep the current place.
     position: int | None = Field(default=None, ge=0)
+
+    # crud.rulesetscripts.update_rulesetscript checks a changed action (#442).
+    @field_validator("action")
+    @classmethod
+    def _check_action(cls, v: str) -> str:
+        return check_action(v, "Script action")
 
 
 class RulesetScriptUpdate(RulesetScriptBase):
