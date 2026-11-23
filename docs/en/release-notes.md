@@ -25,6 +25,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump react-hook-form from 7.91.0 to 7.92.0 in /frontend. PR [#432](https://github.com/thangphan205/tacacs-ng-ui/pull/432) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @biomejs/biome from 2.5.15 to 2.6.8 in /frontend. PR [#434](https://github.com/thangphan205/tacacs-ng-ui/pull/434) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump @tanstack/router-plugin from 1.168.35 to 1.169.0 in /frontend. PR [#429](https://github.com/thangphan205/tacacs-ng-ui/pull/429) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump recharts from 3.10.1 to 3.11.0 in /frontend. PR [#433](https://github.com/thangphan205/tacacs-ng-ui/pull/433) by [@dependabot[bot]](https://github.com/apps/dependabot).
