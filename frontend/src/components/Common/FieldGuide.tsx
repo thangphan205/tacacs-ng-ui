@@ -1,6 +1,6 @@
 import { Badge, Box, Flex, Text, VStack } from "@chakra-ui/react"
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { FiChevronDown, FiChevronUp, FiLock } from "react-icons/fi"
 
 export interface FieldGuideItem {
@@ -14,10 +14,12 @@ export interface FieldGuideItem {
 const FieldGuideCard = ({
   item,
   isOpen,
+  isActive,
   onToggle,
 }: {
   item: FieldGuideItem
   isOpen: boolean
+  isActive?: boolean
   onToggle: () => void
 }) => {
   const Icon = item.icon
@@ -30,8 +32,10 @@ const FieldGuideCard = ({
       transition="all 0.2s ease-in-out"
       _hover={{ bg: "bg.muted/90", borderColor: "border.subtle" }}
       borderWidth="1px"
-      borderColor={isOpen ? "teal.muted" : "transparent"}
-      bg={isOpen ? "bg.muted/50" : "transparent"}
+      borderColor={
+        isActive ? "teal.solid" : isOpen ? "teal.muted" : "transparent"
+      }
+      bg={isActive ? "teal.subtle/40" : isOpen ? "bg.muted/50" : "transparent"}
     >
       <Flex align="flex-start" gap={2.5} width="100%">
         <Box
@@ -96,6 +100,7 @@ interface FieldGuideProps {
   title?: string
   subtitle?: string
   howItWorks?: string
+  activeLabel?: string | null
 }
 
 const FieldGuide = ({
@@ -104,6 +109,7 @@ const FieldGuide = ({
   title = "Field Guide",
   subtitle = "Learn what each field means and how it maps to the configuration.",
   howItWorks,
+  activeLabel,
 }: FieldGuideProps) => {
   // Initialize with the first item expanded by default
   const [expandedLabels, setExpandedLabels] = useState<Record<string, boolean>>(
@@ -114,6 +120,12 @@ const FieldGuide = ({
       return {}
     },
   )
+
+  useEffect(() => {
+    if (activeLabel && items.some((item) => item.label === activeLabel)) {
+      setExpandedLabels({ [activeLabel]: true })
+    }
+  }, [activeLabel, items])
 
   const toggleItem = (label: string) => {
     setExpandedLabels((prev) => ({
@@ -187,6 +199,7 @@ const FieldGuide = ({
             key={item.label}
             item={item}
             isOpen={!!expandedLabels[item.label]}
+            isActive={activeLabel === item.label}
             onToggle={() => toggleItem(item.label)}
           />
         ))}

@@ -20,6 +20,8 @@ interface HostSelectProps {
   /** Host to leave out of the options, e.g. the one being edited. */
   excludeId?: string
   placeholder?: string
+  size?: "sm" | "md" | "lg"
+  onFocus?: () => void
 }
 
 /**
@@ -32,6 +34,8 @@ export function HostSelect({
   onChange,
   excludeId,
   placeholder = "None — type to search hosts",
+  size = "md",
+  onFocus,
 }: HostSelectProps) {
   const selected = value || ""
   const [inputValue, setInputValue] = useState(selected)
@@ -73,7 +77,7 @@ export function HostSelect({
   return (
     <Combobox.Root
       collection={collection}
-      size="sm"
+      size={size}
       value={selected ? [selected] : []}
       inputValue={inputValue}
       onInputValueChange={(e) => setInputValue(e.inputValue)}
@@ -87,7 +91,7 @@ export function HostSelect({
       }}
     >
       <Combobox.Control>
-        <Combobox.Input placeholder={placeholder} />
+        <Combobox.Input placeholder={placeholder} onFocus={onFocus} />
         <Combobox.IndicatorGroup>
           {isFetching && <Spinner size="xs" color="fg.muted" />}
           <Combobox.ClearTrigger aria-label="Clear parent host" />
