@@ -13,6 +13,7 @@ from app.models import (
     TacacsUserCreate,
     TacacsUserPublic,
     TacacsUserUpdate,
+    check_clear_password,
 )
 
 # SHA-512 crypt hashing - compatible with tac_plus-ng "crypt" password type
@@ -82,9 +83,7 @@ def get_live_last_authenticated() -> dict[str, datetime]:
         return _live_last_auth_cache["data"]
 
     last_auth: dict[str, datetime] = {}
-    parse_authentication_logs(
-        today, settings.TACACS_LOG_DIRECTORY, last_auth=last_auth
-    )
+    parse_authentication_logs(today, settings.TACACS_LOG_DIRECTORY, last_auth=last_auth)
 
     for payload in _peer_payloads(today_str):
         raw_peer = payload.get("last_authenticated")
@@ -179,7 +178,12 @@ def create_tacacs_user(
 def update_tacacs_user(
     *, session: Session, db_user: TacacsUser, user_in: TacacsUserUpdate
 ) -> Any:
+    """Raises ``ValueError`` when the merged row has an unsafe clear password."""
     user_data = user_in.model_dump(exclude_unset=True)
+    check_clear_password(
+        user_data.get("password_type", db_user.password_type),
+        user_data.get("password", db_user.password),
+    )
     # Hash the password if type is crypt and a new plaintext password is given.
     # An already-hashed value is stored verbatim — it arrives either because the
     # caller sent a digest (see is_tacacs_password_hash) or because a partial

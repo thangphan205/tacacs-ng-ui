@@ -155,9 +155,12 @@ def update_tacacs_user(
             )
 
     old_values = db_user.model_dump_json(exclude=_SENSITIVE)
-    db_user = tacacs_users.update_tacacs_user(
-        session=session, db_user=db_user, user_in=user_in
-    )
+    try:
+        db_user = tacacs_users.update_tacacs_user(
+            session=session, db_user=db_user, user_in=user_in
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     audit_logs_crud.log_entity_action(
         session=session,
         action="UPDATE",
