@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Features
+
+* ✨ Move RADIUS settings to their own page under AAA Config. PR [#444](https://github.com/thangphan205/tacacs-ng-ui/pull/444) by [@thangphan205](https://github.com/thangphan205).
+
 ### Fixes
 
 * 🔒 Validate names and actions written unquoted into the config. PR [#443](https://github.com/thangphan205/tacacs-ng-ui/pull/443) by [@thangphan205](https://github.com/thangphan205).
