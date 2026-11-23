@@ -16,7 +16,7 @@ RADIUS is **off by default**. While it is off, the generated config contains no 
 What it does not do:
 
 - **No RadSec or DTLS.** RADIUS runs over plain UDP only.
-- **CHAP and MS-CHAP need password type `clear`.** A user with password type `crypt` (a SHA-512 hash, the default) can sign in with **PAP only**. CHAP and MS-CHAP prove the password without sending it, so the server must hold it in cleartext. For a user with password type `clear`, the generated config also adds `password chap` and `password ms-chap` lines. **MikroTik RouterOS logs users in with MS-CHAPv2** (verified on RouterOS 7.25.1), so users who log in to MikroTik devices need password type `clear`. A `clear` password is stored as plain text in the database and the generated config; audit logs and MCP output still redact it. The Events tab names the method each device used, for example `radius mschapv2 login succeeded`.
+- **CHAP and MS-CHAP need password type `clear`.** A user with password type `crypt` (a SHA-512 hash, the default) can sign in with **PAP only**. CHAP and MS-CHAP prove the password without sending it, so the server must hold it in cleartext. For a user with password type `clear`, the generated config also adds `password chap` and `password ms-chap` lines. **MikroTik RouterOS logs users in with MS-CHAPv2** (verified on RouterOS 7.25.1), so users who log in to MikroTik devices need password type `clear`. A `clear` password is stored as plain text in the database and the generated config; audit logs and MCP output still redact it. It can't contain quotes, backslashes or line breaks, because it is written inside quotes in the config. The Events tab names the method each device used, for example `radius mschapv2 login succeeded`.
 
 ---
 

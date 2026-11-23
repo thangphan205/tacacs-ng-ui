@@ -284,6 +284,11 @@ const AddTacacsUser = () => {
                           required: isSelectMavis
                             ? false
                             : "Password is required.",
+                          // Written inside quotes in the config (#437).
+                          validate: (v) =>
+                            !isSelectClear ||
+                            !/["\\\r\n]/.test(v ?? "") ||
+                            "A clear password can't contain quotes, backslashes or line breaks.",
                         })}
                         placeholder="Password"
                         type="password"

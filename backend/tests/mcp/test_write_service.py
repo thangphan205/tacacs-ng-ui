@@ -8,7 +8,7 @@ by `test_mcp_endpoint.py`.
 from typing import Any
 
 import pytest
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.crud import tacacs_users as tacacs_users_crud
 from app.mcp_server import write_service
@@ -148,9 +148,7 @@ def test_user_password_is_hashed_and_never_returned(db: Session) -> None:
         "member": "some-group",
         "password": "plaintext-pw",
     }
-    created = write_service.create_entity(
-        session=db, entity_type="user", data=payload
-    )
+    created = write_service.create_entity(session=db, entity_type="user", data=payload)
     assert created.item is not None
     assert created.item["password"] == "***REDACTED***"
 
@@ -195,3 +193,39 @@ def test_partial_update_does_not_rehash_an_untouched_password(db: Session) -> No
     write_service.delete_entity(
         session=db, entity_type="user", name=payload["username"]
     )
+
+
+def test_user_writes_refuse_a_clear_password_that_ends_its_string(
+    db: Session,
+) -> None:
+    """An `mcp:write` key goes through the same checks as the REST API (#437)."""
+    bad = 'x"\n        member = admins\n        password pap = clear "y'
+    _, payload = _payloads()["user"]
+    with pytest.raises(ValueError, match="clear password"):
+        write_service.create_entity(
+            session=db, entity_type="user", data={**payload, "password": bad}
+        )
+    with pytest.raises(ValueError, match="password_type"):
+        write_service.create_entity(
+            session=db,
+            entity_type="user",
+            data={**payload, "password_type": 'clear "a" member = admins #'},
+        )
+    write_service.create_entity(session=db, entity_type="user", data=payload)
+    try:
+        with pytest.raises(ValueError, match="clear password"):
+            write_service.update_entity(
+                session=db,
+                entity_type="user",
+                name=payload["username"],
+                data={"password": bad},
+            )
+        stored = db.exec(
+            select(TacacsUser).where(TacacsUser.username == payload["username"])
+        ).one()
+        db.refresh(stored)
+        assert stored.password == payload["password"]
+    finally:
+        write_service.delete_entity(
+            session=db, entity_type="user", name=payload["username"]
+        )

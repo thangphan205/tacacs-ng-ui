@@ -511,6 +511,37 @@ def _normalise_email(value: str | None) -> str | None:
     return str(_email_adapter.validate_python(value.strip()))
 
 
+# tac_plus-ng password types the generator writes (`password login = <type>`).
+# The type is written unquoted, so any other text could add config.
+TACACS_PASSWORD_TYPES = frozenset({"clear", "crypt", "mavis"})
+
+
+def check_password_type(value: str | None) -> str | None:
+    if value is not None and value not in TACACS_PASSWORD_TYPES:
+        raise ValueError(
+            "password_type must be one of: "
+            + ", ".join(sorted(TACACS_PASSWORD_TYPES))
+            + "."
+        )
+    return value
+
+
+def check_clear_password(password_type: str | None, password: str | None) -> None:
+    """A `clear` password is written as `password login = clear "<value>"` (and
+    the chap / ms-chap lines), so a quote, backslash or line break would end
+    the string and let the rest add config inside the `user { }` block. A
+    `crypt` password is hashed before it is stored and a `mavis` one is never
+    written, so only `clear` is checked.
+
+    Run on the merged row for an update: the PUT is partial, and switching an
+    existing password to `clear` must be checked too.
+    """
+    if password_type == "clear" and password and _UNSAFE_KEY.search(password):
+        raise ValueError(
+            "A clear password can't contain quotes, backslashes or line breaks."
+        )
+
+
 class TacacsUserCreate(TacacsUserBase):
     password: str | None = Field(default=None, max_length=255)
 
@@ -518,6 +549,17 @@ class TacacsUserCreate(TacacsUserBase):
     @classmethod
     def _check_email(cls, value: str | None) -> str | None:
         return _normalise_email(value)
+
+    @field_validator("password_type")
+    @classmethod
+    def _check_password_type(cls, value: str) -> str:
+        check_password_type(value)
+        return value
+
+    @model_validator(mode="after")
+    def _check_clear_password(self) -> "TacacsUserCreate":
+        check_clear_password(self.password_type, self.password)
+        return self
 
 
 class TacacsUserUpdate(SQLModel):
@@ -534,6 +576,11 @@ class TacacsUserUpdate(SQLModel):
     @classmethod
     def _check_email(cls, value: str | None) -> str | None:
         return _normalise_email(value)
+
+    @field_validator("password_type")
+    @classmethod
+    def _check_password_type(cls, value: str | None) -> str | None:
+        return check_password_type(value)
 
 
 # Database model, database table inferred from class name

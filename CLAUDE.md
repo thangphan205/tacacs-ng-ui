@@ -264,6 +264,8 @@ Two independent schemes — do not confuse them:
 
 `verify_password()` returns **`tuple[bool, str | None]`**, not a bool — the second item is a rehash to persist. `crud.users.authenticate()` writes it back, upgrading pre-migration bcrypt hashes to argon2 on next login (skipped on `NODE_ROLE=standby`).
 
+`password_type` (written unquoted) must be `clear`/`crypt`/`mavis` (`check_password_type`), and a `clear` password (written inside quotes, plus the chap / ms-chap lines) refuses `"`, `\` and line breaks (`check_clear_password`, on the merged row in `crud/tacacs_users.update_tacacs_user`); the generator leaves out a stored user that fails either (#437). `crypt` passwords are hashed before storing, so they may contain anything.
+
 passlib survives only for the TACACS scheme because tac_plus-ng parses `$6$rounds=...$` directly. **Never add `"bcrypt"` to a passlib `CryptContext` here**: its bcrypt backend probes for an old OpenBSD bug by hashing a 255-byte secret, which bcrypt ≥ 5.0 rejects with `ValueError`, breaking every hash and verify. `tests/core/test_security.py::test_passlib_bcrypt_backend_is_never_loaded` guards this.
 
 ### Authentication Providers (`backend/app/api/routes/oauth.py`)

@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import subprocess
 import tempfile
 import uuid
@@ -27,6 +28,7 @@ from app.models import (
     TacacsGroup,
     TacacsNgSetting,
     TacacsUser,
+    check_clear_password,
     check_remote_syslog_destination,
 )
 
@@ -238,6 +240,21 @@ def _radius_block(setting: dict[str, Any]) -> str:
     return block
 
 
+_BARE_WORD = re.compile(r"[A-Za-z0-9_-]+\Z")
+
+
+def _user_is_safe_to_render(user: TacacsUser) -> bool:
+    """The password type is written unquoted and a clear password inside
+    quotes; neither may be able to end its token."""
+    if not _BARE_WORD.match(user.password_type or ""):
+        return False
+    try:
+        check_clear_password(user.password_type, user.password)
+    except ValueError:
+        return False
+    return True
+
+
 def generate_tacacs_ng_config(
     *,
     session: Session,
@@ -404,6 +421,16 @@ id = tac_plus-ng {{
 
     for tacacs_user in tacacs_users_basic:
         tacacs_user_info = tacacs_user.model_dump()
+        if not _user_is_safe_to_render(tacacs_user):
+            # Only reachable for a row stored before the API checked these
+            # (models.check_clear_password / check_password_type), or written
+            # around the API: never interpolate it into the config.
+            log.error(
+                "Leaving TACACS+ user %s out of the config: its password or "
+                "password type would end the quoted string",
+                tacacs_user.username,
+            )
+            continue
         if tacacs_user_info["password_type"] == "mavis":
             tacacs_users_template += """
     user {username} {{
