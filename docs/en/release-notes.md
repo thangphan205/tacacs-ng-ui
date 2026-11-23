@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Fixes
+
+* 🔒 Refuse TACACS+ user values that would end their config token. PR [#439](https://github.com/thangphan205/tacacs-ng-ui/pull/439) by [@thangphan205](https://github.com/thangphan205).
+
 ### Internal
 
 * 🔖 Release 0.7.0. PR [#438](https://github.com/thangphan205/tacacs-ng-ui/pull/438) by [@thangphan205](https://github.com/thangphan205).
