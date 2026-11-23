@@ -12,16 +12,35 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+## v0.7.0
+
+This release adds RADIUS for devices that can't use TACACS+, such as MikroTik RouterOS. The same tac_plus-ng answers RADIUS on UDP 1812/1813, with the same users, groups, profiles and rulesets, and RADIUS logins show up in the same Events, statistics, alerts and SIEM feed. RADIUS is **off by default**: until it is turned on, the generated config has no RADIUS in it at all. The release also closes a gap that RADIUS-only hosts would have opened: tac_plus-ng accepts cleartext TACACS+ from a host that has no key. It has one database migration, reversible; see **Upgrading from 0.6.9**.
+
+### Security
+
+* 🔒 **A host without a TACACS+ key can't be used to log in over TACACS+.** tac_plus-ng refuses unencrypted TACACS+ from a `host` with no `key`, but reads a request sent without the unencrypted flag as cleartext and checks the password in it. A RADIUS-only host (a RADIUS secret, no TACACS+ key, no parent) would therefore have let anyone at its address log in over TACACS+ without a shared secret, whether RADIUS was on or not. Such a host, and a host whose parent is not in the generated config, now gets an internal key derived from `SECRET_KEY` that no device knows. It never changes between Generate runs and is redacted in MCP output. PR [#436](https://github.com/thangphan205/tacacs-ng-ui/pull/436) by [@thangphan205](https://github.com/thangphan205).
+
 ### Features
 
-* ✨ RADIUS in Events, SIEM, profiles and docs (3/3). PR [#425](https://github.com/thangphan205/tacacs-ng-ui/pull/425) by [@thangphan205](https://github.com/thangphan205).
-* ✨ RADIUS settings tab and host RADIUS secret (2/3: UI). PR [#424](https://github.com/thangphan205/tacacs-ng-ui/pull/424) by [@thangphan205](https://github.com/thangphan205).
-* ✨ Serve RADIUS from tac_plus-ng (1/3: backend, off by default). PR [#423](https://github.com/thangphan205/tacacs-ng-ui/pull/423) by [@thangphan205](https://github.com/thangphan205).
+* ✨ **RADIUS from the same tac_plus-ng.** **NG Settings → RADIUS** turns it on and sets the authentication and accounting ports (UDP 1812 / 1813). PRs [#423](https://github.com/thangphan205/tacacs-ng-ui/pull/423), [#424](https://github.com/thangphan205/tacacs-ng-ui/pull/424) and [#425](https://github.com/thangphan205/tacacs-ng-ui/pull/425) by [@thangphan205](https://github.com/thangphan205). See [RADIUS](radius.md) and the [MikroTik example](config-examples/mikrotik.md).
+  * **Per-host RADIUS Secret**, inherited through **Parent** like the TACACS+ key. A host can have a TACACS+ key, a RADIUS secret or both; the server answers RADIUS only for hosts with a RADIUS secret. While RADIUS is on, the Hosts list shows a **Protocols** column, and the TACACS Configs page warns when hosts have RADIUS secrets while RADIUS is off.
+  * **Vendor attributes from a built-in dictionary**: the standard attributes plus MikroTik, Cisco, Microsoft, Fortinet, Palo Alto, Juniper, Aruba and Huawei. More vendors can be added as `radius.dictionary` text under **NG Settings → RADIUS**; it is checked against the dictionary grammar and by Generate.
+  * **Add RADIUS Attribute** in a profile's menu writes the `if (aaa.protocol == radius)` script and the `set radius[…]` line. Profile script key and value fields suggest attribute names while RADIUS is on.
+  * RADIUS lines go into the same authentication and accounting log files. **Events** gets a protocol column and filter (`protocol=` on `GET /tacacs_logs/events`), and SIEM syslog and webhook events carry `protocol` (`tacacs` / `radius`).
+  * The MCP server redacts RADIUS secrets and its syntax reference says whether RADIUS is on. The default-credentials warning also covers RADIUS secrets still set to `change_this`.
 
 ### Fixes
 
-* 🔒 Give hosts without a TACACS+ key one nobody knows. PR [#436](https://github.com/thangphan205/tacacs-ng-ui/pull/436) by [@thangphan205](https://github.com/thangphan205).
-* 🐛 RADIUS: serve CHAP / MS-CHAP for clear-password users (MikroTik RouterOS). PR [#426](https://github.com/thangphan205/tacacs-ng-ui/pull/426) by [@thangphan205](https://github.com/thangphan205).
+* 🐛 **RADIUS CHAP and MS-CHAP logins.** Users with password type `clear` now also get `password chap` and `password ms-chap` lines, so CHAP and MS-CHAPv2 work. MikroTik RouterOS logs in with MS-CHAPv2, so its users need password type `clear`; `crypt` users can use PAP only. PR [#426](https://github.com/thangphan205/tacacs-ng-ui/pull/426) by [@thangphan205](https://github.com/thangphan205).
+
+### Upgrading from 0.6.9
+
+* **Rebuild the images.**
+* **One migration**, `b5d2e7f41c86`, applied by `prestart.sh` on the primary (standbys receive it through replication). It adds `radius_enabled`, `radius_auth_port`, `radius_acct_port` and `radius_dictionary_extra` to `tacacsngsetting` and `radius_secret_key` to `host`. The non-null columns have server defaults (off, 1812, 1813). Reversible.
+* **New optional settings:** `RADIUS_ENABLED`, `RADIUS_AUTH_PORT`, `RADIUS_ACCT_PORT`. They are read on first startup only, to seed **NG Settings → RADIUS**; after that the UI owns them.
+* ⚠️ **`docker-compose.yml` now publishes `1812/udp` and `1813/udp`** on the backend. Nothing listens there until RADIUS is enabled. If you change the ports in the UI, change them in compose as well. With your own compose file or firewall, or on HA, open them on every node.
+* **The generated config does not change** until RADIUS is enabled, except for the Security fix above: a host with no TACACS+ key of its own and no parent in the config now gets a `key` line. After upgrading, the TACACS Configs page shows unapplied changes for such hosts; Generate and Activate to apply them.
+* **SIEM consumers:** syslog messages have a new `protocol=` field after `type=`, and webhook events a `protocol` key. Parsers that read the key=value fields by name need no change.
 
 ### Internal
 
