@@ -106,6 +106,7 @@ Vào **Rulesets** → **Add Ruleset**.
 
 Vào **Hosts** → **Add Host**.
 - Đặt địa chỉ IP thiết bị và `secret_key` (phải khớp với cấu hình trên thiết bị).
+- Thiết bị chỉ hỗ trợ RADIUS (ví dụ MikroTik) dùng **RADIUS Secret** thay cho `secret_key`, sau khi bật RADIUS tại **NG Settings → RADIUS**. Xem [RADIUS](../en/radius.md).
 
 ### 7. Tạo và Kích Hoạt Config
 
@@ -171,6 +172,7 @@ Nhóm được tham chiếu trong TACACS Users và Rulesets để áp dụng ch�
 | `ipv4_address` | Địa chỉ IP thiết bị (dùng để khớp với TACACS request) |
 | `ipv6_address` | Địa chỉ IPv6 tùy chọn |
 | `secret_key` | Khóa bí mật dùng chung — phải khớp với cấu hình TACACS key trên thiết bị |
+| `radius_secret_key` | Khóa bí mật RADIUS dùng chung (chỉ dùng khi RADIUS được bật). Host có thể có TACACS+ key, RADIUS secret hoặc cả hai |
 | `parent` | Host cha tùy chọn để kế thừa cài đặt |
 | `welcome_banner` | Thông báo gửi tới người dùng khi đăng nhập thành công |
 | `reject_banner` | Thông báo gửi khi bị từ chối truy cập |
