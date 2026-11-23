@@ -25,7 +25,7 @@ import type { ApiError } from "@/api"
 import { type RulesetCreate, RulesetsService } from "@/client"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { configNameRule, handleError } from "@/utils"
 import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
@@ -152,6 +152,7 @@ const AddRuleset = () => {
                     <Input
                       {...register("name", {
                         required: "Name is required.",
+                        validate: configNameRule("Ruleset name"),
                       })}
                       placeholder="Name"
                       type="text"

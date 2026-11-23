@@ -167,9 +167,12 @@ def update_ruleset(
             detail="The ruleset with this id does not exist in the system",
         )
     old_values = db_ruleset.model_dump_json(exclude=_SENSITIVE)
-    db_ruleset = rulesets.update_ruleset(
-        session=session, db_ruleset=db_ruleset, ruleset_in=ruleset_in
-    )
+    try:
+        db_ruleset = rulesets.update_ruleset(
+            session=session, db_ruleset=db_ruleset, ruleset_in=ruleset_in
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     audit_logs_crud.log_entity_action(
         session=session,
         action="UPDATE",

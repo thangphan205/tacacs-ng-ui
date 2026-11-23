@@ -3,6 +3,7 @@ from typing import Any
 
 from sqlmodel import Session, select
 
+from app.core.config_names import action_check, check_changed
 from app.crud import ordering
 from app.models import (
     Profile,
@@ -64,6 +65,7 @@ def update_profilescript(
     the script to a raw-script profile.
     """
     data = profilescript_in.model_dump(exclude_unset=True)
+    check_changed(data, db_profilescript, {"action": action_check("Script action")})
     new_parent = data.get("profile_id")
     if new_parent and new_parent != db_profilescript.profile_id:
         # Both groups, in sorted order, before any check: ordering.update

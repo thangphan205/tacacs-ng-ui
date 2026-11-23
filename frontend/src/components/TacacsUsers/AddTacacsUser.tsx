@@ -32,7 +32,7 @@ import {
 import { defaultCredentialsQueryKey } from "@/components/Common/DefaultCredentialsAlert"
 import FieldGuide, { type FieldGuideItem } from "@/components/Common/FieldGuide"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { configNameRule, handleError } from "@/utils"
 import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
@@ -217,6 +217,7 @@ const AddTacacsUser = () => {
                     <Input
                       {...register("username", {
                         required: "username is required.",
+                        validate: configNameRule("Username"),
                       })}
                       placeholder="username"
                       type="text"

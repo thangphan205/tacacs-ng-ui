@@ -2,6 +2,7 @@ from typing import Any
 
 from sqlmodel import Session
 
+from app.core.config_names import action_check, check_changed
 from app.crud import ordering
 from app.models import RulesetScript, RulesetScriptCreate, RulesetScriptUpdate
 
@@ -34,11 +35,10 @@ def update_rulesetscript(
 
     Raises `ValueError` if the result breaks an if/elif/else chain.
     """
+    data = rulesetscript_in.model_dump(exclude_unset=True)
+    check_changed(data, db_rulesetscript, {"action": action_check("Script action")})
     return ordering.update(
-        session=session,
-        spec=SIBLINGS,
-        row=db_rulesetscript,
-        data=rulesetscript_in.model_dump(exclude_unset=True),
+        session=session, spec=SIBLINGS, row=db_rulesetscript, data=data
     )
 
 

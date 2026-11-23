@@ -3,6 +3,7 @@ from typing import Any
 
 from sqlmodel import Session, col, func, select
 
+from app.core.config_names import action_check, check_changed, render_action
 from app.core.raw_script import (
     check_profile_name,
     normalize_raw_script,
@@ -55,6 +56,7 @@ def update_profile(
     new_name = profile_data.get("name")
     if new_name and new_name != db_profile.name:
         check_profile_name(new_name)
+    check_changed(profile_data, db_profile, {"action": action_check("Profile action")})
     new_text = profile_data.get("raw_script")
     if new_text and new_text != db_profile.raw_script:
         profile_data["raw_script"] = normalize_raw_script(new_text)
@@ -265,13 +267,19 @@ def profile_generator(
                     profilescript_info["value"],
                 ),
                 profilescriptset_template=profilescriptset_template,
-                action=profilescript_info["action"],
+                action=render_action(
+                    profilescript_info["action"],
+                    f"a script of profile {profile_db.name!r}",
+                ),
             )
+        profile_action = render_action(
+            profile_db.action, f"profile {profile_db.name!r}"
+        )
         profile_template += f"""
     profile {profile_db.name} {{
         script {{
 {profilescript_template}
-        {profile_db.action}
+        {profile_action}
         }}
     }}
 """

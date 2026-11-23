@@ -11,6 +11,18 @@ export const namePattern = {
   message: "Invalid name",
 }
 
+// Names written unquoted into the tac_plus-ng config (#442); the backend's
+// app/core/config_names.check_config_name. An edit that keeps the stored
+// value is not checked, so an older row stays editable.
+const UNSAFE_CONFIG_NAME = /[\s{}"'#\\=,()!]/
+
+export const configNameRule =
+  (what: string, original?: string) =>
+  (value: string): true | string =>
+    value === original ||
+    !UNSAFE_CONFIG_NAME.test(value) ||
+    `${what} can't contain whitespace, braces, quotes, '#', '\\', '=', ',', '(', ')' or '!'.`
+
 export const passwordRules = (isRequired = true) => {
   const rules: any = {
     minLength: {

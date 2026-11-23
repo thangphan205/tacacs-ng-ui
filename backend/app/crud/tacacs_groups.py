@@ -2,6 +2,7 @@ from typing import Any
 
 from sqlmodel import Session, select
 
+from app.core.config_names import check_changed, name_check
 from app.models import TacacsGroup, TacacsGroupCreate, TacacsGroupUpdate
 
 
@@ -26,7 +27,9 @@ def create_tacacs_group(
 def update_tacacs_group(
     *, session: Session, db_tacacs_group: TacacsGroup, group_in: TacacsGroupUpdate
 ) -> Any:
+    """Raises ``ValueError`` when a changed name is unsafe (#442)."""
     group_data = group_in.model_dump(exclude_unset=True)
+    check_changed(group_data, db_tacacs_group, {"group_name": name_check("Group name")})
     db_tacacs_group.sqlmodel_update(group_data)
     session.add(db_tacacs_group)
     session.commit()

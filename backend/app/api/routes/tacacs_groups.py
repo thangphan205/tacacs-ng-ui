@@ -135,9 +135,12 @@ def update_tacacs_group(
         )
 
     old_values = db_tacacs_group.model_dump_json(exclude=_SENSITIVE)
-    db_tacacs_group = tacacs_groups.update_tacacs_group(
-        session=session, db_tacacs_group=db_tacacs_group, group_in=group_in
-    )
+    try:
+        db_tacacs_group = tacacs_groups.update_tacacs_group(
+            session=session, db_tacacs_group=db_tacacs_group, group_in=group_in
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     audit_logs_crud.log_entity_action(
         session=session,
         action="UPDATE",
