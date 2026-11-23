@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Docs
+
+* 📝 Release notes: include #439 in 0.7.0. PR [#440](https://github.com/thangphan205/tacacs-ng-ui/pull/440) by [@thangphan205](https://github.com/thangphan205).
+
 ### Internal
 
 * 🔖 Release 0.7.0. PR [#438](https://github.com/thangphan205/tacacs-ng-ui/pull/438) by [@thangphan205](https://github.com/thangphan205).
