@@ -25,6 +25,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Bump recharts from 3.10.1 to 3.11.0 in /frontend. PR [#433](https://github.com/thangphan205/tacacs-ng-ui/pull/433) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump emails from 1.1.2 to 1.1.3 in /backend. PR [#428](https://github.com/thangphan205/tacacs-ng-ui/pull/428) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump authlib from 1.9.1 to 1.9.9 in /backend. PR [#430](https://github.com/thangphan205/tacacs-ng-ui/pull/430) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * ⬆ Bump react-error-boundary from 6.1.3 to 6.1.6 in /frontend. PR [#435](https://github.com/thangphan205/tacacs-ng-ui/pull/435) by [@dependabot[bot]](https://github.com/apps/dependabot).
