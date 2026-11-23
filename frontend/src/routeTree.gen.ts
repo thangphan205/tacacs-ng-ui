@@ -9,60 +9,45 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as RecoverPasswordRouteImport } from './routes/recover-password'
-import { Route as OauthCallbackRouteImport } from './routes/oauth-callback'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as LayoutRouteImport } from './routes/_layout'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as OauthCallbackRouteImport } from './routes/oauth-callback'
+import { Route as RecoverPasswordRouteImport } from './routes/recover-password'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
-import { Route as LayoutTacacs_usersRouteImport } from './routes/_layout/tacacs_users'
-import { Route as LayoutTacacs_servicesRouteImport } from './routes/_layout/tacacs_services'
-import { Route as LayoutTacacs_ng_settingsRouteImport } from './routes/_layout/tacacs_ng_settings'
-import { Route as LayoutTacacs_logsRouteImport } from './routes/_layout/tacacs_logs'
-import { Route as LayoutTacacs_groupsRouteImport } from './routes/_layout/tacacs_groups'
-import { Route as LayoutTacacs_configsRouteImport } from './routes/_layout/tacacs_configs'
-import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
-import { Route as LayoutRulesetscriptsetsRouteImport } from './routes/_layout/rulesetscriptsets'
-import { Route as LayoutRulesetscriptsRouteImport } from './routes/_layout/rulesetscripts'
-import { Route as LayoutRulesetsRouteImport } from './routes/_layout/rulesets'
-import { Route as LayoutProfilescriptsetsRouteImport } from './routes/_layout/profilescriptsets'
-import { Route as LayoutProfilescriptsRouteImport } from './routes/_layout/profilescripts'
-import { Route as LayoutProfilesRouteImport } from './routes/_layout/profiles'
-import { Route as LayoutNotification_channelsRouteImport } from './routes/_layout/notification_channels'
-import { Route as LayoutMavisesRouteImport } from './routes/_layout/mavises'
-import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
-import { Route as LayoutHostsRouteImport } from './routes/_layout/hosts'
-import { Route as LayoutHigh_availabilityRouteImport } from './routes/_layout/high_availability'
-import { Route as LayoutConfiguration_optionsRouteImport } from './routes/_layout/configuration_options'
-import { Route as LayoutAudit_logsRouteImport } from './routes/_layout/audit_logs'
-import { Route as LayoutAnomaly_detectionRouteImport } from './routes/_layout/anomaly_detection'
-import { Route as LayoutAlert_rulesRouteImport } from './routes/_layout/alert_rules'
-import { Route as LayoutAlert_eventsRouteImport } from './routes/_layout/alert_events'
-import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutAaa_statisticsRouteImport } from './routes/_layout/aaa_statistics'
-import { Route as LayoutAdminUsers_managementRouteImport } from './routes/_layout/admin/users_management'
-import { Route as LayoutAdminSiemRouteImport } from './routes/_layout/admin/siem'
+import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as LayoutAlert_eventsRouteImport } from './routes/_layout/alert_events'
+import { Route as LayoutAlert_rulesRouteImport } from './routes/_layout/alert_rules'
+import { Route as LayoutAnomaly_detectionRouteImport } from './routes/_layout/anomaly_detection'
+import { Route as LayoutAudit_logsRouteImport } from './routes/_layout/audit_logs'
+import { Route as LayoutConfiguration_optionsRouteImport } from './routes/_layout/configuration_options'
+import { Route as LayoutHigh_availabilityRouteImport } from './routes/_layout/high_availability'
+import { Route as LayoutHostsRouteImport } from './routes/_layout/hosts'
+import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
+import { Route as LayoutMavisesRouteImport } from './routes/_layout/mavises'
+import { Route as LayoutNotification_channelsRouteImport } from './routes/_layout/notification_channels'
+import { Route as LayoutProfilesRouteImport } from './routes/_layout/profiles'
+import { Route as LayoutProfilescriptsRouteImport } from './routes/_layout/profilescripts'
+import { Route as LayoutProfilescriptsetsRouteImport } from './routes/_layout/profilescriptsets'
+import { Route as LayoutRadiusRouteImport } from './routes/_layout/radius'
+import { Route as LayoutRulesetsRouteImport } from './routes/_layout/rulesets'
+import { Route as LayoutRulesetscriptsRouteImport } from './routes/_layout/rulesetscripts'
+import { Route as LayoutRulesetscriptsetsRouteImport } from './routes/_layout/rulesetscriptsets'
+import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
+import { Route as LayoutTacacs_configsRouteImport } from './routes/_layout/tacacs_configs'
+import { Route as LayoutTacacs_groupsRouteImport } from './routes/_layout/tacacs_groups'
+import { Route as LayoutTacacs_logsRouteImport } from './routes/_layout/tacacs_logs'
+import { Route as LayoutTacacs_ng_settingsRouteImport } from './routes/_layout/tacacs_ng_settings'
+import { Route as LayoutTacacs_servicesRouteImport } from './routes/_layout/tacacs_services'
+import { Route as LayoutTacacs_usersRouteImport } from './routes/_layout/tacacs_users'
 import { Route as LayoutAdminAuthProvidersRouteImport } from './routes/_layout/admin/auth-providers'
+import { Route as LayoutAdminSiemRouteImport } from './routes/_layout/admin/siem'
+import { Route as LayoutAdminUsers_managementRouteImport } from './routes/_layout/admin/users_management'
 
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RecoverPasswordRoute = RecoverPasswordRouteImport.update({
-  id: '/recover-password',
-  path: '/recover-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OauthCallbackRoute = OauthCallbackRouteImport.update({
-  id: '/oauth-callback',
-  path: '/oauth-callback',
+const LayoutRoute = LayoutRouteImport.update({
+  id: '/_layout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -70,8 +55,24 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LayoutRoute = LayoutRouteImport.update({
-  id: '/_layout',
+const OauthCallbackRoute = OauthCallbackRouteImport.update({
+  id: '/oauth-callback',
+  path: '/oauth-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecoverPasswordRoute = RecoverPasswordRouteImport.update({
+  id: '/recover-password',
+  path: '/recover-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LayoutIndexRoute = LayoutIndexRouteImport.update({
@@ -79,96 +80,34 @@ const LayoutIndexRoute = LayoutIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutTacacs_usersRoute = LayoutTacacs_usersRouteImport.update({
-  id: '/tacacs_users',
-  path: '/tacacs_users',
+const LayoutAaa_statisticsRoute = LayoutAaa_statisticsRouteImport.update({
+  id: '/aaa_statistics',
+  path: '/aaa_statistics',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutTacacs_servicesRoute = LayoutTacacs_servicesRouteImport.update({
-  id: '/tacacs_services',
-  path: '/tacacs_services',
+const LayoutAdminRoute = LayoutAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutTacacs_ng_settingsRoute =
-  LayoutTacacs_ng_settingsRouteImport.update({
-    id: '/tacacs_ng_settings',
-    path: '/tacacs_ng_settings',
-    getParentRoute: () => LayoutRoute,
-  } as any)
-const LayoutTacacs_logsRoute = LayoutTacacs_logsRouteImport.update({
-  id: '/tacacs_logs',
-  path: '/tacacs_logs',
+const LayoutAlert_eventsRoute = LayoutAlert_eventsRouteImport.update({
+  id: '/alert_events',
+  path: '/alert_events',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutTacacs_groupsRoute = LayoutTacacs_groupsRouteImport.update({
-  id: '/tacacs_groups',
-  path: '/tacacs_groups',
+const LayoutAlert_rulesRoute = LayoutAlert_rulesRouteImport.update({
+  id: '/alert_rules',
+  path: '/alert_rules',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutTacacs_configsRoute = LayoutTacacs_configsRouteImport.update({
-  id: '/tacacs_configs',
-  path: '/tacacs_configs',
+const LayoutAnomaly_detectionRoute = LayoutAnomaly_detectionRouteImport.update({
+  id: '/anomaly_detection',
+  path: '/anomaly_detection',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutRulesetscriptsetsRoute = LayoutRulesetscriptsetsRouteImport.update({
-  id: '/rulesetscriptsets',
-  path: '/rulesetscriptsets',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutRulesetscriptsRoute = LayoutRulesetscriptsRouteImport.update({
-  id: '/rulesetscripts',
-  path: '/rulesetscripts',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutRulesetsRoute = LayoutRulesetsRouteImport.update({
-  id: '/rulesets',
-  path: '/rulesets',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutProfilescriptsetsRoute = LayoutProfilescriptsetsRouteImport.update({
-  id: '/profilescriptsets',
-  path: '/profilescriptsets',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutProfilescriptsRoute = LayoutProfilescriptsRouteImport.update({
-  id: '/profilescripts',
-  path: '/profilescripts',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutProfilesRoute = LayoutProfilesRouteImport.update({
-  id: '/profiles',
-  path: '/profiles',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutNotification_channelsRoute =
-  LayoutNotification_channelsRouteImport.update({
-    id: '/notification_channels',
-    path: '/notification_channels',
-    getParentRoute: () => LayoutRoute,
-  } as any)
-const LayoutMavisesRoute = LayoutMavisesRouteImport.update({
-  id: '/mavises',
-  path: '/mavises',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutItemsRoute = LayoutItemsRouteImport.update({
-  id: '/items',
-  path: '/items',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutHostsRoute = LayoutHostsRouteImport.update({
-  id: '/hosts',
-  path: '/hosts',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutHigh_availabilityRoute = LayoutHigh_availabilityRouteImport.update({
-  id: '/high_availability',
-  path: '/high_availability',
+const LayoutAudit_logsRoute = LayoutAudit_logsRouteImport.update({
+  id: '/audit_logs',
+  path: '/audit_logs',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutConfiguration_optionsRoute =
@@ -177,46 +116,102 @@ const LayoutConfiguration_optionsRoute =
     path: '/configuration_options',
     getParentRoute: () => LayoutRoute,
   } as any)
-const LayoutAudit_logsRoute = LayoutAudit_logsRouteImport.update({
-  id: '/audit_logs',
-  path: '/audit_logs',
+const LayoutHigh_availabilityRoute = LayoutHigh_availabilityRouteImport.update({
+  id: '/high_availability',
+  path: '/high_availability',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutAnomaly_detectionRoute = LayoutAnomaly_detectionRouteImport.update({
-  id: '/anomaly_detection',
-  path: '/anomaly_detection',
+const LayoutHostsRoute = LayoutHostsRouteImport.update({
+  id: '/hosts',
+  path: '/hosts',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutAlert_rulesRoute = LayoutAlert_rulesRouteImport.update({
-  id: '/alert_rules',
-  path: '/alert_rules',
+const LayoutItemsRoute = LayoutItemsRouteImport.update({
+  id: '/items',
+  path: '/items',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutAlert_eventsRoute = LayoutAlert_eventsRouteImport.update({
-  id: '/alert_events',
-  path: '/alert_events',
+const LayoutMavisesRoute = LayoutMavisesRouteImport.update({
+  id: '/mavises',
+  path: '/mavises',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutAdminRoute = LayoutAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutAaa_statisticsRoute = LayoutAaa_statisticsRouteImport.update({
-  id: '/aaa_statistics',
-  path: '/aaa_statistics',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutAdminUsers_managementRoute =
-  LayoutAdminUsers_managementRouteImport.update({
-    id: '/users_management',
-    path: '/users_management',
-    getParentRoute: () => LayoutAdminRoute,
+const LayoutNotification_channelsRoute =
+  LayoutNotification_channelsRouteImport.update({
+    id: '/notification_channels',
+    path: '/notification_channels',
+    getParentRoute: () => LayoutRoute,
   } as any)
-const LayoutAdminSiemRoute = LayoutAdminSiemRouteImport.update({
-  id: '/siem',
-  path: '/siem',
-  getParentRoute: () => LayoutAdminRoute,
+const LayoutProfilesRoute = LayoutProfilesRouteImport.update({
+  id: '/profiles',
+  path: '/profiles',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutProfilescriptsRoute = LayoutProfilescriptsRouteImport.update({
+  id: '/profilescripts',
+  path: '/profilescripts',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutProfilescriptsetsRoute = LayoutProfilescriptsetsRouteImport.update({
+  id: '/profilescriptsets',
+  path: '/profilescriptsets',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutRadiusRoute = LayoutRadiusRouteImport.update({
+  id: '/radius',
+  path: '/radius',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutRulesetsRoute = LayoutRulesetsRouteImport.update({
+  id: '/rulesets',
+  path: '/rulesets',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutRulesetscriptsRoute = LayoutRulesetscriptsRouteImport.update({
+  id: '/rulesetscripts',
+  path: '/rulesetscripts',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutRulesetscriptsetsRoute = LayoutRulesetscriptsetsRouteImport.update({
+  id: '/rulesetscriptsets',
+  path: '/rulesetscriptsets',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutTacacs_configsRoute = LayoutTacacs_configsRouteImport.update({
+  id: '/tacacs_configs',
+  path: '/tacacs_configs',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutTacacs_groupsRoute = LayoutTacacs_groupsRouteImport.update({
+  id: '/tacacs_groups',
+  path: '/tacacs_groups',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutTacacs_logsRoute = LayoutTacacs_logsRouteImport.update({
+  id: '/tacacs_logs',
+  path: '/tacacs_logs',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutTacacs_ng_settingsRoute =
+  LayoutTacacs_ng_settingsRouteImport.update({
+    id: '/tacacs_ng_settings',
+    path: '/tacacs_ng_settings',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+const LayoutTacacs_servicesRoute = LayoutTacacs_servicesRouteImport.update({
+  id: '/tacacs_services',
+  path: '/tacacs_services',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutTacacs_usersRoute = LayoutTacacs_usersRouteImport.update({
+  id: '/tacacs_users',
+  path: '/tacacs_users',
+  getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutAdminAuthProvidersRoute =
   LayoutAdminAuthProvidersRouteImport.update({
@@ -224,8 +219,20 @@ const LayoutAdminAuthProvidersRoute =
     path: '/auth-providers',
     getParentRoute: () => LayoutAdminRoute,
   } as any)
+const LayoutAdminSiemRoute = LayoutAdminSiemRouteImport.update({
+  id: '/siem',
+  path: '/siem',
+  getParentRoute: () => LayoutAdminRoute,
+} as any)
+const LayoutAdminUsers_managementRoute =
+  LayoutAdminUsers_managementRouteImport.update({
+    id: '/users_management',
+    path: '/users_management',
+    getParentRoute: () => LayoutAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof LayoutIndexRoute
   '/login': typeof LoginRoute
   '/oauth-callback': typeof OauthCallbackRoute
   '/recover-password': typeof RecoverPasswordRoute
@@ -246,6 +253,7 @@ export interface FileRoutesByFullPath {
   '/profiles': typeof LayoutProfilesRoute
   '/profilescripts': typeof LayoutProfilescriptsRoute
   '/profilescriptsets': typeof LayoutProfilescriptsetsRoute
+  '/radius': typeof LayoutRadiusRoute
   '/rulesets': typeof LayoutRulesetsRoute
   '/rulesetscripts': typeof LayoutRulesetscriptsRoute
   '/rulesetscriptsets': typeof LayoutRulesetscriptsetsRoute
@@ -256,7 +264,6 @@ export interface FileRoutesByFullPath {
   '/tacacs_ng_settings': typeof LayoutTacacs_ng_settingsRoute
   '/tacacs_services': typeof LayoutTacacs_servicesRoute
   '/tacacs_users': typeof LayoutTacacs_usersRoute
-  '/': typeof LayoutIndexRoute
   '/admin/auth-providers': typeof LayoutAdminAuthProvidersRoute
   '/admin/siem': typeof LayoutAdminSiemRoute
   '/admin/users_management': typeof LayoutAdminUsers_managementRoute
@@ -282,6 +289,7 @@ export interface FileRoutesByTo {
   '/profiles': typeof LayoutProfilesRoute
   '/profilescripts': typeof LayoutProfilescriptsRoute
   '/profilescriptsets': typeof LayoutProfilescriptsetsRoute
+  '/radius': typeof LayoutRadiusRoute
   '/rulesets': typeof LayoutRulesetsRoute
   '/rulesetscripts': typeof LayoutRulesetscriptsRoute
   '/rulesetscriptsets': typeof LayoutRulesetscriptsetsRoute
@@ -320,6 +328,7 @@ export interface FileRoutesById {
   '/_layout/profiles': typeof LayoutProfilesRoute
   '/_layout/profilescripts': typeof LayoutProfilescriptsRoute
   '/_layout/profilescriptsets': typeof LayoutProfilescriptsetsRoute
+  '/_layout/radius': typeof LayoutRadiusRoute
   '/_layout/rulesets': typeof LayoutRulesetsRoute
   '/_layout/rulesetscripts': typeof LayoutRulesetscriptsRoute
   '/_layout/rulesetscriptsets': typeof LayoutRulesetscriptsetsRoute
@@ -338,6 +347,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/login'
     | '/oauth-callback'
     | '/recover-password'
@@ -358,6 +368,7 @@ export interface FileRouteTypes {
     | '/profiles'
     | '/profilescripts'
     | '/profilescriptsets'
+    | '/radius'
     | '/rulesets'
     | '/rulesetscripts'
     | '/rulesetscriptsets'
@@ -368,7 +379,6 @@ export interface FileRouteTypes {
     | '/tacacs_ng_settings'
     | '/tacacs_services'
     | '/tacacs_users'
-    | '/'
     | '/admin/auth-providers'
     | '/admin/siem'
     | '/admin/users_management'
@@ -394,6 +404,7 @@ export interface FileRouteTypes {
     | '/profiles'
     | '/profilescripts'
     | '/profilescriptsets'
+    | '/radius'
     | '/rulesets'
     | '/rulesetscripts'
     | '/rulesetscriptsets'
@@ -431,6 +442,7 @@ export interface FileRouteTypes {
     | '/_layout/profiles'
     | '/_layout/profilescripts'
     | '/_layout/profilescriptsets'
+    | '/_layout/radius'
     | '/_layout/rulesets'
     | '/_layout/rulesetscripts'
     | '/_layout/rulesetscriptsets'
@@ -458,32 +470,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/recover-password': {
-      id: '/recover-password'
-      path: '/recover-password'
-      fullPath: '/recover-password'
-      preLoaderRoute: typeof RecoverPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/oauth-callback': {
-      id: '/oauth-callback'
-      path: '/oauth-callback'
-      fullPath: '/oauth-callback'
-      preLoaderRoute: typeof OauthCallbackRouteImport
+    '/_layout': {
+      id: '/_layout'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof LayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -493,11 +484,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_layout': {
-      id: '/_layout'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof LayoutRouteImport
+    '/oauth-callback': {
+      id: '/oauth-callback'
+      path: '/oauth-callback'
+      fullPath: '/oauth-callback'
+      preLoaderRoute: typeof OauthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recover-password': {
+      id: '/recover-password'
+      path: '/recover-password'
+      fullPath: '/recover-password'
+      preLoaderRoute: typeof RecoverPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_layout/': {
@@ -507,165 +519,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutIndexRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/tacacs_users': {
-      id: '/_layout/tacacs_users'
-      path: '/tacacs_users'
-      fullPath: '/tacacs_users'
-      preLoaderRoute: typeof LayoutTacacs_usersRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/tacacs_services': {
-      id: '/_layout/tacacs_services'
-      path: '/tacacs_services'
-      fullPath: '/tacacs_services'
-      preLoaderRoute: typeof LayoutTacacs_servicesRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/tacacs_ng_settings': {
-      id: '/_layout/tacacs_ng_settings'
-      path: '/tacacs_ng_settings'
-      fullPath: '/tacacs_ng_settings'
-      preLoaderRoute: typeof LayoutTacacs_ng_settingsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/tacacs_logs': {
-      id: '/_layout/tacacs_logs'
-      path: '/tacacs_logs'
-      fullPath: '/tacacs_logs'
-      preLoaderRoute: typeof LayoutTacacs_logsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/tacacs_groups': {
-      id: '/_layout/tacacs_groups'
-      path: '/tacacs_groups'
-      fullPath: '/tacacs_groups'
-      preLoaderRoute: typeof LayoutTacacs_groupsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/tacacs_configs': {
-      id: '/_layout/tacacs_configs'
-      path: '/tacacs_configs'
-      fullPath: '/tacacs_configs'
-      preLoaderRoute: typeof LayoutTacacs_configsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/settings': {
-      id: '/_layout/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof LayoutSettingsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/rulesetscriptsets': {
-      id: '/_layout/rulesetscriptsets'
-      path: '/rulesetscriptsets'
-      fullPath: '/rulesetscriptsets'
-      preLoaderRoute: typeof LayoutRulesetscriptsetsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/rulesetscripts': {
-      id: '/_layout/rulesetscripts'
-      path: '/rulesetscripts'
-      fullPath: '/rulesetscripts'
-      preLoaderRoute: typeof LayoutRulesetscriptsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/rulesets': {
-      id: '/_layout/rulesets'
-      path: '/rulesets'
-      fullPath: '/rulesets'
-      preLoaderRoute: typeof LayoutRulesetsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/profilescriptsets': {
-      id: '/_layout/profilescriptsets'
-      path: '/profilescriptsets'
-      fullPath: '/profilescriptsets'
-      preLoaderRoute: typeof LayoutProfilescriptsetsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/profilescripts': {
-      id: '/_layout/profilescripts'
-      path: '/profilescripts'
-      fullPath: '/profilescripts'
-      preLoaderRoute: typeof LayoutProfilescriptsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/profiles': {
-      id: '/_layout/profiles'
-      path: '/profiles'
-      fullPath: '/profiles'
-      preLoaderRoute: typeof LayoutProfilesRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/notification_channels': {
-      id: '/_layout/notification_channels'
-      path: '/notification_channels'
-      fullPath: '/notification_channels'
-      preLoaderRoute: typeof LayoutNotification_channelsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/mavises': {
-      id: '/_layout/mavises'
-      path: '/mavises'
-      fullPath: '/mavises'
-      preLoaderRoute: typeof LayoutMavisesRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/items': {
-      id: '/_layout/items'
-      path: '/items'
-      fullPath: '/items'
-      preLoaderRoute: typeof LayoutItemsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/hosts': {
-      id: '/_layout/hosts'
-      path: '/hosts'
-      fullPath: '/hosts'
-      preLoaderRoute: typeof LayoutHostsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/high_availability': {
-      id: '/_layout/high_availability'
-      path: '/high_availability'
-      fullPath: '/high_availability'
-      preLoaderRoute: typeof LayoutHigh_availabilityRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/configuration_options': {
-      id: '/_layout/configuration_options'
-      path: '/configuration_options'
-      fullPath: '/configuration_options'
-      preLoaderRoute: typeof LayoutConfiguration_optionsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/audit_logs': {
-      id: '/_layout/audit_logs'
-      path: '/audit_logs'
-      fullPath: '/audit_logs'
-      preLoaderRoute: typeof LayoutAudit_logsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/anomaly_detection': {
-      id: '/_layout/anomaly_detection'
-      path: '/anomaly_detection'
-      fullPath: '/anomaly_detection'
-      preLoaderRoute: typeof LayoutAnomaly_detectionRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/alert_rules': {
-      id: '/_layout/alert_rules'
-      path: '/alert_rules'
-      fullPath: '/alert_rules'
-      preLoaderRoute: typeof LayoutAlert_rulesRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/alert_events': {
-      id: '/_layout/alert_events'
-      path: '/alert_events'
-      fullPath: '/alert_events'
-      preLoaderRoute: typeof LayoutAlert_eventsRouteImport
+    '/_layout/aaa_statistics': {
+      id: '/_layout/aaa_statistics'
+      path: '/aaa_statistics'
+      fullPath: '/aaa_statistics'
+      preLoaderRoute: typeof LayoutAaa_statisticsRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/admin': {
@@ -675,19 +533,173 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/aaa_statistics': {
-      id: '/_layout/aaa_statistics'
-      path: '/aaa_statistics'
-      fullPath: '/aaa_statistics'
-      preLoaderRoute: typeof LayoutAaa_statisticsRouteImport
+    '/_layout/alert_events': {
+      id: '/_layout/alert_events'
+      path: '/alert_events'
+      fullPath: '/alert_events'
+      preLoaderRoute: typeof LayoutAlert_eventsRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/admin/users_management': {
-      id: '/_layout/admin/users_management'
-      path: '/users_management'
-      fullPath: '/admin/users_management'
-      preLoaderRoute: typeof LayoutAdminUsers_managementRouteImport
-      parentRoute: typeof LayoutAdminRoute
+    '/_layout/alert_rules': {
+      id: '/_layout/alert_rules'
+      path: '/alert_rules'
+      fullPath: '/alert_rules'
+      preLoaderRoute: typeof LayoutAlert_rulesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/anomaly_detection': {
+      id: '/_layout/anomaly_detection'
+      path: '/anomaly_detection'
+      fullPath: '/anomaly_detection'
+      preLoaderRoute: typeof LayoutAnomaly_detectionRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/audit_logs': {
+      id: '/_layout/audit_logs'
+      path: '/audit_logs'
+      fullPath: '/audit_logs'
+      preLoaderRoute: typeof LayoutAudit_logsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/configuration_options': {
+      id: '/_layout/configuration_options'
+      path: '/configuration_options'
+      fullPath: '/configuration_options'
+      preLoaderRoute: typeof LayoutConfiguration_optionsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/high_availability': {
+      id: '/_layout/high_availability'
+      path: '/high_availability'
+      fullPath: '/high_availability'
+      preLoaderRoute: typeof LayoutHigh_availabilityRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/hosts': {
+      id: '/_layout/hosts'
+      path: '/hosts'
+      fullPath: '/hosts'
+      preLoaderRoute: typeof LayoutHostsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/items': {
+      id: '/_layout/items'
+      path: '/items'
+      fullPath: '/items'
+      preLoaderRoute: typeof LayoutItemsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/mavises': {
+      id: '/_layout/mavises'
+      path: '/mavises'
+      fullPath: '/mavises'
+      preLoaderRoute: typeof LayoutMavisesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/notification_channels': {
+      id: '/_layout/notification_channels'
+      path: '/notification_channels'
+      fullPath: '/notification_channels'
+      preLoaderRoute: typeof LayoutNotification_channelsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/profiles': {
+      id: '/_layout/profiles'
+      path: '/profiles'
+      fullPath: '/profiles'
+      preLoaderRoute: typeof LayoutProfilesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/profilescripts': {
+      id: '/_layout/profilescripts'
+      path: '/profilescripts'
+      fullPath: '/profilescripts'
+      preLoaderRoute: typeof LayoutProfilescriptsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/profilescriptsets': {
+      id: '/_layout/profilescriptsets'
+      path: '/profilescriptsets'
+      fullPath: '/profilescriptsets'
+      preLoaderRoute: typeof LayoutProfilescriptsetsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/radius': {
+      id: '/_layout/radius'
+      path: '/radius'
+      fullPath: '/radius'
+      preLoaderRoute: typeof LayoutRadiusRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/rulesets': {
+      id: '/_layout/rulesets'
+      path: '/rulesets'
+      fullPath: '/rulesets'
+      preLoaderRoute: typeof LayoutRulesetsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/rulesetscripts': {
+      id: '/_layout/rulesetscripts'
+      path: '/rulesetscripts'
+      fullPath: '/rulesetscripts'
+      preLoaderRoute: typeof LayoutRulesetscriptsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/rulesetscriptsets': {
+      id: '/_layout/rulesetscriptsets'
+      path: '/rulesetscriptsets'
+      fullPath: '/rulesetscriptsets'
+      preLoaderRoute: typeof LayoutRulesetscriptsetsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/settings': {
+      id: '/_layout/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof LayoutSettingsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/tacacs_configs': {
+      id: '/_layout/tacacs_configs'
+      path: '/tacacs_configs'
+      fullPath: '/tacacs_configs'
+      preLoaderRoute: typeof LayoutTacacs_configsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/tacacs_groups': {
+      id: '/_layout/tacacs_groups'
+      path: '/tacacs_groups'
+      fullPath: '/tacacs_groups'
+      preLoaderRoute: typeof LayoutTacacs_groupsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/tacacs_logs': {
+      id: '/_layout/tacacs_logs'
+      path: '/tacacs_logs'
+      fullPath: '/tacacs_logs'
+      preLoaderRoute: typeof LayoutTacacs_logsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/tacacs_ng_settings': {
+      id: '/_layout/tacacs_ng_settings'
+      path: '/tacacs_ng_settings'
+      fullPath: '/tacacs_ng_settings'
+      preLoaderRoute: typeof LayoutTacacs_ng_settingsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/tacacs_services': {
+      id: '/_layout/tacacs_services'
+      path: '/tacacs_services'
+      fullPath: '/tacacs_services'
+      preLoaderRoute: typeof LayoutTacacs_servicesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/tacacs_users': {
+      id: '/_layout/tacacs_users'
+      path: '/tacacs_users'
+      fullPath: '/tacacs_users'
+      preLoaderRoute: typeof LayoutTacacs_usersRouteImport
+      parentRoute: typeof LayoutRoute
     }
     '/_layout/admin/auth-providers': {
       id: '/_layout/admin/auth-providers'
@@ -701,6 +713,13 @@ declare module '@tanstack/react-router' {
       path: '/siem'
       fullPath: '/admin/siem'
       preLoaderRoute: typeof LayoutAdminSiemRouteImport
+      parentRoute: typeof LayoutAdminRoute
+    }
+    '/_layout/admin/users_management': {
+      id: '/_layout/admin/users_management'
+      path: '/users_management'
+      fullPath: '/admin/users_management'
+      preLoaderRoute: typeof LayoutAdminUsers_managementRouteImport
       parentRoute: typeof LayoutAdminRoute
     }
   }
@@ -738,6 +757,7 @@ interface LayoutRouteChildren {
   LayoutProfilesRoute: typeof LayoutProfilesRoute
   LayoutProfilescriptsRoute: typeof LayoutProfilescriptsRoute
   LayoutProfilescriptsetsRoute: typeof LayoutProfilescriptsetsRoute
+  LayoutRadiusRoute: typeof LayoutRadiusRoute
   LayoutRulesetsRoute: typeof LayoutRulesetsRoute
   LayoutRulesetscriptsRoute: typeof LayoutRulesetscriptsRoute
   LayoutRulesetscriptsetsRoute: typeof LayoutRulesetscriptsetsRoute
@@ -767,6 +787,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutProfilesRoute: LayoutProfilesRoute,
   LayoutProfilescriptsRoute: LayoutProfilescriptsRoute,
   LayoutProfilescriptsetsRoute: LayoutProfilescriptsetsRoute,
+  LayoutRadiusRoute: LayoutRadiusRoute,
   LayoutRulesetsRoute: LayoutRulesetsRoute,
   LayoutRulesetscriptsRoute: LayoutRulesetscriptsRoute,
   LayoutRulesetscriptsetsRoute: LayoutRulesetscriptsetsRoute,

@@ -199,7 +199,7 @@ Go to **Rulesets** → **Add Ruleset**.
 
 Go to **Hosts** → **Add Host**.
 - Set the device IP address and `secret_key` (must match what is configured on the device).
-- A device that speaks only RADIUS (for example MikroTik) gets a **RADIUS Secret** instead, once RADIUS is enabled under **NG Settings → RADIUS**. See [RADIUS](radius.md).
+- A device that speaks only RADIUS (for example MikroTik) gets a **RADIUS Secret** instead, once RADIUS is enabled under **AAA Config → RADIUS**. See [RADIUS](radius.md).
 
 ### 7. Generate and Activate Config
 

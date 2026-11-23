@@ -12,6 +12,7 @@ import {
   FiGrid,
   FiHome,
   FiList,
+  FiRadio,
   FiSend,
   FiServer,
   FiSettings,
@@ -44,7 +45,7 @@ const CONFIG_SECTIONS: NavSection[] = [
     items: [{ icon: FiHome, title: "Dashboard", path: "/" }],
   },
   {
-    label: "TACACS+ Config",
+    label: "AAA Config",
     items: [
       { icon: LuBoxes, title: "TACACS Configs", path: "/tacacs_configs" },
       { icon: FiServer, title: "Hosts", path: "/hosts" },
@@ -60,6 +61,7 @@ const CONFIG_SECTIONS: NavSection[] = [
         path: "/configuration_options",
       },
       { icon: FiSettings, title: "NG Settings", path: "/tacacs_ng_settings" },
+      { icon: FiRadio, title: "RADIUS", path: "/radius" },
     ],
   },
   {
