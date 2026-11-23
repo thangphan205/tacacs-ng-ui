@@ -20,6 +20,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Fixes
 
+* 🔒 Give hosts without a TACACS+ key one nobody knows. PR [#436](https://github.com/thangphan205/tacacs-ng-ui/pull/436) by [@thangphan205](https://github.com/thangphan205).
 * 🐛 RADIUS: serve CHAP / MS-CHAP for clear-password users (MikroTik RouterOS). PR [#426](https://github.com/thangphan205/tacacs-ng-ui/pull/426) by [@thangphan205](https://github.com/thangphan205).
 
 ### Internal
