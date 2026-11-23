@@ -25,6 +25,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Internal
 
+* ⬆ Update psycopg[binary] requirement from <4.0.0,>=3.3.4 to >=3.3.9,<4.0.0 in /backend. PR [#427](https://github.com/thangphan205/tacacs-ng-ui/pull/427) by [@dependabot[bot]](https://github.com/apps/dependabot).
 * 🔖 Release 0.6.9. PR [#422](https://github.com/thangphan205/tacacs-ng-ui/pull/422) by [@thangphan205](https://github.com/thangphan205).
 
 ## v0.6.9
