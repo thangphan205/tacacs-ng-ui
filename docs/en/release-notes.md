@@ -15,6 +15,10 @@ of cutting a release; do not delete the heading itself. -->
 ### Features
 
 * ✨ Move RADIUS settings to their own page under AAA Config. PR [#444](https://github.com/thangphan205/tacacs-ng-ui/pull/444) by [@thangphan205](https://github.com/thangphan205).
+  * RADIUS is now set up under **AAA Config → RADIUS** instead of **NG Settings → RADIUS**. The sidebar section formerly called **TACACS+ Config** is now **AAA Config**.
+  * When RADIUS is on, the page shows the listen addresses and ports that go into the generated config and lists the hosts that have their own RADIUS secret.
+  * Saving NG Settings no longer sends the RADIUS fields, so it cannot overwrite changes saved on the RADIUS page.
+* 🎨 Redesign the Add/Edit Host modal with a structured layout and a live preview of the host's config.
 
 ### Fixes
 
