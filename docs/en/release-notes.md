@@ -26,6 +26,7 @@ of cutting a release; do not delete the heading itself. -->
 
 ### Docs
 
+* 📝 Release notes: detail the RADIUS page move and host modal redesign. PR [#445](https://github.com/thangphan205/tacacs-ng-ui/pull/445) by [@thangphan205](https://github.com/thangphan205).
 * 📝 README: RADIUS and 0.7.0. PR [#441](https://github.com/thangphan205/tacacs-ng-ui/pull/441) by [@thangphan205](https://github.com/thangphan205).
 * 📝 Release notes: include #439 in 0.7.0. PR [#440](https://github.com/thangphan205/tacacs-ng-ui/pull/440) by [@thangphan205](https://github.com/thangphan205).
 
