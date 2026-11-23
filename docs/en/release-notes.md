@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Internal
+
+* 🔖 Release 0.7.1. PR [#446](https://github.com/thangphan205/tacacs-ng-ui/pull/446) by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.7.1
 
 This release moves the RADIUS settings to their own page and closes a config-injection gap: names and actions are written into the generated config as bare tokens, and a value such as a username containing `}` could add a second block. No database migration; rebuild the images. See **Upgrading from 0.7.0**.
