@@ -24,8 +24,13 @@
 
 ---
 
+> [!NOTE]
+> ### New in 0.7.0: RADIUS for RADIUS-only devices
+>
+> The same tac_plus-ng can now also answer RADIUS (UDP 1812/1813) for devices that have no TACACS+, such as MikroTik RouterOS. It is **off by default**. See [RADIUS](docs/en/radius.md) and the [0.7.0 release notes](docs/en/release-notes.md#v070), including **Upgrading from 0.6.9**.
+
 > [!IMPORTANT]
-> ### ⚠️ Upgrading to 0.6.0 — every URL changes
+> ### ⚠️ Upgrading from a version before 0.6.0 — every URL changes
 >
 > The dashboard, the API, Swagger and the MCP endpoint now share **one URL**.
 > `dashboard.<domain>` and `api.<domain>` no longer route.
@@ -50,6 +55,7 @@ Historically, managing TACACS+ servers required manually editing complex configu
 3. **Observability & Log Auditing**: Monitor authentication, authorization, and accounting (AAA) stats in real-time, complete with a timeline view of auditing logs and user command histories.
 4. **Automated Threat Alerting**: Real-time alert rule evaluations paired with Machine Learning (IsolationForest) anomaly detection to secure infrastructure against abnormal activities.
 5. **AI-Assisted Configuration over MCP**: Describe what you want in plain language and let an LLM assistant create the entities and check the result with the real `tac_plus-ng` parser — [the easiest way to configure tacacs-ng-ui](#configure-with-an-ai-assistant-recommended).
+6. **RADIUS for RADIUS-only devices**: Optionally serve RADIUS from the same tac_plus-ng, with the same users, groups, profiles and rulesets, for devices such as MikroTik RouterOS that can't use TACACS+.
 
 ## Configure with an AI assistant (recommended)
 
@@ -207,6 +213,7 @@ Verified on real devices by the maintainer and the community. Full reports, devi
 | Ciena | 6500 Packet-Optical (TL1 / Site Manager) | 2/7/14-slot shelves, TIDc consolidated nodes | Release 16.91 | [Ciena 6500](docs/en/config-examples/ciena-6500.md) |
 | Datacom | DmOS | DM4170, DM4250, DM4270, DM4360, DM4380, DM4770, DM4780 | DmOS 5.8.0 → 12.6.0 | [Community report](https://github.com/thangphan205/tacacs-ng-ui/discussions/185#discussioncomment-19431099) |
 | Datacom | DmSwitch (legacy) | DM4100 / DM4000 series | 15.2.2 → 15.2.18 | [Community report](https://github.com/thangphan205/tacacs-ng-ui/discussions/185#discussioncomment-19431099) |
+| MikroTik | RouterOS (RADIUS, MS-CHAPv2) | CHR | 7.25.1 | [MikroTik RouterOS](docs/en/config-examples/mikrotik.md) |
 
 > [!WARNING]
 > **Cisco IOS XR, Datacom DmOS and Datacom DmSwitch authorize every command** as `service = shell` with the command line in `cmd`. A profile that only does `if (service == shell) { set priv-lvl = 1 ; permit }` lets read-only users run **any** command, `configure` included. Separate session start (`cmd == ""`) from commands, as shown in the [community report](https://github.com/thangphan205/tacacs-ng-ui/discussions/185#discussioncomment-19431099).
@@ -429,6 +436,8 @@ Username: admin@example.com   # FIRST_SUPERUSER in .env
 Password: <FIRST_SUPERUSER_PASSWORD in .env>
 ```
 
+Network devices reach the server on **TCP 49** (TACACS+) and, only when RADIUS is enabled, **UDP 1812/1813** (RADIUS). Open those ports to the device networks.
+
 > **Note:** `FRONTEND_HOST` drives the CORS allow-list, the WebAuthn/passkey origin, the OAuth redirect and the links in outgoing emails — it must match what the browser shows, port included. `BACKEND_CORS_ORIGINS` needs no edit.
 
 ## Deploy on a remote server: with domain name
@@ -499,6 +508,18 @@ For air-gapped or intranet-only environments, configure native LDAP / LDAPS auth
 | **Active Directory** | `DC=example,DC=com` | `(&(objectClass=user)(\|(sAMAccountName={username})(userPrincipalName={username})))` |
 | **OpenLDAP** | `ou=people,dc=example,dc=com` | `(&(objectClass=inetOrgPerson)(uid={username}))` |
 
+### RADIUS (optional)
+
+For devices that speak only RADIUS (MikroTik RouterOS, many wireless controllers and small firewalls):
+
+- **Enable** under **NG Settings → RADIUS** (authentication / accounting ports, default UDP 1812 / 1813). `RADIUS_ENABLED=true` in `.env` turns it on at first startup only; the UI owns the setting after that. While it is off, the generated config contains no RADIUS at all.
+- **Per-host RADIUS Secret** under **Hosts**, inherited through **Parent** like the TACACS+ key. A RADIUS-only device needs no TACACS+ key.
+- **Vendor attributes** from a built-in dictionary (MikroTik, Cisco, Microsoft, Fortinet, Palo Alto, Juniper, Aruba, Huawei); add more as `radius.dictionary` text. A profile's **Add RADIUS Attribute** menu writes the `if (aaa.protocol == radius)` script for you.
+- **CHAP / MS-CHAP need password type `clear`.** MikroTik RouterOS logs in with MS-CHAPv2, so its users must be `clear`; `crypt` users can use PAP only.
+- RADIUS logins and accounting go to the same Events, statistics, alerts and SIEM feed, marked `protocol = radius`.
+
+Full guide: [docs/en/radius.md](docs/en/radius.md). Device example: [MikroTik RouterOS](docs/en/config-examples/mikrotik.md).
+
 ## High Availability (HA) Deployment
 
 tacacs-ng-ui supports three HA deployment models:
@@ -514,7 +535,7 @@ tacacs-ng-ui supports three HA deployment models:
   <img src="img/high-availability-model-b.svg" alt="Model B — Primary–Standby" width="49%" />
 </p>
 
-All models support per-zone LDAP server configuration via `MAVIS_OVERRIDE_*` env vars.
+All models support per-zone LDAP server configuration via `MAVIS_OVERRIDE_*` env vars. With RADIUS enabled, every node answers RADIUS: open UDP 1812/1813 on each one.
 
 **Full guide:** [docs/en/high-availability.md](docs/en/high-availability.md)
 
@@ -647,6 +668,7 @@ To further enhance the security and utility of tacacs-ng-ui, the following roadm
 6. **Improved UX / Zero-Config Start**: ✅ Shipped in v0.4.0 — interactive Field Guide panels in every Add/Edit dialog, premium UI redesign across all management tables, multi-vendor seed data (Cisco, Arista, Huawei, Juniper, Palo Alto, Fortinet) pre-loaded on first startup, inline TACACS+ config file editing, command tooltips and interactive event selection in session timeline, and unified 24-hour datetime formatting.
 7. **High Availability**: ✅ Shipped in v0.5.0 — Model C multi-node HA (one primary + N standbys) with config fan-out to every enabled peer and per-peer sync state tracking. All HA settings except `NODE_ROLE` and `INTERNAL_SYNC_TOKEN` live in the database and are editable from the UI without a restart, and promoting a standby writes its scheduler state directly. Hardened in v0.5.1 with standby failover peer seeding, a read-only-safe standby dashboard, and a unified `setup-ha.sh` deployment script.
 8. **LLM-Assisted Administration**: ✅ Shipped in v0.6.0 — an MCP server exposing fifteen tools, a tac_plus-ng syntax reference resource, an entity schema resource, and an authoring prompt, so an LLM client can inspect entities, preview and diff configs, syntax-check candidate config text against the real parser, and — with a read-write key — create, update and delete entities. Backed by scoped, revocable API keys with secret redaction on every response. Deploying a config (saving, activating, reloading the daemon) is deliberately and permanently out of scope, enforced by a guard test rather than convention.
+9. **RADIUS for RADIUS-only devices**: ✅ Shipped in v0.7.0 — the same tac_plus-ng answers RADIUS (UDP 1812/1813, off by default) with per-host RADIUS secrets, a built-in vendor dictionary plus custom `radius.dictionary` text, profile reply attributes (`MikroTik-Group`, `Cisco-AVPair`, …), PAP / CHAP / MS-CHAPv2, and RADIUS events in the same Events, statistics, alerts and SIEM feed. Verified end to end against the real daemon and MikroTik RouterOS 7.25.1.
 
 ## Release Notes
 
