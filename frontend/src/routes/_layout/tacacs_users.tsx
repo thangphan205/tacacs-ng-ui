@@ -126,16 +126,18 @@ function TacacsUsersTable() {
           <Table.Header bg="bg.muted">
             <Table.Row>
               <Table.ColumnHeader w="14%">Username</Table.ColumnHeader>
-              <Table.ColumnHeader w="10%">Password Type</Table.ColumnHeader>
-              <Table.ColumnHeader w="16%">Group Membership</Table.ColumnHeader>
+              <Table.ColumnHeader w="9%">Password Type</Table.ColumnHeader>
+              <Table.ColumnHeader w="15%">Group Membership</Table.ColumnHeader>
               <Table.ColumnHeader w="8%">Generate</Table.ColumnHeader>
-              <Table.ColumnHeader w="10%">Expires</Table.ColumnHeader>
+              <Table.ColumnHeader w="9%">Expires</Table.ColumnHeader>
               <Table.ColumnHeader w="12%">Description</Table.ColumnHeader>
               <Table.ColumnHeader w="12%">
                 Last Authenticated
               </Table.ColumnHeader>
               <Table.ColumnHeader w="12%">Last Updated</Table.ColumnHeader>
-              <Table.ColumnHeader w="6%">Actions</Table.ColumnHeader>
+              <Table.ColumnHeader w="88px" whiteSpace="nowrap">
+                Actions
+              </Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
           <Table.Body>

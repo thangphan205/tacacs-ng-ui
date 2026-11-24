@@ -126,7 +126,9 @@ function TacacsServicesTable() {
                   <Table.ColumnHeader w="15%">Generate</Table.ColumnHeader>
                   <Table.ColumnHeader w="35%">Description</Table.ColumnHeader>
                   <Table.ColumnHeader w="12%">Last Updated</Table.ColumnHeader>
-                  <Table.ColumnHeader w="8%">Actions</Table.ColumnHeader>
+                  <Table.ColumnHeader w="88px" whiteSpace="nowrap">
+                    Actions
+                  </Table.ColumnHeader>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
