@@ -1,5 +1,6 @@
 """Unit tests for non-superuser response redaction helpers (no DB required)."""
 
+import json
 import uuid
 from datetime import datetime, timezone
 from types import SimpleNamespace
@@ -7,8 +8,9 @@ from types import SimpleNamespace
 from app.api.routes.configuration_options import _option_for_user
 from app.api.routes.hosts import _host_for_user
 from app.api.routes.mavises import _mavis_for_user
+from app.api.routes.notification_channels import _channel_for_user
 from app.mcp_server.redact import REDACTED
-from app.models import ConfigurationOption, Host, Mavis
+from app.models import ConfigurationOption, Host, Mavis, NotificationChannel
 
 NOW = datetime(2026, 11, 26, tzinfo=timezone.utc)
 SUPER = SimpleNamespace(is_superuser=True)
@@ -77,3 +79,55 @@ def test_option_for_user_scrubs_inline_secrets_for_non_superuser_only() -> None:
 
     super_pub = _option_for_user(opt, SUPER, [])  # type: ignore[arg-type]
     assert "Rad-e5743209427b" in super_pub.config_option
+
+
+def test_notification_channel_for_user_redacts_secrets_for_non_superuser_only() -> None:
+    tg = NotificationChannel(
+        id=uuid.uuid4(),
+        name="tacacs-ng-ui-community",
+        channel_type="telegram",
+        config_json=json.dumps(
+            {
+                "bot_token": "8688903638:AAEMJPok7QSwjl-X9rNa1uKu6IXifrjb95o",
+                "chat_id": "-1003904987198",
+                "topic_id": "2",
+            }
+        ),
+        enabled=True,
+        created_at=NOW,
+        updated_at=NOW,
+    )
+    normal_pub = _channel_for_user(tg, NORMAL)  # type: ignore[arg-type]
+    parsed = json.loads(normal_pub.config_json)
+    assert parsed["bot_token"] == REDACTED
+    assert parsed["chat_id"] == "-1003904987198"
+    assert parsed["topic_id"] == "2"
+    assert "8688903638" not in normal_pub.config_json
+    # Original ORM instance must not be mutated
+    assert "8688903638" in tg.config_json
+
+    super_pub = _channel_for_user(tg, SUPER)  # type: ignore[arg-type]
+    assert "8688903638:AAEMJPok7QSwjl-X9rNa1uKu6IXifrjb95o" in super_pub.config_json
+
+    # Slack/webhook/email channels also mask webhook_url, token, smtp_password
+    email_ch = NotificationChannel(
+        id=uuid.uuid4(),
+        name="ops-email",
+        channel_type="email",
+        config_json=json.dumps(
+            {
+                "smtp_host": "smtp.example.com",
+                "smtp_password": "app-secret-password",
+                "webhook_url": "https://hooks.slack.com/services/T00/B00/XXXX",
+                "token": "bearer-xyz",
+            }
+        ),
+        enabled=True,
+        created_at=NOW,
+        updated_at=NOW,
+    )
+    email_normal = json.loads(_channel_for_user(email_ch, NORMAL).config_json)  # type: ignore[arg-type]
+    assert email_normal["smtp_host"] == "smtp.example.com"
+    assert email_normal["smtp_password"] == REDACTED
+    assert email_normal["webhook_url"] == REDACTED
+    assert email_normal["token"] == REDACTED

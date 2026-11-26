@@ -148,6 +148,10 @@ def test_config_option_cleartext_and_crypt_passwords_are_scrubbed() -> None:
         ("Authorization: Bearer super.secret.token", "super.secret.token"),
         ("created key tngk_abc123456789xyz", "tngk_abc123456789xyz"),
         (
+            "telegram 8688903638:AAEMJPok7QSwjl-X9rNa1uKu6IXifrjb95o failed",
+            "AAEMJPok7QSwjl-X9rNa1uKu6IXifrjb95o",
+        ),
+        (
             "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMSIsImV4cCI6MX0.signature12345",
             "signature12345",
         ),

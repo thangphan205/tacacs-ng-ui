@@ -38,6 +38,7 @@ SECRET_FIELDS = frozenset(
         "webhook_token",
         "webhook_token_encrypted",
         "bot_token",
+        "smtp_password",
         "client_secret",
         "bind_password",
         "api_key",
@@ -63,6 +64,7 @@ _PEM_PRIVATE_KEY_RE = re.compile(
     r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----"
 )
 _API_KEY_RE = re.compile(r"\btngk_[A-Za-z0-9_-]{8,}\b")
+_TELEGRAM_BOT_TOKEN_RE = re.compile(r"\b\d{8,12}:[A-Za-z0-9_-]{30,}\b")
 _JWT_RE = re.compile(
     r"\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"
 )
@@ -150,6 +152,7 @@ def redact_text(text: str) -> str:
         return text
     text = _PEM_PRIVATE_KEY_RE.sub(REDACTED, text)
     text = _API_KEY_RE.sub(REDACTED, text)
+    text = _TELEGRAM_BOT_TOKEN_RE.sub(REDACTED, text)
     text = _JWT_RE.sub(REDACTED, text)
     text = _AUTH_HEADER_RE.sub(_replace_unquoted, text)
     text = _TACACS_PASSWORD_QUOTED_RE.sub(_replace_quoted, text)

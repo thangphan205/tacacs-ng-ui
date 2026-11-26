@@ -123,3 +123,80 @@ def test_non_superuser_config_preview_redacts_secrets(
         client.delete(
             f"{API}/configuration_options/{opt_id}", headers=superuser_token_headers
         )
+
+
+def test_non_superuser_notification_channels_redacted_and_writes_forbidden(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    normal_user_token_headers: dict[str, str],
+) -> None:
+    bot_token = "8688903638:AAEMJPok7QSwjl-X9rNa1uKu6IXifrjb95o"
+    create_payload = {
+        "name": f"tg-{uuid.uuid4().hex[:8]}",
+        "channel_type": "telegram",
+        "config_json": (
+            f'{{"bot_token":"{bot_token}","chat_id":"-100123456","topic_id":"2"}}'
+        ),
+        "enabled": True,
+    }
+    # Non-superuser cannot create a channel
+    assert (
+        client.post(
+            f"{API}/notification_channels/",
+            headers=normal_user_token_headers,
+            json=create_payload,
+        ).status_code
+        == 403
+    )
+
+    ch_r = client.post(
+        f"{API}/notification_channels/",
+        headers=superuser_token_headers,
+        json=create_payload,
+    )
+    assert ch_r.status_code == 200, ch_r.text
+    ch_id = ch_r.json()["id"]
+
+    try:
+        # Non-superuser list and detail responses must redact bot_token
+        list_r = client.get(
+            f"{API}/notification_channels/", headers=normal_user_token_headers
+        )
+        assert list_r.status_code == 200
+        assert bot_token not in list_r.text
+        assert REDACTED in list_r.text
+
+        detail_r = client.get(
+            f"{API}/notification_channels/{ch_id}", headers=normal_user_token_headers
+        )
+        assert detail_r.status_code == 200
+        assert bot_token not in detail_r.text
+        assert REDACTED in detail_r.text
+
+        # Non-superuser cannot update, test, or delete a channel
+        assert (
+            client.patch(
+                f"{API}/notification_channels/{ch_id}",
+                headers=normal_user_token_headers,
+                json={"enabled": False},
+            ).status_code
+            == 403
+        )
+        assert (
+            client.post(
+                f"{API}/notification_channels/{ch_id}/test",
+                headers=normal_user_token_headers,
+            ).status_code
+            == 403
+        )
+        assert (
+            client.delete(
+                f"{API}/notification_channels/{ch_id}",
+                headers=normal_user_token_headers,
+            ).status_code
+            == 403
+        )
+    finally:
+        client.delete(
+            f"{API}/notification_channels/{ch_id}", headers=superuser_token_headers
+        )
