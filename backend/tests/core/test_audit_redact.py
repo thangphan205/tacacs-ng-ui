@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from app.core.audit_redact import CHANGED, REDACTED, redact_audit_values
+from app.core.audit_redact import CHANGED, REDACTED, redact_audit_values, redact_text
 
 
 def j(**kw: object) -> str:
@@ -110,3 +110,79 @@ def test_nothing_to_hide_returns_the_same_strings() -> None:
 @pytest.mark.parametrize("raw", [None, "", "not json", "[1,2]", "null", '"s"'])
 def test_values_that_are_not_a_json_object_pass_through(raw: str | None) -> None:
     assert redact_audit_values("TacacsUser", raw, raw) == (raw, raw)
+
+
+def test_config_option_cleartext_and_crypt_passwords_are_scrubbed() -> None:
+    block = """user radclear {
+        password login = clear "Rad-e5743209427b"
+        password pap = login
+        password chap = clear "Rad-e5743209427b"
+        password ms-chap = clear "Rad-e5743209427b"
+        password enable = crypt "$6$rounds=656000$salt$hash"
+        member = tacacs_super_user
+    }"""
+    raw = j(name="custom_users", config_option=block, description="temp block")
+    old_out, new_out = redact_audit_values("ConfigurationOption", raw, None)
+    assert new_out is None
+    assert "Rad-e5743209427b" not in (old_out or "")
+    assert "$6$rounds=656000$salt$hash" not in (old_out or "")
+    parsed = loaded(old_out)
+    assert parsed["name"] == "custom_users"
+    assert 'password login = clear "[redacted]"' in str(parsed["config_option"])
+    assert "password pap = login" in str(parsed["config_option"])
+    assert 'password chap = clear "[redacted]"' in str(parsed["config_option"])
+    assert 'password ms-chap = clear "[redacted]"' in str(parsed["config_option"])
+    assert 'password enable = crypt "[redacted]"' in str(parsed["config_option"])
+    assert "member = tacacs_super_user" in str(parsed["config_option"])
+
+
+@pytest.mark.parametrize(
+    ("snippet", "secret"),
+    [
+        ('password login = clear unquotedSecret99\n', "unquotedSecret99"),
+        ('host sw1 { key = "host-key-123" }', "host-key-123"),
+        ('host sw1 { radius.key = "rad-key-456" }', "rad-key-456"),
+        ('host sw1 { key = unquotedKey789 }', "unquotedKey789"),
+        ('shared-key = "shared-secret-abc"', "shared-secret-abc"),
+        ('setenv LDAP_PASSWD = "ldap-bind-pw"', "ldap-bind-pw"),
+        ("Authorization: Bearer super.secret.token", "super.secret.token"),
+        ("created key tngk_abc123456789xyz", "tngk_abc123456789xyz"),
+        (
+            "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMSIsImV4cCI6MX0.signature12345",
+            "signature12345",
+        ),
+        (
+            "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA\n-----END RSA PRIVATE KEY-----",
+            "MIIEpAIBAAKCAQEA",
+        ),
+    ],
+)
+def test_redact_text_scrubs_inline_secrets_and_is_idempotent(
+    snippet: str, secret: str
+) -> None:
+    once = redact_text(snippet)
+    assert secret not in once
+    assert REDACTED in once
+    assert redact_text(once) == once
+
+
+def test_nested_config_json_secrets_are_scrubbed() -> None:
+    nested = json.dumps({"bot_token": "123456:ABC-DEF", "chat_id": "-100999"})
+    raw = j(name="ops-telegram", channel_type="telegram", config_json=nested)
+    _, out = redact_audit_values("NotificationChannel", None, raw)
+    assert "123456:ABC-DEF" not in (out or "")
+    inner = json.loads(str(loaded(out)["config_json"]))
+    assert inner == {"bot_token": REDACTED, "chat_id": "-100999"}
+
+
+def test_free_text_fields_across_entities_are_scrubbed() -> None:
+    for entity, field in (
+        ("TacacsNgSetting", "radius_dictionary_extra"),
+        ("ProfileScript", "value"),
+        ("RulesetScript", "value"),
+        ("SiemConfig", "webhook_url"),
+    ):
+        raw = j(name="x", **{field: 'password login = clear "SENTINEL_999"'})
+        _, out = redact_audit_values(entity, None, raw)
+        assert "SENTINEL_999" not in (out or "")
+        assert REDACTED in (out or "")

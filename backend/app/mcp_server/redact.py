@@ -33,10 +33,10 @@ _MIN_SECRET_LENGTH = 4
 
 _SECRET_MAVIS_KEY = re.compile(r"PASSWD|PASSWORD|SECRET|TOKEN|KEY", re.IGNORECASE)
 
-_KEY_RE = re.compile(r'(\bkey\s*=\s*)"[^"]*"')
+_KEY_RE = re.compile(r'(\b(?:radius\.)?key\s*=\s*)"[^"]*"')
 _PASSWORD_RE = re.compile(
-    r"(password\s+(?:login|pap)\s*=\s*"
-    r'(?:clear|des|crypt|mavis|permit|deny)\s*)"[^"]*"'
+    r"(password\s+[\w-]+\s*=\s*"
+    r'(?:clear|des|crypt|pbkdf2|md5|sha\d*|mavis|permit|deny)\s*)"[^"]*"'
 )
 _SETENV_RE = re.compile(
     r'(setenv\s+\w*(?:PASSWD|PASSWORD|SECRET|TOKEN)\w*\s*=\s*)"[^"]*"',

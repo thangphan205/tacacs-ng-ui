@@ -166,3 +166,113 @@ def test_any_caller_is_covered_not_only_the_routes(
     [row] = entries(db, "TacacsConfig", entity_id)
     no_secret([row])
     assert '"filename":"c.cfg"' in (row.new_values or "")
+
+
+def test_audit_log_endpoints_require_authentication(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    normal_user_token_headers: dict[str, str],
+    db: Session,
+    cleanup: list[str],
+) -> None:
+    entity_id = str(uuid.uuid4())
+    cleanup.append(entity_id)
+    row = audit_logs_crud.create_audit_log(
+        session=db,
+        audit_log_in=AuditLogCreate(
+            action="CREATE",
+            entity_type="Host",
+            entity_id=entity_id,
+            description="auth check",
+        ),
+        user_id=None,
+        user_email="t@example.com",
+        ip_address=None,
+    )
+    assert row is not None
+
+    # Anonymous access must be rejected with 401.
+    assert client.get(f"{API}/audit_logs/").status_code == 401
+    assert client.get(f"{API}/audit_logs/{row.id}").status_code == 401
+
+    # Authenticated users (normal and superuser) can read audit logs.
+    for headers in (normal_user_token_headers, superuser_token_headers):
+        assert client.get(f"{API}/audit_logs/?limit=1", headers=headers).status_code == 200
+        assert client.get(f"{API}/audit_logs/{row.id}", headers=headers).status_code == 200
+
+
+def test_configuration_option_cleartext_passwords_never_appear_in_audit_api(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    cleanup: list[str],
+) -> None:
+    sentinel = "SENTINEL-ClearPw-998877"
+    name = f"redact-cfgopt-{uuid.uuid4().hex[:8]}"
+    config_block = (
+        "user radclear {\n"
+        f'    password login = clear "{sentinel}"\n'
+        "    password pap = login\n"
+        f'    password chap = clear "{sentinel}"\n'
+        f'    password ms-chap = clear "{sentinel}"\n'
+        "    member = tacacs_super_user\n"
+        "}"
+    )
+    r = client.post(
+        f"{API}/configuration_options/",
+        headers=superuser_token_headers,
+        json={"name": name, "config_option": config_block, "description": "test"},
+    )
+    assert r.status_code == 200, r.text
+    cid = r.json()["id"]
+    cleanup.append(cid)
+
+    r = client.put(
+        f"{API}/configuration_options/{cid}",
+        headers=superuser_token_headers,
+        json={
+            "name": name,
+            "config_option": config_block.replace(sentinel, "SENTINEL-Updated-112233"),
+            "description": "updated",
+        },
+    )
+    assert r.status_code == 200, r.text
+    r = client.delete(
+        f"{API}/configuration_options/{cid}", headers=superuser_token_headers
+    )
+    assert r.status_code == 200
+
+    rows = entries(db, "ConfigurationOption", cid)
+    assert [x.action for x in rows] == ["CREATE", "UPDATE", "DELETE"]
+    for row in rows:
+        resp = client.get(f"{API}/audit_logs/{row.id}", headers=superuser_token_headers)
+        assert resp.status_code == 200
+        body = resp.text
+        assert sentinel not in body
+        assert "SENTINEL-Updated-112233" not in body
+        assert REDACTED in body
+        assert "password pap = login" in body
+
+
+def test_audit_description_inline_secrets_are_scrubbed(
+    db: Session, cleanup: list[str]
+) -> None:
+    entity_id = str(uuid.uuid4())
+    cleanup.append(entity_id)
+    audit_logs_crud.create_audit_log(
+        session=db,
+        audit_log_in=AuditLogCreate(
+            action="CREATE",
+            entity_type="ConfigurationOption",
+            entity_id=entity_id,
+            description='Failed with Authorization: Bearer secret-bearer-999 and tngk_abc123456789',
+        ),
+        user_id=None,
+        user_email="t@example.com",
+        ip_address=None,
+    )
+    [row] = entries(db, "ConfigurationOption", entity_id)
+    assert row.description is not None
+    assert "secret-bearer-999" not in row.description
+    assert "tngk_abc123456789" not in row.description
+    assert REDACTED in row.description

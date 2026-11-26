@@ -3,14 +3,18 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.deps import SessionDep, get_current_active_superuser
+from app.api.deps import SessionDep, get_current_active_superuser, get_current_user
 from app.crud import audit_logs as crud_audit_logs
 from app.models import AuditLog, AuditLogPublic, AuditLogsPublic
 
 router = APIRouter(prefix="/audit_logs", tags=["audit_logs"])
 
 
-@router.get("/", response_model=AuditLogsPublic)
+@router.get(
+    "/",
+    dependencies=[Depends(get_current_user)],
+    response_model=AuditLogsPublic,
+)
 def read_audit_logs(
     session: SessionDep,
     skip: int = 0,
@@ -23,7 +27,11 @@ def read_audit_logs(
     return AuditLogsPublic(data=logs, count=count)
 
 
-@router.get("/{id}", response_model=AuditLogPublic)
+@router.get(
+    "/{id}",
+    dependencies=[Depends(get_current_user)],
+    response_model=AuditLogPublic,
+)
 def read_audit_log_by_id(id: uuid.UUID, session: SessionDep) -> Any:
     log = session.get(AuditLog, id)
     if not log:

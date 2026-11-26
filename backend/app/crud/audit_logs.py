@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import text
 from sqlmodel import Session, delete, func, select
 
-from app.core.audit_redact import redact_audit_values
+from app.core.audit_redact import redact_audit_values, redact_text
 from app.core.config import settings
 from app.crud import standby_login_failures, tacacs_siem
 from app.models import AuditLog, AuditLogCreate
@@ -34,6 +34,8 @@ def create_audit_log(
     data["old_values"], data["new_values"] = redact_audit_values(
         audit_log_in.entity_type, audit_log_in.old_values, audit_log_in.new_values
     )
+    if data.get("description"):
+        data["description"] = redact_text(data["description"])
     db_obj = AuditLog(
         **data,
         user_id=user_id,
