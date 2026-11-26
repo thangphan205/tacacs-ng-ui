@@ -195,10 +195,39 @@ def test_audit_log_endpoints_require_authentication(
     assert client.get(f"{API}/audit_logs/").status_code == 401
     assert client.get(f"{API}/audit_logs/{row.id}").status_code == 401
 
-    # Authenticated users (normal and superuser) can read audit logs.
-    for headers in (normal_user_token_headers, superuser_token_headers):
-        assert client.get(f"{API}/audit_logs/?limit=1", headers=headers).status_code == 200
-        assert client.get(f"{API}/audit_logs/{row.id}", headers=headers).status_code == 200
+    # Superusers can read any audit record; unbounded limit is rejected.
+    assert (
+        client.get(
+            f"{API}/audit_logs/?limit=1", headers=superuser_token_headers
+        ).status_code
+        == 200
+    )
+    assert (
+        client.get(
+            f"{API}/audit_logs/{row.id}", headers=superuser_token_headers
+        ).status_code
+        == 200
+    )
+    assert (
+        client.get(
+            f"{API}/audit_logs/?limit=1000", headers=superuser_token_headers
+        ).status_code
+        == 422
+    )
+
+    # Non-superusers cannot read other users' audit records.
+    assert (
+        client.get(
+            f"{API}/audit_logs/{row.id}", headers=normal_user_token_headers
+        ).status_code
+        == 403
+    )
+    list_resp = client.get(
+        f"{API}/audit_logs/?limit=100", headers=normal_user_token_headers
+    )
+    assert list_resp.status_code == 200
+    returned_ids = {item["id"] for item in list_resp.json()["data"]}
+    assert str(row.id) not in returned_ids
 
 
 def test_configuration_option_cleartext_passwords_never_appear_in_audit_api(
