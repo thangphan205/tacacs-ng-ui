@@ -12,6 +12,10 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
+### Internal
+
+* 🔖 Release 0.7.2. PR [#447](https://github.com/thangphan205/tacacs-ng-ui/pull/447) by [@thangphan205](https://github.com/thangphan205).
+
 ## v0.7.2
 
 This is a security release, with a redesigned Alert Events page. In 0.7.1 the audit log could be read without signing in, and users who are not superusers could read host keys, RADIUS secrets, MAVIS passwords and notification channel tokens through the API. It has one database migration, which cannot be undone; see **Upgrading from 0.7.1**.
