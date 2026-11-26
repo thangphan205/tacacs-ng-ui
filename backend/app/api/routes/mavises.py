@@ -1,17 +1,18 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from sqlmodel import func, select
 
 from app.api.deps import (
+    CurrentUser,
     SessionDep,
     SuperUser,
     get_client_ip,
-    get_current_user,
 )
 from app.crud import audit_logs as audit_logs_crud
 from app.crud import mavises
+from app.mcp_server.redact import REDACTED, is_secret_mavis_key
 from app.models import (
     Mavis,
     MavisCreate,
@@ -27,13 +28,23 @@ router = APIRouter(prefix="/mavises", tags=["mavises"])
 _SENSITIVE = audit_logs_crud._SENSITIVE
 
 
+def _mavis_for_user(mavis: Mavis, current_user: CurrentUser) -> MavisPublic:
+    pub = MavisPublic.model_validate(mavis)
+    if not current_user.is_superuser and pub.mavis_value and is_secret_mavis_key(pub.mavis_key):
+        pub.mavis_value = REDACTED
+    return pub
+
+
 @router.get(
     "/",
-    dependencies=[Depends(get_current_user)],
     response_model=MavisesPublic,
 )
 def read_mavises(
-    session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None
+    session: SessionDep,
+    current_user: CurrentUser,
+    skip: int = 0,
+    limit: int = 100,
+    search: str | None = None,
 ) -> Any:
     """
     Retrieve mavises.
@@ -42,15 +53,21 @@ def read_mavises(
     count_statement = select(func.count()).select_from(Mavis)
     statement = select(Mavis)
     if search:
-        f = Mavis.mavis_key.ilike(f"%{search}%") | Mavis.mavis_value.ilike(
-            f"%{search}%"
-        )
+        if current_user.is_superuser:
+            f = Mavis.mavis_key.ilike(f"%{search}%") | Mavis.mavis_value.ilike(
+                f"%{search}%"
+            )
+        else:
+            # Avoid search-oracle leaks against secret mavis_value entries.
+            f = Mavis.mavis_key.ilike(f"%{search}%")
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()
-    mavises = session.exec(statement.offset(skip).limit(limit)).all()
+    rows = session.exec(statement.offset(skip).limit(limit)).all()
 
-    return MavisesPublic(data=mavises, count=count)
+    return MavisesPublic(
+        data=[_mavis_for_user(m, current_user) for m in rows], count=count
+    )
 
 
 @router.post(
@@ -91,23 +108,34 @@ def create_mavis(
 
 @router.get(
     "/preview",
-    dependencies=[Depends(get_current_user)],
     response_model=MavisPreviewPublic,
 )
-def preview_mavis(session: SessionDep) -> Any:
+def preview_mavis(session: SessionDep, current_user: CurrentUser) -> Any:
     """
     Preview mavis configuration.
     """
     statement = select(Mavis)
-    mavises = session.exec(statement).all()
+    rows = session.exec(statement).all()
 
-    if not mavises:
+    if not rows:
         return MavisPreviewPublic(data=None, created_at=None, updated_at=None)
 
-    data = "\n".join([f'setenv {m.mavis_key}="{m.mavis_value}"' for m in mavises])
+    lines = []
+    for m in rows:
+        val = (
+            REDACTED
+            if (
+                not current_user.is_superuser
+                and m.mavis_value
+                and is_secret_mavis_key(m.mavis_key)
+            )
+            else m.mavis_value
+        )
+        lines.append(f'setenv {m.mavis_key}="{val}"')
+    data = "\n".join(lines)
 
-    created_at = min(m.created_at for m in mavises)
-    updated_at = max(m.updated_at for m in mavises)
+    created_at = min(m.created_at for m in rows)
+    updated_at = max(m.updated_at for m in rows)
 
     return MavisPreviewPublic(
         data=data,
@@ -116,12 +144,11 @@ def preview_mavis(session: SessionDep) -> Any:
     )
 
 
-@router.get(
-    "/{id}", dependencies=[Depends(get_current_user)], response_model=MavisPublic
-)
+@router.get("/{id}", response_model=MavisPublic)
 def read_mavis_by_id(
     id: uuid.UUID,
     session: SessionDep,
+    current_user: CurrentUser,
 ) -> Any:
     """
     Get a specific mavis by id.
@@ -129,7 +156,7 @@ def read_mavis_by_id(
     mavis = session.get(Mavis, id)
     if not mavis:
         raise HTTPException(status_code=404, detail="Mavis not found")
-    return mavis
+    return _mavis_for_user(mavis, current_user)
 
 
 @router.put(

@@ -31,17 +31,30 @@ REDACTED = "***REDACTED***"
 # Values shorter than this are too likely to collide with unrelated text.
 _MIN_SECRET_LENGTH = 4
 
-_SECRET_MAVIS_KEY = re.compile(r"PASSWD|PASSWORD|SECRET|TOKEN|KEY", re.IGNORECASE)
-
-_KEY_RE = re.compile(r'(\b(?:radius\.)?key\s*=\s*)"[^"]*"')
-_PASSWORD_RE = re.compile(
-    r"(password\s+[\w-]+\s*=\s*"
-    r'(?:clear|des|crypt|pbkdf2|md5|sha\d*|mavis|permit|deny)\s*)"[^"]*"'
+_SECRET_MAVIS_KEY = re.compile(
+    r"PASS|SECRET|TOKEN|PRIVATE|CREDENTIAL|(^|_)(PW|KEY)($|_)", re.IGNORECASE
 )
-_SETENV_RE = re.compile(
-    r'(setenv\s+\w*(?:PASSWD|PASSWORD|SECRET|TOKEN)\w*\s*=\s*)"[^"]*"',
+
+_KEY_RE = re.compile(r'(\b(?:(?:radius\.)?key|shared[-_]?key)\s*=\s*)"[^"]*"')
+_PASSWORD_RE = re.compile(
+    r"(\bpassword\s+[\w-]+\s*=\s*"
+    r'(?:clear|des|crypt|pbkdf2|md5|sha\d*|mavis|permit|deny)\s*)"[^"]*"',
     re.IGNORECASE,
 )
+_PASSWORD_UNQUOTED_RE = re.compile(
+    r"(\bpassword\s+[\w-]+\s*=\s*"
+    r'(?:clear|des|crypt|pbkdf2|md5|sha\d*)\s+)([^\s;{}#"\']+)',
+    re.IGNORECASE,
+)
+_SETENV_RE = re.compile(
+    r'(\bsetenv\s+\w*(?:PASS|SECRET|TOKEN|PRIVATE|CREDENTIAL|PW|KEY)\w*\s*=\s*)"[^"]*"',
+    re.IGNORECASE,
+)
+
+
+def is_secret_mavis_key(key: str | None) -> bool:
+    """True when a MAVIS key name indicates a secret value (e.g. LDAP_PASSWD)."""
+    return bool(key and _SECRET_MAVIS_KEY.search(key))
 
 
 def collect_secrets(*, session: Session) -> list[str]:
@@ -100,5 +113,14 @@ def redact_config_text(text: str, *, secrets: Iterable[str] = ()) -> tuple[str, 
     text = _sub(_KEY_RE, text)
     text = _sub(_PASSWORD_RE, text)
     text = _sub(_SETENV_RE, text)
+
+    def _replace_unquoted(match: re.Match[str]) -> str:
+        nonlocal count
+        if match.group(2) == REDACTED:
+            return match.group(0)
+        count += 1
+        return f"{match.group(1)}{REDACTED}"
+
+    text = _PASSWORD_UNQUOTED_RE.sub(_replace_unquoted, text)
 
     return text, count

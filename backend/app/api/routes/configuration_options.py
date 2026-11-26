@@ -1,17 +1,18 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from sqlmodel import func, select
 
 from app.api.deps import (
+    CurrentUser,
     SessionDep,
     SuperUser,
     get_client_ip,
-    get_current_user,
 )
 from app.crud import audit_logs as audit_logs_crud
 from app.crud import configuration_options
+from app.mcp_server.redact import collect_secrets, redact_config_text
 from app.models import (
     ConfigurationOption,
     ConfigurationOptionCreate,
@@ -26,13 +27,27 @@ router = APIRouter(prefix="/configuration_options", tags=["configuration_options
 _SENSITIVE = audit_logs_crud._SENSITIVE
 
 
+def _option_for_user(
+    option: ConfigurationOption,
+    current_user: CurrentUser,
+    secrets: list[str],
+) -> ConfigurationOptionPublic:
+    pub = ConfigurationOptionPublic.model_validate(option)
+    if not current_user.is_superuser and pub.config_option:
+        pub.config_option, _ = redact_config_text(pub.config_option, secrets=secrets)
+    return pub
+
+
 @router.get(
     "/",
-    dependencies=[Depends(get_current_user)],
     response_model=ConfigurationOptionsPublic,
 )
 def read_configuration_options(
-    session: SessionDep, skip: int = 0, limit: int = 100, search: str | None = None
+    session: SessionDep,
+    current_user: CurrentUser,
+    skip: int = 0,
+    limit: int = 100,
+    search: str | None = None,
 ) -> Any:
     """
     Retrieve configuration_options.
@@ -41,18 +56,28 @@ def read_configuration_options(
     count_statement = select(func.count()).select_from(ConfigurationOption)
     statement = select(ConfigurationOption)
     if search:
-        f = (
-            ConfigurationOption.name.ilike(f"%{search}%")
-            | ConfigurationOption.config_option.ilike(f"%{search}%")
-            | ConfigurationOption.description.ilike(f"%{search}%")
-        )
+        if current_user.is_superuser:
+            f = (
+                ConfigurationOption.name.ilike(f"%{search}%")
+                | ConfigurationOption.config_option.ilike(f"%{search}%")
+                | ConfigurationOption.description.ilike(f"%{search}%")
+            )
+        else:
+            # Avoid search-oracle leaks against inline secrets in config_option.
+            f = ConfigurationOption.name.ilike(
+                f"%{search}%"
+            ) | ConfigurationOption.description.ilike(f"%{search}%")
         count_statement = count_statement.where(f)
         statement = statement.where(f)
     count = session.exec(count_statement).one()
 
-    configuration_options = session.exec(statement.offset(skip).limit(limit)).all()
+    rows = session.exec(statement.offset(skip).limit(limit)).all()
+    secrets = [] if current_user.is_superuser else collect_secrets(session=session)
 
-    return ConfigurationOptionsPublic(data=configuration_options, count=count)
+    return ConfigurationOptionsPublic(
+        data=[_option_for_user(opt, current_user, secrets) for opt in rows],
+        count=count,
+    )
 
 
 @router.post(
@@ -95,14 +120,11 @@ def create_configuration_option(
     return configuration_option
 
 
-@router.get(
-    "/{id}",
-    dependencies=[Depends(get_current_user)],
-    response_model=ConfigurationOptionPublic,
-)
+@router.get("/{id}", response_model=ConfigurationOptionPublic)
 def read_configuration_option_by_id(
     id: uuid.UUID,
     session: SessionDep,
+    current_user: CurrentUser,
 ) -> Any:
     """
     Get a specific configuration_option by id.
@@ -110,7 +132,8 @@ def read_configuration_option_by_id(
     configuration_option = session.get(ConfigurationOption, id)
     if not configuration_option:
         raise HTTPException(status_code=404, detail="ConfigurationOption not found")
-    return configuration_option
+    secrets = [] if current_user.is_superuser else collect_secrets(session=session)
+    return _option_for_user(configuration_option, current_user, secrets)
 
 
 @router.put(

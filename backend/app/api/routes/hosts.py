@@ -5,14 +5,15 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import asc, desc, func, select
 
 from app.api.deps import (
+    CurrentUser,
     SessionDep,
     SuperUser,
     get_client_ip,
-    get_current_user,
     require_primary_node,
 )
 from app.crud import audit_logs as audit_logs_crud
 from app.crud import hosts
+from app.mcp_server.redact import REDACTED
 from app.models import (
     Host,
     HostCreate,
@@ -34,13 +35,23 @@ _SORT_FIELDS = {
 }
 
 
+def _host_for_user(host: Host, current_user: CurrentUser) -> HostPublic:
+    pub = HostPublic.model_validate(host)
+    if not current_user.is_superuser:
+        if pub.secret_key:
+            pub.secret_key = REDACTED
+        if pub.radius_secret_key:
+            pub.radius_secret_key = REDACTED
+    return pub
+
+
 @router.get(
     "/",
-    dependencies=[Depends(get_current_user)],
     response_model=HostsPublic,
 )
 def read_hosts(
     session: SessionDep,
+    current_user: CurrentUser,
     skip: int = 0,
     limit: int = 100,
     search: str | None = None,
@@ -76,9 +87,9 @@ def read_hosts(
         (desc(col), desc(Host.id)) if sort_order == "desc" else (asc(col), asc(Host.id))
     )
     count = session.exec(count_statement).one()
-    hosts = session.exec(statement.order_by(*order).offset(skip).limit(limit)).all()
+    rows = session.exec(statement.order_by(*order).offset(skip).limit(limit)).all()
 
-    return HostsPublic(data=hosts, count=count)
+    return HostsPublic(data=[_host_for_user(h, current_user) for h in rows], count=count)
 
 
 @router.post(
@@ -121,12 +132,11 @@ def create_host(
     return host
 
 
-@router.get(
-    "/{id}", dependencies=[Depends(get_current_user)], response_model=HostPublic
-)
+@router.get("/{id}", response_model=HostPublic)
 def read_host_by_id(
     id: uuid.UUID,
     session: SessionDep,
+    current_user: CurrentUser,
 ) -> Any:
     """
     Get a specific host by id.
@@ -134,7 +144,7 @@ def read_host_by_id(
     host = session.get(Host, id)
     if not host:
         raise HTTPException(status_code=404, detail="Host not found")
-    return host
+    return _host_for_user(host, current_user)
 
 
 @router.put(

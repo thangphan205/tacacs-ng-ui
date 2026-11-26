@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import func, select
 
 from app.api.deps import (
+    CurrentUser,
     SessionDep,
     SuperUser,
     get_client_ip,
@@ -19,6 +20,7 @@ from app.crud import audit_logs as audit_logs_crud
 from app.crud import default_credentials as default_credentials_crud
 from app.crud import profiles as profiles_crud
 from app.crud import tacacs_configs
+from app.mcp_server.redact import collect_secrets, redact_config_text
 from app.models import (
     DefaultCredentialsPublic,
     Message,
@@ -34,6 +36,16 @@ router = APIRouter(prefix="/tacacs_configs", tags=["tacacs_configs"])
 
 # config_text is the whole config file; keep it out of audit rows.
 _SENSITIVE = audit_logs_crud._SENSITIVE | {"config_text"}
+
+
+def _redact_config_for_user(
+    session: SessionDep, current_user: CurrentUser, text: str | None
+) -> str | None:
+    """Strip secrets from raw tac_plus-ng config text for non-superusers."""
+    if not text or current_user.is_superuser:
+        return text
+    redacted, _ = redact_config_text(text, secrets=collect_secrets(session=session))
+    return redacted
 
 
 @router.get(
@@ -75,17 +87,18 @@ def read_tacacs_configs(
 
 @router.get(
     "/preview",
-    dependencies=[Depends(get_current_user)],
     response_model=TacacsConfigPreviewPublic,
 )
-def generate_preview_tacacs_config(*, session: SessionDep) -> Any:
+def generate_preview_tacacs_config(
+    *, session: SessionDep, current_user: CurrentUser
+) -> Any:
     """
     Preview candidate tacacs_config.
     """
 
     tacacs_config = tacacs_configs.generate_preview_tacacs_config(session=session)
     return {
-        "data": tacacs_config,
+        "data": _redact_config_for_user(session, current_user, tacacs_config),
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc),
     }
@@ -108,12 +121,13 @@ def read_default_credentials(*, session: SessionDep) -> Any:
 
 @router.get(
     "/active",
-    dependencies=[Depends(get_current_user)],
     response_model=TacacsConfigPublic,
 )
-def get_active_tacacs_config(*, session: SessionDep) -> Any:
+def get_active_tacacs_config(
+    *, session: SessionDep, current_user: CurrentUser
+) -> Any:
     """
-    Preview candidate tacacs_config.
+    Retrieve the active tacacs_config.
     """
 
     tacacs_config = tacacs_configs.get_active_tacacs_config(session=session)
@@ -122,9 +136,8 @@ def get_active_tacacs_config(*, session: SessionDep) -> Any:
         # raises on None and the caller gets a 500 instead of an answer.
         raise HTTPException(status_code=404, detail="No configuration is active")
     tacacs_config_return = TacacsConfigPublic.model_validate(tacacs_config)
-    tacacs_config_return.data = tacacs_configs.get_tacacs_config_by_filename(
-        filename="tac_plus-ng"
-    )
+    raw_data = tacacs_configs.get_tacacs_config_by_filename(filename="tac_plus-ng")
+    tacacs_config_return.data = _redact_config_for_user(session, current_user, raw_data)
     return tacacs_config_return
 
 
@@ -193,12 +206,11 @@ def create_tacacs_config(
     return tacacs_config
 
 
-@router.get(
-    "/{id}", dependencies=[Depends(get_current_user)], response_model=TacacsConfigPublic
-)
+@router.get("/{id}", response_model=TacacsConfigPublic)
 def read_tacacs_config_by_id(
     id: uuid.UUID,
     session: SessionDep,
+    current_user: CurrentUser,
 ) -> Any:
     """
     Get a specific tacacs_config by id.
@@ -212,7 +224,9 @@ def read_tacacs_config_by_id(
         )
     file_content = tacacs_configs.get_tacacs_config_by_filename(tacacs_config.filename)
     tacacs_config_return = TacacsConfigPublic.model_validate(tacacs_config)
-    tacacs_config_return.data = file_content
+    tacacs_config_return.data = _redact_config_for_user(
+        session, current_user, file_content
+    )
     return tacacs_config_return
 
 
