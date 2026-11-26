@@ -214,7 +214,9 @@ function Login() {
 
   const handleGoogleLogin = async () => {
     try {
-      const res = await fetch(`${apiBaseUrl()}/api/v1/oauth/google/authorize`)
+      const res = await fetch(`${apiBaseUrl()}/api/v1/oauth/google/authorize`, {
+        credentials: "include",
+      })
       const data = await res.json()
       if (!res.ok || !data.url) {
         handleError({ status: res.status, body: data } as never)
@@ -231,7 +233,10 @@ function Login() {
 
   const handleKeycloakLogin = async () => {
     try {
-      const res = await fetch(`${apiBaseUrl()}/api/v1/oauth/keycloak/authorize`)
+      const res = await fetch(
+        `${apiBaseUrl()}/api/v1/oauth/keycloak/authorize`,
+        { credentials: "include" },
+      )
       const data = await res.json()
       if (!res.ok || !data.url) {
         handleError({ status: res.status, body: data } as never)
@@ -250,6 +255,7 @@ function Login() {
     try {
       const res = await fetch(
         `${apiBaseUrl()}/api/v1/oauth/microsoft/authorize`,
+        { credentials: "include" },
       )
       const data = await res.json()
       if (!res.ok || !data.url) {

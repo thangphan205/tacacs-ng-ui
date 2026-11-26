@@ -3,13 +3,15 @@ import hashlib
 import hmac
 import json
 import logging
+import secrets
+import threading
 import time
 from dataclasses import dataclass
 from datetime import timedelta
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 from sqlmodel import Session
 
@@ -235,41 +237,117 @@ def _id_token_claims(id_token: str) -> dict[str, object]:
     return claims
 
 
-def _make_state() -> str:
+OAUTH_STATE_COOKIE = "oauth_state"
+_OAUTH_STATE_TTL_SECONDS = 600
+_OAUTH_COOKIE_PATH = f"{settings.API_V1_STR}/oauth"
+_consumed_states: dict[str, float] = {}
+_consumed_states_lock = threading.Lock()
+
+
+def _is_https_request(request: Request) -> bool:
+    proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower()
+    return (
+        request.url.scheme == "https"
+        or proto == "https"
+        or settings.FRONTEND_HOST.lower().startswith("https://")
+    )
+
+
+def _make_state(provider: str) -> str:
+    """Mint a cryptographically random, provider-bound, signed OAuth state."""
     ts = str(int(time.time()))
+    nonce = secrets.token_urlsafe(16)
+    payload = f"{provider}.{ts}.{nonce}"
     sig = hmac.new(
         settings.SECRET_KEY.encode(),
-        ts.encode(),
+        payload.encode(),
         hashlib.sha256,
     ).hexdigest()
-    return f"{ts}.{sig}"
+    return f"{payload}.{sig}"
 
 
-def _verify_state(state: str) -> bool:
+def _set_state_cookie(response: Response, request: Request, state: str) -> None:
+    response.set_cookie(
+        key=OAUTH_STATE_COOKIE,
+        value=state,
+        max_age=_OAUTH_STATE_TTL_SECONDS,
+        httponly=True,
+        samesite="lax",
+        secure=_is_https_request(request),
+        path=_OAUTH_COOKIE_PATH,
+    )
+
+
+def _clear_state_cookie(response: Response, request: Request) -> None:
+    response.delete_cookie(
+        key=OAUTH_STATE_COOKIE,
+        path=_OAUTH_COOKIE_PATH,
+        httponly=True,
+        samesite="lax",
+        secure=_is_https_request(request),
+    )
+
+
+def _consume_nonce(nonce: str, now: float) -> bool:
+    """Record a state nonce as used; returns False if it was already consumed."""
+    with _consumed_states_lock:
+        expired = [k for k, exp in _consumed_states.items() if exp <= now]
+        for k in expired:
+            del _consumed_states[k]
+        if nonce in _consumed_states:
+            return False
+        _consumed_states[nonce] = now + _OAUTH_STATE_TTL_SECONDS
+        return True
+
+
+def _verify_state(
+    state: str,
+    *,
+    expected_provider: str,
+    cookie_state: str | None,
+) -> bool:
+    if not state or not cookie_state:
+        return False
+    if not hmac.compare_digest(cookie_state, state):
+        return False
+    parts = state.split(".")
+    if len(parts) != 4:
+        return False
+    provider, ts_raw, nonce, sig = parts
+    if provider != expected_provider or not nonce:
+        return False
     try:
-        ts, sig = state.split(".", 1)
+        ts = int(ts_raw)
     except ValueError:
         return False
-    if abs(time.time() - int(ts)) > 600:  # 10-minute window
+    now = time.time()
+    if abs(now - ts) > _OAUTH_STATE_TTL_SECONDS:
         return False
+    payload = f"{provider}.{ts_raw}.{nonce}"
     expected = hmac.new(
         settings.SECRET_KEY.encode(),
-        ts.encode(),
+        payload.encode(),
         hashlib.sha256,
     ).hexdigest()
-    return hmac.compare_digest(sig, expected)
+    if not hmac.compare_digest(sig, expected):
+        return False
+    return _consume_nonce(nonce, now)
 
 
 @router.get("/google/authorize")
-def google_authorize(session: SessionDep) -> dict[str, str]:
+def google_authorize(
+    request: Request, response: Response, session: SessionDep
+) -> dict[str, str]:
     creds = _google_creds(session)
+    state = _make_state("google")
+    _set_state_cookie(response, request, state)
 
     params = {
         "client_id": creds.client_id,
         "redirect_uri": creds.redirect_uri,
         "response_type": "code",
         "scope": GOOGLE_SCOPES,
-        "state": _make_state(),
+        "state": state,
         "access_type": "online",
     }
     return {"url": creds.auth_url + "?" + urlencode(params)}
@@ -282,7 +360,11 @@ def google_callback(
     code: str,
     state: str,
 ) -> RedirectResponse:
-    if not _verify_state(state):
+    if not _verify_state(
+        state,
+        expected_provider="google",
+        cookie_state=request.cookies.get(OAUTH_STATE_COOKIE),
+    ):
         raise HTTPException(status_code=400, detail="Invalid OAuth state")
 
     creds = _google_creds(session)
@@ -359,19 +441,25 @@ def google_callback(
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     redirect_url = f"{settings.FRONTEND_HOST}/oauth-callback?token={jwt}"
-    return RedirectResponse(url=redirect_url)
+    resp = RedirectResponse(url=redirect_url)
+    _clear_state_cookie(resp, request)
+    return resp
 
 
 @router.get("/keycloak/authorize")
-def keycloak_authorize(session: SessionDep) -> dict[str, str]:
+def keycloak_authorize(
+    request: Request, response: Response, session: SessionDep
+) -> dict[str, str]:
     creds = _keycloak_creds(session)
+    state = _make_state("keycloak")
+    _set_state_cookie(response, request, state)
 
     params = {
         "client_id": creds.client_id,
         "redirect_uri": creds.redirect_uri,
         "response_type": "code",
         "scope": "openid email profile",
-        "state": _make_state(),
+        "state": state,
     }
     return {"url": creds.auth_url + "?" + urlencode(params)}
 
@@ -383,7 +471,11 @@ def keycloak_callback(
     code: str,
     state: str,
 ) -> RedirectResponse:
-    if not _verify_state(state):
+    if not _verify_state(
+        state,
+        expected_provider="keycloak",
+        cookie_state=request.cookies.get(OAUTH_STATE_COOKIE),
+    ):
         raise HTTPException(status_code=400, detail="Invalid OAuth state")
 
     creds = _keycloak_creds(session)
@@ -460,12 +552,18 @@ def keycloak_callback(
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     redirect_url = f"{settings.FRONTEND_HOST}/oauth-callback?token={jwt}"
-    return RedirectResponse(url=redirect_url)
+    resp = RedirectResponse(url=redirect_url)
+    _clear_state_cookie(resp, request)
+    return resp
 
 
 @router.get("/microsoft/authorize")
-def microsoft_authorize(session: SessionDep) -> dict[str, str]:
+def microsoft_authorize(
+    request: Request, response: Response, session: SessionDep
+) -> dict[str, str]:
     creds, _ = _microsoft_creds(session)
+    state = _make_state("microsoft")
+    _set_state_cookie(response, request, state)
 
     params = {
         "client_id": creds.client_id,
@@ -473,7 +571,7 @@ def microsoft_authorize(session: SessionDep) -> dict[str, str]:
         "response_type": "code",
         "response_mode": "query",
         "scope": MICROSOFT_SCOPES,
-        "state": _make_state(),
+        "state": state,
     }
     return {"url": creds.auth_url + "?" + urlencode(params)}
 
@@ -487,7 +585,11 @@ def microsoft_callback(
     error: str | None = None,
     error_description: str | None = None,
 ) -> RedirectResponse:
-    if not _verify_state(state):
+    if not _verify_state(
+        state,
+        expected_provider="microsoft",
+        cookie_state=request.cookies.get(OAUTH_STATE_COOKIE),
+    ):
         raise HTTPException(status_code=400, detail="Invalid OAuth state")
     if error or not code:
         # e.g. the user declined consent, or the tenant admin blocked the app
@@ -591,4 +693,6 @@ def microsoft_callback(
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     redirect_url = f"{settings.FRONTEND_HOST}/oauth-callback?token={jwt}"
-    return RedirectResponse(url=redirect_url)
+    resp = RedirectResponse(url=redirect_url)
+    _clear_state_cookie(resp, request)
+    return resp

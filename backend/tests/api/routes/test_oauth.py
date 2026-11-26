@@ -196,9 +196,11 @@ def _microsoft_callback(
         )
 
     monkeypatch.setattr(httpx.Client, "post", fake_post)
+    state = oauth._make_state("microsoft")
     return client.get(
         f"{settings.API_V1_STR}/oauth/microsoft/callback",
-        params={"code": "abc", "state": oauth._make_state()},
+        params={"code": "abc", "state": state},
+        cookies={oauth.OAUTH_STATE_COOKIE: state},
         follow_redirects=False,
     )
 
@@ -420,9 +422,11 @@ def test_google_keycloak_require_approval_creates_inactive_user_until_approved(
     monkeypatch.setattr(httpx.Client, "get", fake_get)
 
     try:
+        state1 = oauth._make_state(provider)
         r = client.get(
             f"{settings.API_V1_STR}/oauth/{provider}/callback",
-            params={"code": "abc", "state": oauth._make_state()},
+            params={"code": "abc", "state": state1},
+            cookies={oauth.OAUTH_STATE_COOKIE: state1},
             follow_redirects=False,
         )
         assert r.status_code == 307, r.text
@@ -435,9 +439,11 @@ def test_google_keycloak_require_approval_creates_inactive_user_until_approved(
         db.add(user)
         db.commit()
 
+        state2 = oauth._make_state(provider)
         r2 = client.get(
             f"{settings.API_V1_STR}/oauth/{provider}/callback",
-            params={"code": "abc", "state": oauth._make_state()},
+            params={"code": "abc", "state": state2},
+            cookies={oauth.OAUTH_STATE_COOKIE: state2},
             follow_redirects=False,
         )
         assert r2.status_code == 307, r2.text
