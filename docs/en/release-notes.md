@@ -12,9 +12,33 @@ of cutting a release; do not delete the heading itself. -->
 
 ## Unreleased
 
-### Internal
+## v0.7.2
 
-* 🔖 Release 0.7.1. PR [#446](https://github.com/thangphan205/tacacs-ng-ui/pull/446) by [@thangphan205](https://github.com/thangphan205).
+This is a security release, with a redesigned Alert Events page. In 0.7.1 the audit log could be read without signing in, and users who are not superusers could read host keys, RADIUS secrets, MAVIS passwords and notification channel tokens through the API. It has one database migration, which cannot be undone; see **Upgrading from 0.7.1**.
+
+### Security
+
+* 🔒 **The audit log requires sign-in again.** `GET /api/v1/audit_logs/` and `/{id}` answered without a token. Users who are not superusers now see only their own entries, and get 403 for anyone else's. `limit` is capped at 200. A new test fails if any `/api/v1` operation is left without authentication by mistake.
+* 🔒 **Secrets no longer reach users who are not superusers.** For them, the API now masks host TACACS+ keys and RADIUS secrets, secret MAVIS values (`LDAP_PASSWD` and similar), and the keys, password hashes and clear passwords in the generated config. This applies to config preview, active config, saved configs and Configuration Options. Search no longer matches inside those secret fields, so it can't be used to guess them. Superusers see everything as before.
+* 🔒 **Only superusers can manage notification channels.** Creating, editing, deleting and testing a channel now needs a superuser. Changes to channels are audit-logged. Users who are not superusers still see the channels, with bot tokens, webhook URLs, SMTP passwords and other secret keys in `config_json` masked.
+* 🔒 **Secrets typed into free text are kept out of the audit log.** Credentials inside Configuration Options, script bodies, notification channel settings and descriptions (`password login = clear "…"`, `key = "…"`, Telegram bot tokens) are now masked when the entry is written. A migration masks rows already stored. MCP output masks more password and key forms too (`password <any> = clear|crypt|…`, `radius.key`, unquoted passwords).
+* 🔒 **OAuth sign-in is tied to the browser that started it.** Google, Keycloak and Microsoft sign-in now uses a random state, signed and bound to the provider. That state is also stored in an HttpOnly, SameSite=Lax cookie, and the callback must present both. A sign-in link started in one browser can no longer be finished in another.
+
+### Features
+
+* ✨ Redesign the Alert Events page and its detail view.
+
+### Fixes
+
+* 🐛 Keep the Actions column header on one line in tables with a fixed layout.
+
+### Upgrading from 0.7.1
+
+* **Rebuild the images.** The backend runs the migration on start.
+* **Migration `c7e3a9d14f20` cannot be undone.** It overwrites credentials found in existing audit log rows with `[redacted]`. Downgrading does nothing, and the values can't be recovered. Take a database backup first if you need the old rows.
+* **Accounts that are not superusers can do less.** They can no longer change notification channels, they see only their own audit entries, and they get secrets masked. Make an account a superuser if it needs any of these.
+* **OAuth redirect URI must be on the app's own host.** The state cookie is set on the app's origin under `/api/v1/oauth`. If a Google, Keycloak or Microsoft redirect URI points at a different host than `FRONTEND_HOST` (an old setup with a separate API domain), sign-in now fails with "Invalid OAuth state". Set it to `https://<your app host>/api/v1/oauth/<provider>/callback`, both in the app and at the identity provider.
+* **API clients:** asking for an audit log `limit` above 200 now returns 422.
 
 ## v0.7.1
 
@@ -43,6 +67,10 @@ This release moves the RADIUS settings to their own page and closes a config-inj
 * **Rebuild the images.** There is no database migration and no new setting.
 * **The RADIUS settings moved** to **AAA Config → RADIUS** in the sidebar. The stored values are unchanged.
 * **Names with a quote, `#` or `\` keep working** and stay editable. A stored name or action with whitespace or braces, which only got in before this fix, is now left out of the generated config (an action becomes `deny`). Check the TACACS Configs page for unapplied changes, then Generate and Activate.
+
+### Internal
+
+* 🔖 Release 0.7.1. PR [#446](https://github.com/thangphan205/tacacs-ng-ui/pull/446) by [@thangphan205](https://github.com/thangphan205).
 
 ## v0.7.0
 
