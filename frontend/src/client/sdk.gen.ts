@@ -937,7 +937,7 @@ export class TacacsConfigsService {
     /**
      * Get Active Tacacs Config
      *
-     * Preview candidate tacacs_config.
+     * Retrieve the active tacacs_config.
      */
     public static getActiveTacacsConfig<ThrowOnError extends boolean = true>(options?: Options<never, ThrowOnError>): RequestResult<TacacsConfigsGetActiveTacacsConfigResponses, unknown, ThrowOnError, 'data'> {
         return (options?.client ?? client).get<TacacsConfigsGetActiveTacacsConfigResponses, unknown, ThrowOnError, 'data'>({
@@ -2549,6 +2549,7 @@ export class AuditLogsService {
                 ] }]);
         return (options?.client ?? client).get<AuditLogsReadAuditLogsResponses, AuditLogsReadAuditLogsErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
+            security: [{ scheme: 'bearer', type: 'http' }],
             url: '/api/v1/audit_logs/',
             ...options,
             ...params
@@ -2564,6 +2565,7 @@ export class AuditLogsService {
         const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
         return (options?.client ?? client).get<AuditLogsReadAuditLogByIdResponses, AuditLogsReadAuditLogByIdErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
+            security: [{ scheme: 'bearer', type: 'http' }],
             url: '/api/v1/audit_logs/{id}',
             ...options,
             ...params
