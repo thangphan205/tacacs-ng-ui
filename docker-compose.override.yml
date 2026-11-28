@@ -6,7 +6,7 @@ services:
   # To enable it, update .env, set:
   # DOMAIN=localhost.tiangolo.com
   proxy:
-    image: traefik:v3.7
+    image: traefik:v3.8
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
