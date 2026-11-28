@@ -19,7 +19,7 @@ dependencies = [
     "alembic>=1.19.1,<2.0.0",
     "httpx<1.0.0,>=0.25.1",
     "psycopg[binary]>=3.3.9,<4.0.0",
-    "sqlmodel==0.0.39",
+    "sqlmodel==0.0.50",
     # Login password hashing: argon2id for new hashes, bcrypt kept only to verify
     # pre-migration "$2b$" hashes. No direct bcrypt dependency — pwdlib[bcrypt]
     # owns it, which is what lets bcrypt move freely again.
